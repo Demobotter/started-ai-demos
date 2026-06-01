@@ -152,6 +152,7 @@ var slots = [
 
 var activeSpec   = "all";
 var activeMethod = "all";
+var activeZip    = "";
 var pickedSlot   = null;
 
 function stars(n) {
@@ -196,18 +197,31 @@ function renderCards(list) {
 }
 
 function getFiltered() {
-  return trainers.filter(function(t) {
+  var list = trainers.filter(function(t) {
+    var zipOk    = !activeZip || t.zip === activeZip || t.zip.slice(0,3) === activeZip.slice(0,3);
     var methodOk = activeMethod === "all" || t.method === activeMethod;
     var specOk   = activeSpec   === "all" || t.specs.indexOf(activeSpec) !== -1;
-    return methodOk && specOk;
+    return zipOk && methodOk && specOk;
   });
+  // If zip was entered but no exact matches, fall back to all (so it never shows empty)
+  if (activeZip && !list.length) {
+    list = trainers.filter(function(t) {
+      var methodOk = activeMethod === "all" || t.method === activeMethod;
+      var specOk   = activeSpec   === "all" || t.specs.indexOf(activeSpec) !== -1;
+      return methodOk && specOk;
+    });
+    document.getElementById("zipLabel").textContent = "near " + activeZip + " (showing all)";
+  }
+  return list;
 }
 
 // Search button
 document.getElementById("searchBtn").addEventListener("click", function() {
   var zip = document.getElementById("zipInput").value.trim();
+  activeZip    = zip;
   activeMethod = document.getElementById("methodSelect").value;
   if (zip) document.getElementById("zipLabel").textContent = zip;
+  else     document.getElementById("zipLabel").textContent = "Austin, TX";
   renderCards(getFiltered());
 });
 
