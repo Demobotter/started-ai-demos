@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CarouselAI — Reddit → LinkedIn Carousels</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f0f4f8;color:#1e293b}
+nav{background:#fff;border-bottom:1px solid #e2e8f0;padding:0 2rem;display:flex;align-items:center;justify-content:space-between;height:60px;position:sticky;top:0;z-index:100}
+.logo{font-size:1.3rem;font-weight:800;background:linear-gradient(135deg,#0077b5,#e1306c);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hero{background:linear-gradient(135deg,#0077b5 0%,#004182 100%);color:#fff;padding:4rem 2rem;text-align:center}
+.hero h1{font-size:2.5rem;font-weight:800;margin-bottom:.75rem}
+.hero p{font-size:1.1rem;opacity:.9;margin-bottom:2rem;max-width:550px;margin-left:auto;margin-right:auto}
+.input-area{background:#fff;border-radius:16px;padding:1.5rem;max-width:680px;margin:0 auto;box-shadow:0 4px 20px rgba(0,0,0,.2)}
+.url-row{display:flex;gap:.75rem;margin-bottom:.75rem}
+.url-row input{flex:1;border:1.5px solid #e2e8f0;border-radius:10px;padding:.75rem 1rem;font-size:.95rem;outline:none;transition:border-color .2s}
+.url-row input:focus{border-color:#0077b5}
+.url-row button{background:#0077b5;color:#fff;border:none;padding:.75rem 1.5rem;border-radius:10px;font-weight:700;cursor:pointer;white-space:nowrap;font-size:.95rem}
+.url-row button:hover{background:#005fa3}
+.options-row{display:flex;gap:.75rem;flex-wrap:wrap}
+.options-row select,.options-row input[type=number]{border:1.5px solid #e2e8f0;border-radius:8px;padding:.5rem .75rem;font-size:.85rem;outline:none;color:#475569}
+.main{max-width:1100px;margin:2rem auto;padding:0 2rem;display:grid;grid-template-columns:1fr 1fr;gap:2rem}
+@media(max-width:768px){.main{grid-template-columns:1fr}}
+.panel{background:#fff;border-radius:16px;padding:1.5rem;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.panel h3{font-size:1rem;font-weight:700;margin-bottom:1rem;display:flex;align-items:center;gap:.5rem}
+.reddit-post{border:1px solid #e2e8f0;border-radius:10px;padding:.75rem;margin-bottom:.6rem;cursor:pointer;transition:all .2s}
+.reddit-post:hover,.reddit-post.selected{border-color:#0077b5;background:#f0f9ff}
+.reddit-post .title{font-weight:600;font-size:.85rem;margin-bottom:.3rem}
+.reddit-post .meta{font-size:.75rem;color:#64748b}
+.reddit-post .upvotes{color:#ff4500;font-weight:700;font-size:.8rem}
+.carousel-preview{display:flex;flex-direction:column;gap:.6rem}
+.slide{border:2px solid #e2e8f0;border-radius:10px;padding:1rem;background:#f8fafc;font-size:.8rem;position:relative;min-height:80px;transition:all .2s}
+.slide.active{border-color:#0077b5;background:#f0f9ff}
+.slide-num{position:absolute;top:.5rem;right:.75rem;background:#0077b5;color:#fff;border-radius:20px;padding:.1rem .5rem;font-size:.7rem;font-weight:700}
+.slide-title{font-weight:700;font-size:.85rem;margin-bottom:.3rem;color:#1e293b}
+.slide-body{color:#475569;font-size:.78rem;line-height:1.4}
+.generate-btn{width:100%;padding:.85rem;background:linear-gradient(135deg,#0077b5,#005fa3);color:#fff;border:none;border-radius:10px;font-weight:700;font-size:1rem;cursor:pointer;margin-top:1rem}
+.generate-btn:hover{opacity:.9}
+.export-bar{display:flex;gap:.5rem;margin-top:1rem}
+.export-btn{flex:1;padding:.6rem;border:1.5px solid #e2e8f0;border-radius:8px;font-size:.8rem;font-weight:600;cursor:pointer;background:#fff;color:#475569;transition:all .2s}
+.export-btn:hover{border-color:#0077b5;color:#0077b5}
+.loading{display:none;text-align:center;padding:2rem;color:#64748b}
+.spinner{display:inline-block;width:24px;height:24px;border:3px solid #e2e8f0;border-top-color:#0077b5;border-radius:50%;animation:spin .8s linear infinite;margin-bottom:.5rem}
+@keyframes spin{to{transform:rotate(360deg)}}
+.badge{padding:.2rem .6rem;border-radius:20px;font-size:.7rem;font-weight:600;background:#dbeafe;color:#1d4ed8;margin-left:.4rem}
+footer{text-align:center;padding:2rem;color:#94a3b8;font-size:.8rem;margin-top:2rem}
+</style>
+</head>
+<body>
+<nav>
+  <div class="logo">CarouselAI</div>
+  <div style="font-size:.85rem;color:#64748b">Reddit → LinkedIn · $50/week</div>
+</nav>
+<div class="hero">
+  <h1>Turn Reddit Threads into LinkedIn Carousels</h1>
+  <p>Paste any Reddit thread URL — AI converts the top insights into a ready-to-post LinkedIn carousel.</p>
+  <div class="input-area">
+    <div class="url-row">
+      <input type="text" id="urlInput" placeholder="https://reddit.com/r/startups/comments/..." value="https://reddit.com/r/startups/comments/example" />
+      <button onclick="fetchThread()">Extract</button>
+    </div>
+    <div class="options-row">
+      <select id="slideCount"><option value="5">5 slides</option><option value="7" selected>7 slides</option><option value="10">10 slides</option></select>
+      <select id="tone"><option>Professional</option><option selected>Thought leader</option><option>Casual</option></select>
+      <select id="niche"><option>SaaS / Startup</option><option>Marketing</option><option>Dev</option><option>Finance</option></select>
+    </div>
+  </div>
+</div>
+
+<div class="main">
+  <div class="panel">
+    <h3>🔴 Reddit Thread <span class="badge" id="postBadge">r/startups</span></h3>
+    <div id="loading" class="loading"><div class="spinner"></div><br>Extracting insights...</div>
+    <div id="postList"></div>
+  </div>
+  <div class="panel">
+    <h3>💼 LinkedIn Carousel Preview</h3>
+    <div id="carouselPreview" class="carousel-preview"></div>
+    <div id="exportBar" class="export-bar" style="display:none">
+      <button class="export-btn" onclick="alert('PDF export — slide 1 of 7 downloaded!')">📄 Export PDF</button>
+      <button class="export-btn" onclick="alert('Canva template opened! Design is ready.')">🎨 Open in Canva</button>
+      <button class="export-btn" onclick="copyCaption()">📋 Copy Caption</button>
+    </div>
+  </div>
+</div>
+
+<footer>CarouselAI · Auto-generated demo by Started AI · Not a real service</footer>
+
+<script>
+var samplePosts = [
+  {title:"The best growth hack nobody talks about: reply to every comment for 30 days",upvotes:"4.2k",comments:234,selected:true,
+   body:"I tripled my LinkedIn engagement just by being consistent. People remember you when you show up."},
+  {title:"We hit $10k MRR without paid ads — here's the exact 3-step outreach process",upvotes:"3.8k",comments:187,selected:false,
+   body:"Cold DM, free audit, then a paid project. We did this 50 times in 60 days."},
+  {title:"Stop building features. Start building distribution.",upvotes:"2.9k",comments:312,selected:false,
+   body:"Every week without distribution is a week of compounding disadvantage."},
+  {title:"Founder tip: your first 100 customers won't come from your website",upvotes:"2.1k",comments:145,selected:false,
+   body:"They come from your network, from communities, from cold outreach."},
+  {title:"The single email that got us 20 beta users in 48 hours",upvotes:"1.8k",comments:98,selected:false,
+   body:"Subject line: 'I made something for you — want early access?' Works every time."}
+];
+
+var slides = [
+  {title:"🚀 The Insight Founders Miss",body:"The best growth channels aren't found in playbooks. They're found in communities like this. Here's what r/startups taught us this week..."},
+  {title:"💡 Tip #1: Reply to Every Comment",body:"One founder tripled engagement by replying consistently for 30 days. Not viral content — just showing up. Consistency compounds."},
+  {title:"💰 Tip #2: $10k MRR Without Ads",body:"Cold DM → Free audit → Paid project. 50 reps in 60 days. No VC, no budget. Just process and persistence."},
+  {title:"🏗️ Tip #3: Distribution First",body:"Stop building features nobody asked for. Every week without distribution is compounding disadvantage. Ship distribution first."},
+  {title:"👥 Tip #4: First 100 Customers",body:"They won't come from your website. They come from your network, communities, and yes — cold outreach done right."},
+  {title:"📧 Tip #5: The 48-Hour Email",body:"Subject: 'I made something for you — want early access?' Simple. Human. Works every single time."},
+  {title:"✅ Key Takeaway",body:"The founders winning right now aren't smarter. They're more consistent, more human, and they show up in the right rooms. Which room are you in?\n\n#Startup #Founder #LinkedIn"}
+];
+
+var generated = false;
+
+function renderPosts() {
+  var html = samplePosts.map(function(p,i){
+    return '<div class="reddit-post'+(p.selected?' selected':'')+'" onclick="selectPost('+i+')">' +
+      '<div class="title">'+p.title+'</div>' +
+      '<div class="meta"><span class="upvotes">▲ '+p.upvotes+'</span> · '+p.comments+' comments · r/startups</div>' +
+      '</div>';
+  }).join('');
+  document.getElementById('postList').innerHTML = html;
+}
+
+function selectPost(i) {
+  samplePosts.forEach(function(p,j){p.selected=j===i;});
+  renderPosts();
+  if(generated) renderSlides();
+}
+
+function renderSlides() {
+  var html = slides.map(function(s,i){
+    return '<div class="slide'+(i===0?' active':'')+'" onclick="activateSlide(this)">' +
+      '<div class="slide-num">'+(i+1)+'/'+slides.length+'</div>' +
+      '<div class="slide-title">'+s.title+'</div>' +
+      '<div class="slide-body">'+s.body+'</div>' +
+      '</div>';
+  }).join('');
+  document.getElementById('carouselPreview').innerHTML = html;
+  document.getElementById('exportBar').style.display='flex';
+  generated = true;
+}
+
+function activateSlide(el) {
+  document.querySelectorAll('.slide').forEach(function(s){s.classList.remove('active');});
+  el.classList.add('active');
+}
+
+function fetchThread() {
+  var url = document.getElementById('urlInput').value;
+  var sub = (url.match(/r\/([^/]+)/) || ['','startups'])[1];
+  document.getElementById('postBadge').textContent = 'r/'+sub;
+  document.getElementById('loading').style.display='block';
+  document.getElementById('postList').innerHTML='';
+  document.getElementById('carouselPreview').innerHTML='';
+  document.getElementById('exportBar').style.display='none';
+  setTimeout(function(){
+    document.getElementById('loading').style.display='none';
+    renderPosts();
+    setTimeout(function(){ renderSlides(); }, 800);
+  }, 1500);
+}
+
+function copyCaption() {
+  var cap = slides.map(function(s,i){return 'Slide '+(i+1)+': '+s.title+'\n'+s.body;}).join('\n\n');
+  navigator.clipboard.writeText(cap).then(function(){alert('Caption copied to clipboard!');});
+}
+
+renderPosts();
+renderSlides();
+</script>
+</body>
+</html>
