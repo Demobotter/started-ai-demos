@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HookForge — TikTok Script Generator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Hanken+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0e0e0e;
+    --surface: #161616;
+    --border: #272727;
+    --text: #f0ede8;
+    --muted: #7a7672;
+    --accent: #e8ff5a;
+    --accent-dark: #c8df3a;
+    --radius: 10px;
+    --max: 720px;
+  }
+
+  body {
+    font-family: 'Hanken Grotesk', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 1rem;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 20px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .logo {
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-weight: 800;
+    font-size: 1.15rem;
+    letter-spacing: -0.03em;
+    color: var(--text);
+  }
+
+  .logo span { color: var(--accent); }
+
+  .demo-tag {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--muted);
+    border: 1px solid var(--border);
+    padding: 4px 10px;
+    border-radius: 20px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .wrapper {
+    max-width: var(--max);
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+
+  .hero {
+    padding: 64px 0 48px;
+    text-align: center;
+  }
+
+  .hero h1 {
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-weight: 800;
+    font-size: clamp(2rem, 6vw, 3rem);
+    letter-spacing: -0.04em;
+    line-height: 1.1;
+    margin-bottom: 14px;
+  }
+
+  .hero h1 em {
+    font-style: normal;
+    color: var(--accent);
+  }
+
+  .hero p {
+    color: var(--muted);
+    font-size: 1rem;
+    max-width: 460px;
+    margin: 0 auto;
+  }
+
+  .tool-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 32px;
+    margin-bottom: 16px;
+  }
+
+  .field + .field { margin-top: 24px; }
+
+  label {
+    display: block;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 8px;
+  }
+
+  textarea, input, select {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-family: 'Hanken Grotesk', sans-serif;
+    font-size: 0.95rem;
+    padding: 14px 16px;
+    line-height: 1.5;
+    transition: border-color 0.18s;
+    appearance: none;
+    -webkit-appearance: none;
+  }
+
+  textarea { min-height: 110px; resize: vertical; }
+
+  textarea:focus, input:focus, select:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+
+  textarea::placeholder, input::placeholder { color: #3d3d3d; }
+
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  @media (max-width: 520px) { .two-col { grid-template-columns: 1fr; } }
+
+  select option { background: #1a1a1a; }
+
+  .samples-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+  }
+
+  .chip {
+    font-family: 'Hanken Grotesk', sans-serif;
+    font-size: 0.78rem;
+    font-weight: 500;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    padding: 5px 12px;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
+  }
+
+  .chip:hover { border-color: var(--accent); color: var(--accent); }
+
+  .generate-btn {
+    width: 100%;
+    margin-top: 28px;
+    background: var(--accent);
+    color: #0e0e0e;
+    border: none;
+    border-radius: var(--radius);
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-weight: 800;
+    font-size: 1rem;
+    letter-spacing: -0.01em;
+    padding: 16px;
+    cursor: pointer;
+    transition: background 0.18s, transform 0.12s;
+  }
+
+  .generate-btn:hover { background: var(--accent-dark); }
+  .generate-btn:active { transform: scale(0.99); }
+  .generate-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* Loading */
+  .loading-state {
+    display: none;
+    text-align: center;
+    padding: 48px 0;
+  }
+
+  .loading-state.visible { display: block; }
+
+  .spinner {
+    width: 36px; height: 36px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    margin: 0 auto 16px;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .loading-state p { color: var(--muted); font-size: 0.9rem; }
+
+  /* Results */
+  #results { display: none; }
+  #results.visible { display: block; }
+
+  .results-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+
+  .results-header h2 {
+    font-family: 'Bricolage Grotesque', sans-serif;
+    font-weight: 800;
+    font-size: 1.1rem;
+    letter-spacing: -0.02em;
+  }
+
+  .reset-btn {
+    font-family: 'Hanken Grotesk', sans-serif;
+    font-size: 0.78rem;
+    font-weight: 600;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    padding: 6px 14px;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
+  }
+
+  .reset-btn:hover { border-color: var(--text); color: var(--text); }
+
+  .script-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    margin-bottom: 12px;
+    transition: border-color 0.2s;
+  }
+
+  .script-card:hover { border-color: #383838; }
+
+  .script-meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
+  .hook-type {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    padding: 3px 10px;
+    border-radius: 20px;
+    background: rgba(232, 255, 90, 0.1);
+    color: var(--accent);
+    border: 1px solid rgba(232, 255, 90, 0.25);
+  }
+
+  .script-num {
+    font-size: 0.75rem;
+    color: var(--muted);
+    font-weight: 500;
+  }
+
+  .script-text {
+    font-size: 0.95rem;
+    line-height: 1.65;
+    color: var(--text);
+    white-space: pre-wrap;
+    margin-bottom: 16px;
+  }
+
+  .script-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .timing-badge {
+    font-size: 0.75rem;
+    color: var(--muted);
+    font-weight: 500;
+  }
+
+  .copy-btn {
+    font-family: 'Hanken Grotesk', sans-serif;
+    font-size: 0.78rem;
+    font-weight: 600;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    padding: 6px 14px;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .copy-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .copy-btn.copied { border-color: #4ade80; color: #4ade80; }
+
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 28px 24px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.78rem;
+    margin-top: 64px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Hook<span>Forge</span></div>
+  <div class="demo-tag">Demo</div>
+</header>
+
+<div class="wrapper">
+
+  <div class="hero">
+    <h1>Turn any product into<br><em>TikTok hooks</em> that sell</h1>
+    <p>Paste a product description. Get 5 scroll-stopping 15-second scripts, ready to shoot.</p>
+  </div>
+
+  <div id="input-section">
+    <div class="tool-card">
+
+      <div class="field">
+        <label>Product Description</label>
+        <div class="samples-row">
+          <button class="chip" onclick="loadSample('serum')">Glow serum</button>
+          <button class="chip" onclick="loadSample('bag')">Laptop bag</button>
+          <button class="chip" onclick="loadSample('coffee')">Coffee gadget</button>
+          <button class="chip" onclick="loadSample('app')">Productivity app</button>
+        </div>
+        <textarea id="productDesc" placeholder="e.g. A lightweight waterproof running vest with built-in hydration reservoir, reflective strips, and 8 pockets for gear..."></textarea>
+      </div>
+
+      <div class="two-col field">
+        <div>
+          <label>Target Audience</label>
+          <input id="audience" type="text" placeholder="e.g. female gym-goers 25–35">
+        </div>
+        <div>
+          <label>Tone</label>
+          <select id="tone">
+            <option value="hype">Hype &amp; energetic</option>
+            <option value="relatable">Relatable &amp; casual</option>
+            <option value="educational">Educational / POV</option>
+            <option value="dry">Dry &amp; deadpan</option>
+          </select>
+        </div>
+      </div>
+
+      <button class="generate-btn" id="genBtn" onclick="generate()">Generate Scripts →</button>
+    </div>
+  </div>
+
+  <div class="loading-state" id="loading">
+    <div class="spinner"></div>
+    <p>Writing your hooks…</p>
+  </div>
+
+  <div id="results">
+    <div class="results-header">
+      <h2>5 Scripts Ready</h2>
+      <button class="reset-btn" onclick="reset()">← Start over</button>
+    </div>
+    <div id="scripts-list"></div>
+  </div>
+
+</div>
+
+<footer>HookForge · Demo by Started AI · Not a real service</footer>
+
+<script>
+const SAMPLES = {
+  serum: {
+    desc: "A vitamin C + niacinamide glow serum that visibly brightens skin in 7 days. Lightweight, fragrance-free, and suitable for sensitive skin. $38.",
+    audience: "women 22–40 interested in skincare",
+    tone: "relatable"
+  },
+  bag: {
+    desc: "A slim 20L backpack made from recycled ocean plastic. Fits 16\" laptop, has a hidden anti-theft pocket, and weighs only 600g. Comes in 6 muted colors.",
+    audience: "remote workers and commuters",
+    tone: "educational"
+  },
+  coffee: {
+    desc: "A portable electric milk frother that also heats liquid. Makes café-quality lattes in 90 seconds. USB-C rechargeable, one-button operation.",
+    audience: "coffee lovers who work from home",
+    tone: "hype"
+  },
+  app: {
+    desc: "A focus timer app that blocks distracting apps during work sessions, tracks deep work hours, and sends a weekly productivity report. $4.99/month.",
+    audience: "students and freelancers 18–32",
+    tone: "dry"
+  }
+};
+
+function loadSample(key) {
+  const s = SAMPLES[key];
+  document.getElementById('productDesc').value = s.desc;
+  document.getElementById('audience').value = s.audience;
+  document.getElementById('tone').value = s.tone;
+}
+
+const HOOK_TYPES = ['Shock opener', 'Pain point', 'POV story', 'Bold claim', 'Curiosity gap'];
+
+const TEMPLATES = {
+  hype: [
+    (p, a) => `Wait — this actually works??\n\n${extractBenefit(p)} in ${extractTime(p)}.\n\nI tested it so you don't have to. The results? [pause for effect]\n\nLink in bio. You're welcome.`,
+    (p, a) => `POV: you just found the product ${a} have been sleeping on.\n\n${extractFeature(p)}.\n${extractFeature2(p)}.\n\nI can't believe this is only ${extractPrice(p)}. Grab it before it sells out.`,
+    (p, a) => `STOP scrolling. Seriously.\n\nIf you're ${a}, this is for you.\n\n${extractBenefit(p)} — and it actually delivers.\n\nComment "LINK" and I'll send it to you directly.`,
+    (p, a) => `The ${extractCategory(p)} that ${a} are obsessed with right now 👇\n\n${extractFeature(p)} + ${extractFeature2(p)}.\n\nI ordered mine immediately. No regrets.`,
+    (p, a) => `Things that hit different when you finally try them:\n\n✅ ${extractBenefit(p)}\n✅ ${extractFeature(p)}\n✅ ${extractPrice(p)} and worth every penny\n\nTag someone who needs this.`
+  ],
+  relatable: [
+    (p, a) => `Me before: struggling with the same problem every day.\nMe after ${extractCategory(p)}: [chef's kiss]\n\n${extractBenefit(p)}. It's that simple.\n\nWhy did no one tell me about this sooner?`,
+    (p, a) => `Not me spending 20 minutes looking for something that actually does ${extractBenefit(p).toLowerCase()}...\n\n...and then finding this for ${extractPrice(p)}.\n\nThe algorithm knew. It always knows.`,
+    (p, a) => `Okay so my friend showed me this and I immediately bought one.\n\n${extractFeature(p)}. And ${extractFeature2(p)}.\n\nThis is the "why didn't this exist sooner" product of the year.`,
+    (p, a) => `Real talk: I was skeptical.\n\n${extractBenefit(p)} sounded too good.\n\nThen I actually used it. Week one results: [pause]\n\nI owe ${extractCategory(p)} an apology.`,
+    (p, a) => `Things nobody tells you about being ${a}:\n\n1. You'll waste money on stuff that doesn't work.\n2. Until you find the one thing that actually does.\n\nThis is that thing. ${extractBenefit(p)}.`
+  ],
+  educational: [
+    (p, a) => `POV: you're a ${a.split(' ')[0]} who just discovered ${extractCategory(p)}.\n\nHere's why it works:\n→ ${extractFeature(p)}\n→ ${extractFeature2(p)}\n→ ${extractBenefit(p)}\n\nSave this. You'll thank yourself later.`,
+    (p, a) => `3 things I wish I knew before buying random ${extractCategory(p)}s:\n\n1. Most don't actually ${extractBenefit(p).toLowerCase()}.\n2. The ones that do cost a fortune.\n3. This one does it for ${extractPrice(p)}.\n\nDo your research. Or just trust me.`,
+    (p, a) => `Quick breakdown of why ${a} are switching to this:\n\n✦ ${extractFeature(p)}\n✦ ${extractFeature2(p)}\n✦ Actual results: ${extractBenefit(p)}\n\nThis isn't a trend. It's just better.`,
+    (p, a) => `If you're ${a}, here's what you actually need to know:\n\n${extractBenefit(p)}. Not eventually — from day one.\n\nI've tried 6 alternatives. None come close at ${extractPrice(p)}.`,
+    (p, a) => `The honest review nobody's giving you:\n\nPros: ${extractFeature(p)}, ${extractFeature2(p)}, ${extractBenefit(p)}.\nCons: I wish I found it sooner.\n\nRating: can't go back to before I had this.`
+  ],
+  dry: [
+    (p, a) => `Bought a ${extractCategory(p)}.\n${extractBenefit(p)}.\nLife is marginally better now.\nThat's the whole video.`,
+    (p, a) => `Things that have improved my life unexpectedly, in no particular order:\n\n— finding ${extractPrice(p)} in an old jacket\n— this ${extractCategory(p)}\n— nothing else comes to mind`,
+    (p, a) => `I don't make emotional purchases.\n\n[has purchased ${extractCategory(p)} three times]\n\n${extractBenefit(p)}. It is what it is.`,
+    (p, a) => `Normal people: don't need a ${extractCategory(p)}.\n\nMe, a person with standards: ${extractBenefit(p)}.\n\nThe defense rests.`,
+    (p, a) => `Anyway here's a ${extractCategory(p)} that ${extractBenefit(p).toLowerCase()}.\n\n${extractFeature(p)}.\n\nMoving on.`
+  ]
+};
+
+function extractBenefit(desc) {
+  const patterns = [
+    /(?:that|which|and)\s+([^,.]{15,60})/i,
+    /([A-Z][^.]{15,55}(?:ly|s|d))\./,
+  ];
+  for (const p of patterns) {
+    const m = desc.match(p);
+    if (m) return m[1].trim().replace(/^\w/, c => c.toUpperCase());
+  }
+  const words = desc.split('.')[0];
+  return words.length > 10 ? words.substring(0, 60).trim() : "transforms your daily routine";
+}
+
+function extractFeature(desc) {
+  const sentences = desc.split(/[,.]/);
+  const s = sentences[1] || sentences[0];
+  return s.trim().replace(/^\w/, c => c.toUpperCase()).substring(0, 60);
+}
+
+function extractFeature2(desc) {
+  const sentences = desc.split(/[,.]/);
+  const s = sentences[2] || sentences[0];
+  return s.trim().replace(/^\w/, c => c.toUpperCase()).substring(0, 60);
+}
+
+function extractTime(desc) {
+  const m = desc.match(/(\d+\s*(?:days?|weeks?|minutes?|seconds?|hours?))/i);
+  return m ? m[1] : "days";
+}
+
+function extractPrice(desc) {
+  const m = desc.match(/\$[\d,.]+/);
+  return m ? m[0] : "under $50";
+}
+
+function extractCategory(desc) {
+  const words = desc.toLowerCase().split(/\s+/);
+  const stopwords = new Set(['a','an','the','with','that','and','for','to','in','of','is','it','has','at','by','from','on','this','are','its']);
+  const nouns = words.filter(w => w.length > 4 && !stopwords.has(w) && !/^\d/.test(w));
+  return nouns[0] || "product";
+}
+
+function generate() {
+  const desc = document.getElementById('productDesc').value.trim();
+  if (!desc) { document.getElementById('productDesc').focus(); return; }
+  const audience = document.getElementById('audience').value.trim() || "people who need this";
+  const tone = document.getElementById('tone').value;
+
+  document.getElementById('input-section').style.display = 'none';
+  document.getElementById('loading').classList.add('visible');
+  document.getElementById('results').classList.remove('visible');
+
+  setTimeout(() => {
+    const scripts = TEMPLATES[tone].map((fn, i) => ({
+      text: fn(desc, audience),
+      type: HOOK_TYPES[i],
+      num: i + 1,
+      timing: Math.floor(12 + Math.random() * 6) + 's'
+    }));
+
+    renderResults(scripts);
+  }, 1100);
+}
+
+function renderResults(scripts) {
+  document.getElementById('loading').classList.remove('visible');
+
+  const list = document.getElementById('scripts-list');
+  list.innerHTML = scripts.map(s => `
+    <div class="script-card">
+      <div class="script-meta">
+        <span class="hook-type">${s.type}</span>
+        <span class="script-num">Script ${s.num} of 5</span>
+      </div>
+      <div class="script-text">${escHtml(s.text)}</div>
+      <div class="script-footer">
+        <span class="timing-badge">~${s.timing} read aloud</span>
+        <button class="copy-btn" onclick="copyScript(this, ${JSON.stringify(s.text)})">Copy script</button>
+      </div>
+    </div>
+  `).join('');
+
+  document.getElementById('results').classList.add('visible');
+}
+
+function escHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function copyScript(btn, text) {
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = 'Copied ✓';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copy script'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+
+function reset() {
+  document.getElementById('results').classList.remove('visible');
+  document.getElementById('input-section').style.display = 'block';
+  document.getElementById('productDesc').value = '';
+  document.getElementById('audience').value = '';
+}
+</script>
+</body>
+</html>
