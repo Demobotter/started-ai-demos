@@ -32,7 +32,6 @@ textarea{min-height:100px;resize:vertical}
 .chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}
 .chip{font-family:'Hanken Grotesk',sans-serif;font-size:.74rem;font-weight:600;background:var(--s2);border:1px solid var(--border);color:var(--muted);padding:4px 12px;border-radius:20px;cursor:pointer;transition:all .15s}
 .chip:hover{border-color:var(--accent);color:var(--accent);background:var(--al)}
-.chip.on{border-color:var(--accent);color:var(--accent);background:var(--al)}
 .btn{width:100%;margin-top:24px;background:var(--accent);color:#fff;border:none;border-radius:var(--r);font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:.95rem;padding:15px;cursor:pointer;transition:background .15s,transform .1s}
 .btn:hover{background:#1d4ed8}
 .btn:active{transform:scale(.99)}
@@ -47,9 +46,8 @@ textarea{min-height:100px;resize:vertical}
 .rh h2{font-family:'Bricolage Grotesque',sans-serif;font-weight:700;font-size:1.05rem;letter-spacing:-.02em}
 .rbtn{font-family:'Hanken Grotesk',sans-serif;font-size:.74rem;font-weight:600;background:transparent;border:1px solid var(--border);color:var(--muted);padding:5px 12px;border-radius:20px;cursor:pointer;transition:all .15s}
 .rbtn:hover{border-color:var(--text);color:var(--text)}
-.script{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px;margin-bottom:12px;transition:border-color .15s}
-.script:hover{border-color:#ccc8c0}
-.sth{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.script{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px;margin-bottom:12px}
+.sth{display:flex;gap:8px;align-items:center;justify-content:space-between;margin-bottom:10px}
 .sh{font-family:'Bricolage Grotesque',sans-serif;font-size:.74rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
 .tag{font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:3px 8px;border-radius:20px;background:var(--s2);color:var(--muted);border:1px solid var(--border)}
 .sbtn{font-family:'Hanken Grotesk',sans-serif;font-size:.72rem;font-weight:600;background:transparent;border:1px solid var(--border);color:var(--muted);padding:5px 11px;border-radius:20px;cursor:pointer;transition:all .15s}
@@ -79,10 +77,10 @@ footer{border-top:1px solid var(--border);padding:28px 24px;text-align:center;co
       <div class="field">
         <label>What's the product?</label>
         <div class="chips">
-          <button class="chip" onclick="load('saas')">SaaS tool</button>
-          <button class="chip" onclick="load('physical')">Physical product</button>
-          <button class="chip" onclick="load('service')">Service</button>
-          <button class="chip" onclick="load('course')">Course/info product</button>
+          <button type="button" class="chip" data-template="saas">SaaS tool</button>
+          <button type="button" class="chip" data-template="physical">Physical product</button>
+          <button type="button" class="chip" data-template="service">Service</button>
+          <button type="button" class="chip" data-template="course">Course/info product</button>
         </div>
         <textarea id="prod" placeholder="e.g. A no-code email marketing platform for creators — drag-and-drop templates, $29/mo, integrates with Stripe..."></textarea>
       </div>
@@ -101,7 +99,7 @@ footer{border-top:1px solid var(--border);padding:28px 24px;text-align:center;co
           </select>
         </div>
       </div>
-      <button class="btn" onclick="go()">Generate 5 Scripts →</button>
+      <button type="button" class="btn" id="genBtn">Generate 5 Scripts →</button>
     </div>
   </div>
 
@@ -113,7 +111,7 @@ footer{border-top:1px solid var(--border);padding:28px 24px;text-align:center;co
   <div id="results">
     <div class="rh">
       <h2>5 Shorts Scripts</h2>
-      <button class="rbtn" onclick="reset()">← Start over</button>
+      <button type="button" class="rbtn" id="resetBtn">← Start over</button>
     </div>
     <div id="list"></div>
     <div class="insight" id="insight"></div>
@@ -123,13 +121,11 @@ footer{border-top:1px solid var(--border);padding:28px 24px;text-align:center;co
 
 <script>
 const TEMPLATES = {
-  saas: {prod: "A no-code email marketing platform for creators — drag-and-drop templates, $29/mo, integrates with Stripe. Average creator recovers 3.2x their monthly cost in recovered sales.", aud: "Indie creators, online coaches", hook: "value"},
-  physical: {prod: "Sustainable bamboo water bottles with built-in time markers — keeps you hydrated, $34.99, ships worldwide.", aud: "Fitness enthusiasts, eco-conscious buyers", hook: "pattern"},
-  service: {prod: "LinkedIn profile optimization service — we rewrite your headline, summary, and pinned post. $199 all-in, results in 2 weeks.", aud: "Job seekers, career changers", hook: "story"},
-  course: {prod: "12-week coding bootcamp for beginners — learn JavaScript, React, Node.js. $497 lifetime access, 95% of graduates land jobs within 3 months.", aud: "Career switchers, self-taught learners", hook: "curiosity"}
+  saas: {prod: "A no-code email marketing platform for creators — drag-and-drop templates, $29/mo, integrates with Stripe. Average creator recovers 3.2x their monthly cost in recovered sales.", aud: "Indie creators, online coaches"},
+  physical: {prod: "Sustainable bamboo water bottles with built-in time markers — keeps you hydrated, $34.99, ships worldwide.", aud: "Fitness enthusiasts, eco-conscious buyers"},
+  service: {prod: "LinkedIn profile optimization service — we rewrite your headline, summary, and pinned post. $199 all-in, results in 2 weeks.", aud: "Job seekers, career changers"},
+  course: {prod: "12-week coding bootcamp for beginners — learn JavaScript, React, Node.js. $497 lifetime access, 95% of graduates land jobs within 3 months.", aud: "Career switchers, self-taught learners"}
 };
-
-function load(k){const t = TEMPLATES[k]; document.getElementById('prod').value = t.prod; document.getElementById('aud').value = t.aud; document.getElementById('hook').value = t.hook}
 
 const SCRIPTS = {
   pattern: [
@@ -162,34 +158,90 @@ const SCRIPTS = {
   ]
 };
 
-function go(){
+function esc(s) {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function renderScripts() {
   const prod = document.getElementById('prod').value.trim();
-  const aud = document.getElementById('aud').value.trim() || "creators";
   const hook = document.getElementById('hook').value;
-  if(!prod){document.getElementById('prod').focus();return}
+  
+  if (!prod) {
+    document.getElementById('prod').focus();
+    return;
+  }
+  
   document.getElementById('inp').style.display = 'none';
   document.getElementById('load').classList.add('on');
   document.getElementById('results').classList.remove('on');
-  setTimeout(()=>{
+  
+  setTimeout(() => {
     const scripts = SCRIPTS[hook];
     const hookNames = {pattern: 'Pattern', story: 'Story', value: 'Value', curiosity: 'Curiosity'};
-    document.getElementById('list').innerHTML = scripts.map((it,i) => `
-      <div class="script">
-        <div class="sth"><span class="sh">Script ${i+1}</span><span class="tag">${hookNames[hook]}</span></div>
-        <div class="text"><strong>"${esc(it.opening)}"</strong></div>
-        <div class="text">${esc(it.mid)}</div>
-        <div class="text"><em>${esc(it.cta)}</em></div>
-        <div class="meta" style="margin-top:12px"><button class="sbtn" onclick="cp(this,'${esc(it.opening + ' ' + it.mid + ' ' + it.cta)}')">Copy script</button></div>
-      </div>`).join('');
-    const hookDesc = hook === 'pattern' ? 'pattern interrupts' : hook === 'story' ? 'narrative framing' : hook === 'value' ? 'value comparison' : 'curiosity gaps';
+    const hookName = hookNames[hook];
+    
+    let html = '';
+    scripts.forEach((it, i) => {
+      const fullText = it.opening + ' ' + it.mid + ' ' + it.cta;
+      html += `
+        <div class="script">
+          <div class="sth"><span class="sh">Script ${i+1}</span><span class="tag">${hookName}</span></div>
+          <div class="text"><strong>"${esc(it.opening)}"</strong></div>
+          <div class="text">${esc(it.mid)}</div>
+          <div class="text"><em>${esc(it.cta)}</em></div>
+          <div class="meta" style="margin-top:12px"><button type="button" class="sbtn copy-btn" data-text="${esc(fullText)}">Copy script</button></div>
+        </div>`;
+    });
+    
+    document.getElementById('list').innerHTML = html;
+    
+    const hookDesc = {
+      pattern: 'pattern interrupts',
+      story: 'narrative framing',
+      value: 'value comparison',
+      curiosity: 'curiosity gaps'
+    }[hook];
+    
     document.getElementById('insight').innerHTML = `<h3>Hook breakdown</h3><p>All 5 scripts use <strong>${hookDesc}</strong> to stop the scroll in the first 3 seconds. The middle section delivers your unique angle, and the CTA keeps friction low ('link in bio' beats hard sells for faceless content).</p>`;
+    
     document.getElementById('load').classList.remove('on');
     document.getElementById('results').classList.add('on');
+    
+    // Attach copy handlers
+    document.querySelectorAll('.copy-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        const text = this.getAttribute('data-text');
+        navigator.clipboard.writeText(text).then(() => {
+          this.textContent = 'Copied ✓';
+          this.classList.add('ok');
+          setTimeout(() => {
+            this.textContent = 'Copy script';
+            this.classList.remove('ok');
+          }, 2000);
+        });
+      });
+    });
   }, 1200);
 }
-function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/'/g,'&#39;')}
-function cp(btn, text){navigator.clipboard.writeText(text).then(() => {btn.textContent = 'Copied ✓'; btn.classList.add('ok'); setTimeout(() => {btn.textContent = 'Copy script'; btn.classList.remove('ok')}, 2000)})}
-function reset(){document.getElementById('results').classList.remove('on'); document.getElementById('inp').style.display = 'block'; document.getElementById('prod').value = ''; document.getElementById('aud').value = ''}
+
+// Event listeners
+document.querySelectorAll('.chip').forEach(chip => {
+  chip.addEventListener('click', function() {
+    const template = this.getAttribute('data-template');
+    const data = TEMPLATES[template];
+    document.getElementById('prod').value = data.prod;
+    document.getElementById('aud').value = data.aud;
+  });
+});
+
+document.getElementById('genBtn').addEventListener('click', renderScripts);
+
+document.getElementById('resetBtn').addEventListener('click', function() {
+  document.getElementById('results').classList.remove('on');
+  document.getElementById('inp').style.display = 'block';
+  document.getElementById('prod').value = '';
+  document.getElementById('aud').value = '';
+});
 </script>
 </body>
 </html>
