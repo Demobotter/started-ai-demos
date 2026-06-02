@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cold Email Reply Classifier</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f1117; color: #e2e8f0; min-height: 100vh; }
+  header { background: linear-gradient(135deg, #1a1f2e, #252d3d); padding: 32px 24px; text-align: center; border-bottom: 1px solid #2d3748; }
+  header h1 { font-size: 2rem; font-weight: 800; color: #fff; margin-bottom: 8px; }
+  header p { color: #94a3b8; font-size: 1rem; }
+  .badge { display: inline-block; background: #1e40af; color: #93c5fd; font-size: 0.7rem; font-weight: 700; padding: 3px 10px; border-radius: 20px; margin-bottom: 12px; letter-spacing: 1px; text-transform: uppercase; }
+  .container { max-width: 860px; margin: 0 auto; padding: 32px 20px; }
+  .card { background: #1a1f2e; border: 1px solid #2d3748; border-radius: 14px; padding: 28px; margin-bottom: 24px; }
+  label { display: block; font-size: 0.85rem; font-weight: 600; color: #94a3b8; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+  textarea { width: 100%; background: #0f1117; border: 1px solid #2d3748; border-radius: 10px; color: #e2e8f0; font-size: 0.95rem; padding: 14px; resize: vertical; min-height: 160px; font-family: inherit; transition: border-color 0.2s; }
+  textarea:focus { outline: none; border-color: #3b82f6; }
+  .samples { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+  .sample-btn { background: #252d3d; border: 1px solid #2d3748; color: #94a3b8; padding: 6px 14px; border-radius: 20px; font-size: 0.8rem; cursor: pointer; transition: all 0.2s; }
+  .sample-btn:hover { background: #2d3748; color: #e2e8f0; }
+  .btn-row { display: flex; gap: 12px; margin-top: 16px; }
+  button.primary { background: linear-gradient(135deg, #3b82f6, #2563eb); color: #fff; border: none; padding: 13px 28px; border-radius: 10px; font-size: 1rem; font-weight: 700; cursor: pointer; transition: opacity 0.2s; }
+  button.primary:hover { opacity: 0.88; }
+  button.secondary { background: transparent; color: #94a3b8; border: 1px solid #2d3748; padding: 13px 20px; border-radius: 10px; font-size: 0.9rem; cursor: pointer; }
+  button.secondary:hover { background: #252d3d; }
+  #result { display: none; }
+  .result-header { display: flex; align-items: center; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
+  .tag { display: inline-flex; align-items: center; gap: 6px; padding: 8px 18px; border-radius: 30px; font-weight: 800; font-size: 1rem; }
+  .tag.icp { background: #064e3b; color: #34d399; border: 1px solid #065f46; }
+  .tag.not-icp { background: #450a0a; color: #f87171; border: 1px solid #7f1d1d; }
+  .tag.maybe { background: #451a03; color: #fb923c; border: 1px solid #7c2d12; }
+  .tag.spam { background: #1e1b4b; color: #a5b4fc; border: 1px solid #312e81; }
+  .score-bar { flex: 1; min-width: 180px; }
+  .score-label { font-size: 0.8rem; color: #94a3b8; margin-bottom: 4px; }
+  .bar-bg { background: #252d3d; border-radius: 6px; height: 10px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 6px; transition: width 0.6s ease; }
+  .bar-fill.high { background: linear-gradient(90deg, #10b981, #34d399); }
+  .bar-fill.med { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+  .bar-fill.low { background: linear-gradient(90deg, #ef4444, #f87171); }
+  .signals { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 20px; }
+  @media(max-width:600px){ .signals { grid-template-columns: 1fr; } }
+  .signal-box { background: #0f1117; border: 1px solid #2d3748; border-radius: 10px; padding: 14px; }
+  .signal-box h4 { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.5px; color: #64748b; margin-bottom: 10px; }
+  .signal-item { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 6px; font-size: 0.88rem; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 5px; flex-shrink: 0; }
+  .dot.green { background: #34d399; }
+  .dot.red { background: #f87171; }
+  .dot.yellow { background: #fbbf24; }
+  .draft-section { background: #0f1117; border: 1px solid #2d3748; border-radius: 10px; padding: 18px; }
+  .draft-section h4 { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.5px; color: #64748b; margin-bottom: 12px; }
+  .draft-text { background: #1a1f2e; border: 1px solid #2d3748; border-radius: 8px; padding: 14px; font-size: 0.92rem; color: #cbd5e1; line-height: 1.6; white-space: pre-wrap; }
+  .copy-btn { margin-top: 10px; background: #252d3d; border: 1px solid #2d3748; color: #94a3b8; padding: 7px 16px; border-radius: 8px; font-size: 0.82rem; cursor: pointer; }
+  .copy-btn:hover { background: #2d3748; color: #e2e8f0; }
+  .reasoning { margin-top: 16px; background: #0f1117; border-left: 3px solid #3b82f6; padding: 12px 16px; border-radius: 0 8px 8px 0; font-size: 0.88rem; color: #94a3b8; line-height: 1.6; }
+  footer { text-align: center; padding: 24px; color: #475569; font-size: 0.8rem; border-top: 1px solid #1e2535; margin-top: 40px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="badge">🎯 Demo Tool</div>
+  <h1>Cold Email Reply Classifier</h1>
+  <p>Paste an incoming cold email — instantly see if it matches your ICP and get a draft reply</p>
+</header>
+
+<div class="container">
+
+  <div class="card">
+    <label>Load a Sample Email</label>
+    <div class="samples">
+      <button class="sample-btn" onclick="loadSample('icp')">✅ ICP Match</button>
+      <button class="sample-btn" onclick="loadSample('maybe')">🟡 Possible Match</button>
+      <button class="sample-btn" onclick="loadSample('not')">❌ Not a Fit</button>
+      <button class="sample-btn" onclick="loadSample('spam')">🚫 Spam</button>
+    </div>
+
+    <label>Paste Cold Email</label>
+    <textarea id="emailInput" placeholder="Paste the cold email here..."></textarea>
+
+    <label style="margin-top:18px;">Your ICP (Ideal Customer Profile)</label>
+    <textarea id="icpInput" style="min-height:80px;" placeholder="e.g. B2B SaaS companies with 10-100 employees, based in the US, using Salesforce...">B2B SaaS companies with 10–100 employees, US-based, using Salesforce or HubSpot, focused on outbound sales teams.</textarea>
+
+    <div class="btn-row">
+      <button class="primary" onclick="classify()">🔍 Classify Email</button>
+      <button class="secondary" onclick="clearAll()">Clear</button>
+    </div>
+  </div>
+
+  <div class="card" id="result">
+    <div class="result-header">
+      <div id="classTag" class="tag"></div>
+      <div class="score-bar">
+        <div class="score-label">ICP Match Score</div>
+        <div class="bar-bg"><div id="scoreBar" class="bar-fill" style="width:0%"></div></div>
+      </div>
+      <div id="scoreNum" style="font-size:1.5rem;font-weight:800;color:#fff;"></div>
+    </div>
+
+    <div class="signals">
+      <div class="signal-box">
+        <h4>✅ Matching Signals</h4>
+        <div id="positiveSignals"></div>
+      </div>
+      <div class="signal-box">
+        <h4>⚠️ Red Flags</h4>
+        <div id="negativeSignals"></div>
+      </div>
+    </div>
+
+    <div class="draft-section">
+      <h4>📝 Suggested Reply Draft</h4>
+      <div id="draftText" class="draft-text"></div>
+      <button class="copy-btn" onclick="copyDraft()">📋 Copy Draft</button>
+    </div>
+
+    <div id="reasoning" class="reasoning"></div>
+  </div>
+
+</div>
+
+<footer>🎯 This is a demo tool — not a real service</footer>
+
+<script>
+const SAMPLES = {
+  icp: `Subject: Quick question about your sales team
+
+Hi,
+
+I'm Alex from Growthly. We help B2B SaaS companies automate their outbound sequences directly inside Salesforce — our average customer sees a 34% lift in reply rates within 60 days.
+
+I noticed you're in the SaaS space with a decent-sized sales team. Would it make sense to hop on a 15-min call this week?
+
+Best,
+Alex Chen
+Growthly | Head of Sales
+alex@growthly.io`,
+
+  maybe: `Hey,
+
+Saw your company and thought there might be a fit. We do marketing automation for growing businesses — could be useful depending on what tools you're using.
+
+Let me know if you want to chat sometime.
+
+- Jordan`,
+
+  not: `Hi there,
+
+I represent a commercial cleaning company serving offices in the Phoenix metro area. We offer competitive rates for daily, weekly, or monthly cleaning contracts.
+
+If you're ever looking to switch providers or need a quote, I'd love to connect.
+
+Thanks,
+Mike Torres
+CleanPro Services`,
+
+  spam: `CONGRATULATIONS! You've been selected as a WINNER of our exclusive business growth package worth $5,000!!!
+
+Click here NOW to claim your prize before it expires in 24 hours.
+
+Don't miss this LIMITED TIME OFFER!!!
+
+Reply YES to get started TODAY.`
+};
+
+function loadSample(type) {
+  document.getElementById('emailInput').value = SAMPLES[type];
+}
+
+function clearAll() {
+  document.getElementById('emailInput').value = '';
+  document.getElementById('result').style.display = 'none';
+}
+
+function copyDraft() {
+  const text = document.getElementById('draftText').textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.querySelector('.copy-btn');
+    btn.textContent = '✅ Copied!';
+    setTimeout(() => btn.textContent = '📋 Copy Draft', 2000);
+  });
+}
+
+function classify() {
+  const email = document.getElementById('emailInput').value.trim();
+  const icp = document.getElementById('icpInput').value.trim();
+  if (!email) { alert('Please paste an email first.'); return; }
+
+  const emailLower = email.toLowerCase();
+  const icpLower = icp.toLowerCase();
+
+  // Extract ICP keywords
+  const icpKeywords = {
+    b2b: /\bb2b\b|business.to.business/i.test(icpLower),
+    saas: /\bsaas\b|software.as.a.service/i.test(icpLower),
+    salesforce: /salesforce/i.test(icpLower),
+    hubspot: /hubspot/i.test(icpLower),
+    outbound: /outbound|sales.team/i.test(icpLower),
+    usOnly: /us.based|united.states|north.america/i.test(icpLower),
+    smb: /10.100|small.mid|smb|startup/i.test(icpLower),
+  };
+
+  // Score signals
+  const positiveSignals = [];
+  const negativeSignals = [];
+  let score = 0;
+
+  // Spam check
+  const spamSignals = /congratulations|winner|click here|limited time|act now|prize|\$\$\$|!!!!/i.test(email);
+
+  if (spamSignals) {
+    renderResult('spam', 2, ['None detected'], ['Spam trigger words found', 'No business context', 'No professional signature', 'Mass-mail formatting'], generateDraft('spam', email), 'This email contains multiple spam indicators — promotional language, urgency tactics, and no legitimate business context. Auto-reject.');
+    return;
+  }
+
+  // B2B signals
+  if (/\bb2b\b|saas|software|platform|crm|api|integration|stack|workflow|automat/i.test(emailLower)) {
+    score += 20;
+    positiveSignals.push('Mentions B2B/SaaS or software context');
+  } else {
+    negativeSignals.push('No B2B or software context detected');
+  }
+
+  // Salesforce / HubSpot match
+  if (icpKeywords.salesforce && /salesforce/i.test(emailLower)) { score += 20; positiveSignals.push('Mentions Salesforce — matches ICP'); }
+  if (icpKeywords.hubspot && /hubspot/i.test(emailLower)) { score += 20; positiveSignals.push('Mentions HubSpot — matches ICP'); }
+  if (icpKeywords.outbound && /outbound|sales team|reply rate|pipeline|sequence/i.test(emailLower)) { score += 15; positiveSignals.push('Addresses outbound sales — matches ICP'); }
+
+  // Personalization
+  if (/i noticed|saw your|looked at your|your company|your team/i.test(emailLower)) {
+    score += 10; positiveSignals.push('Shows personalization / research');
+  } else {
+    negativeSignals.push('Generic opener — no personalization');
+  }
+
+  // Professional tone
+  if (/best,|regards,|thanks,|cheers,|sincerely,/i.test(emailLower)) {
+    score += 8; positiveSignals.push('Professional sign-off');
+  }
+
+  // Specific offer / value prop
+  if (/\d+%|\$\d+|within \d+|average|lift|increase|reduce|save/i.test(emailLower)) {
+    score += 12; positiveSignals.push('Specific metric or value prop mentioned');
+  } else {
+    negativeSignals.push('No specific ROI or outcome stated');
+  }
+
+  // Clear CTA
+  if (/15.min|quick call|hop on|schedule|book|calendar/i.test(emailLower)) {
+    score += 8; positiveSignals.push('Clear, low-friction CTA');
+  } else {
+    negativeSignals.push('No clear call-to-action');
+  }
+
+  // Non-ICP industry signals
+  if (/cleaning|restaurant|retail|landscap|plumbing|hvac|dental|medical clinic|real estate agent/i.test(emailLower)) {
+    score -= 25; negativeSignals.push('Non-ICP industry detected');
+  }
+
+  // Physical product / consumer
+  if (/shipping|warehouse|inventory|consumer|b2c|physical product/i.test(emailLower)) {
+    score -= 15; negativeSignals.push('Appears to be B2C or physical product');
+  }
+
+  score = Math.max(0, Math.min(100, score));
+
+  let classification, draft, reasoning;
+  if (score >= 65) {
+    classification = 'icp';
+    draft = generateDraft('icp', email);
+    reasoning = `Strong ICP match. The sender's context, language, and offer align closely with your defined customer profile. Worth a conversation.`;
+  } else if (score >= 35) {
+    classification = 'maybe';
+    draft = generateDraft('maybe', email);
+    reasoning = `Partial match. Some signals align with your ICP but there are gaps — missing specificity or industry clarity. Could be worth a quick screen.`;
+  } else {
+    classification = 'not-icp';
+    draft = generateDraft('not', email);
+    reasoning = `Low ICP match. The sender's business context, industry, or offer doesn't align well with your target profile. Politely decline.`;
+  }
+
+  if (positiveSignals.length === 0) positiveSignals.push('No strong matching signals found');
+  if (negativeSignals.length === 0) negativeSignals.push('No red flags detected');
+
+  renderResult(classification, score, positiveSignals, negativeSignals, draft, reasoning);
+}
+
+function generateDraft(type, email) {
+  const senderMatch = email.match(/^.*?(\w[\w\s]+),?\n/m);
+  const sender = senderMatch ? senderMatch[1].trim().split(' ')[0] : 'there';
+
+  const drafts = {
+    icp: `Hi ${sender},
+
+Thanks for reaching out — this does look relevant to what we're working on.
+
+Happy to hop on a quick call to see if there's a fit. Feel free to grab 15 minutes here: [your calendar link]
+
+Best,
+[Your name]`,
+    maybe: `Hi ${sender},
+
+Thanks for the note. I'd need a bit more context before committing to a call — could you share a bit more about how you typically work with companies like ours and what the integration looks like?
+
+Happy to revisit if it seems like a fit.
+
+Best,
+[Your name]`,
+    not: `Hi ${sender},
+
+Thanks for reaching out. Based on what you've shared, it's not quite the right fit for us right now — we're focused on a different direction at the moment.
+
+Appreciate you thinking of us.
+
+Best,
+[Your name]`,
+    spam: `[No reply recommended — mark as spam]`
+  };
+  return drafts[type] || drafts['not'];
+}
+
+function renderResult(classification, score, positive, negative, draft, reasoning) {
+  const labels = {
+    icp: { text: '✅ ICP Match', cls: 'icp' },
+    maybe: { text: '🟡 Possible Match', cls: 'maybe' },
+    'not-icp': { text: '❌ Not a Fit', cls: 'not-icp' },
+    spam: { text: '🚫 Spam', cls: 'spam' }
+  };
+
+  const tag = document.getElementById('classTag');
+  tag.textContent = labels[classification].text;
+  tag.className = `tag ${labels[classification].cls}`;
+
+  const bar = document.getElementById('scoreBar');
+  bar.style.width = score + '%';
+  bar.className = 'bar-fill ' + (score >= 65 ? 'high' : score >= 35 ? 'med' : 'low');
+  document.getElementById('scoreNum').textContent = score + '%';
+
+  const posEl = document.getElementById('positiveSignals');
+  posEl.innerHTML = positive.map(s => `<div class="signal-item"><div class="dot green"></div><span>${s}</span></div>`).join('');
+
+  const negEl = document.getElementById('negativeSignals');
+  negEl.innerHTML = negative.map(s => `<div class="signal-item"><div class="dot red"></div><span>${s}</span></div>`).join('');
+
+  document.getElementById('draftText').textContent = draft;
+  document.getElementById('reasoning').textContent = '💡 ' + reasoning;
+
+  const resultEl = document.getElementById('result');
+  resultEl.style.display = 'block';
+  resultEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+</script>
+</body>
+</html>
