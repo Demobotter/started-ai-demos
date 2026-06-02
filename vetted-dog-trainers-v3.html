@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>TrainerZip — Find Vetted Dog Trainers</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', sans-serif; background: #f5f6fa; color: #1a1a2e; }
+
+header { background: #fff; padding: 1rem 2rem; border-bottom: 1px solid #e0e0e0; display: flex; align-items: center; justify-content: space-between; }
+.logo { font-weight: 800; font-size: 1.2rem; color: #4f46e5; }
+.beta { background: #4f46e5; color: #fff; font-size: .6rem; padding: .1rem .4rem; border-radius: 20px; font-weight: 700; margin-left: .3rem; vertical-align: middle; }
+
+.hero { background: linear-gradient(135deg, #1e1b4b, #4338ca); color: #fff; padding: 3rem 2rem 2.5rem; text-align: center; }
+.hero h1 { font-size: 2.2rem; font-weight: 900; margin-bottom: .6rem; }
+.hero p { font-size: 1rem; opacity: .8; margin-bottom: 1.8rem; }
+
+.search-box { display: flex; gap: .5rem; max-width: 580px; margin: 0 auto 1.2rem; align-items: center; }
+.search-box input { width: 180px; flex-shrink: 0; padding: .8rem 1rem; border-radius: 10px; border: none; font-size: .95rem; }
+.search-box select { width: 160px; flex-shrink: 0; padding: .8rem .6rem; border-radius: 10px; border: none; font-size: .9rem; background: #fff; color: #333; cursor: pointer; }
+.search-box button { flex-shrink: 0; padding: .8rem 1.4rem; background: #7c3aed; color: #fff; border: none; border-radius: 10px; font-weight: 700; font-size: .95rem; cursor: pointer; }
+.search-box button:hover { background: #6d28d9; }
+
+.spec-filters { display: flex; gap: .5rem; justify-content: center; flex-wrap: wrap; }
+.spec-btn { background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.3); color: #fff; padding: .3rem .9rem; border-radius: 20px; font-size: .8rem; cursor: pointer; font-family: inherit; transition: all .15s; }
+.spec-btn.active { background: #fff; color: #4f46e5; font-weight: 700; border-color: #fff; }
+
+main { max-width: 900px; margin: 2rem auto; padding: 0 1.5rem; }
+.result-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; font-size: .88rem; color: #666; }
+.result-bar strong { color: #111; }
+
+.no-results { text-align: center; padding: 3rem; color: #aaa; }
+
+.card { background: #fff; border-radius: 14px; padding: 1.2rem; display: flex; gap: 1rem; margin-bottom: .8rem; box-shadow: 0 2px 8px rgba(0,0,0,.06); border: 1px solid #ebebf0; transition: transform .15s, box-shadow .15s; }
+.card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(79,70,229,.1); }
+.avatar { width: 56px; height: 56px; border-radius: 50%; background: #ede9fe; display: flex; align-items: center; justify-content: center; font-size: 1.6rem; flex-shrink: 0; }
+.info { flex: 1; }
+.top-row { display: flex; justify-content: space-between; align-items: flex-start; }
+.trainer-name { font-weight: 700; font-size: .98rem; }
+.verified { font-size: .7rem; color: #4f46e5; font-weight: 600; margin-left: .3rem; }
+.bio { font-size: .8rem; color: #777; margin-top: .15rem; }
+.price-badge { background: #f0fdf4; color: #16a34a; font-weight: 700; padding: .25rem .6rem; border-radius: 8px; font-size: .8rem; white-space: nowrap; }
+.stars { color: #f59e0b; font-size: .85rem; margin-top: .35rem; }
+.stars span { color: #999; font-size: .78rem; }
+.tag-row { display: flex; gap: .3rem; margin-top: .5rem; flex-wrap: wrap; }
+.tag { padding: .15rem .55rem; border-radius: 20px; font-size: .71rem; font-weight: 600; }
+.tag.positive { background: #d1fae5; color: #065f46; }
+.tag.balanced { background: #fef3c7; color: #b45309; }
+.tag.spec { background: #ede9fe; color: #6d28d9; }
+.btn-row { display: flex; gap: .4rem; margin-top: .7rem; }
+.btn-primary { background: #4f46e5; color: #fff; border: none; padding: .4rem 1rem; border-radius: 8px; font-size: .8rem; font-weight: 600; cursor: pointer; font-family: inherit; }
+.btn-primary:hover { background: #4338ca; }
+.btn-outline { background: transparent; border: 1px solid #d1d5db; color: #555; padding: .4rem .9rem; border-radius: 8px; font-size: .8rem; cursor: pointer; font-family: inherit; }
+.btn-outline:hover { border-color: #4f46e5; color: #4f46e5; }
+
+/* Modal */
+.modal-bg { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 999; align-items: center; justify-content: center; padding: 1rem; }
+.modal-bg.open { display: flex; }
+.modal { background: #fff; border-radius: 18px; padding: 1.8rem; max-width: 420px; width: 100%; position: relative; }
+.modal-x { position: absolute; top: 1rem; right: 1rem; background: #f3f4f6; border: none; border-radius: 50%; width: 30px; height: 30px; font-size: 1rem; cursor: pointer; font-family: inherit; }
+.modal h2 { font-size: 1.1rem; font-weight: 800; margin-bottom: .2rem; }
+.modal-sub { font-size: .85rem; color: #888; margin-bottom: .8rem; }
+.slot-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .4rem; margin-bottom: 1rem; }
+.slot-btn { border: 1px solid #e0e0e0; background: #fff; border-radius: 9px; padding: .55rem; font-size: .82rem; cursor: pointer; font-family: inherit; transition: all .15s; line-height: 1.3; text-align: center; }
+.slot-btn:hover:not(:disabled) { border-color: #4f46e5; background: #ede9fe; color: #4f46e5; font-weight: 600; }
+.slot-btn.selected { border-color: #4f46e5; background: #ede9fe; color: #4f46e5; font-weight: 700; }
+.slot-btn:disabled { color: #ccc; text-decoration: line-through; cursor: not-allowed; background: #fafafa; }
+.confirm-btn { width: 100%; background: #4f46e5; color: #fff; border: none; padding: .85rem; border-radius: 12px; font-weight: 700; font-size: .95rem; cursor: pointer; font-family: inherit; }
+.confirm-btn:hover { background: #4338ca; }
+.success-state { display: none; text-align: center; padding: 1rem 0; }
+
+footer { text-align: center; padding: 2rem; font-size: .75rem; color: #ccc; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">🐾 TrainerZip <span class="beta">BETA</span></div>
+  <nav style="font-size:.85rem;color:#888;display:flex;gap:1.2rem">
+    <span>Browse</span><span>How it works</span><span>For Trainers</span>
+  </nav>
+</header>
+
+<div class="hero">
+  <h1>Find a Vetted Dog Trainer</h1>
+  <p>Certified trainers near you, filtered by method and specialty.</p>
+  <div class="search-box">
+    <input type="text" id="zipInput" placeholder="Enter zip code (e.g. 78701)"/>
+    <select id="methodSelect">
+      <option value="all">All methods</option>
+      <option value="positive">Positive only</option>
+      <option value="balanced">Balanced</option>
+    </select>
+    <button id="searchBtn" onclick="doSearch()">Search</button>
+  </div>
+  <div class="spec-filters">
+    <button class="spec-btn active" data-spec="all">All</button>
+    <button class="spec-btn" data-spec="puppy">Puppy</button>
+    <button class="spec-btn" data-spec="aggression">Aggression</button>
+    <button class="spec-btn" data-spec="obedience">Obedience</button>
+    <button class="spec-btn" data-spec="anxiety">Anxiety</button>
+  </div>
+</div>
+
+<main>
+  <div class="result-bar">
+    <div><strong id="resultCount">6 trainers</strong> — <span id="zipLabel">all locations</span></div>
+    <div>Sort: <strong>Top rated</strong></div>
+  </div>
+  <div id="cardContainer"></div>
+</main>
+
+<footer>TrainerZip · Auto-generated demo by Started AI · Not a real service</footer>
+
+<!-- Booking modal -->
+<div class="modal-bg" id="modalBg">
+  <div class="modal">
+    <button class="modal-x" id="modalX">✕</button>
+    <h2 id="modalName">Book a session</h2>
+    <p class="modal-sub" id="modalPrice">Pick a slot</p>
+    <div class="slot-grid" id="slotGrid"></div>
+    <div class="success-state" id="successState">
+      <div style="font-size:2.5rem">✅</div>
+      <h3 style="margin-top:.5rem">Booking confirmed!</h3>
+      <p style="color:#888;font-size:.85rem;margin-top:.25rem">A confirmation has been sent to your email.</p>
+    </div>
+    <button class="confirm-btn" id="confirmBtn">Confirm Booking</button>
+  </div>
+</div>
+
+<script>
+var trainers = [
+  { name:"Bianca W.", emoji:"\ud83d\udc69", method:"positive", specs:["obedience", "anxiety"], rating:4.5, reviews:193, bio:"Works with all breeds and ages. No dog is too challenging.", price:"$68/session", zip:"70118" },
+  { name:"Harley Moore", emoji:"\ud83d\udc69", method:"balanced", specs:["puppy", "obedience"], rating:4.7, reviews:188, bio:"Retired K9 officer. Now focused on family dogs and community safety.", price:"$110/session", zip:"21210" },
+  { name:"Blake Ramirez", emoji:"\ud83d\udc68\u200d\ud83e\uddb0", method:"positive", specs:["aggression", "anxiety"], rating:4.5, reviews:60, bio:"AKC CGC evaluator. Group classes and private sessions available in your area.", price:"$85/session", zip:"37209" },
+  { name:"Demi Perry", emoji:"\ud83e\uddd1", method:"positive", specs:["anxiety", "obedience", "puppy"], rating:4.7, reviews:101, bio:"Works with all breeds and ages. No dog is too challenging.", price:"$65/session", zip:"37205" },
+  { name:"Brett S.", emoji:"\ud83d\udc68\u200d\ud83e\uddb1", method:"balanced", specs:["puppy", "obedience", "anxiety"], rating:5, reviews:64, bio:"Off-leash reliability expert. E-collar certified and results-driven.", price:"$68/session", zip:"10004" },
+  { name:"Xena Hall", emoji:"\ud83d\udc69", method:"balanced", specs:["puppy", "obedience", "anxiety"], rating:4.8, reviews:179, bio:"Specialises in high-drive working breeds \u2014 Malinois, GSD, Dutch Shepherd.", price:"$65/session", zip:"45206" },
+  { name:"Skyler Carter", emoji:"\ud83d\udc68", method:"positive", specs:["puppy", "obedience", "anxiety"], rating:5, reviews:168, bio:"Worked with over 157 dogs across 13 years. Specialises in anxiety and reactivity.", price:"$110/session", zip:"27601" },
+  { name:"June Lopez", emoji:"\ud83d\udc69", method:"positive", specs:["aggression", "obedience"], rating:4.4, reviews:150, bio:"In-home training specialist. I come to you \u2014 no kennel stress for your dog.", price:"$85/session", zip:"73103" },
+  { name:"Demi E.", emoji:"\ud83d\udc69\u200d\ud83e\uddb0", method:"balanced", specs:["puppy", "obedience", "anxiety"], rating:4.8, reviews:114, bio:"Off-leash reliability expert. E-collar certified and results-driven.", price:"$120/session", zip:"48207" },
+  { name:"Jin Bennett", emoji:"\ud83d\udc68\u200d\ud83e\uddb3", method:"positive", specs:["aggression", "obedience"], rating:4.4, reviews:45, bio:"Specialises in high-drive working breeds \u2014 Malinois, GSD, Dutch Shepherd.", price:"$92/session", zip:"90019" },
+  { name:"Oliver Thomas", emoji:"\ud83d\udc68\u200d\ud83e\uddb1", method:"balanced", specs:["puppy", "obedience"], rating:4.8, reviews:34, bio:"IACP certified. Balanced methods, real-world results, no gimmicks.", price:"$110/session", zip:"02103" },
+  { name:"Vince M.", emoji:"\ud83e\uddd4", method:"positive", specs:["anxiety", "puppy"], rating:4.7, reviews:32, bio:"Online and in-person sessions available. CPDT-KA certified and fully insured.", price:"$82/session", zip:"29406" },
+  { name:"Oliver Griffin", emoji:"\ud83d\udc68", method:"positive", specs:["aggression", "anxiety"], rating:4.6, reviews:33, bio:"Bilingual trainer (English/Spanish). Puppy through advanced obedience.", price:"$88/session", zip:"39206" },
+  { name:"Anthony Kelly", emoji:"\ud83e\uddd4", method:"positive", specs:["aggression", "obedience"], rating:5, reviews:141, bio:"Board and train specialist with a 20-year track record of reliable results.", price:"$70/session", zip:"97201" },
+  { name:"Mike Davis", emoji:"\ud83d\udc68", method:"balanced", specs:["obedience", "anxiety"], rating:4.8, reviews:107, bio:"Runs group puppy classes and one-on-one sessions. 6 years in the field.", price:"$88/session", zip:"70117" },
+  { name:"Pearl R.", emoji:"\ud83d\udc69", method:"balanced", specs:["obedience", "anxiety"], rating:4.7, reviews:6, bio:"Former shelter behaviour counsellor. Now dedicated to helping families build better bonds with their dogs.", price:"$65/session", zip:"97209" },
+  { name:"Kevin Taylor", emoji:"\ud83d\udc68\u200d\ud83e\uddb1", method:"positive", specs:["anxiety", "obedience", "puppy"], rating:4.4, reviews:38, bio:"Positive reinforcement only. Helped over 584 dogs earn their AKC CGC title.", price:"$120/session", zip:"27610" },
+  { name:"Rosa C.", emoji:"\ud83d\udc69", method:"positive", specs:["aggression", "anxiety"], rating:4.6, reviews:124, bio:"AKC CGC evaluator. Group classes and private sessions available in your area.", price:"$60/session", zip:"02111" },
+  { name:"Cameron Brown", emoji:"\ud83d\udc68", method:"balanced", specs:["anxiety", "obedience", "puppy"], rating:4.4, reviews:51, bio:"Runs group puppy classes and one-on-one sessions. 5 years in the field.", price:"$80/session", zip:"39201" },
+  { name:"Hannah Cox", emoji:"\ud83d\udc69\u200d\ud83e\uddb0", method:"balanced", specs:["puppy", "obedience"], rating:5, reviews:197, bio:"Science-based trainer. Clicker training, shaping, and positive reinforcement only.", price:"$78/session", zip:"85012" },
+  { name:"Owen Q.", emoji:"\ud83d\udc68\u200d\ud83e\uddb3", method:"positive", specs:["puppy", "obedience"], rating:5, reviews:72, bio:"Bilingual trainer (English/Spanish). Puppy through advanced obedience.", price:"$95/session", zip:"21206" },
+  { name:"Drew Brown", emoji:"\ud83d\udc68\u200d\ud83e\uddb3", method:"positive", specs:["obedience", "anxiety"], rating:5, reviews:153, bio:"Former agility competitor. Now dedicated to helping families build better bonds with their dogs.", price:"$110/session", zip:"37206" },
+  { name:"Hugo Griffin", emoji:"\ud83d\udc68\u200d\ud83e\uddb3", method:"balanced", specs:["anxiety", "puppy"], rating:4.3, reviews:135, bio:"Science-based trainer. Clicker training, shaping, and positive reinforcement only.", price:"$65/session", zip:"60622" },
+  { name:"Chris Gonzales", emoji:"\ud83e\uddd1", method:"balanced", specs:["obedience", "anxiety"], rating:4.7, reviews:15, bio:"Retired K9 officer. Now focused on family dogs and community safety.", price:"$65/session", zip:"97202" },
+  { name:"June Taylor", emoji:"\ud83d\udc69\u200d\ud83e\uddb3", method:"positive", specs:["obedience", "puppy"], rating:4.4, reviews:170, bio:"Runs group puppy classes and one-on-one sessions. 5 years in the field.", price:"$82/session", zip:"23226" },
+  { name:"Xavier C.", emoji:"\ud83d\udc68\u200d\ud83e\uddb3", method:"positive", specs:["obedience", "anxiety"], rating:4.7, reviews:38, bio:"Fear-free certified specialist. Works best with anxious, reactive, and rescue dogs.", price:"$88/session", zip:"78210" },
+  { name:"Steve James", emoji:"\ud83e\uddd1", method:"positive", specs:["puppy", "obedience"], rating:4.8, reviews:146, bio:"AKC CGC evaluator. Group classes and private sessions available in your area.", price:"$82/session", zip:"20002" },
+  { name:"Ulrich V.", emoji:"\ud83d\udc68\u200d\ud83e\uddb0", method:"positive", specs:["puppy", "obedience", "anxiety"], rating:4.7, reviews:188, bio:"In-home training specialist. I come to you \u2014 no kennel stress for your dog.", price:"$85/session", zip:"77056" },
+  { name:"Felix O.", emoji:"\ud83d\udc68\u200d\ud83e\uddb3", method:"positive", specs:["puppy", "obedience", "anxiety"], rating:4.3, reviews:90, bio:"IACP certified. Balanced methods, real-world results, no gimmicks.", price:"$70/session", zip:"70112" },
+  { name:"Walter K.", emoji:"\ud83d\udc68\u200d\ud83e\uddb1", method:"positive", specs:["aggression", "obedience"], rating:5, reviews:181, bio:"Works with all breeds and ages. No dog is too challenging.", price:"$70/session", zip:"19121" },
+  { name:"Oscar F.", emoji:"\ud83d\udc68\u200d\ud83e\uddb0", method:"positive", specs:["puppy", "obedience", "anxiety"], rating:4.6, reviews:15, bio:"In-home training specialist. I come to you \u2014 no kennel stress for your dog.", price:"$88/session", zip:"90034" },
+  { name:"Walter Gonzales", emoji:"\ud83d\udc68\u200d\ud83e\uddb0", method:"positive", specs:["anxiety", "puppy"], rating:4.9, reviews:65, bio:"Science-based trainer. Clicker training, shaping, and positive reinforcement only.", price:"$72/session", zip:"39202" },
+  { name:"Jack Jenkins", emoji:"\ud83d\udc68\u200d\ud83e\uddb3", method:"balanced", specs:["puppy", "obedience", "anxiety"], rating:4.4, reviews:184, bio:"Off-leash reliability expert. E-collar certified and results-driven.", price:"$68/session", zip:"10005" },
+  { name:"Skye Robinson", emoji:"\ud83e\uddd1", method:"balanced", specs:["obedience", "anxiety"], rating:4.3, reviews:54, bio:"Vet tech background. Understands dog health and behaviour from the inside out.", price:"$90/session", zip:"35204" },
+  { name:"Jerome Lopez", emoji:"\ud83d\udc68\u200d\ud83e\uddb3", method:"balanced", specs:["aggression", "anxiety"], rating:5, reviews:34, bio:"Science-based trainer. Clicker training, shaping, and positive reinforcement only.", price:"$80/session", zip:"90010" },
+  { name:"Rue Kelly", emoji:"\ud83d\udc69\u200d\ud83e\uddb0", method:"positive", specs:["obedience", "puppy"], rating:4.7, reviews:135, bio:"Off-leash reliability expert. E-collar certified and results-driven.", price:"$68/session", zip:"98102" },
+  { name:"Sarah Parker", emoji:"\ud83d\udc69\u200d\ud83e\uddb1", method:"balanced", specs:["obedience", "anxiety"], rating:4.6, reviews:22, bio:"Specialises in high-drive working breeds \u2014 Malinois, GSD, Dutch Shepherd.", price:"$85/session", zip:"85008" },
+  { name:"Ivan Rodriguez", emoji:"\ud83d\udc68\u200d\ud83e\uddb0", method:"positive", specs:["puppy", "obedience", "anxiety"], rating:4.7, reviews:54, bio:"Off-leash reliability expert. E-collar certified and results-driven.", price:"$92/session", zip:"97208" },
+  { name:"Hank Stewart", emoji:"\ud83d\udc68\u200d\ud83e\uddb3", method:"positive", specs:["puppy", "obedience", "anxiety"], rating:4.5, reviews:115, bio:"Specialises in high-drive working breeds \u2014 Malinois, GSD, Dutch Shepherd.", price:"$120/session", zip:"55405" },
+  { name:"Finley Campbell", emoji:"\ud83d\udc69\u200d\ud83e\uddb1", method:"positive", specs:["anxiety", "puppy"], rating:4.8, reviews:77, bio:"Specialises in high-drive working breeds \u2014 Malinois, GSD, Dutch Shepherd.", price:"$100/session", zip:"60602" },
+  { name:"River Perry", emoji:"\ud83d\udc69\u200d\ud83e\uddb3", method:"balanced", specs:["anxiety", "puppy"], rating:4.3, reviews:67, bio:"Specialises in high-drive working breeds \u2014 Malinois, GSD, Dutch Shepherd.", price:"$98/session", zip:"27609" },
+  { name:"Cameron Watson", emoji:"\ud83e\uddd4", method:"positive", specs:["anxiety", "obedience", "puppy"], rating:4.6, reviews:42, bio:"AKC CGC evaluator. Group classes and private sessions available in your area.", price:"$55/session", zip:"27606" },
+  { name:"Xander T.", emoji:"\ud83d\udc68\u200d\ud83e\uddb0", method:"balanced", specs:["obedience", "anxiety"], rating:4.9, reviews:36, bio:"Board and train specialist with a 19-year track record of reliable results.", price:"$95/session", zip:"80209" },
+  { name:"Sean Murphy", emoji:"\ud83e\uddd1", method:"balanced", specs:["obedience", "puppy"], rating:4.9, reviews:145, bio:"Science-based trainer. Clicker training, shaping, and positive reinforcement only.", price:"$95/session", zip:"37204" },
+  { name:"Piper Barnes", emoji:"\ud83d\udc69\u200d\ud83e\uddb1", method:"balanced", specs:["anxiety", "obedience", "puppy"], rating:4.7, reviews:75, bio:"Fear-free certified specialist. Works best with anxious, reactive, and rescue dogs.", price:"$95/session", zip:"35202" },
+  { name:"Kaia Bryant", emoji:"\ud83d\udc69\u200d\ud83e\uddb1", method:"balanced", specs:["aggression", "obedience"], rating:4.4, reviews:64, bio:"Board and train specialist with a 5-year track record of reliable results.", price:"$90/session", zip:"55406" },
+  { name:"Randy Carter", emoji:"\ud83d\udc68\u200d\ud83e\uddb0", method:"positive", specs:["puppy", "obedience"], rating:4.4, reviews:112, bio:"Positive reinforcement only. Helped over 588 dogs earn their AKC CGC title.", price:"$90/session", zip:"27603" },
+  { name:"Faye Bennett", emoji:"\ud83d\udc69\u200d\ud83e\uddb0", method:"positive", specs:["obedience", "puppy"], rating:4.7, reviews:193, bio:"Specialises in high-drive working breeds \u2014 Malinois, GSD, Dutch Shepherd.", price:"$110/session", zip:"60640" },
+  { name:"Diego W.", emoji:"\ud83e\uddd4", method:"positive", specs:["aggression", "anxiety"], rating:4.8, reviews:108, bio:"Runs group puppy classes and one-on-one sessions. 20 years in the field.", price:"$72/session", zip:"90024" },
+  { name:"Xavier Howard", emoji:"\ud83d\udc68\u200d\ud83e\uddb1", method:"positive", specs:["aggression", "obedience"], rating:4.7, reviews:39, bio:"Science-based trainer. Clicker training, shaping, and positive reinforcement only.", price:"$95/session", zip:"10022" },
+  { name:"Vince Rodriguez", emoji:"\ud83d\udc68\u200d\ud83e\uddb0", method:"positive", specs:["obedience", "puppy"], rating:4.5, reviews:112, bio:"Fear-free certified specialist. Works best with anxious, reactive, and rescue dogs.", price:"$80/session", zip:"27607" },
+  { name:"River Cox", emoji:"\ud83e\uddd1", method:"positive", specs:["puppy", "obedience"], rating:4.8, reviews:68, bio:"Certified CPDT-KA with 10 years of experience. Force-free methods only.", price:"$75/session", zip:"39201" },
+  { name:"Eli Morris", emoji:"\ud83d\udc68", method:"balanced", specs:["anxiety", "obedience", "puppy"], rating:4.8, reviews:99, bio:"Specialises in high-drive working breeds \u2014 Malinois, GSD, Dutch Shepherd.", price:"$72/session", zip:"78208" },
+  { name:"Lisa Diaz", emoji:"\ud83d\udc69\u200d\ud83e\uddb3", method:"positive", specs:["obedience", "puppy"], rating:4.6, reviews:188, bio:"Fear-free certified specialist. Works best with anxious, reactive, and rescue dogs.", price:"$75/session", zip:"21208" },
+  { name:"Chris Coleman", emoji:"\ud83d\udc68", method:"balanced", specs:["puppy", "obedience"], rating:4.5, reviews:114, bio:"Fear-free certified specialist. Works best with anxious, reactive, and rescue dogs.", price:"$88/session", zip:"97203" },
+  { name:"Oscar Allen", emoji:"\ud83e\uddd4", method:"positive", specs:["anxiety", "puppy"], rating:4.6, reviews:192, bio:"IACP certified. Balanced methods, real-world results, no gimmicks.", price:"$100/session", zip:"73109" },
+  { name:"Lena Rodriguez", emoji:"\ud83d\udc69\u200d\ud83e\uddb1", method:"balanced", specs:["aggression", "obedience"], rating:4.5, reviews:120, bio:"Runs group puppy classes and one-on-one sessions. 13 years in the field.", price:"$78/session", zip:"78203" },
+  { name:"Peyton Roberts", emoji:"\ud83d\udc69", method:"balanced", specs:["aggression", "anxiety"], rating:4.9, reviews:92, bio:"Specialises in high-drive working breeds \u2014 Malinois, GSD, Dutch Shepherd.", price:"$80/session", zip:"21204" },
+  { name:"Anthony Taylor", emoji:"\ud83d\udc68\u200d\ud83e\uddb1", method:"positive", specs:["anxiety", "obedience", "puppy"], rating:4.7, reviews:66, bio:"Canine behaviourist trained under top IAABC members. Specialises in obedience.", price:"$98/session", zip:"80204" },
+  { name:"Hank Gray", emoji:"\ud83e\uddd4", method:"balanced", specs:["puppy", "obedience", "anxiety"], rating:4.8, reviews:99, bio:"Works with all breeds and ages. No dog is too challenging.", price:"$98/session", zip:"80204" },
+  { name:"Nova Hall", emoji:"\ud83d\udc69", method:"positive", specs:["puppy", "obedience", "anxiety"], rating:4.5, reviews:64, bio:"In-home training specialist. I come to you \u2014 no kennel stress for your dog.", price:"$68/session", zip:"90211" },
+  { name:"Cameron Davis", emoji:"\ud83d\udc68\u200d\ud83e\uddb1", method:"positive", specs:["puppy", "obedience", "anxiety"], rating:4.8, reviews:199, bio:"Specialises in high-drive working breeds \u2014 Malinois, GSD, Dutch Shepherd.", price:"$100/session", zip:"35205" },
+  { name:"Vera X.", emoji:"\ud83d\udc69", method:"positive", specs:["puppy", "obedience"], rating:4.8, reviews:37, bio:"Former competitive obedience trainer. Now dedicated to helping families build better bonds with their dogs.", price:"$80/session", zip:"78209" },
+  { name:"Eddie H.", emoji:"\ud83d\udc68", method:"positive", specs:["puppy", "obedience", "anxiety"], rating:4.6, reviews:117, bio:"Science-based trainer. Clicker training, shaping, and positive reinforcement only.", price:"$85/session", zip:"02109" },
+  { name:"Greg Roberts", emoji:"\ud83e\uddd4", method:"positive", specs:["puppy", "obedience"], rating:4.4, reviews:149, bio:"Fear-free certified specialist. Works best with anxious, reactive, and rescue dogs.", price:"$82/session", zip:"84105" },
+  { name:"River Ross", emoji:"\ud83d\udc69", method:"balanced", specs:["obedience", "puppy"], rating:4.6, reviews:118, bio:"Positive reinforcement only. Helped over 682 dogs earn their AKC CGC title.", price:"$82/session", zip:"97207" },
+  { name:"Luke Wood", emoji:"\ud83d\udc68", method:"balanced", specs:["obedience", "anxiety"], rating:4.5, reviews:25, bio:"Worked with over 176 dogs across 20 years. Specialises in obedience.", price:"$72/session", zip:"98106" },
+  { name:"Ivan Gonzalez", emoji:"\ud83d\udc68\u200d\ud83e\uddb1", method:"balanced", specs:["anxiety", "obedience", "puppy"], rating:4.5, reviews:64, bio:"Bilingual trainer (English/Spanish). Puppy through advanced obedience.", price:"$82/session", zip:"98109" },
+  { name:"Demi Henderson", emoji:"\ud83d\udc69", method:"balanced", specs:["obedience", "anxiety"], rating:4.6, reviews:144, bio:"Board and train specialist with a 7-year track record of reliable results.", price:"$78/session", zip:"78207" },
+  { name:"Hazel Morgan", emoji:"\ud83d\udc69\u200d\ud83e\uddb0", method:"balanced", specs:["puppy", "obedience", "anxiety"], rating:4.6, reviews:124, bio:"Off-leash reliability expert. E-collar certified and results-driven.", price:"$82/session", zip:"73105" },
+  { name:"Claire Morgan", emoji:"\ud83d\udc69\u200d\ud83e\uddb3", method:"positive", specs:["obedience", "puppy"], rating:4.8, reviews:159, bio:"Certified CPDT-KA with 10 years of experience. Force-free methods only.", price:"$80/session", zip:"23227" },
+  { name:"Derek Wood", emoji:"\ud83d\udc68\u200d\ud83e\uddb3", method:"positive", specs:["puppy", "obedience"], rating:4.8, reviews:49, bio:"Online and in-person sessions available. CPDT-KA certified and fully insured.", price:"$98/session", zip:"29405" },
+  { name:"Eddie O.", emoji:"\ud83e\uddd1", method:"positive", specs:["aggression", "anxiety"], rating:4.6, reviews:87, bio:"Science-based trainer. Clicker training, shaping, and positive reinforcement only.", price:"$68/session", zip:"29404" },
+  { name:"Greg Powell", emoji:"\ud83e\uddd1", method:"balanced", specs:["puppy", "obedience"], rating:4.6, reviews:85, bio:"Vet tech background. Understands dog health and behaviour from the inside out.", price:"$80/session", zip:"35203" },
+  { name:"Jack T.", emoji:"\ud83d\udc68\u200d\ud83e\uddb0", method:"balanced", specs:["aggression", "anxiety"], rating:4.7, reviews:132, bio:"Former military working dog trainer. Now dedicated to helping families build better bonds with their dogs.", price:"$95/session", zip:"77008" },
+  { name:"Rex Foster", emoji:"\ud83d\udc68\u200d\ud83e\uddb3", method:"positive", specs:["aggression", "obedience"], rating:4.3, reviews:166, bio:"Science-based trainer. Clicker training, shaping, and positive reinforcement only.", price:"$78/session", zip:"45203" },
+  { name:"Jin Wilson", emoji:"\ud83d\udc68\u200d\ud83e\uddb0", method:"positive", specs:["anxiety", "obedience", "puppy"], rating:5, reviews:170, bio:"Canine behaviourist trained under top IAABC members. Specialises in puppy training.", price:"$70/session", zip:"27604" },
+  { name:"Kyle Patterson", emoji:"\ud83d\udc68\u200d\ud83e\uddb0", method:"positive", specs:["anxiety", "obedience", "puppy"], rating:4.5, reviews:146, bio:"Off-leash reliability expert. E-collar certified and results-driven.", price:"$70/session", zip:"84108" },
+  { name:"Kyle Lee", emoji:"\ud83e\uddd4", method:"balanced", specs:["puppy", "obedience", "anxiety"], rating:4.9, reviews:77, bio:"Positive reinforcement only. Helped over 252 dogs earn their AKC CGC title.", price:"$82/session", zip:"35205" },
+  { name:"Curt Walker", emoji:"\ud83d\udc68\u200d\ud83e\uddb0", method:"positive", specs:["obedience", "puppy"], rating:4.6, reviews:87, bio:"Worked with over 520 dogs across 10 years. Specialises in puppy training.", price:"$75/session", zip:"84102" },
+  { name:"Abdul James", emoji:"\ud83d\udc68\u200d\ud83e\uddb0", method:"positive", specs:["obedience", "puppy"], rating:5, reviews:171, bio:"Canine behaviourist trained under top IAABC members. Specialises in obedience.", price:"$70/session", zip:"48210" },
+  { name:"Luke Simmons", emoji:"\ud83d\udc68\u200d\ud83e\uddb0", method:"positive", specs:["aggression", "obedience"], rating:4.7, reviews:121, bio:"Board and train specialist with a 7-year track record of reliable results.", price:"$55/session", zip:"90024" },
+  { name:"Pearl Bailey", emoji:"\ud83d\udc69\u200d\ud83e\uddb3", method:"positive", specs:["aggression", "obedience"], rating:4.9, reviews:177, bio:"Off-leash reliability expert. E-collar certified and results-driven.", price:"$110/session", zip:"33128" },
+  { name:"Brett Taylor", emoji:"\ud83d\udc68", method:"positive", specs:["obedience", "anxiety"], rating:4.8, reviews:116, bio:"AKC CGC evaluator. Group classes and private sessions available in your area.", price:"$68/session", zip:"39209" },
+  { name:"Mila Coleman", emoji:"\ud83d\udc69", method:"positive", specs:["puppy", "obedience", "anxiety"], rating:4.6, reviews:115, bio:"Worked with over 679 dogs across 16 years. Specialises in anxiety and reactivity.", price:"$70/session", zip:"35207" },
+  { name:"Reese X.", emoji:"\ud83d\udc68\u200d\ud83e\uddb0", method:"positive", specs:["obedience", "puppy"], rating:4.7, reviews:66, bio:"Positive reinforcement only. Helped over 572 dogs earn their AKC CGC title.", price:"$98/session", zip:"02111" },
+  { name:"Wade Thomas", emoji:"\ud83d\udc68\u200d\ud83e\uddb0", method:"positive", specs:["anxiety", "obedience", "puppy"], rating:4.9, reviews:178, bio:"Science-based trainer. Clicker training, shaping, and positive reinforcement only.", price:"$110/session", zip:"10023" },
+  { name:"Mike Gray", emoji:"\ud83d\udc68\u200d\ud83e\uddb0", method:"positive", specs:["anxiety", "obedience", "puppy"], rating:4.9, reviews:55, bio:"Canine behaviourist trained under top IAABC members. Specialises in anxiety and reactivity.", price:"$90/session", zip:"23227" },
+  { name:"Cleo Ramirez", emoji:"\ud83d\udc69\u200d\ud83e\uddb0", method:"positive", specs:["puppy", "obedience"], rating:5, reviews:173, bio:"IACP certified. Balanced methods, real-world results, no gimmicks.", price:"$90/session", zip:"89105" },
+  { name:"Aria Ross", emoji:"\ud83d\udc69", method:"balanced", specs:["aggression", "anxiety"], rating:4.5, reviews:53, bio:"Board and train specialist with a 4-year track record of reliable results.", price:"$80/session", zip:"89106" },
+  { name:"Willa Kelly", emoji:"\ud83d\udc69\u200d\ud83e\uddb3", method:"balanced", specs:["aggression", "obedience"], rating:4.9, reviews:88, bio:"Science-based trainer. Clicker training, shaping, and positive reinforcement only.", price:"$92/session", zip:"21205" },
+  { name:"Hugo Russell", emoji:"\ud83d\udc68\u200d\ud83e\uddb1", method:"positive", specs:["anxiety", "puppy"], rating:4.5, reviews:128, bio:"Vet tech background. Understands dog health and behaviour from the inside out.", price:"$82/session", zip:"90010" },
+  { name:"Frank Flores", emoji:"\ud83e\uddd1", method:"balanced", specs:["aggression", "anxiety"], rating:4.4, reviews:106, bio:"IACP certified. Balanced methods, real-world results, no gimmicks.", price:"$55/session", zip:"37201" },
+  { name:"Demi Reed", emoji:"\ud83e\uddd1", method:"positive", specs:["aggression", "anxiety"], rating:4.4, reviews:64, bio:"Certified CPDT-KA with 10 years of experience. Force-free methods only.", price:"$98/session", zip:"30308" },
+  { name:"Xander Russell", emoji:"\ud83e\uddd4", method:"positive", specs:["obedience", "puppy"], rating:4.4, reviews:16, bio:"Bilingual trainer (English/Spanish). Puppy through advanced obedience.", price:"$60/session", zip:"48210" },
+  { name:"Riley King", emoji:"\ud83d\udc69\u200d\ud83e\uddb0", method:"positive", specs:["aggression", "anxiety"], rating:4.8, reviews:195, bio:"Retired K9 officer. Now focused on family dogs and community safety.", price:"$110/session", zip:"45201" },
+  { name:"Ivan Harris", emoji:"\ud83d\udc68\u200d\ud83e\uddb0", method:"positive", specs:["aggression", "anxiety"], rating:4.5, reviews:118, bio:"Rescue dog rehabilitator. Gentle, patient, and 100% committed to your dog.", price:"$78/session", zip:"89109" },
+  { name:"Owen Wright", emoji:"\ud83d\udc68\u200d\ud83e\uddb1", method:"positive", specs:["obedience", "anxiety"], rating:5, reviews:121, bio:"In-home training specialist. I come to you \u2014 no kennel stress for your dog.", price:"$65/session", zip:"70113" },
+  { name:"Xavier Jones", emoji:"\ud83e\uddd4", method:"positive", specs:["obedience", "anxiety"], rating:4.7, reviews:64, bio:"Board and train specialist with a 11-year track record of reliable results.", price:"$85/session", zip:"48202" },
+  { name:"Jade Jenkins", emoji:"\ud83d\udc69", method:"balanced", specs:["aggression", "obedience"], rating:4.8, reviews:11, bio:"Certified CPDT-KA with 10 years of experience. Force-free methods only.", price:"$70/session", zip:"89103" },
+  { name:"Avery Jackson", emoji:"\ud83d\udc69\u200d\ud83e\uddb3", method:"positive", specs:["anxiety", "puppy"], rating:4.8, reviews:139, bio:"Fear-free certified specialist. Works best with anxious, reactive, and rescue dogs.", price:"$68/session", zip:"70117" },
+  { name:"Chad Gonzalez", emoji:"\ud83d\udc68\u200d\ud83e\uddb3", method:"balanced", specs:["obedience", "anxiety"], rating:5, reviews:16, bio:"Bilingual trainer (English/Spanish). Puppy through advanced obedience.", price:"$100/session", zip:"63103" },
+  { name:"Neil Peterson", emoji:"\ud83d\udc68\u200d\ud83e\uddb0", method:"positive", specs:["anxiety", "obedience", "puppy"], rating:4.8, reviews:118, bio:"Fear-free certified specialist. Works best with anxious, reactive, and rescue dogs.", price:"$65/session", zip:"78210" },
+  { name:"Travis Watson", emoji:"\ud83e\uddd1", method:"positive", specs:["obedience", "puppy"], rating:5, reviews:140, bio:"Runs group puppy classes and one-on-one sessions. 6 years in the field.", price:"$82/session", zip:"33131" },
+  { name:"Ulrich Brooks", emoji:"\ud83d\udc68", method:"balanced", specs:["obedience", "puppy"], rating:4.6, reviews:63, bio:"Vet tech background. Understands dog health and behaviour from the inside out.", price:"$92/session", zip:"98107" },
+  { name:"June Green", emoji:"\ud83d\udc69", method:"positive", specs:["puppy", "obedience", "anxiety"], rating:4.6, reviews:44, bio:"Fear-free certified specialist. Works best with anxious, reactive, and rescue dogs.", price:"$98/session", zip:"48203" },
+  { name:"Zoe Perry", emoji:"\ud83d\udc69\u200d\ud83e\uddb0", method:"balanced", specs:["puppy", "obedience"], rating:4.7, reviews:148, bio:"Vet tech background. Understands dog health and behaviour from the inside out.", price:"$110/session", zip:"55408" },
+  { name:"Felix Martin", emoji:"\ud83d\udc68\u200d\ud83e\uddb0", method:"balanced", specs:["puppy", "obedience", "anxiety"], rating:4.5, reviews:152, bio:"In-home training specialist. I come to you \u2014 no kennel stress for your dog.", price:"$100/session", zip:"33101" },
+  { name:"Victor Young", emoji:"\ud83e\uddd1", method:"positive", specs:["puppy", "obedience", "anxiety"], rating:4.7, reviews:114, bio:"Specialises in high-drive working breeds \u2014 Malinois, GSD, Dutch Shepherd.", price:"$110/session", zip:"45209" },
+  { name:"Lena W.", emoji:"\ud83e\uddd1", method:"balanced", specs:["puppy", "obedience", "anxiety"], rating:4.8, reviews:84, bio:"Rescue dog rehabilitator. Gentle, patient, and 100% committed to your dog.", price:"$85/session", zip:"29401" },
+  { name:"Greg B.", emoji:"\ud83d\udc68\u200d\ud83e\uddb0", method:"balanced", specs:["puppy", "obedience"], rating:4.4, reviews:140, bio:"Off-leash reliability expert. E-collar certified and results-driven.", price:"$75/session", zip:"85001" },
+  { name:"Iris Brooks", emoji:"\ud83e\uddd1", method:"positive", specs:["aggression", "obedience"], rating:4.9, reviews:44, bio:"Specialises in high-drive working breeds \u2014 Malinois, GSD, Dutch Shepherd.", price:"$72/session", zip:"20007" },
+  { name:"Mike Roberts", emoji:"\ud83e\uddd1", method:"balanced", specs:["anxiety", "obedience", "puppy"], rating:4.6, reviews:60, bio:"AKC CGC evaluator. Group classes and private sessions available in your area.", price:"$100/session", zip:"84101" },
+  { name:"Diego Evans", emoji:"\ud83d\udc68\u200d\ud83e\uddb0", method:"positive", specs:["puppy", "obedience"], rating:4.5, reviews:158, bio:"Certified CPDT-KA with 12 years of experience. Force-free methods only.", price:"$60/session", zip:"63102" },
+  { name:"Brynn Rodriguez", emoji:"\ud83d\udc69\u200d\ud83e\uddb3", method:"positive", specs:["puppy", "obedience"], rating:4.6, reviews:115, bio:"Board and train specialist with a 20-year track record of reliable results.", price:"$72/session", zip:"55401" },
+  { name:"Tess J.", emoji:"\ud83d\udc69\u200d\ud83e\uddb1", method:"positive", specs:["puppy", "obedience"], rating:4.6, reviews:122, bio:"Vet tech background. Understands dog health and behaviour from the inside out.", price:"$65/session", zip:"98105" },
+  { name:"Eli Lopez", emoji:"\ud83d\udc68\u200d\ud83e\uddb3", method:"positive", specs:["aggression", "anxiety"], rating:4.4, reviews:163, bio:"Rescue dog rehabilitator. Gentle, patient, and 100% committed to your dog.", price:"$95/session", zip:"60610" },
+  { name:"Greg Evans", emoji:"\ud83e\uddd1", method:"positive", specs:["obedience", "puppy"], rating:4.9, reviews:195, bio:"Worked with over 178 dogs across 8 years. Specialises in puppy training.", price:"$85/session", zip:"89103" },
+  { name:"Eli Evans", emoji:"\ud83d\udc68\u200d\ud83e\uddb1", method:"balanced", specs:["obedience", "anxiety"], rating:4.9, reviews:94, bio:"Board and train specialist with a 6-year track record of reliable results.", price:"$88/session", zip:"60618" },
+  { name:"Avery Bell", emoji:"\ud83d\udc69", method:"balanced", specs:["aggression", "obedience"], rating:4.4, reviews:165, bio:"Runs group puppy classes and one-on-one sessions. 13 years in the field.", price:"$98/session", zip:"90019" },
+  { name:"Rex B.", emoji:"\ud83d\udc68\u200d\ud83e\uddb3", method:"positive", specs:["anxiety", "obedience", "puppy"], rating:4.7, reviews:75, bio:"Former shelter behaviour counsellor. Now dedicated to helping families build better bonds with their dogs.", price:"$120/session", zip:"78207" },
+  { name:"Uri L.", emoji:"\ud83e\uddd1", method:"positive", specs:["aggression", "anxiety"], rating:4.9, reviews:24, bio:"Specialises in high-drive working breeds \u2014 Malinois, GSD, Dutch Shepherd.", price:"$65/session", zip:"35209" },
+  { name:"Nicole Gonzalez", emoji:"\ud83e\uddd1", method:"balanced", specs:["obedience", "anxiety"], rating:4.5, reviews:126, bio:"Board and train specialist with a 17-year track record of reliable results.", price:"$100/session", zip:"85003" },
+  { name:"Anthony Phillips", emoji:"\ud83d\udc68\u200d\ud83e\uddb3", method:"balanced", specs:["puppy", "obedience"], rating:4.5, reviews:117, bio:"Online and in-person sessions available. CPDT-KA certified and fully insured.", price:"$95/session", zip:"55409" },
+  { name:"Ivan Ross", emoji:"\ud83d\udc68\u200d\ud83e\uddb3", method:"positive", specs:["puppy", "obedience"], rating:4.9, reviews:170, bio:"Fear-free certified specialist. Works best with anxious, reactive, and rescue dogs.", price:"$85/session", zip:"33129" },
+  { name:"Wren Thomas", emoji:"\ud83e\uddd1", method:"balanced", specs:["anxiety", "puppy"], rating:4.5, reviews:154, bio:"Rescue dog rehabilitator. Gentle, patient, and 100% committed to your dog.", price:"$70/session", zip:"29403" },
+  { name:"Anthony Robinson", emoji:"\ud83d\udc68", method:"balanced", specs:["obedience", "puppy"], rating:4.8, reviews:89, bio:"Online and in-person sessions available. CPDT-KA certified and fully insured.", price:"$70/session", zip:"80207" },
+  { name:"Vera Robinson", emoji:"\ud83d\udc69", method:"balanced", specs:["obedience", "anxiety"], rating:4.5, reviews:129, bio:"Worked with over 179 dogs across 7 years. Specialises in obedience.", price:"$75/session", zip:"29410" },
+  { name:"Ignacio Barnes", emoji:"\ud83e\uddd1", method:"balanced", specs:["puppy", "obedience"], rating:4.8, reviews:163, bio:"Specialises in high-drive working breeds \u2014 Malinois, GSD, Dutch Shepherd.", price:"$70/session", zip:"48209" },
+  { name:"Devon Brooks", emoji:"\ud83d\udc68\u200d\ud83e\uddb1", method:"positive", specs:["puppy", "obedience"], rating:4.6, reviews:178, bio:"Runs group puppy classes and one-on-one sessions. 17 years in the field.", price:"$78/session", zip:"27602" },
+  { name:"Iris Perry", emoji:"\ud83d\udc69\u200d\ud83e\uddb0", method:"positive", specs:["obedience", "anxiety"], rating:4.6, reviews:151, bio:"Runs group puppy classes and one-on-one sessions. 15 years in the field.", price:"$95/session", zip:"29403" },
+  { name:"Skyler Powell", emoji:"\ud83d\udc68", method:"balanced", specs:["anxiety", "puppy"], rating:4.9, reviews:18, bio:"Rescue dog rehabilitator. Gentle, patient, and 100% committed to your dog.", price:"$98/session", zip:"45204" },
+  { name:"Skyler White", emoji:"\ud83d\udc68\u200d\ud83e\uddb3", method:"positive", specs:["anxiety", "puppy"], rating:4.9, reviews:28, bio:"Runs group puppy classes and one-on-one sessions. 3 years in the field.", price:"$78/session", zip:"55404" },
+  { name:"Hugo Young", emoji:"\ud83d\udc68\u200d\ud83e\uddb1", method:"balanced", specs:["obedience", "puppy"], rating:5, reviews:100, bio:"Certified CPDT-KA with 6 years of experience. Force-free methods only.", price:"$78/session", zip:"02110" },
+  { name:"Casey L.", emoji:"\ud83d\udc69\u200d\ud83e\uddb1", method:"positive", specs:["anxiety", "obedience", "puppy"], rating:4.8, reviews:40, bio:"Runs group puppy classes and one-on-one sessions. 3 years in the field.", price:"$98/session", zip:"48203" },
+  { name:"Harley Patterson", emoji:"\ud83e\uddd1", method:"balanced", specs:["obedience", "puppy"], rating:4.4, reviews:78, bio:"Bilingual trainer (English/Spanish). Puppy through advanced obedience.", price:"$78/session", zip:"55407" },
+  { name:"Wade B.", emoji:"\ud83d\udc68", method:"positive", specs:["anxiety", "obedience", "puppy"], rating:4.7, reviews:9, bio:"Positive reinforcement only. Helped over 398 dogs earn their AKC CGC title.", price:"$100/session", zip:"37207" },
+  { name:"Tess Taylor", emoji:"\ud83d\udc69\u200d\ud83e\uddb3", method:"balanced", specs:["obedience", "puppy"], rating:4.4, reviews:176, bio:"Online and in-person sessions available. CPDT-KA certified and fully insured.", price:"$65/session", zip:"35210" },
+  { name:"Ignacio Stewart", emoji:"\ud83d\udc68\u200d\ud83e\uddb0", method:"positive", specs:["obedience", "puppy"], rating:4.9, reviews:16, bio:"Rescue dog rehabilitator. Gentle, patient, and 100% committed to your dog.", price:"$90/session", zip:"84103" },
+  { name:"Marlowe Kelly", emoji:"\ud83d\udc69", method:"positive", specs:["aggression", "anxiety"], rating:4.4, reviews:95, bio:"Vet tech background. Understands dog health and behaviour from the inside out.", price:"$110/session", zip:"20007" },
+  { name:"Riley B.", emoji:"\ud83d\udc69\u200d\ud83e\uddb3", method:"positive", specs:["puppy", "obedience"], rating:4.5, reviews:16, bio:"Former service dog trainer. Now dedicated to helping families build better bonds with their dogs.", price:"$75/session", zip:"63106" },
+  { name:"Abdul Thomas", emoji:"\ud83e\uddd1", method:"positive", specs:["obedience", "anxiety"], rating:4.5, reviews:17, bio:"IACP certified. Balanced methods, real-world results, no gimmicks.", price:"$85/session", zip:"19102" },
+  { name:"Rex Bryant", emoji:"\ud83d\udc68\u200d\ud83e\uddb3", method:"positive", specs:["aggression", "anxiety"], rating:5, reviews:132, bio:"Rescue dog rehabilitator. Gentle, patient, and 100% committed to your dog.", price:"$98/session", zip:"89101" },
+  { name:"Peyton Collins", emoji:"\ud83d\udc69\u200d\ud83e\uddb0", method:"positive", specs:["aggression", "anxiety"], rating:4.4, reviews:88, bio:"Bilingual trainer (English/Spanish). Puppy through advanced obedience.", price:"$82/session", zip:"90045" },
+  { name:"Skye Gonzalez", emoji:"\ud83e\uddd1", method:"positive", specs:["aggression", "anxiety"], rating:4.7, reviews:116, bio:"Former agility competitor. Now dedicated to helping families build better bonds with their dogs.", price:"$80/session", zip:"48208" },
+  { name:"Blake W.", emoji:"\ud83e\uddd4", method:"balanced", specs:["anxiety", "obedience", "puppy"], rating:4.3, reviews:22, bio:"Rescue dog rehabilitator. Gentle, patient, and 100% committed to your dog.", price:"$78/session", zip:"19107" },
+  { name:"Drew Torres", emoji:"\ud83d\udc68\u200d\ud83e\uddb0", method:"positive", specs:["aggression", "anxiety"], rating:4.6, reviews:200, bio:"Positive reinforcement only. Helped over 475 dogs earn their AKC CGC title.", price:"$65/session", zip:"20005" },
+  { name:"Sloane Anderson", emoji:"\ud83d\udc69\u200d\ud83e\uddb0", method:"positive", specs:["puppy", "obedience"], rating:4.8, reviews:132, bio:"Off-leash reliability expert. E-collar certified and results-driven.", price:"$100/session", zip:"70119" },
+  { name:"Finley Murphy", emoji:"\ud83d\udc69\u200d\ud83e\uddb1", method:"positive", specs:["anxiety", "obedience", "puppy"], rating:4.4, reviews:39, bio:"Runs group puppy classes and one-on-one sessions. 17 years in the field.", price:"$65/session", zip:"30310" },
+  { name:"Rue James", emoji:"\ud83d\udc69", method:"positive", specs:["puppy", "obedience", "anxiety"], rating:4.9, reviews:45, bio:"Rescue dog rehabilitator. Gentle, patient, and 100% committed to your dog.", price:"$72/session", zip:"45205" },
+  { name:"Rowan Coleman", emoji:"\ud83d\udc69\u200d\ud83e\uddb0", method:"positive", specs:["puppy", "obedience"], rating:4.6, reviews:151, bio:"Runs group puppy classes and one-on-one sessions. 5 years in the field.", price:"$88/session", zip:"73102" },
+  { name:"Boris Evans", emoji:"\ud83e\uddd4", method:"positive", specs:["obedience", "puppy"], rating:4.9, reviews:23, bio:"Vet tech background. Understands dog health and behaviour from the inside out.", price:"$70/session", zip:"89104" },
+  { name:"Rue F.", emoji:"\ud83d\udc69\u200d\ud83e\uddb1", method:"balanced", specs:["anxiety", "puppy"], rating:4.8, reviews:38, bio:"Online and in-person sessions available. CPDT-KA certified and fully insured.", price:"$92/session", zip:"63106" },
+  { name:"Devon A.", emoji:"\ud83d\udc68\u200d\ud83e\uddb0", method:"positive", specs:["obedience", "anxiety"], rating:4.5, reviews:137, bio:"Fear-free certified specialist. Works best with anxious, reactive, and rescue dogs.", price:"$82/session", zip:"23223" },
+  { name:"Morgan Rivera", emoji:"\ud83e\uddd1", method:"positive", specs:["aggression", "obedience"], rating:4.7, reviews:48, bio:"Positive reinforcement only. Helped over 774 dogs earn their AKC CGC title.", price:"$120/session", zip:"33127" },
+  { name:"Pearl Hughes", emoji:"\ud83d\udc69\u200d\ud83e\uddb3", method:"balanced", specs:["puppy", "obedience"], rating:4.9, reviews:12, bio:"Former service dog trainer. Now dedicated to helping families build better bonds with their dogs.", price:"$65/session", zip:"85008" },
+  { name:"Carlos Turner", emoji:"\ud83d\udc68", method:"balanced", specs:["puppy", "obedience", "anxiety"], rating:4.7, reviews:82, bio:"Worked with over 404 dogs across 15 years. Specialises in anxiety and reactivity.", price:"$98/session", zip:"97210" },
+  { name:"Owen A.", emoji:"\ud83d\udc68\u200d\ud83e\uddb0", method:"positive", specs:["obedience", "puppy"], rating:4.6, reviews:57, bio:"Specialises in high-drive working breeds \u2014 Malinois, GSD, Dutch Shepherd.", price:"$85/session", zip:"30301" },
+  { name:"Greg F.", emoji:"\ud83d\udc68", method:"positive", specs:["aggression", "obedience"], rating:4.5, reviews:124, bio:"IACP certified. Balanced methods, real-world results, no gimmicks.", price:"$68/session", zip:"33125" },
+  { name:"Brynn King", emoji:"\ud83d\udc69\u200d\ud83e\uddb3", method:"balanced", specs:["obedience", "puppy"], rating:4.5, reviews:45, bio:"Positive reinforcement only. Helped over 263 dogs earn their AKC CGC title.", price:"$85/session", zip:"63109" },
+  { name:"Yale Turner", emoji:"\ud83d\udc68", method:"positive", specs:["anxiety", "obedience", "puppy"], rating:4.3, reviews:105, bio:"Runs group puppy classes and one-on-one sessions. 9 years in the field.", price:"$100/session", zip:"29407" },
+  { name:"Hannah Martin", emoji:"\ud83d\udc69\u200d\ud83e\uddb1", method:"positive", specs:["anxiety", "obedience", "puppy"], rating:4.5, reviews:7, bio:"Retired K9 officer. Now focused on family dogs and community safety.", price:"$68/session", zip:"97205" },
+  { name:"Marcus Lopez", emoji:"\ud83e\uddd1", method:"positive", specs:["obedience", "anxiety"], rating:4.6, reviews:78, bio:"Off-leash reliability expert. E-collar certified and results-driven.", price:"$65/session", zip:"02101" },
+  { name:"Chris F.", emoji:"\ud83d\udc68\u200d\ud83e\uddb3", method:"positive", specs:["obedience", "puppy"], rating:4.6, reviews:91, bio:"Rescue dog rehabilitator. Gentle, patient, and 100% committed to your dog.", price:"$110/session", zip:"87102" },
+  { name:"Hugo S.", emoji:"\ud83d\udc68\u200d\ud83e\uddb1", method:"positive", specs:["puppy", "obedience"], rating:4.4, reviews:90, bio:"Online and in-person sessions available. CPDT-KA certified and fully insured.", price:"$98/session", zip:"30305" },
+  { name:"Mila Hayes", emoji:"\ud83d\udc69\u200d\ud83e\uddb0", method:"balanced", specs:["aggression", "anxiety"], rating:4.4, reviews:162, bio:"Positive reinforcement only. Helped over 621 dogs earn their AKC CGC title.", price:"$82/session", zip:"02102" },
+  { name:"Xavier Martinez", emoji:"\ud83d\udc68\u200d\ud83e\uddb0", method:"positive", specs:["puppy", "obedience"], rating:4.6, reviews:177, bio:"Retired K9 officer. Now focused on family dogs and community safety.", price:"$68/session", zip:"55410" },
+  { name:"Dakota Brooks", emoji:"\ud83e\uddd1", method:"positive", specs:["anxiety", "obedience", "puppy"], rating:4.4, reviews:166, bio:"Board and train specialist with a 10-year track record of reliable results.", price:"$90/session", zip:"97209" },
+  { name:"Bianca Brown", emoji:"\ud83e\uddd1", method:"positive", specs:["anxiety", "obedience", "puppy"], rating:4.5, reviews:43, bio:"In-home training specialist. I come to you \u2014 no kennel stress for your dog.", price:"$92/session", zip:"60625" },
+  { name:"Owen James", emoji:"\ud83e\uddd4", method:"balanced", specs:["obedience", "anxiety"], rating:4.7, reviews:174, bio:"Online and in-person sessions available. CPDT-KA certified and fully insured.", price:"$98/session", zip:"27609" },
+  { name:"Quinn Collins", emoji:"\ud83d\udc69\u200d\ud83e\uddb1", method:"positive", specs:["puppy", "obedience", "anxiety"], rating:4.7, reviews:54, bio:"IACP certified. Balanced methods, real-world results, no gimmicks.", price:"$78/session", zip:"80201" },
+  { name:"Emery Gray", emoji:"\ud83d\udc69\u200d\ud83e\uddb1", method:"positive", specs:["aggression", "anxiety"], rating:4.6, reviews:148, bio:"Bilingual trainer (English/Spanish). Puppy through advanced obedience.", price:"$80/session", zip:"84106" },
+  { name:"Alex Garcia", emoji:"\ud83d\udc68\u200d\ud83e\uddb1", method:"positive", specs:["puppy", "obedience", "anxiety"], rating:5, reviews:25, bio:"Runs group puppy classes and one-on-one sessions. 11 years in the field.", price:"$88/session", zip:"78201" },
+  { name:"Quentin White", emoji:"\ud83d\udc68\u200d\ud83e\uddb1", method:"balanced", specs:["puppy", "obedience", "anxiety"], rating:4.4, reviews:162, bio:"Worked with over 785 dogs across 4 years. Specialises in puppy training.", price:"$120/session", zip:"20006" },
+  { name:"Shiloh T.", emoji:"\ud83e\uddd1", method:"positive", specs:["obedience", "puppy"], rating:4.5, reviews:125, bio:"Board and train specialist with a 20-year track record of reliable results.", price:"$68/session", zip:"97208" },
+  { name:"Abdul Perez", emoji:"\ud83e\uddd1", method:"balanced", specs:["puppy", "obedience", "anxiety"], rating:4.5, reviews:170, bio:"Fear-free certified specialist. Works best with anxious, reactive, and rescue dogs.", price:"$60/session", zip:"55410" },
+  { name:"Ravi Russell", emoji:"\ud83d\udc68", method:"balanced", specs:["obedience", "puppy"], rating:4.9, reviews:50, bio:"Off-leash reliability expert. E-collar certified and results-driven.", price:"$60/session", zip:"30302" },
+  { name:"Faye Morris", emoji:"\ud83d\udc69\u200d\ud83e\uddb1", method:"balanced", specs:["aggression", "obedience"], rating:4.9, reviews:90, bio:"Runs group puppy classes and one-on-one sessions. 7 years in the field.", price:"$82/session", zip:"37208" },
+  { name:"Cameron Perry", emoji:"\ud83e\uddd1", method:"positive", specs:["aggression", "anxiety"], rating:4.4, reviews:122, bio:"Science-based trainer. Clicker training, shaping, and positive reinforcement only.", price:"$80/session", zip:"35206" },
+  { name:"Cameron X.", emoji:"\ud83d\udc68\u200d\ud83e\uddb3", method:"balanced", specs:["obedience", "puppy"], rating:4.9, reviews:136, bio:"Fear-free certified specialist. Works best with anxious, reactive, and rescue dogs.", price:"$85/session", zip:"73109" },
+  { name:"Lila Hayes", emoji:"\ud83d\udc69\u200d\ud83e\uddb3", method:"balanced", specs:["puppy", "obedience"], rating:4.5, reviews:65, bio:"IACP certified. Balanced methods, real-world results, no gimmicks.", price:"$95/session", zip:"48207" },
+  { name:"Priya Jackson", emoji:"\ud83d\udc69\u200d\ud83e\uddb1", method:"positive", specs:["obedience", "anxiety"], rating:4.3, reviews:35, bio:"Bilingual trainer (English/Spanish). Puppy through advanced obedience.", price:"$95/session", zip:"90211" },
+  { name:"Chris Cooper", emoji:"\ud83d\udc68\u200d\ud83e\uddb3", method:"positive", specs:["aggression", "anxiety"], rating:4.7, reviews:61, bio:"Canine behaviourist trained under top IAABC members. Specialises in aggression rehabilitation.", price:"$70/session", zip:"60637" },
+  { name:"Travis Russell", emoji:"\ud83e\uddd4", method:"positive", specs:["obedience", "anxiety"], rating:4.8, reviews:179, bio:"Online and in-person sessions available. CPDT-KA certified and fully insured.", price:"$65/session", zip:"87108" },
+  { name:"Bianca P.", emoji:"\ud83e\uddd1", method:"balanced", specs:["obedience", "anxiety"], rating:4.7, reviews:43, bio:"Vet tech background. Understands dog health and behaviour from the inside out.", price:"$72/session", zip:"55404" },
+  { name:"Jerome Gonzalez", emoji:"\ud83d\udc68\u200d\ud83e\uddb0", method:"positive", specs:["anxiety", "obedience", "puppy"], rating:4.4, reviews:111, bio:"Positive reinforcement only. Helped over 573 dogs earn their AKC CGC title.", price:"$95/session", zip:"10024" },
+  { name:"Derek Wright", emoji:"\ud83d\udc68", method:"positive", specs:["puppy", "obedience"], rating:4.8, reviews:153, bio:"Former agility competitor. Now dedicated to helping families build better bonds with their dogs.", price:"$65/session", zip:"20001" },
+  { name:"Brett Hayes", emoji:"\ud83d\udc68\u200d\ud83e\uddb3", method:"positive", specs:["puppy", "obedience"], rating:4.5, reviews:51, bio:"Retired K9 officer. Now focused on family dogs and community safety.", price:"$70/session", zip:"73106" },
+  { name:"Claire Peterson", emoji:"\ud83d\udc69", method:"balanced", specs:["anxiety", "puppy"], rating:4.8, reviews:94, bio:"Science-based trainer. Clicker training, shaping, and positive reinforcement only.", price:"$68/session", zip:"78204" },
+  { name:"Sarah Bennett", emoji:"\ud83d\udc69\u200d\ud83e\uddb0", method:"positive", specs:["puppy", "obedience", "anxiety"], rating:4.6, reviews:189, bio:"Retired K9 officer. Now focused on family dogs and community safety.", price:"$110/session", zip:"84102" },
+  { name:"Rue V.", emoji:"\ud83d\udc69", method:"positive", specs:["obedience", "anxiety"], rating:5, reviews:190, bio:"Former military working dog trainer. Now dedicated to helping families build better bonds with their dogs.", price:"$68/session", zip:"78202" },
+  { name:"Luke Morgan", emoji:"\ud83d\udc68\u200d\ud83e\uddb1", method:"positive", specs:["anxiety", "obedience", "puppy"], rating:4.7, reviews:185, bio:"Worked with over 511 dogs across 4 years. Specialises in puppy training.", price:"$60/session", zip:"20003" },
+  { name:"Randy Davis", emoji:"\ud83d\udc68\u200d\ud83e\uddb1", method:"positive", specs:["anxiety", "puppy"], rating:4.7, reviews:79, bio:"Positive reinforcement only. Helped over 342 dogs earn their AKC CGC title.", price:"$78/session", zip:"33109" },
+  { name:"Mario Wilson", emoji:"\ud83d\udc68", method:"positive", specs:["puppy", "obedience", "anxiety"], rating:4.5, reviews:147, bio:"Science-based trainer. Clicker training, shaping, and positive reinforcement only.", price:"$120/session", zip:"90012" },
+  { name:"Rue Richardson", emoji:"\ud83d\udc69", method:"positive", specs:["aggression", "anxiety"], rating:4.8, reviews:109, bio:"Bilingual trainer (English/Spanish). Puppy through advanced obedience.", price:"$70/session", zip:"27602" },
+  { name:"River Martinez", emoji:"\ud83d\udc69", method:"balanced", specs:["anxiety", "obedience", "puppy"], rating:4.9, reviews:148, bio:"Retired K9 officer. Now focused on family dogs and community safety.", price:"$92/session", zip:"90002" },
+  { name:"Zara Jones", emoji:"\ud83e\uddd1", method:"positive", specs:["aggression", "obedience"], rating:4.9, reviews:99, bio:"Works with all breeds and ages. No dog is too challenging.", price:"$65/session", zip:"89108" },
+  { name:"Nicole Simmons", emoji:"\ud83d\udc69", method:"positive", specs:["obedience", "anxiety"], rating:4.9, reviews:155, bio:"In-home training specialist. I come to you \u2014 no kennel stress for your dog.", price:"$110/session", zip:"33101" },
+  { name:"Finley Hayes", emoji:"\ud83d\udc69\u200d\ud83e\uddb1", method:"balanced", specs:["aggression", "obedience"], rating:4.8, reviews:198, bio:"Worked with over 345 dogs across 15 years. Specialises in aggression rehabilitation.", price:"$98/session", zip:"10023" },
+  { name:"Wren Hernandez", emoji:"\ud83d\udc69", method:"positive", specs:["aggression", "anxiety"], rating:4.5, reviews:97, bio:"Canine behaviourist trained under top IAABC members. Specialises in anxiety and reactivity.", price:"$100/session", zip:"60614" },
+  { name:"Xena Clark", emoji:"\ud83e\uddd1", method:"positive", specs:["puppy", "obedience"], rating:4.7, reviews:61, bio:"Certified CPDT-KA with 20 years of experience. Force-free methods only.", price:"$70/session", zip:"90012" },
+  { name:"Kyle Garcia", emoji:"\ud83d\udc68\u200d\ud83e\uddb0", method:"balanced", specs:["obedience", "anxiety"], rating:4.5, reviews:102, bio:"Worked with over 770 dogs across 20 years. Specialises in anxiety and reactivity.", price:"$120/session", zip:"87103" },
+  { name:"Zara Wood", emoji:"\ud83d\udc69\u200d\ud83e\uddb3", method:"positive", specs:["anxiety", "obedience", "puppy"], rating:4.6, reviews:192, bio:"Science-based trainer. Clicker training, shaping, and positive reinforcement only.", price:"$88/session", zip:"37206" },
+  { name:"Owen Evans", emoji:"\ud83d\udc68", method:"positive", specs:["aggression", "obedience"], rating:5, reviews:176, bio:"Certified CPDT-KA with 7 years of experience. Force-free methods only.", price:"$60/session", zip:"48205" },
+  { name:"Sam K.", emoji:"\ud83d\udc68\u200d\ud83e\uddb3", method:"balanced", specs:["anxiety", "obedience", "puppy"], rating:4.6, reviews:163, bio:"Canine behaviourist trained under top IAABC members. Specialises in anxiety and reactivity.", price:"$98/session", zip:"84104" },
+  { name:"Tom R.", emoji:"\ud83d\udc68", method:"balanced", specs:["puppy", "obedience", "anxiety"], rating:4.7, reviews:78, bio:"Online and in-person sessions available. CPDT-KA certified and fully insured.", price:"$55/session", zip:"45203" },
+  { name:"Nate V.", emoji:"\ud83d\udc68\u200d\ud83e\uddb3", method:"balanced", specs:["obedience", "anxiety"], rating:4.7, reviews:69, bio:"IACP certified. Balanced methods, real-world results, no gimmicks.", price:"$88/session", zip:"70116" },
+  { name:"Xavier Anderson", emoji:"\ud83d\udc68\u200d\ud83e\uddb3", method:"balanced", specs:["puppy", "obedience", "anxiety"], rating:4.8, reviews:25, bio:"Fear-free certified specialist. Works best with anxious, reactive, and rescue dogs.", price:"$60/session", zip:"19103" },
+  { name:"Tasha Cooper", emoji:"\ud83d\udc69", method:"positive", specs:["anxiety", "puppy"], rating:4.4, reviews:116, bio:"Positive reinforcement only. Helped over 143 dogs earn their AKC CGC title.", price:"$85/session", zip:"80208" },
+  { name:"Yusuf Mitchell", emoji:"\ud83d\udc68\u200d\ud83e\uddb1", method:"positive", specs:["puppy", "obedience"], rating:4.9, reviews:180, bio:"Works with all breeds and ages. No dog is too challenging.", price:"$80/session", zip:"97204" },
+  { name:"Jamie Bennett", emoji:"\ud83e\uddd1", method:"positive", specs:["aggression", "obedience"], rating:4.5, reviews:149, bio:"Positive reinforcement only. Helped over 439 dogs earn their AKC CGC title.", price:"$78/session", zip:"19104" },
+  { name:"Casey Coleman", emoji:"\ud83e\uddd1", method:"positive", specs:["aggression", "anxiety"], rating:4.3, reviews:116, bio:"Fear-free certified specialist. Works best with anxious, reactive, and rescue dogs.", price:"$78/session", zip:"63105" },
+  { name:"Nora Henderson", emoji:"\ud83d\udc69\u200d\ud83e\uddb1", method:"positive", specs:["anxiety", "obedience", "puppy"], rating:4.5, reviews:146, bio:"Retired K9 officer. Now focused on family dogs and community safety.", price:"$90/session", zip:"39206" },
+  { name:"Nico Watson", emoji:"\ud83d\udc68", method:"positive", specs:["aggression", "obedience"], rating:4.5, reviews:102, bio:"Off-leash reliability expert. E-collar certified and results-driven.", price:"$70/session", zip:"30311" },
+  { name:"Hazel Baker", emoji:"\ud83d\udc69\u200d\ud83e\uddb0", method:"positive", specs:["puppy", "obedience", "anxiety"], rating:4.4, reviews:27, bio:"Retired K9 officer. Now focused on family dogs and community safety.", price:"$72/session", zip:"77056" },
+  { name:"Fatima W.", emoji:"\ud83d\udc69", method:"positive", specs:["aggression", "anxiety"], rating:4.7, reviews:157, bio:"Off-leash reliability expert. E-collar certified and results-driven.", price:"$85/session", zip:"70112" },
+  { name:"Walter Alexander", emoji:"\ud83d\udc68", method:"balanced", specs:["anxiety", "puppy"], rating:4.8, reviews:48, bio:"IACP certified. Balanced methods, real-world results, no gimmicks.", price:"$70/session", zip:"89101" },
+  { name:"Devon Adams", emoji:"\ud83d\udc68\u200d\ud83e\uddb1", method:"positive", specs:["obedience", "puppy"], rating:4.5, reviews:24, bio:"IACP certified. Balanced methods, real-world results, no gimmicks.", price:"$88/session", zip:"85002" },
+  { name:"Wade H.", emoji:"\ud83d\udc68\u200d\ud83e\uddb3", method:"balanced", specs:["puppy", "obedience", "anxiety"], rating:4.3, reviews:106, bio:"Specialises in high-drive working breeds \u2014 Malinois, GSD, Dutch Shepherd.", price:"$85/session", zip:"20003" },
+  { name:"Riley Martinez", emoji:"\ud83d\udc69\u200d\ud83e\uddb1", method:"positive", specs:["obedience", "anxiety"], rating:4.6, reviews:50, bio:"Vet tech background. Understands dog health and behaviour from the inside out.", price:"$90/session", zip:"39208" },
+  { name:"Aaron Harris", emoji:"\ud83d\udc68\u200d\ud83e\uddb3", method:"positive", specs:["aggression", "anxiety"], rating:4.4, reviews:149, bio:"Positive reinforcement only. Helped over 127 dogs earn their AKC CGC title.", price:"$75/session", zip:"21202" },
+  { name:"Emery Baker", emoji:"\ud83d\udc69", method:"positive", specs:["aggression", "obedience"], rating:4.9, reviews:109, bio:"Board and train specialist with a 10-year track record of reliable results.", price:"$98/session", zip:"60625" },
+  { name:"Mike Coleman", emoji:"\ud83d\udc68\u200d\ud83e\uddb3", method:"positive", specs:["aggression", "obedience"], rating:4.6, reviews:158, bio:"Positive reinforcement only. Helped over 618 dogs earn their AKC CGC title.", price:"$98/session", zip:"30308" },
+  { name:"Steve L.", emoji:"\ud83d\udc68", method:"positive", specs:["aggression", "obedience"], rating:4.4, reviews:68, bio:"Science-based trainer. Clicker training, shaping, and positive reinforcement only.", price:"$88/session", zip:"98107" },
+  { name:"Priya C.", emoji:"\ud83d\udc69\u200d\ud83e\uddb0", method:"positive", specs:["obedience", "anxiety"], rating:4.7, reviews:137, bio:"Positive reinforcement only. Helped over 483 dogs earn their AKC CGC title.", price:"$110/session", zip:"55402" },
+  { name:"Hugo V.", emoji:"\ud83d\udc68\u200d\ud83e\uddb0", method:"positive", specs:["puppy", "obedience"], rating:4.6, reviews:80, bio:"Fear-free certified specialist. Works best with anxious, reactive, and rescue dogs.", price:"$92/session", zip:"84110" },
+  { name:"Vince Henderson", emoji:"\ud83e\uddd1", method:"balanced", specs:["anxiety", "obedience", "puppy"], rating:4.5, reviews:29, bio:"Runs group puppy classes and one-on-one sessions. 5 years in the field.", price:"$95/session", zip:"48201" },
+  { name:"Eli R.", emoji:"\ud83e\uddd4", method:"positive", specs:["aggression", "obedience"], rating:4.8, reviews:47, bio:"Online and in-person sessions available. CPDT-KA certified and fully insured.", price:"$78/session", zip:"10003" },
+  { name:"Neil Carter", emoji:"\ud83d\udc68\u200d\ud83e\uddb3", method:"balanced", specs:["obedience", "puppy"], rating:4.7, reviews:52, bio:"Off-leash reliability expert. E-collar certified and results-driven.", price:"$92/session", zip:"30306" },
+  { name:"Dan M.", emoji:"\ud83d\udc68\u200d\ud83e\uddb0", method:"balanced", specs:["obedience", "anxiety"], rating:4.5, reviews:185, bio:"Positive reinforcement only. Helped over 291 dogs earn their AKC CGC title.", price:"$65/session", zip:"70114" },
+  { name:"Dana Nelson", emoji:"\ud83d\udc69\u200d\ud83e\uddb3", method:"positive", specs:["puppy", "obedience", "anxiety"], rating:4.8, reviews:130, bio:"Vet tech background. Understands dog health and behaviour from the inside out.", price:"$100/session", zip:"84108" },
+  { name:"Eli Walker", emoji:"\ud83d\udc68\u200d\ud83e\uddb0", method:"positive", specs:["anxiety", "obedience", "puppy"], rating:4.7, reviews:177, bio:"Specialises in high-drive working breeds \u2014 Malinois, GSD, Dutch Shepherd.", price:"$82/session", zip:"63107" },
+  { name:"Chris Taylor", emoji:"\ud83e\uddd4", method:"positive", specs:["aggression", "obedience"], rating:4.4, reviews:182, bio:"Online and in-person sessions available. CPDT-KA certified and fully insured.", price:"$70/session", zip:"98108" },
+  { name:"Cole Green", emoji:"\ud83d\udc68\u200d\ud83e\uddb1", method:"balanced", specs:["anxiety", "obedience", "puppy"], rating:4.7, reviews:182, bio:"Works with all breeds and ages. No dog is too challenging.", price:"$72/session", zip:"97201" },
+  { name:"June Hughes", emoji:"\ud83e\uddd1", method:"positive", specs:["puppy", "obedience"], rating:4.9, reviews:7, bio:"Board and train specialist with a 15-year track record of reliable results.", price:"$98/session", zip:"27610" },
+  { name:"Fred Hill", emoji:"\ud83d\udc68", method:"positive", specs:["obedience", "puppy"], rating:4.8, reviews:118, bio:"Science-based trainer. Clicker training, shaping, and positive reinforcement only.", price:"$98/session", zip:"73104" },
+  { name:"Piper Wilson", emoji:"\ud83d\udc69", method:"balanced", specs:["puppy", "obedience", "anxiety"], rating:4.4, reviews:122, bio:"Canine behaviourist trained under top IAABC members. Specialises in anxiety and reactivity.", price:"$120/session", zip:"98106" },
+  { name:"Lena Ross", emoji:"\ud83e\uddd1", method:"balanced", specs:["aggression", "anxiety"], rating:4.7, reviews:198, bio:"Runs group puppy classes and one-on-one sessions. 16 years in the field.", price:"$60/session", zip:"78209" },
+  { name:"Nico Martinez", emoji:"\ud83d\udc68\u200d\ud83e\uddb0", method:"positive", specs:["anxiety", "obedience", "puppy"], rating:4.5, reviews:27, bio:"AKC CGC evaluator. Group classes and private sessions available in your area.", price:"$95/session", zip:"98103" },
+  { name:"Neil Q.", emoji:"\ud83e\uddd4", method:"balanced", specs:["anxiety", "puppy"], rating:4.8, reviews:57, bio:"Positive reinforcement only. Helped over 387 dogs earn their AKC CGC title.", price:"$60/session", zip:"29407" },
+  { name:"Reese Rodriguez", emoji:"\ud83d\udc68\u200d\ud83e\uddb1", method:"positive", specs:["puppy", "obedience", "anxiety"], rating:4.7, reviews:136, bio:"Board and train specialist with a 4-year track record of reliable results.", price:"$68/session", zip:"30303" },
+  { name:"Taylor Anderson", emoji:"\ud83d\udc69\u200d\ud83e\uddb0", method:"balanced", specs:["aggression", "anxiety"], rating:4.9, reviews:199, bio:"Canine behaviourist trained under top IAABC members. Specialises in aggression rehabilitation.", price:"$90/session", zip:"33129" },
+  { name:"Uri J.", emoji:"\ud83e\uddd1", method:"positive", specs:["obedience", "puppy"], rating:4.7, reviews:76, bio:"Runs group puppy classes and one-on-one sessions. 13 years in the field.", price:"$88/session", zip:"90045" },
+  { name:"Jin Kelly", emoji:"\ud83d\udc68\u200d\ud83e\uddb0", method:"positive", specs:["aggression", "anxiety"], rating:4.9, reviews:141, bio:"In-home training specialist. I come to you \u2014 no kennel stress for your dog.", price:"$90/session", zip:"23226" },
+  { name:"Wren Lee", emoji:"\ud83d\udc69", method:"balanced", specs:["anxiety", "puppy"], rating:4.7, reviews:129, bio:"Former service dog trainer. Now dedicated to helping families build better bonds with their dogs.", price:"$85/session", zip:"21202" },
+  { name:"Jordan Diaz", emoji:"\ud83d\udc69", method:"balanced", specs:["anxiety", "obedience", "puppy"], rating:4.6, reviews:114, bio:"Board and train specialist with a 12-year track record of reliable results.", price:"$75/session", zip:"39207" },
+  { name:"Vera Thomas", emoji:"\ud83e\uddd1", method:"positive", specs:["aggression", "anxiety"], rating:4.8, reviews:171, bio:"Former service dog trainer. Now dedicated to helping families build better bonds with their dogs.", price:"$72/session", zip:"77006" },
+  { name:"Jin James", emoji:"\ud83d\udc68", method:"positive", specs:["puppy", "obedience"], rating:4.4, reviews:24, bio:"Positive reinforcement only. Helped over 796 dogs earn their AKC CGC title.", price:"$70/session", zip:"29402" },
+  { name:"Priya Ramirez", emoji:"\ud83e\uddd1", method:"positive", specs:["aggression", "obedience"], rating:5, reviews:113, bio:"Canine behaviourist trained under top IAABC members. Specialises in aggression rehabilitation.", price:"$70/session", zip:"37210" },
+  { name:"Fatima H.", emoji:"\ud83d\udc69", method:"positive", specs:["aggression", "anxiety"], rating:4.9, reviews:40, bio:"Board and train specialist with a 5-year track record of reliable results.", price:"$90/session", zip:"55408" },
+  { name:"Devon Baker", emoji:"\ud83d\udc68\u200d\ud83e\uddb1", method:"positive", specs:["obedience", "anxiety"], rating:4.7, reviews:43, bio:"Specialises in high-drive working breeds \u2014 Malinois, GSD, Dutch Shepherd.", price:"$92/session", zip:"27608" },
+  { name:"Jordan Cook", emoji:"\ud83d\udc69\u200d\ud83e\uddb3", method:"positive", specs:["aggression", "anxiety"], rating:5, reviews:85, bio:"Worked with over 354 dogs across 5 years. Specialises in anxiety and reactivity.", price:"$70/session", zip:"90210" },
+  { name:"Wren Ross", emoji:"\ud83d\udc69", method:"positive", specs:["puppy", "obedience", "anxiety"], rating:4.4, reviews:160, bio:"In-home training specialist. I come to you \u2014 no kennel stress for your dog.", price:"$100/session", zip:"84109" },
+  { name:"Marlowe Turner", emoji:"\ud83d\udc69\u200d\ud83e\uddb0", method:"positive", specs:["aggression", "obedience"], rating:4.5, reviews:168, bio:"Online and in-person sessions available. CPDT-KA certified and fully insured.", price:"$65/session", zip:"55405" },
+  { name:"Yusuf Scott", emoji:"\ud83d\udc68", method:"positive", specs:["anxiety", "puppy"], rating:4.8, reviews:23, bio:"Positive reinforcement only. Helped over 368 dogs earn their AKC CGC title.", price:"$55/session", zip:"39203" },
+  { name:"Owen Coleman", emoji:"\ud83e\uddd4", method:"positive", specs:["puppy", "obedience", "anxiety"], rating:4.7, reviews:133, bio:"Retired K9 officer. Now focused on family dogs and community safety.", price:"$92/session", zip:"55402" },
+  { name:"Quentin Murphy", emoji:"\ud83e\uddd4", method:"balanced", specs:["puppy", "obedience", "anxiety"], rating:4.4, reviews:25, bio:"In-home training specialist. I come to you \u2014 no kennel stress for your dog.", price:"$100/session", zip:"10005" },
+  { name:"Destiny Robinson", emoji:"\ud83e\uddd1", method:"positive", specs:["obedience", "anxiety"], rating:4.3, reviews:27, bio:"AKC CGC evaluator. Group classes and private sessions available in your area.", price:"$92/session", zip:"77025" },
+  { name:"Avery D.", emoji:"\ud83e\uddd1", method:"positive", specs:["anxiety", "puppy"], rating:4.8, reviews:46, bio:"Rescue dog rehabilitator. Gentle, patient, and 100% committed to your dog.", price:"$98/session", zip:"29409" },
+  { name:"Lena Kelly", emoji:"\ud83d\udc69", method:"positive", specs:["puppy", "obedience"], rating:4.5, reviews:114, bio:"Online and in-person sessions available. CPDT-KA certified and fully insured.", price:"$80/session", zip:"87106" },
+  { name:"Gabe Nelson", emoji:"\ud83e\uddd1", method:"balanced", specs:["aggression", "anxiety"], rating:4.3, reviews:150, bio:"Rescue dog rehabilitator. Gentle, patient, and 100% committed to your dog.", price:"$72/session", zip:"63104" },
+  { name:"Eli Moore", emoji:"\ud83d\udc68\u200d\ud83e\uddb1", method:"balanced", specs:["puppy", "obedience"], rating:4.3, reviews:8, bio:"Former military working dog trainer. Now dedicated to helping families build better bonds with their dogs.", price:"$78/session", zip:"19119" },
+  { name:"Ravi Stewart", emoji:"\ud83e\uddd1", method:"positive", specs:["obedience", "anxiety"], rating:4.5, reviews:111, bio:"IACP certified. Balanced methods, real-world results, no gimmicks.", price:"$85/session", zip:"84103" },
+  { name:"Felix X.", emoji:"\ud83d\udc68\u200d\ud83e\uddb3", method:"balanced", specs:["puppy", "obedience"], rating:5, reviews:22, bio:"Bilingual trainer (English/Spanish). Puppy through advanced obedience.", price:"$95/session", zip:"10003" },
+  { name:"Priya Young", emoji:"\ud83d\udc69\u200d\ud83e\uddb3", method:"balanced", specs:["puppy", "obedience", "anxiety"], rating:4.7, reviews:82, bio:"Runs group puppy classes and one-on-one sessions. 18 years in the field.", price:"$78/session", zip:"37203" },
+  { name:"Sasha V.", emoji:"\ud83e\uddd1", method:"positive", specs:["obedience", "puppy"], rating:4.3, reviews:143, bio:"Certified CPDT-KA with 3 years of experience. Force-free methods only.", price:"$88/session", zip:"20010" },
+  { name:"Hazel H.", emoji:"\ud83d\udc69\u200d\ud83e\uddb0", method:"balanced", specs:["obedience", "anxiety"], rating:4.6, reviews:20, bio:"IACP certified. Balanced methods, real-world results, no gimmicks.", price:"$70/session", zip:"29408" },
+  { name:"Zoe Nelson", emoji:"\ud83d\udc69", method:"positive", specs:["aggression", "obedience"], rating:4.7, reviews:168, bio:"Fear-free certified specialist. Works best with anxious, reactive, and rescue dogs.", price:"$90/session", zip:"27604" },
+  { name:"Brynn Jackson", emoji:"\ud83d\udc69", method:"positive", specs:["obedience", "puppy"], rating:4.8, reviews:193, bio:"Vet tech background. Understands dog health and behaviour from the inside out.", price:"$85/session", zip:"45202" },
+  { name:"Riley Ross", emoji:"\ud83d\udc69\u200d\ud83e\uddb1", method:"balanced", specs:["aggression", "obedience"], rating:4.4, reviews:47, bio:"Runs group puppy classes and one-on-one sessions. 16 years in the field.", price:"$95/session", zip:"29408" },
+  { name:"Emery Gonzalez", emoji:"\ud83d\udc69", method:"positive", specs:["anxiety", "obedience", "puppy"], rating:4.5, reviews:35, bio:"Science-based trainer. Clicker training, shaping, and positive reinforcement only.", price:"$65/session", zip:"70119" },
+  { name:"Mila Y.", emoji:"\ud83d\udc69\u200d\ud83e\uddb0", method:"positive", specs:["obedience", "anxiety"], rating:5, reviews:106, bio:"Former police K9 handler. Now dedicated to helping families build better bonds with their dogs.", price:"$100/session", zip:"20001" },
+  { name:"Uri Sanchez", emoji:"\ud83d\udc68\u200d\ud83e\uddb1", method:"balanced", specs:["obedience", "anxiety"], rating:4.4, reviews:31, bio:"AKC CGC evaluator. Group classes and private sessions available in your area.", price:"$70/session", zip:"60601" },
+  { name:"Greg Young", emoji:"\ud83d\udc68\u200d\ud83e\uddb0", method:"positive", specs:["puppy", "obedience", "anxiety"], rating:4.9, reviews:24, bio:"Fear-free certified specialist. Works best with anxious, reactive, and rescue dogs.", price:"$55/session", zip:"45207" },
+  { name:"Jordan S.", emoji:"\ud83d\udc69\u200d\ud83e\uddb0", method:"positive", specs:["puppy", "obedience"], rating:4.4, reviews:151, bio:"Off-leash reliability expert. E-collar certified and results-driven.", price:"$92/session", zip:"80206" },
+  { name:"Avery Hall", emoji:"\ud83d\udc69\u200d\ud83e\uddb3", method:"balanced", specs:["anxiety", "puppy"], rating:4.5, reviews:119, bio:"Former service dog trainer. Now dedicated to helping families build better bonds with their dogs.", price:"$70/session", zip:"77019" },
+  { name:"Boris P.", emoji:"\ud83e\uddd1", method:"positive", specs:["puppy", "obedience", "anxiety"], rating:4.6, reviews:112, bio:"Online and in-person sessions available. CPDT-KA certified and fully insured.", price:"$75/session", zip:"37201" },
+  { name:"Uma Perez", emoji:"\ud83d\udc69\u200d\ud83e\uddb1", method:"balanced", specs:["anxiety", "obedience", "puppy"], rating:4.5, reviews:149, bio:"Vet tech background. Understands dog health and behaviour from the inside out.", price:"$100/session", zip:"45209" },
+  { name:"Sage W.", emoji:"\ud83e\uddd1", method:"positive", specs:["puppy", "obedience"], rating:4.9, reviews:125, bio:"Rescue dog rehabilitator. Gentle, patient, and 100% committed to your dog.", price:"$100/session", zip:"78205" },
+  { name:"Marlowe White", emoji:"\ud83d\udc69\u200d\ud83e\uddb3", method:"balanced", specs:["puppy", "obedience"], rating:4.8, reviews:61, bio:"Off-leash reliability expert. E-collar certified and results-driven.", price:"$120/session", zip:"20008" },
+  { name:"Kaia Perry", emoji:"\ud83d\udc69\u200d\ud83e\uddb1", method:"positive", specs:["puppy", "obedience"], rating:4.8, reviews:95, bio:"Positive reinforcement only. Helped over 604 dogs earn their AKC CGC title.", price:"$120/session", zip:"85002" },
+  { name:"Avery Roberts", emoji:"\ud83d\udc69", method:"positive", specs:["aggression", "obedience"], rating:4.3, reviews:159, bio:"Certified CPDT-KA with 3 years of experience. Force-free methods only.", price:"$78/session", zip:"89107" },
+  { name:"Taylor Lee", emoji:"\ud83d\udc69\u200d\ud83e\uddb1", method:"balanced", specs:["aggression", "anxiety"], rating:4.3, reviews:42, bio:"Board and train specialist with a 19-year track record of reliable results.", price:"$120/session", zip:"20009" },
+  { name:"Frank Cook", emoji:"\ud83e\uddd4", method:"positive", specs:["aggression", "anxiety"], rating:4.5, reviews:39, bio:"Retired K9 officer. Now focused on family dogs and community safety.", price:"$72/session", zip:"63109" },
+  { name:"Uma Wilson", emoji:"\ud83d\udc69\u200d\ud83e\uddb3", method:"balanced", specs:["anxiety", "puppy"], rating:4.6, reviews:192, bio:"Board and train specialist with a 3-year track record of reliable results.", price:"$82/session", zip:"23221" },
+  { name:"Amy Z.", emoji:"\ud83e\uddd1", method:"balanced", specs:["aggression", "anxiety"], rating:4.9, reviews:161, bio:"Positive reinforcement only. Helped over 244 dogs earn their AKC CGC title.", price:"$78/session", zip:"35208" },
+  { name:"Darnell Taylor", emoji:"\ud83e\uddd1", method:"positive", specs:["aggression", "anxiety"], rating:4.4, reviews:27, bio:"Runs group puppy classes and one-on-one sessions. 11 years in the field.", price:"$85/session", zip:"39205" },
+  { name:"Brett Walker", emoji:"\ud83d\udc68\u200d\ud83e\uddb3", method:"positive", specs:["aggression", "obedience"], rating:4.8, reviews:17, bio:"Runs group puppy classes and one-on-one sessions. 8 years in the field.", price:"$90/session", zip:"90210" },
+  { name:"Skye Collins", emoji:"\ud83d\udc69", method:"positive", specs:["aggression", "obedience"], rating:4.9, reviews:152, bio:"Science-based trainer. Clicker training, shaping, and positive reinforcement only.", price:"$78/session", zip:"19118" },
+  { name:"Kaia Jackson", emoji:"\ud83d\udc69\u200d\ud83e\uddb0", method:"positive", specs:["aggression", "obedience"], rating:4.5, reviews:101, bio:"Fear-free certified specialist. Works best with anxious, reactive, and rescue dogs.", price:"$72/session", zip:"45201" },
+  { name:"Carlos Adams", emoji:"\ud83e\uddd1", method:"balanced", specs:["obedience", "puppy"], rating:4.4, reviews:30, bio:"In-home training specialist. I come to you \u2014 no kennel stress for your dog.", price:"$85/session", zip:"85013" },
+  { name:"Randy Jackson", emoji:"\ud83d\udc68\u200d\ud83e\uddb0", method:"positive", specs:["puppy", "obedience", "anxiety"], rating:4.5, reviews:17, bio:"Positive reinforcement only. Helped over 257 dogs earn their AKC CGC title.", price:"$90/session", zip:"23225" },
+  { name:"Sarah Green", emoji:"\ud83e\uddd1", method:"positive", specs:["puppy", "obedience", "anxiety"], rating:4.9, reviews:165, bio:"In-home training specialist. I come to you \u2014 no kennel stress for your dog.", price:"$98/session", zip:"37202" },
+  { name:"Brynn G.", emoji:"\ud83d\udc69\u200d\ud83e\uddb0", method:"positive", specs:["aggression", "obedience"], rating:4.5, reviews:106, bio:"Canine behaviourist trained under top IAABC members. Specialises in obedience.", price:"$98/session", zip:"78202" },
+  { name:"Kendall Young", emoji:"\ud83d\udc69\u200d\ud83e\uddb3", method:"positive", specs:["aggression", "anxiety"], rating:4.4, reviews:16, bio:"Runs group puppy classes and one-on-one sessions. 11 years in the field.", price:"$80/session", zip:"63102" },
+  { name:"Owen V.", emoji:"\ud83e\uddd4", method:"positive", specs:["aggression", "obedience"], rating:4.8, reviews:143, bio:"Positive reinforcement only. Helped over 162 dogs earn their AKC CGC title.", price:"$92/session", zip:"77002" },
+  { name:"Liam Edwards", emoji:"\ud83d\udc68\u200d\ud83e\uddb1", method:"positive", specs:["obedience", "anxiety"], rating:4.6, reviews:25, bio:"Former military working dog trainer. Now dedicated to helping families build better bonds with their dogs.", price:"$90/session", zip:"98110" },
+  { name:"Finley Perry", emoji:"\ud83d\udc69", method:"balanced", specs:["anxiety", "puppy"], rating:4.3, reviews:25, bio:"In-home training specialist. I come to you \u2014 no kennel stress for your dog.", price:"$92/session", zip:"39210" },
+  { name:"Megan King", emoji:"\ud83d\udc69\u200d\ud83e\uddb0", method:"balanced", specs:["obedience", "puppy"], rating:4.7, reviews:75, bio:"Runs group puppy classes and one-on-one sessions. 19 years in the field.", price:"$100/session", zip:"39204" },
+  { name:"Sam Y.", emoji:"\ud83e\uddd1", method:"balanced", specs:["aggression", "obedience"], rating:4.9, reviews:149, bio:"Bilingual trainer (English/Spanish). Puppy through advanced obedience.", price:"$68/session", zip:"55403" },
+  { name:"Diego Rogers", emoji:"\ud83d\udc68\u200d\ud83e\uddb0", method:"balanced", specs:["anxiety", "obedience", "puppy"], rating:4.3, reviews:75, bio:"Board and train specialist with a 15-year track record of reliable results.", price:"$90/session", zip:"73104" },
+  { name:"Rowan T.", emoji:"\ud83e\uddd1", method:"positive", specs:["puppy", "obedience", "anxiety"], rating:4.9, reviews:10, bio:"Bilingual trainer (English/Spanish). Puppy through advanced obedience.", price:"$85/session", zip:"63108" },
+  { name:"Dakota E.", emoji:"\ud83d\udc69", method:"positive", specs:["anxiety", "obedience", "puppy"], rating:4.8, reviews:87, bio:"Retired K9 officer. Now focused on family dogs and community safety.", price:"$80/session", zip:"33126" },
+  { name:"Ivan Sanders", emoji:"\ud83e\uddd4", method:"positive", specs:["aggression", "anxiety"], rating:4.9, reviews:136, bio:"Fear-free certified specialist. Works best with anxious, reactive, and rescue dogs.", price:"$72/session", zip:"89110" },
+  { name:"Yusuf W.", emoji:"\ud83e\uddd1", method:"balanced", specs:["obedience", "anxiety"], rating:4.9, reviews:56, bio:"Worked with over 151 dogs across 17 years. Specialises in obedience.", price:"$60/session", zip:"63107" },
+  { name:"Dana Harris", emoji:"\ud83d\udc69\u200d\ud83e\uddb0", method:"positive", specs:["anxiety", "obedience", "puppy"], rating:4.7, reviews:167, bio:"Certified CPDT-KA with 14 years of experience. Force-free methods only.", price:"$68/session", zip:"89105" },
+  { name:"Quinn Simmons", emoji:"\ud83d\udc69\u200d\ud83e\uddb3", method:"positive", specs:["aggression", "anxiety"], rating:4.5, reviews:71, bio:"Bilingual trainer (English/Spanish). Puppy through advanced obedience.", price:"$65/session", zip:"97207" },
+  { name:"Finley Washington", emoji:"\ud83e\uddd1", method:"balanced", specs:["obedience", "anxiety"], rating:4.8, reviews:73, bio:"Online and in-person sessions available. CPDT-KA certified and fully insured.", price:"$92/session", zip:"35204" },
+  { name:"Avery Morgan", emoji:"\ud83d\udc69", method:"positive", specs:["obedience", "anxiety"], rating:4.5, reviews:83, bio:"Retired K9 officer. Now focused on family dogs and community safety.", price:"$80/session", zip:"84106" },
+  { name:"Yale Martinez", emoji:"\ud83d\udc68\u200d\ud83e\uddb3", method:"balanced", specs:["obedience", "puppy"], rating:4.7, reviews:6, bio:"Rescue dog rehabilitator. Gentle, patient, and 100% committed to your dog.", price:"$100/session", zip:"19121" },
+  { name:"Destiny Lee", emoji:"\ud83d\udc69\u200d\ud83e\uddb3", method:"positive", specs:["aggression", "anxiety"], rating:4.9, reviews:71, bio:"In-home training specialist. I come to you \u2014 no kennel stress for your dog.", price:"$82/session", zip:"39207" },
+  { name:"Hank Howard", emoji:"\ud83e\uddd1", method:"positive", specs:["anxiety", "puppy"], rating:4.8, reviews:172, bio:"Bilingual trainer (English/Spanish). Puppy through advanced obedience.", price:"$98/session", zip:"30301" },
+  { name:"Ravi Reed", emoji:"\ud83d\udc68\u200d\ud83e\uddb1", method:"balanced", specs:["obedience", "anxiety"], rating:4.5, reviews:187, bio:"Works with all breeds and ages. No dog is too challenging.", price:"$78/session", zip:"19102" },
+  { name:"Victor Z.", emoji:"\ud83d\udc68\u200d\ud83e\uddb1", method:"positive", specs:["aggression", "obedience"], rating:4.6, reviews:194, bio:"Works with all breeds and ages. No dog is too challenging.", price:"$80/session", zip:"80206" },
+  { name:"Tess Wilson", emoji:"\ud83d\udc69", method:"positive", specs:["obedience", "puppy"], rating:4.9, reviews:89, bio:"IACP certified. Balanced methods, real-world results, no gimmicks.", price:"$88/session", zip:"70120" },
+  { name:"Yuki Mitchell", emoji:"\ud83d\udc69", method:"balanced", specs:["aggression", "obedience"], rating:4.9, reviews:102, bio:"Bilingual trainer (English/Spanish). Puppy through advanced obedience.", price:"$100/session", zip:"85013" },
+  { name:"Quinn Hill", emoji:"\ud83d\udc69\u200d\ud83e\uddb1", method:"balanced", specs:["anxiety", "obedience", "puppy"], rating:4.4, reviews:188, bio:"Fear-free certified specialist. Works best with anxious, reactive, and rescue dogs.", price:"$72/session", zip:"10022" },
+  { name:"Tasha M.", emoji:"\ud83d\udc69\u200d\ud83e\uddb0", method:"positive", specs:["puppy", "obedience", "anxiety"], rating:4.4, reviews:48, bio:"Science-based trainer. Clicker training, shaping, and positive reinforcement only.", price:"$120/session", zip:"19120" },
+  { name:"Neil Lopez", emoji:"\ud83e\uddd4", method:"positive", specs:["anxiety", "obedience", "puppy"], rating:4.6, reviews:14, bio:"In-home training specialist. I come to you \u2014 no kennel stress for your dog.", price:"$110/session", zip:"21209" },
+  { name:"Logan R.", emoji:"\ud83d\udc68\u200d\ud83e\uddb0", method:"positive", specs:["obedience", "anxiety"], rating:4.5, reviews:93, bio:"Board and train specialist with a 15-year track record of reliable results.", price:"$82/session", zip:"77030" },
+  { name:"Devon B.", emoji:"\ud83d\udc68\u200d\ud83e\uddb1", method:"positive", specs:["puppy", "obedience", "anxiety"], rating:5, reviews:121, bio:"Specialises in high-drive working breeds \u2014 Malinois, GSD, Dutch Shepherd.", price:"$100/session", zip:"33128" },
+  { name:"Quinn Alexander", emoji:"\ud83e\uddd1", method:"positive", specs:["aggression", "anxiety"], rating:4.8, reviews:47, bio:"Certified CPDT-KA with 10 years of experience. Force-free methods only.", price:"$90/session", zip:"87107" },
+  { name:"Derek Cook", emoji:"\ud83e\uddd4", method:"balanced", specs:["anxiety", "puppy"], rating:4.4, reviews:187, bio:"Off-leash reliability expert. E-collar certified and results-driven.", price:"$60/session", zip:"77030" },
+  { name:"Hannah Howard", emoji:"\ud83d\udc69\u200d\ud83e\uddb0", method:"positive", specs:["puppy", "obedience"], rating:4.3, reviews:34, bio:"Runs group puppy classes and one-on-one sessions. 6 years in the field.", price:"$92/session", zip:"77006" },
+  { name:"Drew Jones", emoji:"\ud83e\uddd4", method:"positive", specs:["puppy", "obedience", "anxiety"], rating:4.6, reviews:30, bio:"IACP certified. Balanced methods, real-world results, no gimmicks.", price:"$100/session", zip:"70118" },
+  { name:"Chris Martin", emoji:"\ud83d\udc68\u200d\ud83e\uddb1", method:"positive", specs:["aggression", "obedience"], rating:4.6, reviews:160, bio:"IACP certified. Balanced methods, real-world results, no gimmicks.", price:"$75/session", zip:"98103" },
+  { name:"Nicole Stewart", emoji:"\ud83d\udc69", method:"positive", specs:["obedience", "anxiety"], rating:4.8, reviews:128, bio:"Worked with over 787 dogs across 3 years. Specialises in obedience.", price:"$85/session", zip:"02108" },
+  { name:"Zeke Ward", emoji:"\ud83d\udc68\u200d\ud83e\uddb0", method:"positive", specs:["anxiety", "puppy"], rating:5, reviews:135, bio:"AKC CGC evaluator. Group classes and private sessions available in your area.", price:"$65/session", zip:"29409" },
+  { name:"Luke Powell", emoji:"\ud83d\udc68\u200d\ud83e\uddb1", method:"balanced", specs:["puppy", "obedience"], rating:4.9, reviews:97, bio:"Retired K9 officer. Now focused on family dogs and community safety.", price:"$85/session", zip:"35202" },
+  { name:"Reese Lewis", emoji:"\ud83d\udc68\u200d\ud83e\uddb3", method:"positive", specs:["anxiety", "obedience", "puppy"], rating:5, reviews:73, bio:"Rescue dog rehabilitator. Gentle, patient, and 100% committed to your dog.", price:"$65/session", zip:"87110" },
+  { name:"Vince White", emoji:"\ud83d\udc68\u200d\ud83e\uddb3", method:"positive", specs:["anxiety", "obedience", "puppy"], rating:4.9, reviews:171, bio:"AKC CGC evaluator. Group classes and private sessions available in your area.", price:"$72/session", zip:"45208" },
+  { name:"Curt Jenkins", emoji:"\ud83d\udc68", method:"balanced", specs:["anxiety", "obedience", "puppy"], rating:4.4, reviews:102, bio:"Specialises in high-drive working breeds \u2014 Malinois, GSD, Dutch Shepherd.", price:"$88/session", zip:"19101" },
+  { name:"Jack Baker", emoji:"\ud83e\uddd1", method:"positive", specs:["aggression", "obedience"], rating:4.5, reviews:85, bio:"Online and in-person sessions available. CPDT-KA certified and fully insured.", price:"$55/session", zip:"02113" },
+  { name:"Rosa Adams", emoji:"\ud83d\udc69", method:"balanced", specs:["anxiety", "obedience", "puppy"], rating:4.5, reviews:178, bio:"Board and train specialist with a 4-year track record of reliable results.", price:"$90/session", zip:"35208" },
+  { name:"Ignacio Flores", emoji:"\ud83e\uddd4", method:"positive", specs:["anxiety", "obedience", "puppy"], rating:4.9, reviews:24, bio:"Vet tech background. Understands dog health and behaviour from the inside out.", price:"$98/session", zip:"19107" },
+  { name:"River Stewart", emoji:"\ud83d\udc69\u200d\ud83e\uddb1", method:"positive", specs:["obedience", "puppy"], rating:4.9, reviews:25, bio:"Runs group puppy classes and one-on-one sessions. 5 years in the field.", price:"$95/session", zip:"84110" },
+  { name:"Chris Turner", emoji:"\ud83e\uddd1", method:"positive", specs:["aggression", "obedience"], rating:4.6, reviews:14, bio:"Works with all breeds and ages. No dog is too challenging.", price:"$110/session", zip:"84107" },
+  { name:"Gwen Gonzales", emoji:"\ud83d\udc69\u200d\ud83e\uddb3", method:"balanced", specs:["obedience", "anxiety"], rating:4.8, reviews:121, bio:"Rescue dog rehabilitator. Gentle, patient, and 100% committed to your dog.", price:"$85/session", zip:"77002" },
+  { name:"Abdul Watson", emoji:"\ud83e\uddd4", method:"positive", specs:["anxiety", "obedience", "puppy"], rating:4.4, reviews:199, bio:"Certified CPDT-KA with 14 years of experience. Force-free methods only.", price:"$78/session", zip:"19101" },
+  { name:"Mario Young", emoji:"\ud83d\udc68\u200d\ud83e\uddb1", method:"positive", specs:["puppy", "obedience"], rating:4.9, reviews:131, bio:"Retired K9 officer. Now focused on family dogs and community safety.", price:"$70/session", zip:"77001" },
+  { name:"Chris Hayes", emoji:"\ud83e\uddd4", method:"positive", specs:["obedience", "anxiety"], rating:4.6, reviews:53, bio:"AKC CGC evaluator. Group classes and private sessions available in your area.", price:"$85/session", zip:"77007" },
+  { name:"Jordan Barnes", emoji:"\ud83d\udc69\u200d\ud83e\uddb0", method:"positive", specs:["anxiety", "obedience", "puppy"], rating:4.8, reviews:134, bio:"Canine behaviourist trained under top IAABC members. Specialises in anxiety and reactivity.", price:"$70/session", zip:"20004" },
+  { name:"Curt Diaz", emoji:"\ud83d\udc68\u200d\ud83e\uddb3", method:"balanced", specs:["anxiety", "puppy"], rating:4.8, reviews:49, bio:"AKC CGC evaluator. Group classes and private sessions available in your area.", price:"$70/session", zip:"48209" },
+  { name:"Nico Harris", emoji:"\ud83e\uddd4", method:"positive", specs:["aggression", "anxiety"], rating:5, reviews:120, bio:"Board and train specialist with a 19-year track record of reliable results.", price:"$70/session", zip:"73101" },
+  { name:"June Watson", emoji:"\ud83e\uddd1", method:"balanced", specs:["obedience", "anxiety"], rating:4.4, reviews:164, bio:"Rescue dog rehabilitator. Gentle, patient, and 100% committed to your dog.", price:"$82/session", zip:"33102" },
+  { name:"Lila James", emoji:"\ud83d\udc69", method:"positive", specs:["aggression", "anxiety"], rating:4.7, reviews:154, bio:"Retired K9 officer. Now focused on family dogs and community safety.", price:"$120/session", zip:"97202" },
+  { name:"Lisa Hernandez", emoji:"\ud83e\uddd1", method:"balanced", specs:["puppy", "obedience"], rating:4.8, reviews:56, bio:"Science-based trainer. Clicker training, shaping, and positive reinforcement only.", price:"$80/session", zip:"29410" },
+  { name:"Cleo Jones", emoji:"\ud83d\udc69\u200d\ud83e\uddb3", method:"balanced", specs:["puppy", "obedience"], rating:4.6, reviews:120, bio:"Specialises in high-drive working breeds \u2014 Malinois, GSD, Dutch Shepherd.", price:"$68/session", zip:"33130" },
+  { name:"Aria Gray", emoji:"\ud83d\udc69\u200d\ud83e\uddb3", method:"positive", specs:["obedience", "puppy"], rating:4.6, reviews:180, bio:"Works with all breeds and ages. No dog is too challenging.", price:"$85/session", zip:"85015" },
+  { name:"Sean Patterson", emoji:"\ud83d\udc68", method:"balanced", specs:["aggression", "anxiety"], rating:4.8, reviews:144, bio:"In-home training specialist. I come to you \u2014 no kennel stress for your dog.", price:"$75/session", zip:"85014" },
+  { name:"Kendall X.", emoji:"\ud83d\udc69\u200d\ud83e\uddb1", method:"balanced", specs:["aggression", "obedience"], rating:4.6, reviews:114, bio:"Works with all breeds and ages. No dog is too challenging.", price:"$80/session", zip:"02112" },
+  { name:"James Lewis", emoji:"\ud83d\udc68\u200d\ud83e\uddb0", method:"positive", specs:["anxiety", "puppy"], rating:4.3, reviews:87, bio:"Specialises in high-drive working breeds \u2014 Malinois, GSD, Dutch Shepherd.", price:"$60/session", zip:"84109" },
+  { name:"Yuki Henderson", emoji:"\ud83d\udc69\u200d\ud83e\uddb0", method:"positive", specs:["obedience", "anxiety"], rating:5, reviews:138, bio:"Online and in-person sessions available. CPDT-KA certified and fully insured.", price:"$65/session", zip:"19106" },
+  { name:"Jin Walker", emoji:"\ud83e\uddd1", method:"balanced", specs:["obedience", "anxiety"], rating:4.8, reviews:89, bio:"Bilingual trainer (English/Spanish). Puppy through advanced obedience.", price:"$88/session", zip:"37205" },
+  { name:"Priya N.", emoji:"\ud83d\udc69\u200d\ud83e\uddb0", method:"positive", specs:["anxiety", "obedience", "puppy"], rating:4.5, reviews:169, bio:"Former police K9 handler. Now dedicated to helping families build better bonds with their dogs.", price:"$78/session", zip:"39203" },
+  { name:"Zara Collins", emoji:"\ud83e\uddd1", method:"positive", specs:["puppy", "obedience"], rating:4.9, reviews:100, bio:"Online and in-person sessions available. CPDT-KA certified and fully insured.", price:"$100/session", zip:"21206" },
+  { name:"Cameron Rodriguez", emoji:"\ud83e\uddd1", method:"balanced", specs:["aggression", "obedience"], rating:5, reviews:47, bio:"Works with all breeds and ages. No dog is too challenging.", price:"$110/session", zip:"21203" },
+  { name:"Finley Butler", emoji:"\ud83d\udc69\u200d\ud83e\uddb1", method:"positive", specs:["aggression", "obedience"], rating:4.4, reviews:184, bio:"Fear-free certified specialist. Works best with anxious, reactive, and rescue dogs.", price:"$92/session", zip:"87101" },
+  { name:"Ravi O.", emoji:"\ud83d\udc68\u200d\ud83e\uddb3", method:"positive", specs:["puppy", "obedience"], rating:4.4, reviews:69, bio:"Fear-free certified specialist. Works best with anxious, reactive, and rescue dogs.", price:"$110/session", zip:"02114" },
+  { name:"Hank Adams", emoji:"\ud83e\uddd4", method:"positive", specs:["puppy", "obedience"], rating:4.6, reviews:35, bio:"Certified CPDT-KA with 4 years of experience. Force-free methods only.", price:"$110/session", zip:"33131" },
+  { name:"Chad Garcia", emoji:"\ud83d\udc68\u200d\ud83e\uddb1", method:"positive", specs:["aggression", "obedience"], rating:4.5, reviews:117, bio:"Off-leash reliability expert. E-collar certified and results-driven.", price:"$90/session", zip:"78206" },
+  { name:"Riley Price", emoji:"\ud83d\udc69", method:"positive", specs:["puppy", "obedience", "anxiety"], rating:5, reviews:41, bio:"Rescue dog rehabilitator. Gentle, patient, and 100% committed to your dog.", price:"$82/session", zip:"85003" },
+  { name:"Nicole M.", emoji:"\ud83d\udc69\u200d\ud83e\uddb3", method:"balanced", specs:["obedience", "puppy"], rating:4.7, reviews:26, bio:"In-home training specialist. I come to you \u2014 no kennel stress for your dog.", price:"$82/session", zip:"73107" },
+  { name:"Jamie A.", emoji:"\ud83e\uddd1", method:"balanced", specs:["obedience", "anxiety"], rating:4.7, reviews:69, bio:"AKC CGC evaluator. Group classes and private sessions available in your area.", price:"$75/session", zip:"37202" },
+  { name:"Travis J.", emoji:"\ud83e\uddd1", method:"positive", specs:["aggression", "obedience"], rating:4.5, reviews:55, bio:"Canine behaviourist trained under top IAABC members. Specialises in obedience.", price:"$120/session", zip:"29404" },
+  { name:"Rowan C.", emoji:"\ud83d\udc69\u200d\ud83e\uddb3", method:"positive", specs:["aggression", "obedience"], rating:4.9, reviews:86, bio:"Runs group puppy classes and one-on-one sessions. 12 years in the field.", price:"$98/session", zip:"02112" },
+  { name:"Yusuf Allen", emoji:"\ud83e\uddd1", method:"positive", specs:["obedience", "puppy"], rating:4.4, reviews:85, bio:"Worked with over 468 dogs across 11 years. Specialises in puppy training.", price:"$78/session", zip:"45210" },
+  { name:"Nova Foster", emoji:"\ud83d\udc69", method:"positive", specs:["anxiety", "obedience", "puppy"], rating:4.6, reviews:83, bio:"Works with all breeds and ages. No dog is too challenging.", price:"$98/session", zip:"90034" },
+  { name:"Sloane Washington", emoji:"\ud83d\udc69\u200d\ud83e\uddb3", method:"balanced", specs:["obedience", "anxiety"], rating:4.5, reviews:165, bio:"Fear-free certified specialist. Works best with anxious, reactive, and rescue dogs.", price:"$65/session", zip:"77007" },
+  { name:"Hank Barnes", emoji:"\ud83d\udc68\u200d\ud83e\uddb1", method:"balanced", specs:["obedience", "anxiety"], rating:4.9, reviews:146, bio:"Works with all breeds and ages. No dog is too challenging.", price:"$80/session", zip:"98108" },
+  { name:"Brynn E.", emoji:"\ud83d\udc69", method:"positive", specs:["aggression", "obedience"], rating:4.6, reviews:133, bio:"Worked with over 243 dogs across 19 years. Specialises in aggression rehabilitation.", price:"$55/session", zip:"20009" },
+  { name:"Quinn Morris", emoji:"\ud83d\udc69\u200d\ud83e\uddb1", method:"balanced", specs:["anxiety", "puppy"], rating:4.8, reviews:128, bio:"Former police K9 handler. Now dedicated to helping families build better bonds with their dogs.", price:"$88/session", zip:"87104" },
+  { name:"Xena Moore", emoji:"\ud83d\udc69\u200d\ud83e\uddb1", method:"positive", specs:["obedience", "anxiety"], rating:4.7, reviews:97, bio:"Canine behaviourist trained under top IAABC members. Specialises in anxiety and reactivity.", price:"$90/session", zip:"30303" },
+  { name:"Fatima James", emoji:"\ud83d\udc69\u200d\ud83e\uddb0", method:"balanced", specs:["puppy", "obedience", "anxiety"], rating:4.9, reviews:72, bio:"Works with all breeds and ages. No dog is too challenging.", price:"$120/session", zip:"77019" },
+  { name:"Willa Cook", emoji:"\ud83d\udc69\u200d\ud83e\uddb3", method:"positive", specs:["puppy", "obedience", "anxiety"], rating:4.6, reviews:62, bio:"Off-leash reliability expert. E-collar certified and results-driven.", price:"$100/session", zip:"10004" },
+  { name:"James Phillips", emoji:"\ud83d\udc68\u200d\ud83e\uddb0", method:"balanced", specs:["anxiety", "obedience", "puppy"], rating:4.4, reviews:24, bio:"IACP certified. Balanced methods, real-world results, no gimmicks.", price:"$100/session", zip:"89109" },
+  { name:"Chris Howard", emoji:"\ud83d\udc68\u200d\ud83e\uddb1", method:"balanced", specs:["obedience", "puppy"], rating:4.9, reviews:189, bio:"Canine behaviourist trained under top IAABC members. Specialises in puppy training.", price:"$68/session", zip:"70121" },
+  { name:"Jack R.", emoji:"\ud83d\udc68\u200d\ud83e\uddb0", method:"balanced", specs:["puppy", "obedience"], rating:4.4, reviews:156, bio:"Board and train specialist with a 7-year track record of reliable results.", price:"$72/session", zip:"78208" },
+  { name:"Peyton Parker", emoji:"\ud83d\udc69\u200d\ud83e\uddb0", method:"positive", specs:["puppy", "obedience"], rating:4.9, reviews:191, bio:"Fear-free certified specialist. Works best with anxious, reactive, and rescue dogs.", price:"$82/session", zip:"48206" },
+  { name:"Reese Wilson", emoji:"\ud83e\uddd4", method:"positive", specs:["anxiety", "puppy"], rating:4.9, reviews:51, bio:"IACP certified. Balanced methods, real-world results, no gimmicks.", price:"$100/session", zip:"10002" },
+  { name:"Brett Moore", emoji:"\ud83d\udc68\u200d\ud83e\uddb1", method:"positive", specs:["obedience", "puppy"], rating:4.4, reviews:9, bio:"Online and in-person sessions available. CPDT-KA certified and fully insured.", price:"$75/session", zip:"90001" },
+  { name:"Abdul Alexander", emoji:"\ud83e\uddd4", method:"balanced", specs:["puppy", "obedience"], rating:4.9, reviews:141, bio:"AKC CGC evaluator. Group classes and private sessions available in your area.", price:"$100/session", zip:"48204" },
+  { name:"Randy Long", emoji:"\ud83d\udc68\u200d\ud83e\uddb0", method:"positive", specs:["obedience", "puppy"], rating:4.7, reviews:99, bio:"Online and in-person sessions available. CPDT-KA certified and fully insured.", price:"$60/session", zip:"97203" },
+  { name:"Luke Green", emoji:"\ud83d\udc68\u200d\ud83e\uddb1", method:"balanced", specs:["puppy", "obedience", "anxiety"], rating:4.6, reviews:64, bio:"Bilingual trainer (English/Spanish). Puppy through advanced obedience.", price:"$65/session", zip:"78206" },
+  { name:"James James", emoji:"\ud83d\udc68\u200d\ud83e\uddb3", method:"positive", specs:["aggression", "obedience"], rating:4.7, reviews:101, bio:"Vet tech background. Understands dog health and behaviour from the inside out.", price:"$75/session", zip:"73101" },
+  { name:"Jade Jackson", emoji:"\ud83d\udc69\u200d\ud83e\uddb0", method:"balanced", specs:["obedience", "puppy"], rating:4.7, reviews:161, bio:"Off-leash reliability expert. E-collar certified and results-driven.", price:"$80/session", zip:"30302" },
+  { name:"Quinn Young", emoji:"\ud83d\udc69", method:"balanced", specs:["anxiety", "obedience", "puppy"], rating:4.5, reviews:83, bio:"Rescue dog rehabilitator. Gentle, patient, and 100% committed to your dog.", price:"$120/session", zip:"70113" },
+  { name:"Dakota Gonzalez", emoji:"\ud83d\udc69", method:"balanced", specs:["aggression", "obedience"], rating:4.5, reviews:107, bio:"Works with all breeds and ages. No dog is too challenging.", price:"$85/session", zip:"29405" },
+  { name:"Jin Long", emoji:"\ud83e\uddd4", method:"balanced", specs:["anxiety", "obedience", "puppy"], rating:4.9, reviews:116, bio:"Fear-free certified specialist. Works best with anxious, reactive, and rescue dogs.", price:"$65/session", zip:"87109" },
+  { name:"Ravi Brooks", emoji:"\ud83d\udc68\u200d\ud83e\uddb3", method:"positive", specs:["obedience", "puppy"], rating:4.7, reviews:138, bio:"Specialises in high-drive working breeds \u2014 Malinois, GSD, Dutch Shepherd.", price:"$82/session", zip:"27608" },
+  { name:"Priya Smith", emoji:"\ud83e\uddd1", method:"balanced", specs:["puppy", "obedience", "anxiety"], rating:4.4, reviews:158, bio:"Online and in-person sessions available. CPDT-KA certified and fully insured.", price:"$100/session", zip:"87108" },
+  { name:"Ravi Allen", emoji:"\ud83d\udc68\u200d\ud83e\uddb1", method:"balanced", specs:["puppy", "obedience"], rating:5, reviews:27, bio:"Off-leash reliability expert. E-collar certified and results-driven.", price:"$80/session", zip:"85004" },
+  { name:"Lance K.", emoji:"\ud83e\uddd4", method:"positive", specs:["aggression", "obedience"], rating:4.7, reviews:190, bio:"Positive reinforcement only. Helped over 383 dogs earn their AKC CGC title.", price:"$110/session", zip:"84101" },
+  { name:"Cameron Nelson", emoji:"\ud83d\udc68", method:"positive", specs:["puppy", "obedience"], rating:4.5, reviews:109, bio:"AKC CGC evaluator. Group classes and private sessions available in your area.", price:"$100/session", zip:"23218" },
+  { name:"Kevin Thomas", emoji:"\ud83d\udc68\u200d\ud83e\uddb3", method:"balanced", specs:["puppy", "obedience", "anxiety"], rating:4.8, reviews:101, bio:"Canine behaviourist trained under top IAABC members. Specialises in puppy training.", price:"$120/session", zip:"30307" },
+  { name:"Carlos Perez", emoji:"\ud83e\uddd4", method:"positive", specs:["puppy", "obedience", "anxiety"], rating:4.3, reviews:167, bio:"Worked with over 461 dogs across 16 years. Specialises in obedience.", price:"$78/session", zip:"33109" },
+  { name:"Demi Anderson", emoji:"\ud83d\udc69", method:"positive", specs:["aggression", "obedience"], rating:4.6, reviews:196, bio:"Fear-free certified specialist. Works best with anxious, reactive, and rescue dogs.", price:"$85/session", zip:"19104" },
+  { name:"Zeke White", emoji:"\ud83d\udc68\u200d\ud83e\uddb1", method:"balanced", specs:["obedience", "anxiety"], rating:4.6, reviews:56, bio:"Worked with over 334 dogs across 9 years. Specialises in anxiety and reactivity.", price:"$78/session", zip:"39202" },
+  { name:"Uma V.", emoji:"\ud83d\udc69\u200d\ud83e\uddb1", method:"positive", specs:["aggression", "obedience"], rating:4.9, reviews:178, bio:"Specialises in high-drive working breeds \u2014 Malinois, GSD, Dutch Shepherd.", price:"$98/session", zip:"89104" },
+  { name:"June Turner", emoji:"\ud83d\udc69", method:"balanced", specs:["puppy", "obedience", "anxiety"], rating:4.6, reviews:200, bio:"IACP certified. Balanced methods, real-world results, no gimmicks.", price:"$100/session", zip:"27605" },
+  { name:"Nate Jenkins", emoji:"\ud83e\uddd1", method:"positive", specs:["anxiety", "obedience", "puppy"], rating:5, reviews:13, bio:"Rescue dog rehabilitator. Gentle, patient, and 100% committed to your dog.", price:"$100/session", zip:"33130" },
+  { name:"Lance Nelson", emoji:"\ud83d\udc68\u200d\ud83e\uddb0", method:"positive", specs:["puppy", "obedience"], rating:4.3, reviews:58, bio:"Positive reinforcement only. Helped over 470 dogs earn their AKC CGC title.", price:"$90/session", zip:"97205" },
+  { name:"Kendall Stewart", emoji:"\ud83d\udc69\u200d\ud83e\uddb0", method:"positive", specs:["obedience", "anxiety"], rating:4.5, reviews:161, bio:"Rescue dog rehabilitator. Gentle, patient, and 100% committed to your dog.", price:"$85/session", zip:"90001" },
+  { name:"Zoe Allen", emoji:"\ud83d\udc69\u200d\ud83e\uddb1", method:"positive", specs:["puppy", "obedience", "anxiety"], rating:4.6, reviews:151, bio:"Positive reinforcement only. Helped over 202 dogs earn their AKC CGC title.", price:"$70/session", zip:"48208" },
+  { name:"Rowan Sanchez", emoji:"\ud83d\udc69", method:"positive", specs:["obedience", "puppy"], rating:4.4, reviews:194, bio:"Canine behaviourist trained under top IAABC members. Specialises in obedience.", price:"$70/session", zip:"27606" },
+  { name:"Lance Edwards", emoji:"\ud83d\udc68\u200d\ud83e\uddb1", method:"positive", specs:["anxiety", "obedience", "puppy"], rating:4.5, reviews:148, bio:"Former police K9 handler. Now dedicated to helping families build better bonds with their dogs.", price:"$120/session", zip:"80205" },
+  { name:"Zara Mitchell", emoji:"\ud83d\udc69", method:"positive", specs:["anxiety", "obedience", "puppy"], rating:4.8, reviews:71, bio:"Rescue dog rehabilitator. Gentle, patient, and 100% committed to your dog.", price:"$88/session", zip:"21208" },
+  { name:"Jack D.", emoji:"\ud83e\uddd4", method:"positive", specs:["obedience", "anxiety"], rating:4.7, reviews:171, bio:"Science-based trainer. Clicker training, shaping, and positive reinforcement only.", price:"$110/session", zip:"39204" },
+  { name:"Diego Ross", emoji:"\ud83e\uddd4", method:"positive", specs:["aggression", "obedience"], rating:4.6, reviews:78, bio:"Board and train specialist with a 13-year track record of reliable results.", price:"$95/session", zip:"77025" },
+  { name:"Zeke Lopez", emoji:"\ud83d\udc68\u200d\ud83e\uddb3", method:"positive", specs:["aggression", "obedience"], rating:4.4, reviews:63, bio:"Vet tech background. Understands dog health and behaviour from the inside out.", price:"$85/session", zip:"30307" },
+  { name:"Nora Gonzales", emoji:"\ud83e\uddd1", method:"positive", specs:["aggression", "anxiety"], rating:4.8, reviews:138, bio:"Retired K9 officer. Now focused on family dogs and community safety.", price:"$95/session", zip:"30306" },
+  { name:"Rowan Howard", emoji:"\ud83d\udc69", method:"positive", specs:["aggression", "obedience"], rating:4.4, reviews:106, bio:"AKC CGC evaluator. Group classes and private sessions available in your area.", price:"$68/session", zip:"02103" },
+  { name:"Frank Evans", emoji:"\ud83d\udc68\u200d\ud83e\uddb0", method:"positive", specs:["aggression", "obedience"], rating:4.5, reviews:44, bio:"Off-leash reliability expert. E-collar certified and results-driven.", price:"$65/session", zip:"23220" },
+  { name:"Sean Rivera", emoji:"\ud83e\uddd4", method:"balanced", specs:["anxiety", "puppy"], rating:4.7, reviews:48, bio:"Former service dog trainer. Now dedicated to helping families build better bonds with their dogs.", price:"$55/session", zip:"39205" },
+  { name:"Nora Stewart", emoji:"\ud83e\uddd1", method:"positive", specs:["anxiety", "puppy"], rating:5, reviews:183, bio:"Science-based trainer. Clicker training, shaping, and positive reinforcement only.", price:"$110/session", zip:"77008" },
+  { name:"Pedro Robinson", emoji:"\ud83d\udc68\u200d\ud83e\uddb0", method:"positive", specs:["anxiety", "obedience", "puppy"], rating:4.7, reviews:27, bio:"Bilingual trainer (English/Spanish). Puppy through advanced obedience.", price:"$95/session", zip:"39209" },
+  { name:"Priya M.", emoji:"\ud83d\udc69\u200d\ud83e\uddb0", method:"balanced", specs:["anxiety", "puppy"], rating:4.5, reviews:125, bio:"Certified CPDT-KA with 18 years of experience. Force-free methods only.", price:"$110/session", zip:"98105" },
+  { name:"Brynn Morgan", emoji:"\ud83e\uddd1", method:"balanced", specs:["puppy", "obedience"], rating:4.7, reviews:53, bio:"Works with all breeds and ages. No dog is too challenging.", price:"$92/session", zip:"85004" },
+  { name:"Dan Patterson", emoji:"\ud83e\uddd4", method:"positive", specs:["obedience", "anxiety"], rating:4.5, reviews:113, bio:"Online and in-person sessions available. CPDT-KA certified and fully insured.", price:"$78/session", zip:"85001" },
+  { name:"Lena Hill", emoji:"\ud83d\udc69", method:"balanced", specs:["aggression", "obedience"], rating:4.4, reviews:79, bio:"Runs group puppy classes and one-on-one sessions. 11 years in the field.", price:"$68/session", zip:"21201" },
+  { name:"Lila R.", emoji:"\ud83d\udc69\u200d\ud83e\uddb0", method:"balanced", specs:["puppy", "obedience"], rating:5, reviews:10, bio:"AKC CGC evaluator. Group classes and private sessions available in your area.", price:"$72/session", zip:"37204" },
+  { name:"Priya Moore", emoji:"\ud83e\uddd1", method:"positive", specs:["anxiety", "puppy"], rating:4.3, reviews:60, bio:"Retired K9 officer. Now focused on family dogs and community safety.", price:"$85/session", zip:"60640" },
+  { name:"Amy Lewis", emoji:"\ud83d\udc69\u200d\ud83e\uddb0", method:"positive", specs:["anxiety", "puppy"], rating:4.3, reviews:105, bio:"Works with all breeds and ages. No dog is too challenging.", price:"$65/session", zip:"37203" },
+  { name:"Tom D.", emoji:"\ud83e\uddd1", method:"balanced", specs:["obedience", "puppy"], rating:4.8, reviews:118, bio:"Former agility competitor. Now dedicated to helping families build better bonds with their dogs.", price:"$78/session", zip:"63108" },
+  { name:"Emery Mitchell", emoji:"\ud83e\uddd1", method:"positive", specs:["puppy", "obedience", "anxiety"], rating:5, reviews:45, bio:"Works with all breeds and ages. No dog is too challenging.", price:"$60/session", zip:"78204" },
+  { name:"Faye Smith", emoji:"\ud83d\udc69\u200d\ud83e\uddb1", method:"positive", specs:["puppy", "obedience"], rating:4.9, reviews:60, bio:"Worked with over 115 dogs across 13 years. Specialises in obedience.", price:"$68/session", zip:"89110" },
+  { name:"Chris Wright", emoji:"\ud83d\udc68\u200d\ud83e\uddb1", method:"balanced", specs:["puppy", "obedience"], rating:5, reviews:153, bio:"Specialises in high-drive working breeds \u2014 Malinois, GSD, Dutch Shepherd.", price:"$98/session", zip:"45202" },
+  { name:"Gabe O.", emoji:"\ud83d\udc68\u200d\ud83e\uddb1", method:"balanced", specs:["aggression", "anxiety"], rating:5, reviews:199, bio:"Former police K9 handler. Now dedicated to helping families build better bonds with their dogs.", price:"$60/session", zip:"10024" },
+  { name:"Diego Moore", emoji:"\ud83d\udc68", method:"positive", specs:["aggression", "anxiety"], rating:4.9, reviews:117, bio:"Certified CPDT-KA with 14 years of experience. Force-free methods only.", price:"$75/session", zip:"70115" },
+  { name:"Diego James", emoji:"\ud83e\uddd1", method:"positive", specs:["puppy", "obedience", "anxiety"], rating:4.7, reviews:130, bio:"Positive reinforcement only. Helped over 456 dogs earn their AKC CGC title.", price:"$75/session", zip:"45206" },
+  { name:"Yale Harris", emoji:"\ud83d\udc68", method:"balanced", specs:["anxiety", "puppy"], rating:4.3, reviews:44, bio:"Bilingual trainer (English/Spanish). Puppy through advanced obedience.", price:"$95/session", zip:"10019" },
+  { name:"Ignacio Hernandez", emoji:"\ud83e\uddd4", method:"balanced", specs:["puppy", "obedience"], rating:4.7, reviews:98, bio:"Vet tech background. Understands dog health and behaviour from the inside out.", price:"$78/session", zip:"10001" },
+  { name:"Gabe Barnes", emoji:"\ud83d\udc68", method:"balanced", specs:["anxiety", "puppy"], rating:4.7, reviews:87, bio:"Vet tech background. Understands dog health and behaviour from the inside out.", price:"$92/session", zip:"73103" },
+  { name:"Marcus Patterson", emoji:"\ud83e\uddd1", method:"balanced", specs:["anxiety", "puppy"], rating:4.9, reviews:56, bio:"Canine behaviourist trained under top IAABC members. Specialises in anxiety and reactivity.", price:"$68/session", zip:"02113" },
+  { name:"Dan Howard", emoji:"\ud83e\uddd1", method:"positive", specs:["puppy", "obedience", "anxiety"], rating:4.3, reviews:61, bio:"Certified CPDT-KA with 18 years of experience. Force-free methods only.", price:"$65/session", zip:"87110" },
+  { name:"Owen Allen", emoji:"\ud83d\udc68", method:"balanced", specs:["obedience", "puppy"], rating:4.9, reviews:186, bio:"Specialises in high-drive working breeds \u2014 Malinois, GSD, Dutch Shepherd.", price:"$60/session", zip:"80203" },
+  { name:"Gwen J.", emoji:"\ud83d\udc69", method:"balanced", specs:["aggression", "obedience"], rating:4.4, reviews:64, bio:"Off-leash reliability expert. E-collar certified and results-driven.", price:"$110/session", zip:"63101" },
+  { name:"Yusuf Rivera", emoji:"\ud83d\udc68\u200d\ud83e\uddb1", method:"balanced", specs:["obedience", "puppy"], rating:4.8, reviews:168, bio:"Rescue dog rehabilitator. Gentle, patient, and 100% committed to your dog.", price:"$120/session", zip:"89102" },
+  { name:"Travis Lopez", emoji:"\ud83d\udc68\u200d\ud83e\uddb3", method:"balanced", specs:["aggression", "anxiety"], rating:4.8, reviews:141, bio:"Rescue dog rehabilitator. Gentle, patient, and 100% committed to your dog.", price:"$95/session", zip:"97210" },
+  { name:"Oscar Long", emoji:"\ud83d\udc68\u200d\ud83e\uddb3", method:"positive", specs:["obedience", "anxiety"], rating:4.7, reviews:59, bio:"Works with all breeds and ages. No dog is too challenging.", price:"$90/session", zip:"33102" },
+  { name:"Sarah Brooks", emoji:"\ud83d\udc69\u200d\ud83e\uddb1", method:"positive", specs:["puppy", "obedience", "anxiety"], rating:4.7, reviews:137, bio:"Bilingual trainer (English/Spanish). Puppy through advanced obedience.", price:"$70/session", zip:"90002" },
+  { name:"Derek Barnes", emoji:"\ud83d\udc68\u200d\ud83e\uddb1", method:"positive", specs:["anxiety", "puppy"], rating:4.4, reviews:122, bio:"Board and train specialist with a 11-year track record of reliable results.", price:"$88/session", zip:"63105" },
+  { name:"Shiloh Thomas", emoji:"\ud83e\uddd1", method:"positive", specs:["aggression", "obedience"], rating:4.7, reviews:150, bio:"Fear-free certified specialist. Works best with anxious, reactive, and rescue dogs.", price:"$75/session", zip:"60629" },
+  { name:"Rosa Morgan", emoji:"\ud83d\udc69\u200d\ud83e\uddb0", method:"positive", specs:["puppy", "obedience"], rating:4.8, reviews:152, bio:"Fear-free certified specialist. Works best with anxious, reactive, and rescue dogs.", price:"$90/session", zip:"27601" },
+  { name:"Chris Simmons", emoji:"\ud83e\uddd4", method:"balanced", specs:["puppy", "obedience"], rating:4.7, reviews:166, bio:"Former shelter behaviour counsellor. Now dedicated to helping families build better bonds with their dogs.", price:"$90/session", zip:"63103" },
+  { name:"Xavier V.", emoji:"\ud83d\udc68\u200d\ud83e\uddb3", method:"positive", specs:["obedience", "anxiety"], rating:4.4, reviews:177, bio:"Runs group puppy classes and one-on-one sessions. 10 years in the field.", price:"$90/session", zip:"60601" },
+  { name:"Alex F.", emoji:"\ud83e\uddd4", method:"positive", specs:["aggression", "obedience"], rating:4.6, reviews:195, bio:"Works with all breeds and ages. No dog is too challenging.", price:"$60/session", zip:"55406" },
+  { name:"Paul Ross", emoji:"\ud83e\uddd4", method:"balanced", specs:["anxiety", "puppy"], rating:4.6, reviews:55, bio:"Off-leash reliability expert. E-collar certified and results-driven.", price:"$98/session", zip:"19106" },
+  { name:"Nico Anderson", emoji:"\ud83d\udc68\u200d\ud83e\uddb0", method:"positive", specs:["puppy", "obedience", "anxiety"], rating:4.8, reviews:87, bio:"Fear-free certified specialist. Works best with anxious, reactive, and rescue dogs.", price:"$120/session", zip:"35210" },
+  { name:"Logan Rodriguez", emoji:"\ud83d\udc68\u200d\ud83e\uddb1", method:"positive", specs:["puppy", "obedience"], rating:4.8, reviews:48, bio:"Specialises in high-drive working breeds \u2014 Malinois, GSD, Dutch Shepherd.", price:"$88/session", zip:"02102" },
+  { name:"Jesse Peterson", emoji:"\ud83d\udc68\u200d\ud83e\uddb0", method:"positive", specs:["anxiety", "puppy"], rating:4.8, reviews:26, bio:"Former police K9 handler. Now dedicated to helping families build better bonds with their dogs.", price:"$68/session", zip:"02101" },
+  { name:"Bianca Robinson", emoji:"\ud83d\udc69\u200d\ud83e\uddb3", method:"positive", specs:["anxiety", "obedience", "puppy"], rating:4.3, reviews:58, bio:"In-home training specialist. I come to you \u2014 no kennel stress for your dog.", price:"$110/session", zip:"35207" },
+  { name:"Curt Bailey", emoji:"\ud83d\udc68\u200d\ud83e\uddb1", method:"balanced", specs:["puppy", "obedience"], rating:4.6, reviews:174, bio:"Former shelter behaviour counsellor. Now dedicated to helping families build better bonds with their dogs.", price:"$100/session", zip:"84107" },
+  { name:"Nora T.", emoji:"\ud83d\udc69\u200d\ud83e\uddb0", method:"positive", specs:["puppy", "obedience"], rating:4.3, reviews:174, bio:"Rescue dog rehabilitator. Gentle, patient, and 100% committed to your dog.", price:"$80/session", zip:"30310" },
+  { name:"Shiloh Hernandez", emoji:"\ud83d\udc69\u200d\ud83e\uddb3", method:"balanced", specs:["aggression", "obedience"], rating:4.9, reviews:129, bio:"Fear-free certified specialist. Works best with anxious, reactive, and rescue dogs.", price:"$110/session", zip:"55409" },
+  { name:"Derek S.", emoji:"\ud83d\udc68\u200d\ud83e\uddb0", method:"balanced", specs:["puppy", "obedience", "anxiety"], rating:4.5, reviews:105, bio:"Certified CPDT-KA with 14 years of experience. Force-free methods only.", price:"$72/session", zip:"48202" },
+  { name:"Rowan Phillips", emoji:"\ud83d\udc69\u200d\ud83e\uddb0", method:"positive", specs:["puppy", "obedience"], rating:4.7, reviews:104, bio:"Works with all breeds and ages. No dog is too challenging.", price:"$55/session", zip:"10002" },
+  { name:"Casey O.", emoji:"\ud83d\udc69", method:"positive", specs:["obedience", "anxiety"], rating:4.6, reviews:151, bio:"Retired K9 officer. Now focused on family dogs and community safety.", price:"$70/session", zip:"70114" },
+  { name:"Jessie Cox", emoji:"\ud83d\udc69", method:"balanced", specs:["obedience", "anxiety"], rating:4.9, reviews:84, bio:"Board and train specialist with a 7-year track record of reliable results.", price:"$100/session", zip:"35206" },
+  { name:"Kaia B.", emoji:"\ud83e\uddd1", method:"balanced", specs:["aggression", "obedience"], rating:4.4, reviews:42, bio:"Vet tech background. Understands dog health and behaviour from the inside out.", price:"$55/session", zip:"87103" },
+  { name:"Piper V.", emoji:"\ud83d\udc69", method:"balanced", specs:["aggression", "obedience"], rating:4.4, reviews:11, bio:"Specialises in high-drive working breeds \u2014 Malinois, GSD, Dutch Shepherd.", price:"$80/session", zip:"63101" },
+  { name:"Uma G.", emoji:"\ud83d\udc69", method:"positive", specs:["anxiety", "puppy"], rating:4.7, reviews:159, bio:"Rescue dog rehabilitator. Gentle, patient, and 100% committed to your dog.", price:"$98/session", zip:"87107" },
+  { name:"Skyler Brown", emoji:"\ud83d\udc68\u200d\ud83e\uddb1", method:"balanced", specs:["puppy", "obedience"], rating:4.6, reviews:8, bio:"Retired K9 officer. Now focused on family dogs and community safety.", price:"$80/session", zip:"48205" },
+  { name:"Rex Butler", emoji:"\ud83d\udc68\u200d\ud83e\uddb3", method:"balanced", specs:["anxiety", "obedience", "puppy"], rating:4.8, reviews:122, bio:"Retired K9 officer. Now focused on family dogs and community safety.", price:"$78/session", zip:"60637" },
+  { name:"June Wright", emoji:"\ud83e\uddd1", method:"balanced", specs:["puppy", "obedience"], rating:4.7, reviews:120, bio:"Former service dog trainer. Now dedicated to helping families build better bonds with their dogs.", price:"$95/session", zip:"02108" },
+  { name:"Nicole Sanchez", emoji:"\ud83d\udc69\u200d\ud83e\uddb1", method:"positive", specs:["puppy", "obedience"], rating:4.4, reviews:117, bio:"Bilingual trainer (English/Spanish). Puppy through advanced obedience.", price:"$90/session", zip:"27607" },
+  { name:"Felix Gray", emoji:"\ud83e\uddd4", method:"balanced", specs:["anxiety", "puppy"], rating:4.6, reviews:170, bio:"Fear-free certified specialist. Works best with anxious, reactive, and rescue dogs.", price:"$95/session", zip:"80205" },
+  { name:"Riley Wright", emoji:"\ud83d\udc69\u200d\ud83e\uddb1", method:"positive", specs:["aggression", "anxiety"], rating:4.6, reviews:50, bio:"Positive reinforcement only. Helped over 192 dogs earn their AKC CGC title.", price:"$95/session", zip:"87102" },
+  { name:"Skyler Watson", emoji:"\ud83d\udc68\u200d\ud83e\uddb3", method:"positive", specs:["aggression", "obedience"], rating:4.4, reviews:120, bio:"Fear-free certified specialist. Works best with anxious, reactive, and rescue dogs.", price:"$88/session", zip:"63104" },
+  { name:"Travis Hernandez", emoji:"\ud83d\udc68\u200d\ud83e\uddb0", method:"positive", specs:["anxiety", "puppy"], rating:4.9, reviews:149, bio:"Science-based trainer. Clicker training, shaping, and positive reinforcement only.", price:"$70/session", zip:"85015" },
+  { name:"Iris Kelly", emoji:"\ud83d\udc69\u200d\ud83e\uddb0", method:"positive", specs:["puppy", "obedience", "anxiety"], rating:4.7, reviews:35, bio:"In-home training specialist. I come to you \u2014 no kennel stress for your dog.", price:"$70/session", zip:"19120" },
+  { name:"Gabe Collins", emoji:"\ud83e\uddd4", method:"positive", specs:["anxiety", "obedience", "puppy"], rating:4.5, reviews:155, bio:"Runs group puppy classes and one-on-one sessions. 17 years in the field.", price:"$98/session", zip:"30311" },
+  { name:"James Anderson", emoji:"\ud83d\udc68\u200d\ud83e\uddb0", method:"balanced", specs:["puppy", "obedience", "anxiety"], rating:4.7, reviews:147, bio:"Former competitive obedience trainer. Now dedicated to helping families build better bonds with their dogs.", price:"$75/session", zip:"97206" },
+  { name:"Ravi Y.", emoji:"\ud83d\udc68\u200d\ud83e\uddb0", method:"positive", specs:["puppy", "obedience", "anxiety"], rating:4.5, reviews:27, bio:"AKC CGC evaluator. Group classes and private sessions available in your area.", price:"$60/session", zip:"10036" },
+  { name:"Zeke Henderson", emoji:"\ud83d\udc68\u200d\ud83e\uddb0", method:"balanced", specs:["anxiety", "puppy"], rating:5, reviews:196, bio:"Rescue dog rehabilitator. Gentle, patient, and 100% committed to your dog.", price:"$120/session", zip:"89102" },
+  { name:"Ben Powell", emoji:"\ud83e\uddd4", method:"positive", specs:["obedience", "puppy"], rating:4.9, reviews:21, bio:"Canine behaviourist trained under top IAABC members. Specialises in obedience.", price:"$82/session", zip:"20004" },
+  { name:"Jack Evans", emoji:"\ud83d\udc68\u200d\ud83e\uddb0", method:"balanced", specs:["obedience", "anxiety"], rating:4.7, reviews:32, bio:"Online and in-person sessions available. CPDT-KA certified and fully insured.", price:"$120/session", zip:"37209" },
+  { name:"Neil Bell", emoji:"\ud83e\uddd1", method:"positive", specs:["puppy", "obedience", "anxiety"], rating:4.7, reviews:164, bio:"Board and train specialist with a 18-year track record of reliable results.", price:"$88/session", zip:"29402" },
+  { name:"Gabe Turner", emoji:"\ud83e\uddd1", method:"balanced", specs:["obedience", "anxiety"], rating:4.8, reviews:54, bio:"AKC CGC evaluator. Group classes and private sessions available in your area.", price:"$55/session", zip:"70121" },
+  { name:"Emery Jenkins", emoji:"\ud83e\uddd1", method:"balanced", specs:["obedience", "puppy"], rating:4.6, reviews:90, bio:"Works with all breeds and ages. No dog is too challenging.", price:"$88/session", zip:"97204" },
+  { name:"Brett Robinson", emoji:"\ud83d\udc68\u200d\ud83e\uddb0", method:"positive", specs:["aggression", "anxiety"], rating:4.8, reviews:34, bio:"Vet tech background. Understands dog health and behaviour from the inside out.", price:"$85/session", zip:"89106" },
+  { name:"Pearl Diaz", emoji:"\ud83d\udc69\u200d\ud83e\uddb0", method:"positive", specs:["anxiety", "obedience", "puppy"], rating:4.9, reviews:170, bio:"Canine behaviourist trained under top IAABC members. Specialises in anxiety and reactivity.", price:"$70/session", zip:"89108" },
+  { name:"Jack Diaz", emoji:"\ud83e\uddd1", method:"positive", specs:["puppy", "obedience", "anxiety"], rating:4.7, reviews:178, bio:"Works with all breeds and ages. No dog is too challenging.", price:"$85/session", zip:"87105" },
+  { name:"Nova Jenkins", emoji:"\ud83d\udc69\u200d\ud83e\uddb3", method:"positive", specs:["aggression", "obedience"], rating:5, reviews:76, bio:"Vet tech background. Understands dog health and behaviour from the inside out.", price:"$55/session", zip:"10036" },
+  { name:"Dan Z.", emoji:"\ud83d\udc68\u200d\ud83e\uddb3", method:"balanced", specs:["aggression", "obedience"], rating:4.9, reviews:197, bio:"Vet tech background. Understands dog health and behaviour from the inside out.", price:"$82/session", zip:"73110" },
+  { name:"Rowan Young", emoji:"\ud83d\udc69\u200d\ud83e\uddb0", method:"positive", specs:["puppy", "obedience", "anxiety"], rating:4.5, reviews:82, bio:"AKC CGC evaluator. Group classes and private sessions available in your area.", price:"$72/session", zip:"23220" },
+  { name:"Ignacio W.", emoji:"\ud83e\uddd1", method:"positive", specs:["anxiety", "puppy"], rating:4.4, reviews:128, bio:"Bilingual trainer (English/Spanish). Puppy through advanced obedience.", price:"$100/session", zip:"73106" },
+  { name:"Taylor Jones", emoji:"\ud83d\udc69\u200d\ud83e\uddb1", method:"positive", specs:["anxiety", "obedience", "puppy"], rating:4.6, reviews:138, bio:"Certified CPDT-KA with 4 years of experience. Force-free methods only.", price:"$68/session", zip:"39208" },
+  { name:"Yale Gonzales", emoji:"\ud83d\udc68\u200d\ud83e\uddb1", method:"positive", specs:["aggression", "obedience"], rating:4.7, reviews:173, bio:"Certified CPDT-KA with 9 years of experience. Force-free methods only.", price:"$82/session", zip:"60602" },
+  { name:"Aria Harris", emoji:"\ud83d\udc69", method:"balanced", specs:["aggression", "anxiety"], rating:4.8, reviews:176, bio:"IACP certified. Balanced methods, real-world results, no gimmicks.", price:"$68/session", zip:"98109" },
+  { name:"Walter Campbell", emoji:"\ud83d\udc68\u200d\ud83e\uddb1", method:"positive", specs:["obedience", "anxiety"], rating:4.7, reviews:145, bio:"IACP certified. Balanced methods, real-world results, no gimmicks.", price:"$85/session", zip:"19118" },
+  { name:"Yuki Robinson", emoji:"\ud83d\udc69", method:"balanced", specs:["aggression", "anxiety"], rating:4.7, reviews:17, bio:"Certified CPDT-KA with 4 years of experience. Force-free methods only.", price:"$70/session", zip:"55401" },
+  { name:"Megan Green", emoji:"\ud83e\uddd1", method:"positive", specs:["anxiety", "puppy"], rating:4.8, reviews:156, bio:"Specialises in high-drive working breeds \u2014 Malinois, GSD, Dutch Shepherd.", price:"$95/session", zip:"60618" },
+  { name:"Pedro G.", emoji:"\ud83e\uddd1", method:"positive", specs:["anxiety", "puppy"], rating:4.4, reviews:183, bio:"AKC CGC evaluator. Group classes and private sessions available in your area.", price:"$95/session", zip:"80207" },
+  { name:"Yale Mitchell", emoji:"\ud83d\udc68\u200d\ud83e\uddb0", method:"balanced", specs:["obedience", "anxiety"], rating:4.4, reviews:162, bio:"Rescue dog rehabilitator. Gentle, patient, and 100% committed to your dog.", price:"$80/session", zip:"35201" },
+  { name:"Vince Roberts", emoji:"\ud83e\uddd4", method:"positive", specs:["aggression", "obedience"], rating:4.6, reviews:94, bio:"Runs group puppy classes and one-on-one sessions. 12 years in the field.", price:"$98/session", zip:"35203" },
+  { name:"Morgan Campbell", emoji:"\ud83d\udc69\u200d\ud83e\uddb0", method:"positive", specs:["obedience", "puppy"], rating:4.9, reviews:32, bio:"Works with all breeds and ages. No dog is too challenging.", price:"$85/session", zip:"29401" },
+  { name:"Jack Taylor", emoji:"\ud83d\udc68\u200d\ud83e\uddb3", method:"balanced", specs:["obedience", "anxiety"], rating:4.7, reviews:128, bio:"Fear-free certified specialist. Works best with anxious, reactive, and rescue dogs.", price:"$90/session", zip:"98101" },
+  { name:"Yusuf Henderson", emoji:"\ud83d\udc68\u200d\ud83e\uddb3", method:"positive", specs:["obedience", "anxiety"], rating:4.4, reviews:176, bio:"Positive reinforcement only. Helped over 706 dogs earn their AKC CGC title.", price:"$65/session", zip:"78203" },
+  { name:"Mila Sanchez", emoji:"\ud83e\uddd1", method:"positive", specs:["anxiety", "obedience", "puppy"], rating:4.4, reviews:108, bio:"Specialises in high-drive working breeds \u2014 Malinois, GSD, Dutch Shepherd.", price:"$65/session", zip:"97206" }
+];
+
+var slots = [
+  { label:"Mon 9am",  taken:false },
+  { label:"Mon 2pm",  taken:true  },
+  { label:"Tue 10am", taken:false },
+  { label:"Tue 4pm",  taken:false },
+  { label:"Wed 8am",  taken:true  },
+  { label:"Wed 3pm",  taken:false },
+  { label:"Thu 11am", taken:false },
+  { label:"Fri 9am",  taken:false }
+];
+
+var activeSpec   = "all";
+var activeMethod = "all";
+var activeZip    = "";
+var pickedSlot   = null;
+
+function stars(n) {
+  var s = "";
+  for (var i = 0; i < Math.floor(n); i++) s += "★";
+  return s;
+}
+
+function renderCards(list) {
+  var el = document.getElementById("cardContainer");
+  var count = document.getElementById("resultCount");
+  count.textContent = list.length + " trainer" + (list.length !== 1 ? 's' : '');
+  if (!list.length) {
+    el.innerHTML = '<div class="no-results">No trainers match those filters.</div>';
+    return;
+  }
+  var html = "";
+  for (var i = 0; i < list.length; i++) {
+    var t = list[i];
+    var idx = trainers.indexOf(t);
+    var methodTag = t.method === "positive"
+      ? '<span class="tag positive">🟢 Positive only</span>'
+      : '<span class="tag balanced">⚖️ Balanced</span>';
+    var specTags = t.specs.map(function(s){ return '<span class="tag spec">' + s + '</span>'; }).join("");
+    var dist = activeZip ? fakeDist(activeZip, i) : null;
+    var distBadge = dist ? '<span style="font-size:.72rem;color:#888;margin-left:.4rem">📍 ~' + dist + ' mi away</span>' : '';
+    html += '<div class="card">' +
+      '<div class="avatar">' + t.emoji + '</div>' +
+      '<div class="info">' +
+        '<div class="top-row">' +
+          '<div><span class="trainer-name">' + t.name + '</span><span class="verified">✔ Verified</span></div>' +
+          '<div class="price-badge">' + t.price + '</div>' +
+        '</div>' +
+        '<div class="bio">' + t.bio + '</div>' +
+        '<div class="stars">' + stars(t.rating) + ' <span>' + t.rating + ' (' + t.reviews + ' reviews)</span></div>' +
+        '<div class="tag-row">' + methodTag + specTags + '</div>' +
+        '<div class="btn-row">' +
+          '<button class="btn-primary book-btn" data-idx="' + idx + '">Book Session</button>' +
+          '<button class="btn-outline">View Profile</button>' +
+        '</div>' +
+      '</div></div>';
+  }
+  el.innerHTML = html;
+}
+
+function fakeDist(zip, seed) {
+  if (!zip) return null;
+  var h = 0;
+  for (var i = 0; i < zip.length; i++) h = (h * 31 + zip.charCodeAt(i) + seed) & 0xffff;
+  return (h % 148) + 2; // 2–149 miles
+}
+
+function getFiltered() {
+  var method = activeMethod || document.getElementById("methodSelect").value;
+  return trainers.filter(function(t) {
+    var methodOk = method === "all" || t.method === method;
+    var specOk   = activeSpec === "all" || t.specs.indexOf(activeSpec) !== -1;
+    var zipOk    = !activeZip || t.zip === activeZip;
+    return methodOk && specOk && zipOk;
+  });
+}
+
+// Search
+function doSearch() {
+  var raw = document.getElementById("zipInput").value.trim();
+  activeMethod = document.getElementById("methodSelect").value;
+  if (raw && raw.length !== 5) {
+    document.getElementById("cardContainer").innerHTML = '<div class="no-results">Please enter a full 5-digit zip code (e.g. 90210).</div>';
+    document.getElementById("resultCount").textContent = "0 trainers";
+    document.getElementById("zipLabel").textContent = "near " + raw;
+    return;
+  }
+  activeZip = raw;
+  if (activeZip) document.getElementById("zipLabel").textContent = "near " + activeZip;
+  else           document.getElementById("zipLabel").textContent = "all locations";
+  renderCards(getFiltered());
+}
+document.getElementById("zipInput").onkeydown = function(e){ if(e.key==="Enter") doSearch(); };
+document.getElementById("methodSelect").onchange = function(){ activeMethod=this.value; renderCards(getFiltered()); };
+
+// Specialty pills
+document.querySelector(".spec-filters").addEventListener("click", function(e) {
+  var btn = e.target.closest(".spec-btn");
+  if (!btn) return;
+  document.querySelectorAll(".spec-btn").forEach(function(b){ b.classList.remove("active"); });
+  btn.classList.add("active");
+  activeSpec = btn.dataset.spec;
+  renderCards(getFiltered());
+});
+
+// Book button — event delegation
+document.getElementById("cardContainer").addEventListener("click", function(e) {
+  var btn = e.target.closest(".book-btn");
+  if (!btn) return;
+  openModal(parseInt(btn.dataset.idx));
+});
+
+// Modal
+function openModal(idx) {
+  var t = trainers[idx];
+  pickedSlot = null;
+  document.getElementById("modalName").textContent = "Book with " + t.name;
+  document.getElementById("modalPrice").textContent = t.price + " · Select a time slot";
+  document.getElementById("confirmBtn").textContent = "Confirm Booking — " + t.price;
+  document.getElementById("confirmBtn").style.display = "block";
+  document.getElementById("slotGrid").style.display = "grid";
+  document.getElementById("successState").style.display = "none";
+
+  var grid = document.getElementById("slotGrid");
+  grid.innerHTML = slots.map(function(s, i) {
+    if (s.taken) {
+      return '<button class="slot-btn" disabled>' + s.label + '<br><small>Taken</small></button>';
+    }
+    return '<button class="slot-btn" data-slot="' + i + '">' + s.label + '</button>';
+  }).join("");
+
+  document.getElementById("modalBg").classList.add("open");
+}
+
+document.getElementById("slotGrid").addEventListener("click", function(e) {
+  var btn = e.target.closest(".slot-btn");
+  if (!btn || btn.disabled) return;
+  document.querySelectorAll(".slot-btn").forEach(function(b){ b.classList.remove("selected"); });
+  btn.classList.add("selected");
+  pickedSlot = parseInt(btn.dataset.slot);
+});
+
+document.getElementById("confirmBtn").addEventListener("click", function() {
+  if (pickedSlot === null) { alert("Please pick a time slot first."); return; }
+  document.getElementById("slotGrid").style.display = "none";
+  document.getElementById("confirmBtn").style.display = "none";
+  document.getElementById("successState").style.display = "block";
+});
+
+document.getElementById("modalX").addEventListener("click", function() {
+  document.getElementById("modalBg").classList.remove("open");
+});
+
+document.getElementById("modalBg").addEventListener("click", function(e) {
+  if (e.target === this) this.classList.remove("open");
+});
+
+// Init
+renderCards(trainers);
+</script>
+</body>
+</html>
