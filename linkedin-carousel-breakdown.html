@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CarouselCut — Turn Long LinkedIn Posts Into Carousel Slides</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,700;0,800;1,700&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#f4f2ee;--s:#fff;--bd:#dbd8d0;--tx:#1a1a1a;--mu:#6e6e6e;--ac:#0073b1;--al:rgba(0,115,177,.1);--r:12px}
+body{font-family:'Hanken Grotesk',sans-serif;background:var(--bg);color:var(--tx);-webkit-font-smoothing:antialiased;min-height:100vh}
+nav{background:var(--s);border-bottom:1px solid var(--bd);padding:14px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.logo{font-family:'Fraunces',sans-serif;font-weight:800;font-size:1.15rem;letter-spacing:-.03em}
+.logo span{color:var(--ac)}
+.badge{font-size:.65rem;font-weight:700;color:var(--ac);background:var(--al);border:1px solid rgba(0,115,177,.2);padding:3px 10px;border-radius:20px;letter-spacing:.06em;text-transform:uppercase}
+.hero{background:linear-gradient(135deg,#003a57 0%,#0073b1 100%);color:#fff;padding:52px 24px 44px;text-align:center}
+.hero h1{font-family:'Fraunces',sans-serif;font-weight:800;font-size:clamp(1.9rem,5vw,2.8rem);letter-spacing:-.04em;line-height:1.05;margin-bottom:10px}
+.hero h1 em{font-style:italic;color:#bae6fd}
+.hero p{color:rgba(255,255,255,.75);max-width:480px;margin:0 auto;font-size:.88rem;line-height:1.65}
+.main{max-width:760px;margin:0 auto;padding:32px 16px}
+.card{background:var(--s);border:1px solid var(--bd);border-radius:var(--r);padding:28px;margin-bottom:20px}
+.card-title{font-family:'Fraunces',sans-serif;font-weight:700;font-size:1rem;margin-bottom:5px}
+.card-sub{font-size:.8rem;color:var(--mu);margin-bottom:18px;line-height:1.5}
+label{display:block;font-size:.72rem;font-weight:700;color:var(--mu);margin-bottom:5px;text-transform:uppercase;letter-spacing:.06em}
+textarea,select{width:100%;border:1px solid var(--bd);background:var(--bg);border-radius:8px;padding:11px 14px;font-family:'Hanken Grotesk',sans-serif;font-size:.88rem;color:var(--tx);margin-bottom:14px;transition:border .15s}
+textarea{min-height:160px;resize:vertical}
+textarea:focus,select:focus{outline:none;border-color:var(--ac);box-shadow:0 0 0 3px var(--al)}
+textarea::placeholder{color:#bbb}
+.gen-btn{width:100%;background:var(--ac);color:#fff;border:none;border-radius:10px;padding:13px 24px;font-family:'Hanken Grotesk',sans-serif;font-weight:700;font-size:.95rem;cursor:pointer;transition:background .15s}
+.gen-btn:hover{background:#005885}
+.gen-btn:disabled{background:#bbb;cursor:not-allowed}
+.results{display:none}
+.results.show{display:block}
+.slides-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-bottom:16px}
+@media(max-width:480px){.slides-grid{grid-template-columns:1fr 1fr}}
+.slide{background:var(--s);border:2px solid var(--bd);border-radius:10px;padding:16px;aspect-ratio:1/1;display:flex;flex-direction:column;justify-content:space-between;cursor:pointer;transition:border-color .15s,box-shadow .15s;position:relative}
+.slide:hover{border-color:var(--ac);box-shadow:0 2px 12px rgba(0,115,177,.12)}
+.slide.active{border-color:var(--ac);box-shadow:0 2px 12px rgba(0,115,177,.18)}
+.slide-num{font-size:.65rem;font-weight:700;color:var(--ac);text-transform:uppercase;letter-spacing:.08em}
+.slide-headline{font-family:'Fraunces',sans-serif;font-weight:700;font-size:.82rem;line-height:1.4;color:var(--tx);flex:1;display:flex;align-items:center;padding:6px 0}
+.slide-type{font-size:.62rem;color:var(--mu);font-weight:600;text-transform:uppercase;letter-spacing:.05em}
+.slide-detail{background:var(--bg);border:1px solid var(--bd);border-radius:10px;padding:20px;margin-bottom:16px;display:none}
+.slide-detail.show{display:block}
+.sd-label{font-size:.72rem;font-weight:700;color:var(--mu);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+.sd-head{font-family:'Fraunces',sans-serif;font-weight:700;font-size:1.1rem;margin-bottom:10px;line-height:1.3}
+.sd-body{font-size:.87rem;line-height:1.7;color:var(--tx);white-space:pre-wrap;margin-bottom:12px}
+.sd-tip{font-size:.76rem;color:var(--ac);background:var(--al);border-radius:6px;padding:8px 12px;margin-bottom:12px}
+.sd-copy{border:1px solid var(--bd);background:transparent;cursor:pointer;color:var(--mu);font-size:.78rem;font-family:'Hanken Grotesk',sans-serif;padding:6px 14px;border-radius:6px;transition:all .12s}
+.sd-copy:hover{border-color:var(--ac);color:var(--ac)}
+.sd-copy.ok{border-color:#16a34a;color:#16a34a}
+.copy-all-btn{width:100%;background:var(--bg);color:var(--ac);border:1px solid var(--ac);border-radius:10px;padding:11px;font-family:'Hanken Grotesk',sans-serif;font-weight:700;font-size:.88rem;cursor:pointer;transition:all .12s;margin-bottom:12px}
+.copy-all-btn:hover{background:var(--al)}
+.tips{background:#f0f7ff;border:1px solid rgba(0,115,177,.15);border-radius:10px;padding:14px 16px}
+.tips-title{font-size:.73rem;font-weight:700;color:var(--ac);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px}
+.tip{font-size:.79rem;color:#1e3a5f;line-height:1.55;margin-bottom:4px}
+.tip::before{content:"→ "}
+footer{border-top:1px solid var(--bd);padding:24px;text-align:center;color:var(--mu);font-size:.7rem;margin-top:8px}
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:8px}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<nav>
+  <div class="logo">Carousel<span>Cut</span></div>
+  <div class="badge">LinkedIn Carousel Builder</div>
+</nav>
+<div class="hero">
+  <h1>One long post.<br><em>5 carousel slides.</em></h1>
+  <p>Paste a rambling LinkedIn draft — get 5 snackable slides with hooks, bullet points, and a CTA ready to post.</p>
+</div>
+
+<div class="main">
+  <div class="card">
+    <div class="card-title">Paste your LinkedIn post draft</div>
+    <div class="card-sub">Rough is fine. Even bullet notes work. The AI breaks it into a structured carousel that keeps people swiping.</div>
+
+    <label>Your post draft</label>
+    <textarea id="postInput" placeholder="e.g. I spent 5 years building a business that failed. Here's everything I learned. First, I made the mistake of hiring too fast. I brought on 4 people before we had product-market fit. Then I ignored our burn rate for 3 months straight. By the time I noticed it was almost too late..."></textarea>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+      <div>
+        <label>Your niche</label>
+        <select id="niche">
+          <option value="entrepreneur">Entrepreneurship</option>
+          <option value="marketing">Marketing / growth</option>
+          <option value="career">Career advice</option>
+          <option value="finance">Finance / investing</option>
+          <option value="productivity">Productivity</option>
+          <option value="leadership">Leadership</option>
+          <option value="tech">Tech / AI</option>
+        </select>
+      </div>
+      <div>
+        <label>Slide count</label>
+        <select id="count">
+          <option value="5">5 slides</option>
+          <option value="7">7 slides</option>
+        </select>
+      </div>
+    </div>
+
+    <button class="gen-btn" id="genBtn" onclick="generate()">Cut into carousel →</button>
+  </div>
+
+  <div class="results" id="results">
+    <p style="font-size:.8rem;color:var(--mu);margin-bottom:12px">Click any slide to see full copy</p>
+    <div class="slides-grid" id="slideGrid"></div>
+    <div id="slideDetail"></div>
+    <button class="copy-all-btn" onclick="copyAll()">📋 Copy all slides as text</button>
+    <div class="tips" id="tipsBox"></div>
+    <button class="gen-btn" style="margin-top:14px;background:#fff;color:var(--ac);border:1px solid var(--ac)" onclick="generate()">↻ Regenerate</button>
+  </div>
+</div>
+<footer>CarouselCut · Demo by Started AI</footer>
+
+<script>
+function splitSentences(t){return t.split(/(?<=[.!?])\s+/).map(s=>s.trim()).filter(s=>s.length>10)}
+function firstN(arr,n){return arr.slice(0,n)}
+
+function buildSlides(text, niche, count){
+  const sents = splitSentences(text);
+  const words = text.toLowerCase();
+  const n = parseInt(count);
+
+  // Extract the best hook line
+  const hookLine = sents[0] || text.substring(0,120);
+  // Extract lessons / numbered points
+  const numbered = text.match(/\d+[\.\)]\s+[^.!?\n]+/g) || [];
+  // Extract the core insight
+  const midSents = sents.slice(1, Math.floor(sents.length/2)+1);
+  const lastSents = sents.slice(-3);
+
+  const TYPES = ['Hook','Context','The lesson','The mistake','The framework','The result','CTA'];
+
+  const templates5 = [
+    {type:'Hook 🪝',
+     headline: hookLine.length>80 ? hookLine.substring(0,77)+'…' : hookLine,
+     body:`${hookLine}\n\nSwipe to see what I learned →`,
+     tip:'This is your cover slide — it must stop the scroll. Bold claim or surprising number works best.'},
+    {type:'Context 📍',
+     headline: 'Here\'s the full story',
+     body: midSents.slice(0,2).join(' ') || 'The context behind what happened — give the reader enough background to care.',
+     tip:'Slide 2 sets the scene. Keep it brief — 2-3 sentences max.'},
+    {type:'The lesson 💡',
+     headline: numbered.length ? numbered[0].replace(/^\d+[\.\)]\s*/,'') : (midSents[2]||'The key insight').substring(0,80),
+     body: (numbered.length>1 ? numbered.slice(0,3).map((x,i)=>`${i+1}. ${x.replace(/^\d+[\.\)]\s*/,'')}`).join('\n') : midSents.slice(2,5).join('\n')) || 'The core lesson from this experience.',
+     tip:'This is the highest-value slide. Front-load the insight — don\'t bury the lede.'},
+    {type:'What I\'d do differently 🔁',
+     headline: 'If I started over, I\'d do this instead',
+     body: lastSents.slice(0,-1).join('\n') || 'The specific things I\'d change knowing what I know now.',
+     tip:'Contrarian or "mistake" framing drives shares — people tag others who need to hear this.'},
+    {type:'CTA 🎯',
+     headline: 'Found this useful?',
+     body: `Follow me for more on ${niche}.\n\nAnd drop a comment: what's the biggest lesson you've learned?\n\n♻️ Repost if this helped someone you know.`,
+     tip:'Always end with one clear action. Asking a question in the CTA boosts comment rate by 3-5x.'}
+  ];
+
+  const extra2 = [
+    {type:'The framework 🗂️',
+     headline:'The exact process I use',
+     body: numbered.length>=2 ? numbered.slice(0,4).map((x,i)=>`Step ${i+1}: ${x.replace(/^\d+[\.\)]\s*/,'')}`).join('\n') : `Step 1: Research before you act\nStep 2: Execute in small batches\nStep 3: Measure the one metric that matters\nStep 4: Double down on what works`,
+     tip:'Framework slides get the most saves — readers screenshot these for later.'},
+    {type:'The numbers 📊',
+     headline:'The results (with real numbers)',
+     body: text.match(/\$[\d,]+|\d+%|\d+x|\d+ (days?|weeks?|months?|years?)/gi)?.slice(0,4).join('\n') || 'Before: [baseline]\nAfter: [result]\nTime: [duration]\nKey metric: [number]',
+     tip:'Numbers = credibility. Even rough estimates are better than no data.'}
+  ];
+
+  const slides = n===7 ? [...templates5.slice(0,3),...extra2,...templates5.slice(3)] : templates5;
+  return slides;
+}
+
+let allSlides = [];
+function generate(){
+  const text = document.getElementById('postInput').value.trim();
+  if(!text){document.getElementById('postInput').focus();return;}
+  const btn = document.getElementById('genBtn');
+  btn.disabled=true;btn.innerHTML='<span class="spinner"></span>Cutting into slides…';
+  setTimeout(()=>{
+    const niche = document.getElementById('niche').value;
+    const count = document.getElementById('count').value;
+    allSlides = buildSlides(text, niche, count);
+    window._slides = allSlides;
+
+    document.getElementById('slideGrid').innerHTML = allSlides.map((s,i)=>`
+      <div class="slide" id="slide${i}" onclick="showDetail(${i})">
+        <div class="slide-num">Slide ${i+1}</div>
+        <div class="slide-headline">${s.headline}</div>
+        <div class="slide-type">${s.type}</div>
+      </div>`).join('');
+
+    document.getElementById('slideDetail').innerHTML = allSlides.map((s,i)=>`
+      <div class="slide-detail" id="detail${i}">
+        <div class="sd-label">Slide ${i+1} · ${s.type}</div>
+        <div class="sd-head">${s.headline}</div>
+        <div class="sd-body">${s.body}</div>
+        <div class="sd-tip">💡 Design tip: ${s.tip}</div>
+        <button class="sd-copy" id="cp${i}" onclick="copySlide(${i})">📋 Copy slide text</button>
+      </div>`).join('');
+
+    document.getElementById('tipsBox').innerHTML=`
+      <div class="tips-title">💡 LinkedIn carousel tips</div>
+      <div class="tip">Slide 1 is your thumbnail — most people never swipe unless it hooks them in 2 seconds</div>
+      <div class="tip">Each slide should have one idea, one visual. Don't crowd the frame.</div>
+      <div class="tip">Post as a PDF document (not images) — LinkedIn's algorithm favors document posts 3-4x</div>
+      <div class="tip">Add a page number (e.g. "1/5") in the corner so readers know how many slides to expect</div>`;
+
+    document.getElementById('results').classList.add('show');
+    showDetail(0);
+    document.getElementById('results').scrollIntoView({behavior:'smooth',block:'start'});
+    btn.disabled=false;btn.textContent='Cut into carousel →';
+  },1000);
+}
+
+function showDetail(i){
+  document.querySelectorAll('.slide-detail').forEach(d=>d.classList.remove('show'));
+  document.querySelectorAll('.slide').forEach(s=>s.classList.remove('active'));
+  document.getElementById('detail'+i).classList.add('show');
+  document.getElementById('slide'+i).classList.add('active');
+}
+
+function copySlide(i){
+  const s = window._slides[i];
+  navigator.clipboard.writeText(`[Slide ${i+1} — ${s.type}]\n${s.headline}\n\n${s.body}`).then(()=>{
+    const btn=document.getElementById('cp'+i);
+    btn.textContent='✓ Copied!';btn.classList.add('ok');
+    setTimeout(()=>{btn.textContent='📋 Copy slide text';btn.classList.remove('ok');},2000);
+  });
+}
+
+function copyAll(){
+  const text = window._slides.map((s,i)=>`--- SLIDE ${i+1}: ${s.type} ---\n${s.headline}\n\n${s.body}`).join('\n\n');
+  navigator.clipboard.writeText(text).then(()=>{
+    const btn=document.querySelector('.copy-all-btn');
+    btn.textContent='✓ All slides copied!';
+    setTimeout(()=>{btn.textContent='📋 Copy all slides as text';},2000);
+  });
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ReviewReply — Amazon Review Response Generator</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@700;800&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#fffbf5;--s:#fff;--bd:#ede8df;--tx:#1a1610;--mu:#7a7060;--ac:#f59e0b;--ad:#92400e;--al:rgba(245,158,11,.12);--r:12px}
+body{font-family:'Hanken Grotesk',sans-serif;background:var(--bg);color:var(--tx);-webkit-font-smoothing:antialiased;min-height:100vh}
+nav{background:var(--s);border-bottom:1px solid var(--bd);padding:14px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.logo{font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:1.15rem;letter-spacing:-.03em}
+.logo span{color:var(--ac)}
+.badge{font-size:.65rem;font-weight:700;color:var(--ad);background:var(--al);border:1px solid rgba(245,158,11,.3);padding:3px 10px;border-radius:20px;letter-spacing:.06em;text-transform:uppercase}
+.hero{background:linear-gradient(135deg,#78350f 0%,#d97706 100%);color:#fff;padding:52px 24px 44px;text-align:center}
+.hero h1{font-family:'Space Grotesk',sans-serif;font-weight:800;font-size:clamp(1.9rem,5vw,2.8rem);letter-spacing:-.04em;line-height:1.05;margin-bottom:10px}
+.hero h1 em{font-style:italic;color:#fde68a}
+.hero p{color:rgba(255,255,255,.78);max-width:480px;margin:0 auto;font-size:.88rem;line-height:1.65}
+.main{max-width:760px;margin:0 auto;padding:32px 16px}
+.card{background:var(--s);border:1px solid var(--bd);border-radius:var(--r);padding:28px;margin-bottom:20px}
+.card-title{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1rem;margin-bottom:5px}
+.card-sub{font-size:.8rem;color:var(--mu);margin-bottom:18px;line-height:1.5}
+label{display:block;font-size:.72rem;font-weight:700;color:var(--mu);margin-bottom:5px;text-transform:uppercase;letter-spacing:.06em}
+textarea,select,input{width:100%;border:1px solid var(--bd);background:var(--bg);border-radius:8px;padding:11px 14px;font-family:'Hanken Grotesk',sans-serif;font-size:.88rem;color:var(--tx);margin-bottom:14px;transition:border .15s}
+textarea{min-height:110px;resize:vertical}
+textarea:focus,select:focus,input:focus{outline:none;border-color:var(--ac);box-shadow:0 0 0 3px var(--al)}
+textarea::placeholder,input::placeholder{color:#c8c0b0}
+.stars{display:flex;gap:6px;margin-bottom:14px}
+.star-btn{background:none;border:1px solid var(--bd);border-radius:8px;padding:8px 14px;font-size:1rem;cursor:pointer;transition:all .15s;color:var(--mu)}
+.star-btn.sel{background:var(--al);border-color:var(--ac);color:var(--ac)}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:520px){.row{grid-template-columns:1fr}}
+.gen-btn{width:100%;background:var(--ac);color:#fff;border:none;border-radius:10px;padding:13px 24px;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:.95rem;cursor:pointer;transition:background .15s}
+.gen-btn:hover{background:#d97706}
+.gen-btn:disabled{background:#d4c4a0;cursor:not-allowed}
+.results{display:none}
+.results.show{display:block}
+.result-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px}
+.reply-card{background:var(--bg);border:1px solid var(--bd);border-radius:10px;padding:18px;margin-bottom:10px}
+.rc-style{font-size:.68rem;font-weight:700;color:var(--ac);text-transform:uppercase;letter-spacing:.07em;margin-bottom:7px}
+.rc-preview{font-size:.9rem;line-height:1.7;color:var(--tx);white-space:pre-wrap;margin-bottom:10px}
+.rc-footer{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px}
+.rc-meta{font-size:.72rem;color:var(--mu)}
+.rc-copy{border:1px solid var(--bd);background:transparent;cursor:pointer;color:var(--mu);font-size:.78rem;font-family:'Hanken Grotesk',sans-serif;padding:5px 14px;border-radius:6px;transition:all .12s}
+.rc-copy:hover{border-color:var(--ac);color:var(--ac)}
+.rc-copy.ok{border-color:#16a34a;color:#16a34a}
+.alert{background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:12px 14px;margin-bottom:14px;font-size:.8rem;color:#92400e;line-height:1.5}
+.tips{background:#fff7ed;border:1px solid rgba(245,158,11,.2);border-radius:10px;padding:14px 16px;margin-top:16px}
+.tips-title{font-size:.73rem;font-weight:700;color:var(--ad);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px}
+.tip{font-size:.79rem;color:var(--ad);line-height:1.55;margin-bottom:4px}
+.tip::before{content:"→ "}
+footer{border-top:1px solid var(--bd);padding:24px;text-align:center;color:var(--mu);font-size:.7rem;margin-top:8px}
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:8px}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<nav>
+  <div class="logo">Review<span>Reply</span></div>
+  <div class="badge">Amazon Review Responder</div>
+</nav>
+<div class="hero">
+  <h1>Professional replies<br><em>in seconds.</em></h1>
+  <p>Paste any Amazon review — get 3 on-brand responses tailored to the star rating and sentiment. Review and post in 5 min/week.</p>
+</div>
+
+<div class="main">
+  <div class="card">
+    <div class="card-title">Paste the customer review</div>
+    <div class="card-sub">Works for 1-star rants, 5-star love notes, and everything in between. The tone of the reply adapts automatically.</div>
+
+    <label>Review text</label>
+    <textarea id="reviewInput" placeholder="e.g. This product arrived damaged. The packaging was completely crushed and the item inside had a crack in the corner. Very disappointed, I expected better quality control from this seller..."></textarea>
+
+    <label>Star rating</label>
+    <div class="stars" id="starRow">
+      <button class="star-btn" onclick="setStar(1)">⭐ 1</button>
+      <button class="star-btn" onclick="setStar(2)">⭐⭐ 2</button>
+      <button class="star-btn" onclick="setStar(3)">⭐⭐⭐ 3</button>
+      <button class="star-btn" onclick="setStar(4)">⭐⭐⭐⭐ 4</button>
+      <button class="star-btn sel" onclick="setStar(5)" id="star5">⭐⭐⭐⭐⭐ 5</button>
+    </div>
+
+    <div class="row">
+      <div>
+        <label>Brand name (optional)</label>
+        <input type="text" id="brand" placeholder="e.g. LumiCraft, NestHaven">
+      </div>
+      <div>
+        <label>Product type</label>
+        <select id="productType">
+          <option value="physical">Physical product</option>
+          <option value="supplement">Supplement / wellness</option>
+          <option value="electronics">Electronics / gadgets</option>
+          <option value="home">Home & kitchen</option>
+          <option value="clothing">Clothing / apparel</option>
+          <option value="beauty">Beauty / skincare</option>
+          <option value="pet">Pet products</option>
+        </select>
+      </div>
+    </div>
+
+    <button class="gen-btn" id="genBtn" onclick="generate()">Generate 3 responses →</button>
+  </div>
+
+  <div class="results" id="results">
+    <div class="alert" id="alertBox"></div>
+    <div class="result-head">
+      <span style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:1rem">3 response options</span>
+      <span style="font-size:.78rem;color:var(--mu)">Pick the one that fits your brand voice</span>
+    </div>
+    <div id="replyList"></div>
+    <div class="tips" id="tipsBox"></div>
+    <button class="gen-btn" style="margin-top:14px;background:var(--bg);color:var(--ac);border:1px solid var(--ac)" onclick="generate()">↻ Generate new variations</button>
+  </div>
+</div>
+<footer>ReviewReply · Demo by Started AI · Not affiliated with Amazon</footer>
+
+<script>
+let selectedStar = 5;
+function setStar(n){
+  selectedStar=n;
+  document.querySelectorAll('.star-btn').forEach((b,i)=>{
+    b.classList.toggle('sel',i===n-1);
+  });
+}
+
+const STYLES = ['Professional & warm','Empathetic & personal','Brief & direct'];
+
+function buildReply(review, star, brand, productType, style){
+  const bn = brand || 'our team';
+  const isneg = star <= 2;
+  const ismid = star === 3;
+  const ispos = star >= 4;
+
+  const issue = extractIssue(review);
+  const praise = extractPraise(review);
+
+  if(style==='Professional & warm'){
+    if(isneg) return `Hi there,\n\nThank you for taking the time to leave a review — feedback like yours is how we improve.\n\nWe're genuinely sorry to hear about ${issue}. This is not the experience we want anyone to have with ${bn === 'our team' ? 'our products' : bn}, and we take this seriously.\n\nWe'd love the chance to make this right. Please reach out to us directly through Amazon's messaging system and we'll prioritize a resolution for you — whether that's a replacement, refund, or whatever works best.\n\nThank you again for giving us the chance to address this.\n\n— ${brand || 'The Team'}`;
+    if(ismid) return `Hi there,\n\nThank you for your honest feedback — we really appreciate it.\n\nWe're glad${praise?' that '+praise:' you chose us'}, and we're sorry we fell short of a 5-star experience. Knowing what we could have done better helps us improve for everyone.\n\nIf there's anything we can do to make your experience better, please don't hesitate to reach out directly. We're always here.\n\n— ${brand || 'The Team'}`;
+    return `Hi there,\n\nThank you so much for this wonderful review — it genuinely made our day! 😊\n\nWe put a lot of care into${productType==='supplement'?' every batch we produce':' every product we ship'}, and hearing that it${praise?' '+praise:' delivered for you'} is the best kind of feedback we can get.\n\nWe hope to keep earning your trust with every order. Thank you for choosing ${brand||'us'}!\n\n— ${brand || 'The Team'}`;
+  }
+
+  if(style==='Empathetic & personal'){
+    if(isneg) return `Hi,\n\nI personally read every review we receive, and I want you to know — I hear you.\n\n${issue ? 'Having '+issue+' is' : 'What you described is'} not okay, and I'm sorry it happened. You deserved better.\n\nPlease message us directly and ask for me. I'll make sure we fix this properly — not a copy-paste response, an actual solution.\n\nThank you for being honest with us.\n\n— ${brand || 'The Team'}`;
+    if(ismid) return `Hi,\n\nThank you for the honest 3 stars — I'd rather know than not.\n\nI can tell${praise?' that '+praise:' you had a mixed experience'}, and I want to understand what we missed. If you have a moment, please send us a message with what we could have done better.\n\nWe genuinely want to earn that 5th star.\n\n— ${brand || 'The Team'}`;
+    return `Hi,\n\nThis genuinely put a smile on my face — thank you.\n\nWe're a small team that cares deeply about every customer, and reviews like yours remind us why we do this.\n\n${praise ? 'So glad '+praise+'.' : ''} We hope every future order feels the same way.\n\nThank you for taking the time! 🙏\n\n— ${brand || 'The Team'}`;
+  }
+
+  // Brief & direct
+  if(isneg) return `Hi — thank you for the feedback.\n\nWe're sorry about ${issue||'your experience'}. Please reach out through Amazon messages and we'll make it right, fast.\n\n— ${brand||'The Team'}`;
+  if(ismid) return `Thank you for the honest review.\n\nWe'd love to know what would have made it a 5-star experience — feel free to message us directly.\n\n— ${brand||'The Team'}`;
+  return `Thank you! So glad ${praise||'it delivered'}.\n\nReviews like yours mean everything to a small team. We hope to keep earning your trust.\n\n— ${brand||'The Team'}`;
+}
+
+function extractIssue(r){
+  const neg = r.match(/(?:arrived? damaged?|broken|crack|defect|wrong item|missing|late|delayed|poor quality|doesn't work|stopped working|fell apart|cheap|disappointing)/i);
+  return neg ? neg[0].toLowerCase() : 'the issue you described';
+}
+function extractPraise(r){
+  const pos = r.match(/(?:love|amazing|works? great|perfect|exactly what|exceeded|best|highly recommend|fast shipping|great quality|beautiful|well made)/i);
+  return pos ? 'it '+pos[0].toLowerCase() : null;
+}
+
+function generate(){
+  const review = document.getElementById('reviewInput').value.trim();
+  if(!review){document.getElementById('reviewInput').focus();return;}
+  const btn=document.getElementById('genBtn');
+  btn.disabled=true;btn.innerHTML='<span class="spinner"></span>Writing responses…';
+  setTimeout(()=>{
+    const brand=document.getElementById('brand').value.trim();
+    const productType=document.getElementById('productType').value;
+    const star=selectedStar;
+
+    const replies=STYLES.map(s=>({style:s, text:buildReply(review,star,brand,productType,s)}));
+    window._replies=replies;
+
+    const alertBox=document.getElementById('alertBox');
+    if(star<=2){
+      alertBox.innerHTML='⚠️ <strong>1-2 star review:</strong> Amazon allows sellers to respond publicly. Always acknowledge the issue, offer a resolution, and avoid arguing. Your response is visible to all future buyers.';
+      alertBox.style.display='block';
+    } else {
+      alertBox.style.display='none';
+    }
+
+    document.getElementById('replyList').innerHTML=replies.map((r,i)=>`
+      <div class="reply-card">
+        <div class="rc-style">${r.style}</div>
+        <div class="rc-preview">${r.text}</div>
+        <div class="rc-footer">
+          <span class="rc-meta">${r.text.length} chars</span>
+          <button class="rc-copy" id="cp${i}" onclick="copyReply(${i})">📋 Copy response</button>
+        </div>
+      </div>`).join('');
+
+    document.getElementById('tipsBox').innerHTML=`
+      <div class="tips-title">💡 Amazon response tips</div>
+      <div class="tip">Respond to ALL reviews — especially 3-star. It signals to buyers that you're attentive</div>
+      <div class="tip">For 1-2 star: never argue, always offer a direct fix. Other buyers are watching.</div>
+      <div class="tip">Keep responses under 300 chars for 4-5 star reviews — brief is better for positive</div>
+      <div class="tip">Respond within 24-48 hours — Amazon notifies the reviewer, which often leads to an edit</div>`;
+
+    document.getElementById('results').classList.add('show');
+    document.getElementById('results').scrollIntoView({behavior:'smooth',block:'start'});
+    btn.disabled=false;btn.textContent='Generate 3 responses →';
+  },950);
+}
+
+function copyReply(i){
+  navigator.clipboard.writeText(window._replies[i].text).then(()=>{
+    const btn=document.getElementById('cp'+i);
+    btn.textContent='✓ Copied!';btn.classList.add('ok');
+    setTimeout(()=>{btn.textContent='📋 Copy response';btn.classList.remove('ok');},2000);
+  });
+}
+</script>
+</body>
+</html>
