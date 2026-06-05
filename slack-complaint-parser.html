@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Slack Complaint → Support Ticket Parser</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Hanken+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#F1F5F9;--card:#fff;--border:#E2E8F0;--text:#0F172A;--muted:#64748B;--accent:#0F766E;--accent-light:#F0FDFA;--warn:#EF4444;--warn-light:#FEF2F2;--radius:12px;--rsm:8px}
+body{font-family:'Hanken Grotesk',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column}
+header{background:var(--card);border-bottom:1px solid var(--border);padding:16px 24px;display:flex;align-items:center;gap:10px}
+.logo{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:17px;color:var(--accent)}
+.badge{font-size:11px;background:var(--accent-light);color:var(--accent);padding:3px 10px;border-radius:20px;font-weight:600;border:1px solid rgba(15,118,110,.2)}
+main{flex:1;max-width:780px;margin:0 auto;width:100%;padding:36px 20px 60px}
+.hero{text-align:center;margin-bottom:32px}
+.hero h1{font-family:'Space Grotesk',sans-serif;font-size:clamp(22px,5vw,34px);font-weight:700;line-height:1.2;letter-spacing:-.4px;margin-bottom:8px}
+.hero p{color:var(--muted);font-size:15px;max-width:480px;margin:0 auto;line-height:1.6}
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:24px;margin-bottom:16px}
+.card h2{font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:600;margin-bottom:16px;color:var(--text)}
+.fg{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+.fg:last-of-type{margin-bottom:0}
+label{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
+textarea,select,input[type=text]{font-family:'Hanken Grotesk',sans-serif;font-size:14px;padding:10px 14px;border:1px solid var(--border);border-radius:var(--rsm);background:var(--bg);color:var(--text);outline:none;transition:border-color .15s,box-shadow .15s;width:100%}
+textarea:focus,select:focus,input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(15,118,110,.1)}
+textarea{resize:vertical;min-height:120px;line-height:1.6}
+.examples{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.ex-btn{font-size:11px;padding:4px 10px;border:1px solid var(--border);border-radius:20px;background:var(--card);color:var(--muted);cursor:pointer;font-family:'Hanken Grotesk',sans-serif;transition:all .12s}
+.ex-btn:hover{border-color:var(--accent);color:var(--accent)}
+.btn{width:100%;padding:13px;background:var(--accent);color:#fff;border:none;border-radius:var(--rsm);font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:700;cursor:pointer;transition:opacity .15s,transform .1s;margin-top:4px}
+.btn:hover{opacity:.9}.btn:active{transform:scale(.99)}.btn:disabled{opacity:.5;cursor:not-allowed}
+.results{display:none}.results.visible{display:block}
+.ticket{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:14px}
+.ticket-header{background:var(--accent);padding:14px 20px;display:flex;align-items:center;justify-content:space-between}
+.ticket-id{font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600;color:#fff;opacity:.8}
+.priority-badge{font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;background:rgba(255,255,255,.2);color:#fff}
+.priority-badge.critical{background:#DC2626;color:#fff}
+.priority-badge.high{background:#EA580C;color:#fff}
+.priority-badge.medium{background:#D97706;color:#fff}
+.priority-badge.low{background:rgba(255,255,255,.2);color:#fff}
+.ticket-body{padding:20px}
+.ticket-row{display:flex;gap:12px;margin-bottom:12px;font-size:14px}
+.ticket-key{min-width:120px;font-weight:600;color:var(--muted);font-size:13px}
+.ticket-val{color:var(--text);line-height:1.5;flex:1}
+.ticket-val.title{font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:600;color:var(--text)}
+.steps-list{list-style:none;padding:0}
+.steps-list li{padding:4px 0;color:var(--text);font-size:14px;padding-left:16px;position:relative}
+.steps-list li::before{content:'→';position:absolute;left:0;color:var(--accent)}
+.copy-all{background:var(--bg);border:1px solid var(--border);padding:12px 18px;border-radius:var(--rsm);font-size:12px;font-weight:600;color:var(--muted);cursor:pointer;font-family:'Hanken Grotesk',sans-serif;transition:all .15s;display:block;width:100%;text-align:center;margin-top:4px}
+.copy-all:hover{border-color:var(--accent);color:var(--accent)}
+.copy-all.copied{background:var(--accent-light);color:var(--accent);border-color:var(--accent)}
+.loading{text-align:center;padding:40px;color:var(--muted);font-size:15px;display:none}.loading.visible{display:block}
+.spinner{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 14px}
+@keyframes spin{to{transform:rotate(360deg)}}
+footer{text-align:center;padding:20px;font-size:12px;color:var(--muted);border-top:1px solid var(--border)}
+</style>
+</head>
+<body>
+<header>
+  <span class="logo">TicketParser</span>
+  <span class="badge">Slack → Support Ticket</span>
+</header>
+<main>
+  <div class="hero">
+    <h1>Turn Slack Rants into<br>Structured Support Tickets</h1>
+    <p>Paste any messy Slack message — get a clean, prioritized ticket with steps to reproduce, impact assessment, and suggested owner.</p>
+  </div>
+  <div class="card">
+    <div class="fg">
+      <label>Paste the Slack Message</label>
+      <textarea id="msg" placeholder="Paste any Slack message here — vague, ranty, or detailed…"></textarea>
+      <div class="examples">
+        <span style="font-size:11px;color:var(--muted);align-self:center">Try:</span>
+        <button class="ex-btn" onclick="loadEx(0)">Billing bug</button>
+        <button class="ex-btn" onclick="loadEx(1)">Login error</button>
+        <button class="ex-btn" onclick="loadEx(2)">Slow dashboard</button>
+        <button class="ex-btn" onclick="loadEx(3)">Data wrong</button>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+      <div class="fg" style="margin-bottom:0">
+        <label>Product Area</label>
+        <select id="area">
+          <option>Billing & Payments</option>
+          <option selected>App / Platform</option>
+          <option>Onboarding</option>
+          <option>Integrations</option>
+          <option>API</option>
+          <option>Mobile</option>
+          <option>Reporting / Analytics</option>
+        </select>
+      </div>
+      <div class="fg" style="margin-bottom:0">
+        <label>Reporter Name (optional)</label>
+        <input type="text" id="reporter" placeholder="e.g. @jamie or customer name">
+      </div>
+    </div>
+    <button class="btn" id="genBtn" onclick="parse()">🎫 Parse Into Ticket</button>
+  </div>
+  <div class="loading" id="loading"><div class="spinner"></div>Parsing your Slack message…</div>
+  <div class="results" id="results">
+    <div class="ticket">
+      <div class="ticket-header">
+        <span class="ticket-id" id="t-id">TICKET-001</span>
+        <span class="priority-badge" id="t-priority">Medium</span>
+      </div>
+      <div class="ticket-body">
+        <div class="ticket-row"><span class="ticket-key">Title</span><span class="ticket-val title" id="t-title"></span></div>
+        <div class="ticket-row"><span class="ticket-key">Summary</span><span class="ticket-val" id="t-summary"></span></div>
+        <div class="ticket-row"><span class="ticket-key">Category</span><span class="ticket-val" id="t-cat"></span></div>
+        <div class="ticket-row"><span class="ticket-key">Impact</span><span class="ticket-val" id="t-impact"></span></div>
+        <div class="ticket-row"><span class="ticket-key">Steps to Reproduce</span><span class="ticket-val"><ul class="steps-list" id="t-steps"></ul></span></div>
+        <div class="ticket-row"><span class="ticket-key">Expected</span><span class="ticket-val" id="t-expected"></span></div>
+        <div class="ticket-row"><span class="ticket-key">Actual</span><span class="ticket-val" id="t-actual"></span></div>
+        <div class="ticket-row"><span class="ticket-key">Suggested Owner</span><span class="ticket-val" id="t-owner"></span></div>
+        <div class="ticket-row"><span class="ticket-key">Reporter</span><span class="ticket-val" id="t-reporter"></span></div>
+      </div>
+    </div>
+    <button class="copy-all" id="copyAll" onclick="copyTicket()">📋 Copy Full Ticket as Text</button>
+    <button class="btn" onclick="parse()" style="background:var(--bg);color:var(--accent);border:1.5px solid var(--accent);margin-top:10px">↺ Re-parse</button>
+  </div>
+</main>
+<footer>Demo — TicketParser · started.ai</footer>
+<script>
+const examples=[
+  `hey so i tried to upgrade my plan just now and it just keeps spinning. like the page just hangs and doesnt do anything. i refreshed and now im not sure if i got charged twice?? can someone look into this asap`,
+  `can't log in again. tried resetting password 3 times, keeps saying "invalid token". this is like the 4th time this month. super frustrating, i have a demo with a client in 30 mins`,
+  `the analytics dashboard is SO slow lately. like every time i open it takes like 45 seconds to load anything. started happening sometime last week. my whole team is complaining`,
+  `the revenue numbers in my dashboard dont match what i exported to csv. like there's a $2,400 difference. which one is right?? i already sent the csv version to my accountant`
+];
+
+const templates=[
+  {title:'Billing Page Infinite Load / Possible Double Charge',summary:'User encountered an infinite loading state on the plan upgrade page and is uncertain whether a duplicate charge occurred.',cat:'Billing & Payments',impact:'High — potential double charge, user trust at risk',steps:['Navigate to account settings','Click "Upgrade Plan"','Select new plan and click Confirm','Observe: page spins indefinitely'],expected:'Plan upgrade completes with confirmation email',actual:'Page hangs indefinitely; unclear if transaction processed',owner:'Billing Engineering + Payment Ops',priority:'high'},
+  {title:'Password Reset Token Invalid — Repeated Login Failure',summary:'User is unable to log in despite multiple password reset attempts. Reset tokens are returning "invalid token" errors.',cat:'Authentication',impact:'Critical — user locked out before time-sensitive client demo',steps:['Go to login page','Click "Forgot Password"','Receive reset email, click link','Enter new password','Submit: error "invalid token"'],expected:'Password resets successfully, user logs in',actual:'"Invalid token" error on every attempt; issue has recurred 4+ times this month',owner:'Auth Engineering',priority:'critical'},
+  {title:'Analytics Dashboard Slow Load — 40+ Second Response Times',summary:'Dashboard load times have degraded significantly starting last week, averaging 40-45 seconds per load across multiple users.',cat:'Performance',impact:'Medium — team-wide productivity impact, multiple users affected',steps:['Log in to app','Navigate to Analytics > Dashboard','Wait for load','Observe: 40–45 second load time'],expected:'Dashboard loads in under 3 seconds',actual:'45-second load times; started approximately 1 week ago',owner:'Frontend / Data Platform',priority:'medium'},
+  {title:'Revenue Dashboard vs. CSV Export Discrepancy — $2,400 Delta',summary:'Revenue figures shown in the dashboard do not match exported CSV data, resulting in a $2,400 discrepancy already shared with accountant.',cat:'Reporting / Analytics',impact:'High — financial reporting accuracy at risk; external document already sent',steps:['Open Analytics dashboard','Note revenue total','Export data as CSV','Compare totals — $2,400 difference observed'],expected:'Dashboard and CSV export show identical revenue figures',actual:'$2,400 discrepancy between in-app display and exported data',owner:'Data / Reporting Engineering',priority:'high'},
+];
+
+function loadEx(i){document.getElementById('msg').value=examples[i]}
+
+let counter=100;
+function parse(){
+  const msg=document.getElementById('msg').value.trim();
+  if(!msg){alert('Paste a Slack message first!');return}
+  const reporter=document.getElementById('reporter').value.trim()||'Unknown';
+  document.getElementById('loading').classList.add('visible');
+  document.getElementById('results').classList.remove('visible');
+  document.getElementById('genBtn').disabled=true;
+
+  setTimeout(()=>{
+    // Pick closest template based on keywords, or use generic
+    let t;
+    const low=msg.toLowerCase();
+    if(low.includes('billing')||low.includes('charged')||low.includes('payment')||low.includes('upgrade'))t=templates[0];
+    else if(low.includes('login')||low.includes('password')||low.includes('sign in')||low.includes('token'))t=templates[1];
+    else if(low.includes('slow')||low.includes('lag')||low.includes('loading')||low.includes('seconds'))t=templates[2];
+    else if(low.includes('wrong')||low.includes('incorrect')||low.includes('mismatch')||low.includes('discrepancy')||low.includes('numbers'))t=templates[3];
+    else{
+      // Generic extraction
+      const words=msg.split(' ');
+      t={title:'Issue: '+words.slice(0,8).join(' ')+(words.length>8?'…':''),summary:msg.length>120?msg.substring(0,120)+'…':msg,cat:document.getElementById('area').value,impact:'Medium — user-reported issue requiring investigation',steps:['Reproduce reported behavior','Check system logs','Identify root cause'],expected:'Feature works as intended',actual:'User reports unexpected behavior: '+msg.substring(0,80),owner:'Engineering / Product',priority:'medium'};
+    }
+    counter++;
+    document.getElementById('t-id').textContent='TICKET-'+counter;
+    document.getElementById('t-title').textContent=t.title;
+    document.getElementById('t-summary').textContent=t.summary;
+    document.getElementById('t-cat').textContent=t.cat;
+    document.getElementById('t-impact').textContent=t.impact;
+    document.getElementById('t-steps').innerHTML=t.steps.map(s=>`<li>${s}</li>`).join('');
+    document.getElementById('t-expected').textContent=t.expected;
+    document.getElementById('t-actual').textContent=t.actual;
+    document.getElementById('t-owner').textContent=t.owner;
+    document.getElementById('t-reporter').textContent=reporter;
+    const pb=document.getElementById('t-priority');
+    pb.textContent=t.priority.charAt(0).toUpperCase()+t.priority.slice(1);
+    pb.className='priority-badge '+t.priority;
+
+    document.getElementById('loading').classList.remove('visible');
+    document.getElementById('results').classList.add('visible');
+    document.getElementById('genBtn').disabled=false;
+    document.getElementById('results').scrollIntoView({behavior:'smooth',block:'start'});
+  },900);
+}
+
+function copyTicket(){
+  const fields=['Title','Summary','Category','Impact','Steps','Expected','Actual','Owner','Reporter'];
+  const ids=['t-title','t-summary','t-cat','t-impact','t-steps','t-expected','t-actual','t-owner','t-reporter'];
+  let text=`TICKET: ${document.getElementById('t-id').textContent}\nPriority: ${document.getElementById('t-priority').textContent}\n\n`;
+  fields.forEach((f,i)=>{text+=`${f}: ${document.getElementById(ids[i]).innerText}\n\n`});
+  navigator.clipboard.writeText(text.trim()).then(()=>{
+    const btn=document.getElementById('copyAll');btn.textContent='✓ Copied!';btn.classList.add('copied');
+    setTimeout(()=>{btn.textContent='📋 Copy Full Ticket as Text';btn.classList.remove('copied')},2000);
+  });
+}
+</script>
+</body>
+</html>
