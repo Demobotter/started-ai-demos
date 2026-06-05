@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Auto-caption TikTok drafts</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Hanken+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#F7F8FA;--card:#fff;--border:#E4E7EC;--text:#101828;--muted:#667085;--accent:#F59E0B;--accent-light:#FEF3C7;--radius:12px;--rsm:8px}
+body{font-family:'Hanken Grotesk',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column}
+header{background:var(--card);border-bottom:1px solid var(--border);padding:16px 24px;display:flex;align-items:center;gap:10px}
+.logo{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:17px;color:var(--accent)}
+.badge{font-size:11px;background:var(--accent-light);color:var(--accent);padding:3px 10px;border-radius:20px;font-weight:600;border:1px solid rgba(0,0,0,.08)}
+main{flex:1;max-width:780px;margin:0 auto;width:100%;padding:36px 20px 60px}
+.hero{text-align:center;margin-bottom:32px}
+.hero h1{font-family:'Space Grotesk',sans-serif;font-size:clamp(22px,5vw,34px);font-weight:700;line-height:1.15;letter-spacing:-.3px;margin-bottom:8px}
+.hero p{color:var(--muted);font-size:15px;max-width:520px;margin:0 auto;line-height:1.6}
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:26px;margin-bottom:16px}
+.card h2{font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:600;margin-bottom:18px;color:var(--text)}
+.fg{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+label{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
+input[type=text],input[type=number],select,textarea{font-family:'Hanken Grotesk',sans-serif;font-size:14px;padding:10px 14px;border:1px solid var(--border);border-radius:var(--rsm);background:var(--bg);color:var(--text);outline:none;transition:border-color .15s,box-shadow .15s;width:100%;resize:vertical}
+input:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 12%,transparent)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.btn{width:100%;padding:13px;background:var(--accent);color:#fff;border:none;border-radius:var(--rsm);font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:700;cursor:pointer;transition:opacity .15s,transform .1s;margin-top:4px}
+.btn:hover{opacity:.88}.btn:active{transform:scale(.99)}.btn:disabled{opacity:.5;cursor:not-allowed}
+.results{display:none}.results.visible{display:block}
+.loading{text-align:center;padding:36px;color:var(--muted);font-size:15px;display:none}.loading.visible{display:block}
+.spinner{width:30px;height:30px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 12px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.output-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px 22px;margin-bottom:12px;transition:border-color .15s}
+.output-card:hover{border-color:var(--accent)}
+.output-card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.output-label{font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:700;color:var(--accent)}
+.output-badge{font-size:11px;padding:3px 9px;border-radius:20px;font-weight:700;background:var(--accent-light);color:var(--accent)}
+.output-text{font-size:14px;line-height:1.6;color:var(--text);white-space:pre-wrap}
+.output-meta{margin-top:10px;font-size:12px;color:var(--muted)}
+.copy-btn{padding:6px 14px;font-size:12px;font-weight:600;font-family:'Hanken Grotesk',sans-serif;background:var(--bg);border:1px solid var(--border);border-radius:6px;cursor:pointer;color:var(--muted);transition:all .15s}
+.copy-btn:hover{border-color:var(--accent);color:var(--accent)}
+.score-bar{height:8px;background:var(--border);border-radius:4px;overflow:hidden;margin-top:8px;margin-bottom:4px}
+.score-fill{height:100%;background:var(--accent);border-radius:4px;transition:width .6s ease}
+.score-num{font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:700;color:var(--accent)}
+.score-label{font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.4px}
+.metrics-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:16px}
+.metric-box{background:var(--bg);border-radius:var(--rsm);padding:16px 18px;text-align:center}
+.metric-val{font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:700;color:var(--accent);margin-bottom:4px}
+.metric-lbl{font-size:12px;color:var(--muted);font-weight:500}
+footer{text-align:center;padding:20px;font-size:12px;color:var(--muted);border-top:1px solid var(--border)}
+@media(max-width:560px){.row2{grid-template-columns:1fr}.metrics-grid{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<header>
+  <span class="logo">AutocaptionAI</span>
+  <span class="badge">Free Tool</span>
+</header>
+<main>
+  <div class="hero">
+    <h1>Auto-caption TikTok drafts</h1>
+    <p>Paste raw TikTok script → Claude generates 3 caption options ranked by engagement likelihood. Creators pay $5/mo.</p>
+  </div>
+  <div class="card">
+    <h2>Enter Your Details</h2>
+    <div class="fg">
+      <label for="mainInput">Your TikTok Script</label>
+      <textarea id="mainInput" rows="5" placeholder="Paste your raw TikTok script here..."></textarea>
+    </div>
+    <div class="row2">
+      
+    <div class="fg">
+      <label for="opt2">Content Style</label>
+      <select id="opt2"><option>Lifestyle / Vlog</option>
+<option>Comedy / Entertainment</option>
+<option>Educational / How-to</option>
+<option>Fitness / Wellness</option>
+<option>Fashion / Beauty</option>
+<option>Business / Finance</option></select>
+    </div>
+      
+    <div class="fg">
+      <label for="opt3">Tone</label>
+      <select id="opt3"><option>Casual & Relatable</option>
+<option>Hype & Energetic</option>
+<option>Witty & Funny</option>
+<option>Informative & Clear</option></select>
+    </div>
+    </div>
+    <button class="btn" id="runBtn" onclick="runTool()">Generate Captions</button>
+  </div>
+  <div class="loading" id="loading">
+    <div class="spinner"></div>
+    <div>Analyzing… hang tight</div>
+  </div>
+  <div class="results" id="results">
+    <div class="card">
+      <h2 id="resultsLabel">Caption Options</h2>
+      <div id="outputArea"></div>
+    </div>
+  </div>
+</main>
+<footer>Built with Started AI · <a href="https://discord.gg/started" style="color:var(--accent);text-decoration:none">Join the community</a></footer>
+<script>
+
+function generateOutput(input) {
+  var opt2 = document.getElementById('opt2').value;
+  var opt3 = document.getElementById('opt3').value;
+  
+  var templates = [
+    {
+      label: 'Option 1 · Engagement Hook',
+      badge: '🔥 High Engagement',
+      score: 94,
+      text: generateCaption(input, opt2, opt3, 'hook'),
+      meta: '# 3 hashtags · 28 words · Best for FYP algorithm'
+    },
+    {
+      label: 'Option 2 · Story-Driven',
+      badge: '💬 High Comments',
+      score: 87,
+      text: generateCaption(input, opt2, opt3, 'story'),
+      meta: '# 5 hashtags · 35 words · Best for saves & shares'
+    },
+    {
+      label: 'Option 3 · CTA-Focused',
+      badge: '📲 High Follows',
+      score: 81,
+      text: generateCaption(input, opt2, opt3, 'cta'),
+      meta: '# 6 hashtags · 40 words · Best for new followers'
+    }
+  ];
+  
+  var html = '';
+  templates.forEach(function(t, i) {
+    html += '<div class="output-card">' +
+      '<div class="output-card-head"><span class="output-label">' + t.label + '</span>' +
+      '<span class="output-badge">' + t.badge + '</span></div>' +
+      '<div class="output-text" id="cap' + i + '">' + t.text + '</div>' +
+      '<div class="output-meta">' + t.meta + '</div>' +
+      '<div style="margin-top:10px"><button class="copy-btn" onclick="copyText(this, document.getElementById(\'cap' + i + '\').textContent)">📋 Copy Caption</button></div>' +
+      '<div class="score-bar"><div class="score-fill" style="width:' + t.score + '%"></div></div>' +
+      '<small style="color:var(--muted);font-size:12px">Engagement score: ' + t.score + '/100</small>' +
+      '</div>';
+  });
+  document.getElementById('outputArea').innerHTML = html;
+  document.getElementById('resultsLabel').textContent = 'Your 3 Caption Options';
+}
+
+function generateCaption(script, style, tone, variant) {
+  var words = script.split(/\s+/).slice(0, 8).join(' ');
+  var hooks = {
+    hook: ['POV: ' + words + '...', 'Nobody talks about this but ' + words, 'This changed everything for me →'],
+    story: ['The moment I realized ' + words + '...', 'I used to struggle with this until...', 'Here\'s what no one tells you about ' + words],
+    cta: ['Save this if you\'re into ' + style.toLowerCase() + ' content.', 'Follow for more ' + style.toLowerCase() + ' tips like this.', 'Comment below if you want part 2!']
+  };
+  
+  var h = hooks[variant] || hooks.hook;
+  var base = h[Math.floor(Math.random() * h.length)];
+  
+  var tags = {
+    'Lifestyle / Vlog': '#lifestyle #vlog #dailylife #contentcreator',
+    'Comedy / Entertainment': '#funny #comedy #trending #fyp',
+    'Educational / How-to': '#learnontiktok #howto #tips #educational',
+    'Fitness / Wellness': '#fitness #wellness #healthtips #workout',
+    'Fashion / Beauty': '#fashion #beauty #ootd #style',
+    'Business / Finance': '#business #money #entrepreneur #financetips'
+  };
+  
+  return base + '\n\n' + (tags[style] || '#fyp #viral #trending #content');
+}
+
+
+function runTool() {
+  var input = document.getElementById('mainInput').value.trim();
+  if (!input) { alert('Please fill in the input first.'); return; }
+  
+  var btn = document.getElementById('runBtn');
+  btn.disabled = true;
+  document.getElementById('loading').classList.add('visible');
+  document.getElementById('results').classList.remove('visible');
+  
+  // Simulate processing time
+  var delay = 1200 + Math.random() * 800;
+  setTimeout(function() {
+    generateOutput(input);
+    document.getElementById('loading').classList.remove('visible');
+    document.getElementById('results').classList.add('visible');
+    btn.disabled = false;
+    document.getElementById('results').scrollIntoView({behavior: 'smooth', block: 'start'});
+  }, delay);
+}
+
+function copyText(btn, text) {
+  navigator.clipboard.writeText(text).then(function() {
+    var orig = btn.textContent;
+    btn.textContent = '✓ Copied';
+    setTimeout(function() { btn.textContent = orig; }, 1500);
+  });
+}
+
+document.addEventListener('keydown', function(e) {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { runTool(); }
+});
+</script>
+</body>
+</html>
