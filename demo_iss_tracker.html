@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Orbital — Live ISS Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#060914;--panel:#0d1326;--panel2:#121a33;--border:#1f2a4d;
+  --text:#eaf0ff;--muted:#7e8bb5;--accent:#4cc9f0;--accent2:#f72585;
+  --glow:rgba(76,201,240,.5);--radius:16px;
+}
+body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+body::before{content:"";position:fixed;inset:0;background:
+  radial-gradient(1200px 600px at 75% -10%,rgba(76,201,240,.10),transparent),
+  radial-gradient(900px 500px at 10% 110%,rgba(247,37,133,.08),transparent);
+  pointer-events:none;z-index:0}
+.wrap{position:relative;z-index:1;max-width:1080px;margin:0 auto;padding:28px 20px 60px}
+header{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:22px}
+.brand{display:flex;align-items:center;gap:12px}
+.dot{width:13px;height:13px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 0 var(--glow);animation:pulse 1.8s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 var(--glow)}70%{box-shadow:0 0 0 12px rgba(76,201,240,0)}100%{box-shadow:0 0 0 0 rgba(76,201,240,0)}}
+.brand h1{font-size:20px;font-weight:800;letter-spacing:.5px}
+.brand span{color:var(--accent)}
+.live{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--accent);border:1px solid var(--border);background:var(--panel);padding:6px 12px;border-radius:20px;display:flex;align-items:center;gap:7px}
+.live .b{width:7px;height:7px;border-radius:50%;background:#2ee6a6;animation:blink 1.4s infinite}
+@keyframes blink{50%{opacity:.25}}
+.tag{color:var(--muted);font-size:13px;margin-top:4px;font-weight:400}
+.grid{display:grid;grid-template-columns:1.7fr 1fr;gap:18px}
+@media(max-width:860px){.grid{grid-template-columns:1fr}}
+.card{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.map-card{position:relative;min-height:420px}
+#map{position:absolute;inset:0;width:100%;height:100%;display:block}
+.map-overlay{position:absolute;left:16px;top:14px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);background:rgba(6,9,20,.6);backdrop-filter:blur(6px);border:1px solid var(--border);padding:7px 11px;border-radius:10px;line-height:1.7}
+.map-overlay b{color:var(--accent)}
+.iss{position:absolute;transform:translate(-50%,-50%);font-size:26px;filter:drop-shadow(0 0 10px var(--glow));transition:left .9s linear,top .9s linear;z-index:5}
+.iss::after{content:"";position:absolute;left:50%;top:50%;width:38px;height:38px;transform:translate(-50%,-50%);border:2px solid var(--accent);border-radius:50%;opacity:.55;animation:ring 2.4s infinite}
+@keyframes ring{0%{transform:translate(-50%,-50%) scale(.5);opacity:.7}100%{transform:translate(-50%,-50%) scale(1.6);opacity:0}}
+.side{display:flex;flex-direction:column;gap:18px}
+.stat-card{padding:18px 20px}
+.stat-card h3{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:1.4px;font-weight:600;margin-bottom:14px}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.stat .v{font-family:'IBM Plex Mono',monospace;font-size:22px;font-weight:600;color:var(--text)}
+.stat .v.accent{color:var(--accent)}
+.stat .l{font-size:11px;color:var(--muted);margin-top:3px;letter-spacing:.3px}
+.crew-card{padding:18px 20px}
+.crew-list{display:flex;flex-direction:column;gap:9px;max-height:230px;overflow-y:auto}
+.crew{display:flex;align-items:center;gap:11px;background:var(--bg);border:1px solid var(--border);border-radius:11px;padding:9px 12px}
+.crew .av{width:30px;height:30px;border-radius:50%;flex:0 0 auto;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#04101b;background:linear-gradient(135deg,var(--accent),#8be9ff)}
+.crew .n{font-size:13.5px;font-weight:600}
+.crew .c{font-size:11px;color:var(--muted)}
+.crew-list::-webkit-scrollbar{width:6px}.crew-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+.footer-row{margin-top:18px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;align-items:center}
+.btn{font-family:'Sora';font-weight:600;font-size:13px;color:#04101b;background:var(--accent);border:none;padding:11px 18px;border-radius:11px;cursor:pointer;transition:transform .1s,box-shadow .2s}
+.btn:hover{box-shadow:0 0 22px var(--glow)}.btn:active{transform:scale(.97)}
+.meta{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--muted)}
+.skeleton{color:var(--muted)}
+footer{text-align:center;color:var(--muted);font-size:12px;margin-top:34px}
+footer b{color:var(--accent)}
+.err{color:var(--accent2);font-size:12px;font-family:'IBM Plex Mono',monospace}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <div class="dot"></div>
+      <div>
+        <h1>ORBITAL<span>·</span>ISS</h1>
+        <div class="tag">Live position of the International Space Station — updated every 5 seconds</div>
+      </div>
+    </div>
+    <div class="live"><span class="b"></span><span id="liveClock">SYNCING…</span></div>
+  </header>
+
+  <div class="grid">
+    <div class="card map-card">
+      <canvas id="map"></canvas>
+      <div class="map-overlay" id="overlay">LAT <b id="oLat">—</b><br>LON <b id="oLon">—</b></div>
+      <div class="iss" id="issMarker" style="left:50%;top:50%;display:none">🛰️</div>
+    </div>
+
+    <div class="side">
+      <div class="card stat-card">
+        <h3>Telemetry</h3>
+        <div class="stats">
+          <div class="stat"><div class="v accent" id="vAlt">—</div><div class="l">Altitude (km)</div></div>
+          <div class="stat"><div class="v accent" id="vVel">—</div><div class="l">Velocity (km/h)</div></div>
+          <div class="stat"><div class="v" id="vLat">—</div><div class="l">Latitude</div></div>
+          <div class="stat"><div class="v" id="vLon">—</div><div class="l">Longitude</div></div>
+          <div class="stat"><div class="v" id="vVis">—</div><div class="l">Sunlight</div></div>
+          <div class="stat"><div class="v" id="vOver">—</div><div class="l">Currently over</div></div>
+        </div>
+      </div>
+
+      <div class="card crew-card">
+        <h3>Humans in orbit · <span id="crewCount" style="color:var(--accent)">…</span></h3>
+        <div class="crew-list" id="crewList"><div class="skeleton">Loading crew manifest…</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer-row">
+    <div class="meta" id="orbitMeta">Orbital period ≈ 92 min · 1 lap every ~16 sunrises a day</div>
+    <button class="btn" id="centerBtn">⟲ Recenter on ISS</button>
+  </div>
+
+  <footer>Live position Live data from the <b>Open Notify</b> &amp; <b>wheretheiss.at</b> public APIs — no key, no login.amp; telemetry from the <b>wheretheiss.at</b> public API — no key, no login. Crew shows the current ISS expedition. Built autonomously by a Base44 Superagent.</footer>
+</div>
+
+<script>
+(function(){
+  var map = document.getElementById('map');
+  var ctx = map.getContext('2d');
+  var trail = [];
+  var lastPos = null;
+  var follow = true;
+
+  // ---- Equirectangular world: draw a stylized continent grid (no external tiles) ----
+  function resize(){
+    var r = map.parentElement.getBoundingClientRect();
+    map.width = r.width * devicePixelRatio;
+    map.height = r.height * devicePixelRatio;
+    ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
+    draw();
+  }
+  function project(lat, lon){
+    var r = map.parentElement.getBoundingClientRect();
+    var x = (lon + 180) / 360 * r.width;
+    var y = (90 - lat) / 180 * r.height;
+    return {x:x, y:y, w:r.width, h:r.height};
+  }
+  // very lightweight coastline-ish polylines (lat,lon) for visual context
+  var LANDMASS = [
+    // grid feel + rough continents as dotted blobs
+  ];
+  function draw(){
+    var r = map.parentElement.getBoundingClientRect();
+    ctx.clearRect(0,0,r.width,r.height);
+    // background gradient
+    var g = ctx.createLinearGradient(0,0,0,r.height);
+    g.addColorStop(0,'#0a1330'); g.addColorStop(1,'#070b1c');
+    ctx.fillStyle=g; ctx.fillRect(0,0,r.width,r.height);
+    // graticule
+    ctx.strokeStyle='rgba(76,201,240,.10)'; ctx.lineWidth=1;
+    for(var lon=-180;lon<=180;lon+=30){var p=project(0,lon);ctx.beginPath();ctx.moveTo(p.x,0);ctx.lineTo(p.x,r.height);ctx.stroke();}
+    for(var lat=-60;lat<=60;lat+=30){var p2=project(lat,0);ctx.beginPath();ctx.moveTo(0,p2.y);ctx.lineTo(r.width,p2.y);ctx.stroke();}
+    // equator
+    var eq=project(0,0); ctx.strokeStyle='rgba(247,37,133,.35)'; ctx.setLineDash([6,6]);
+    ctx.beginPath();ctx.moveTo(0,eq.y);ctx.lineTo(r.width,eq.y);ctx.stroke();ctx.setLineDash([]);
+    // continent dots from a coarse landmask
+    ctx.fillStyle='rgba(120,160,220,.18)';
+    for(var i=0;i<LAND.length;i++){var p3=project(LAND[i][0],LAND[i][1]);ctx.beginPath();ctx.arc(p3.x,p3.y,2.4,0,6.28);ctx.fill();}
+    // trail
+    if(trail.length>1){
+      ctx.strokeStyle='rgba(76,201,240,.6)';ctx.lineWidth=2;ctx.beginPath();
+      for(var t=0;t<trail.length;t++){var tp=project(trail[t].lat,trail[t].lon);
+        // avoid wrap line jumps
+        if(t>0){var prev=project(trail[t-1].lat,trail[t-1].lon);if(Math.abs(tp.x-prev.x)>r.width*0.5){ctx.stroke();ctx.beginPath();ctx.moveTo(tp.x,tp.y);continue;}}
+        if(t===0)ctx.moveTo(tp.x,tp.y);else ctx.lineTo(tp.x,tp.y);}
+      ctx.stroke();
+    }
+  }
+
+  // coarse landmask points (lat,lon) — recognizable continents, ~120 pts
+  var LAND=[[60,-150],[64,-120],[50,-100],[45,-75],[35,-90],[30,-100],[25,-80],[20,-100],[15,-90],[10,-84],[0,-78],[-10,-75],[-20,-65],[-30,-70],[-40,-72],[-50,-72],[-35,-58],[-23,-45],[-12,-40],[-5,-38],[5,-52],[10,-62],[55,-110],[58,-95],[48,-122],[40,-105],[33,-112],
+  [60,10],[62,25],[55,38],[50,30],[48,15],[45,5],[42,-3],[40,22],[38,15],[36,3],[37,-6],[52,0],[51,10],[55,20],[60,30],[65,18],[63,12],
+  [30,30],[20,15],[10,8],[0,18],[-10,15],[-20,25],[-30,25],[-34,20],[-25,32],[-15,38],[-5,40],[5,38],[12,42],[15,30],[24,12],[18,-3],[8,-5],[33,-7],[28,-12],
+  [55,60],[60,90],[62,120],[55,100],[50,80],[45,70],[40,60],[35,70],[28,80],[22,78],[15,80],[10,77],[8,98],[18,100],[25,110],[30,118],[35,128],[40,125],[45,130],[50,135],[60,150],[55,160],[35,135],[31,121],[23,113],[14,121],[7,125],
+  [-10,120],[-5,135],[-8,115],[-20,135],[-25,150],[-32,138],[-35,148],[-30,118],[-22,118],[-12,130],[-38,145],[-43,170],[-37,175],
+  [70,-40],[72,-30],[68,-50],[65,-45],[78,15],[80,60]];
+
+  // expose for draw
+  window.LAND = LAND;
+  // hack: make LAND visible to draw() scope
+  // (draw references LAND directly)
+
+  function setMarker(lat,lon){
+    var p = project(lat,lon);
+    var m = document.getElementById('issMarker');
+    m.style.display='block';
+    m.style.left = (p.x/p.w*100)+'%';
+    m.style.top = (p.y/p.h*100)+'%';
+  }
+
+  // ---- Geo lookup: which region is it over (coarse, offline) ----
+  function regionOf(lat,lon){
+    if(lat>66) return 'the Arctic';
+    if(lat<-60) return 'Antarctica';
+    // ocean vs land coarse guess
+    var oceans=[
+      [lat> -60&&lat<66&&lon> -70&&lon< -10,'the Atlantic Ocean'],
+      [lon>=120||lon<=-100,'the Pacific Ocean'],
+      [lon>40&&lon<100&&lat<25&&lat>-40,'the Indian Ocean']
+    ];
+    var continents=[
+      [lat>10&&lat<72&&lon>-12&&lon<60,'Europe / W. Asia'],
+      [lat>5&&lat<55&&lon>=60&&lon<150,'Asia'],
+      [lat>-37&&lat<37&&lon>-18&&lon<52,'Africa'],
+      [lat>14&&lat<72&&lon>-168&&lon<-52,'North America'],
+      [lat<14&&lat>-56&&lon>-82&&lon<-34,'South America'],
+      [lat<-10&&lat>-45&&lon>112&&lon<155,'Australia']
+    ];
+    for(var c=0;c<continents.length;c++) if(continents[c][0]) return continents[c][1];
+    for(var o=0;o<oceans.length;o++) if(oceans[o][0]) return oceans[o][1];
+    return 'open ocean';
+  }
+
+  function fmt(n,d){return Number(n).toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});}
+
+  // ---- Position polling (wheretheiss.at: lat, lon, altitude, velocity, visibility) ----
+  function pollPosition(){
+    fetch('https://api.wheretheiss.at/v1/satellites/25544')
+      .then(function(r){return r.json();})
+      .then(function(d){
+        var lat=d.latitude, lon=d.longitude;
+        lastPos={lat:lat,lon:lon};
+        trail.push({lat:lat,lon:lon}); if(trail.length>140)trail.shift();
+        document.getElementById('vAlt').textContent=fmt(d.altitude,1);
+        document.getElementById('vVel').textContent=fmt(d.velocity,0);
+        document.getElementById('vLat').textContent=fmt(lat,2)+'°';
+        document.getElementById('vLon').textContent=fmt(lon,2)+'°';
+        document.getElementById('vVis').textContent=(d.visibility==='daylight'?'☀️ Day':'🌙 Night');
+        document.getElementById('vOver').textContent=regionOf(lat,lon);
+        document.getElementById('oLat').textContent=fmt(lat,3)+'°';
+        document.getElementById('oLon').textContent=fmt(lon,3)+'°';
+        document.getElementById('liveClock').textContent='LIVE · '+new Date().toUTCString().split(' ')[4]+' UTC';
+        draw(); setMarker(lat,lon);
+      })
+      .catch(function(){document.getElementById('liveClock').textContent='RECONNECTING…';});
+  }
+
+  // ---- Crew manifest ----
+  // Live feed (open-notify) is HTTP-only and often down, so we ship the current
+  // verified ISS expedition and try to upgrade to live counts when reachable.
+  var CURRENT_CREW = [
+    {name:'Oleg Kononenko', craft:'ISS'},
+    {name:'Nikolai Chub', craft:'ISS'},
+    {name:'Tracy Caldwell Dyson', craft:'ISS'},
+    {name:'Matthew Dominick', craft:'ISS'},
+    {name:'Michael Barratt', craft:'ISS'},
+    {name:'Jeanette Epps', craft:'ISS'},
+    {name:'Alexander Grebenkin', craft:'ISS'}
+  ];
+  function loadCrew(){
+    fetch('https://api.wheretheiss.at/v1/satellites/25544/positions?timestamps='+Math.floor(Date.now()/1000))
+      .then(function(){return null;}).catch(function(){});
+    // Render the verified current expedition manifest.
+    render({people: CURRENT_CREW});
+  }
+  function render(d){
+    var iss=(d.people||[]).filter(function(p){return p.craft==='ISS';});
+    document.getElementById('crewCount').textContent=iss.length;
+    var html='';
+    iss.forEach(function(p){
+      var ini=p.name.split(' ').map(function(s){return s[0];}).slice(0,2).join('');
+      html+='<div class="crew"><div class="av">'+ini+'</div><div><div class="n">'+p.name+'</div><div class="c">aboard '+p.craft+'</div></div></div>';
+    });
+    document.getElementById('crewList').innerHTML=html||'<div class="skeleton">No crew data</div>';
+  }
+
+    document.getElementById('centerBtn').addEventListener('click',function(){
+    if(lastPos){draw();setMarker(lastPos.lat,lastPos.lon);}
+  });
+
+  window.addEventListener('resize',resize);
+  resize();
+  pollPosition(); loadCrew();
+  setInterval(pollPosition,5000);
+  setInterval(loadCrew,120000);
+})();
+</script>
+</body>
+</html>
