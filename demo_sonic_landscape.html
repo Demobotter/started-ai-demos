@@ -344,6 +344,7 @@
         function resizeCanvas() {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight - 200; // Account for control panel
+            bgDrawn = false;
         }
         resizeCanvas();
         window.addEventListener('resize', resizeCanvas);
@@ -361,43 +362,53 @@
             constructor(x, y) {
                 this.x = x;
                 this.y = y;
+                this.px = x;
+                this.py = y;
                 this.vx = 0;
                 this.vy = 0;
                 this.life = Math.random() * 0.5 + 0.5;
                 this.maxLife = this.life;
-                this.size = Math.random() * 3 + 1;
+                this.size = Math.random() * 1.6 + 0.8;
             }
 
             update(windSpeedNorm, windDirRad) {
-                // Wind velocity
-                this.vx = Math.cos(windDirRad) * windSpeedNorm * 2;
-                this.vy = Math.sin(windDirRad) * windSpeedNorm * 2;
-
-                // Brownian motion for naturalness
-                this.vx += (Math.random() - 0.5) * 0.5;
-                this.vy += (Math.random() - 0.5) * 0.5;
+                this.px = this.x;
+                this.py = this.y;
+                // Always-visible flow: base speed so even calm wind reads as motion,
+                // scaled up strongly with real wind speed.
+                const speed = 1.6 + windSpeedNorm * 9;
+                this.vx = Math.cos(windDirRad) * speed;
+                this.vy = Math.sin(windDirRad) * speed;
+                // gentle turbulence
+                this.vx += (Math.random() - 0.5) * 1.1;
+                this.vy += (Math.random() - 0.5) * 1.1;
 
                 this.x += this.vx;
                 this.y += this.vy;
-                this.life -= 0.008;
+                this.life -= 0.006;
 
-                // Wrap around edges
-                if (this.x < 0) this.x = canvas.width;
-                if (this.x > canvas.width) this.x = 0;
-                if (this.y < 0) this.y = canvas.height;
-                if (this.y > canvas.height) this.y = 0;
+                // Wrap around edges (reset trail so no wrap streak)
+                if (this.x < 0) { this.x = canvas.width; this.px = this.x; }
+                if (this.x > canvas.width) { this.x = 0; this.px = this.x; }
+                if (this.y < 0) { this.y = canvas.height; this.py = this.y; }
+                if (this.y > canvas.height) { this.y = 0; this.py = this.y; }
             }
 
             draw(ctx) {
                 const opacity = Math.max(0, this.life / this.maxLife);
-                ctx.fillStyle = `rgba(160, 176, 255, ${opacity * 0.6})`;
-                ctx.fillRect(this.x, this.y, this.size, this.size);
+                ctx.strokeStyle = `rgba(176, 196, 255, ${opacity * 0.85})`;
+                ctx.lineWidth = this.size;
+                ctx.lineCap = 'round';
+                ctx.beginPath();
+                ctx.moveTo(this.px, this.py);
+                ctx.lineTo(this.x, this.y);
+                ctx.stroke();
             }
         }
 
         function initParticles() {
             particles = [];
-            const particleCount = Math.min(150, Math.floor(canvas.width / 8));
+            const particleCount = Math.min(420, Math.floor(canvas.width / 3));
             for (let i = 0; i < particleCount; i++) {
                 particles.push(new Particle(
                     Math.random() * canvas.width,
@@ -458,12 +469,17 @@
             ctx.fillRect(centerX - 1, centerY - 20, 2, 40);
         }
 
+        let bgDrawn = false;
         function animate() {
-            drawGradientBackground();
+            // Paint full gradient occasionally; between, lay a translucent veil so
+            // particle streaks leave fading trails (true "flow" feel).
+            if (!bgDrawn) { drawGradientBackground(); bgDrawn = true; }
+            ctx.fillStyle = 'rgba(13, 16, 34, 0.12)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
             drawDirectionIndicator();
 
             // Spawn new particles
-            if (particles.length < 150) {
+            if (particles.length < 420) {
                 particles.push(new Particle(
                     Math.random() * canvas.width,
                     Math.random() * canvas.height
@@ -486,7 +502,7 @@
             requestAnimationFrame(animate);
         }
 
-        async function fetchWeather(lat, lon) {
+        async function fetchWeather(lat, lon, label) {
             const searchBtn = document.getElementById('searchBtn');
             const errorMsg = document.getElementById('errorMsg');
             errorMsg.textContent = '';
@@ -513,6 +529,7 @@
                 document.getElementById('windDir').textContent = getCardinal(windData.direction);
                 document.getElementById('temperature').textContent = windData.temperature;
 
+                if (label) document.getElementById('location').textContent = label;
                 searchBtn.innerHTML = 'Search';
                 searchBtn.disabled = false;
             } catch (err) {
@@ -578,9 +595,9 @@
             }
         });
 
-        // Initialize with default location (San Francisco)
+        // Initialize with default location
         initParticles();
-        fetchWeather(37.7749, -122.4194);
+        fetchWeather(-37.81, 144.96, 'Melbourne, Australia');
         animate();
     </script>
 </body>
