@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tone Rewriter — Match Your Brand Voice</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  :root{--bg:#0f1113;--surface:#1a1c1f;--line:#2a2d31;--text:#f3f1f0;--dim:#a9a7a3;--faint:#6d6c68;--accent:#4ff5b8;--accent2:#00d98e;--warn:#ffc040}
+  body{background:var(--bg);color:var(--text);font-family:'Sora',sans-serif;min-height:100vh;line-height:1.6}
+  ::selection{background:var(--accent);color:#020304}
+  .wrap{max-width:900px;margin:0 auto;padding:60px 24px 80px}
+  .badge{font-size:11px;letter-spacing:.25em;text-transform:uppercase;color:var(--accent2);font-weight:700;margin-bottom:12px}
+  h1{font-size:clamp(42px,7vw,62px);line-height:1.05;font-weight:700;letter-spacing:-.015em;margin-bottom:14px}
+  h1 em{font-style:italic;color:var(--accent)}
+  .sub{color:var(--dim);font-size:15px;max-width:600px;margin-bottom:32px;line-height:1.65}
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-bottom:32px}
+  @media(max-width:700px){.grid-2{grid-template-columns:1fr}}
+  .field{margin-bottom:20px}
+  label{display:block;font-size:13px;color:var(--dim);font-weight:600;margin-bottom:8px;text-transform:uppercase;letter-spacing:.08em}
+  textarea,input,select{width:100%;padding:12px 14px;background:#131517;border:1px solid var(--line);border-radius:9px;color:var(--text);font-size:14px;font-family:inherit;transition:all .2s;outline:none}
+  textarea,input,select:focus{border-color:var(--accent2);box-shadow:0 0 0 3px rgba(79,245,184,.1)}
+  textarea{resize:vertical;min-height:120px;font-size:14px;line-height:1.5}
+  select{cursor:pointer}
+  .tone-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:24px}
+  .tone-btn{padding:10px 14px;background:var(--surface);border:2px solid var(--line);border-radius:8px;color:var(--text);cursor:pointer;font-size:13px;font-weight:600;transition:all .2s;text-align:center}
+  .tone-btn:hover{border-color:var(--accent2);transform:translateY(-2px)}
+  .tone-btn.active{background:var(--accent2);color:#020304;border-color:var(--accent2)}
+  .btn-go{width:100%;padding:14px;background:linear-gradient(135deg,var(--accent2),var(--accent));border:none;border-radius:9px;color:#020304;font-weight:700;font-size:15px;cursor:pointer;transition:all .2s}
+  .btn-go:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(79,245,184,.25)}
+  .btn-go:active{transform:translateY(0)}
+  .result{margin-top:40px;opacity:0;animation:fadein .5s ease-out forwards}
+  @keyframes fadein{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+  .result-card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:24px;margin-bottom:20px;backdrop-filter:blur(4px)}
+  .result-title{font-size:12px;color:var(--accent2);font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:12px}
+  .result-text{font-size:14px;line-height:1.7;color:var(--text);word-break:break-word}
+  .copy-btn{margin-top:12px;padding:8px 12px;background:#1e2024;border:1px solid var(--line);border-radius:6px;color:var(--dim);font-size:12px;cursor:pointer;transition:all .2s}
+  .copy-btn:hover{color:var(--accent);border-color:var(--accent)}
+  .copy-btn.done{color:var(--accent2)}
+  .empty{text-align:center;padding:40px 24px;color:var(--faint);font-size:14px}
+  footer{margin-top:60px;color:var(--faint);font-size:12px;text-align:center}
+  @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="badge">✏️ Copywriting</div>
+  <h1>Rewrite for a different <em>tone</em>.</h1>
+  <p class="sub">Paste your copy. Pick a target voice (casual, formal, playful, urgent, etc.). Get back the same message, retuned. One-click copy. No API — all logic in your browser.</p>
+
+  <div class="grid-2">
+    <div>
+      <div class="field">
+        <label>Your original copy</label>
+        <textarea id="source" placeholder="Paste the text you want to rewrite here..."></textarea>
+      </div>
+    </div>
+    <div>
+      <div class="field">
+        <label>Target tone</label>
+        <div class="tone-grid" id="tones"></div>
+      </div>
+      <div class="field">
+        <button class="btn-go" id="go">Rewrite</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="out"></div>
+
+  <footer>No data leaves your browser · built by an AI agent on Base44</footer>
+</div>
+
+<script>
+const toneOptions=[
+  {name:'Casual',desc:'Friendly, conversational, relaxed.'},
+  {name:'Formal',desc:'Professional, structured, respectful.'},
+  {name:'Playful',desc:'Fun, light, witty.'},
+  {name:'Urgent',desc:'Direct, compelling, action-focused.'},
+  {name:'Technical',desc:'Precise, jargon-rich, expert.'},
+  {name:'Minimal',desc:'Stripped-down, concise, punchy.'},
+  {name:'Empathetic',desc:'Warm, understanding, people-first.'},
+  {name:'Bold',desc:'Confident, provocative, memorable.'}
+];
+
+const rewriteRules={
+  Casual:[
+    {from:/please|kindly|would you|we would appreciate/gi,to:'can you'},
+    {from:/utilize/gi,to:'use'},
+    {from:/facilitate/gi,to:'help with'},
+    {from:/concerning/gi,to:'about'},
+    {from:/(?:at this time|currently|in the current|in the present)/gi,to:'right now'},
+    {from:/(?:due to the fact that|in light of|given that)/gi,to:'because'},
+    {from:/\./g,to:'. '},
+    {from:/(?:furthermore|moreover|however|consequently)/gi,to:(m)=>({Furthermore:'Plus',Moreover:'Also',However:'But',Consequently:'So'}[m]||m)}
+  ],
+  Formal:[
+    {from:/(?:yeah|yep|sure|okay|cool|awesome)/gi,to:(m)=>({yeah:'Yes',yep:'Certainly',sure:'Certainly',okay:'Agreed',cool:'Understood',awesome:'Excellent'}[m.toLowerCase()]||m)},
+    {from:/(?:gonna|wanna|kinda|kinda|can't|won't|don't)/gi,to:(m)=>({gonna:'will',wanna:'wish to',kinda:'somewhat',cant:"cannot",wont:"will not",dont:"do not"}[m.toLowerCase()]||m)},
+    {from:/(?:hi|hey|yo)\b/gi,to:'Hello'},
+    {from:/thanks/gi,to:'Thank you'},
+    {from:/(?:and|&|\+)/g,to:' and '},
+    {from:/\.\.\./g,to:'. '},
+    {from:/\!/g,to:'.'}
+  ],
+  Playful:[
+    {from:/must|should|need to/gi,to:'gotta'},
+    {from:/unfortunately|regrettably/gi,to:'bummer—'},
+    {from:/we are|we're/gi,to:'we\'re'},
+    {from:/very|quite|extremely/gi,to:(m)=>Math.random()>.5?'super':'mad'},
+    {from:/\./g,to:'. 👀'},
+    {from:/(?:thank you|thanks)/gi,to:'thanks a ton!'},
+  ],
+  Urgent:[
+    {from:/we suggest|we recommend|consider/gi,to:'Act now—'},
+    {from:/at your convenience|when you have time|whenever/gi,to:'immediately'},
+    {from:/might|could|possibly/gi,to:'will'},
+    {from:/please/gi,to:''},
+    {from:/\?$/gm,to:' — respond now.'},
+    {from:/\./g,to:'. [Critical]'},
+  ],
+  Technical:[
+    {from:/(?:about|regarding)/gi,to:'concerning'},
+    {from:/use/gi,to:'leverage'},
+    {from:/help/gi,to:'facilitate'},
+    {from:/like/gi,to:'analogous to'},
+    {from:/works|does/gi,to:'functions'},
+    {from:/make sure/gi,to:'ensure'},
+    {from:/cool|awesome/gi,to:'optimal'},
+  ],
+  Minimal:[
+    {from:/(?:please|kindly|would you mind)/gi,to:''},
+    {from:/(?:furthermore|moreover|also|in addition)/gi,to:''},
+    {from:/\b(?:the|a|an)\b/gi,to:''},
+    {from:/(?:very|quite|extremely|truly|really)\s+/gi,to:''},
+    {from:/\.\s+/g,to:'. '},
+    {from:/\,/g,to:'.'},
+  ],
+  Empathetic:[
+    {from:/must|have to/gi,to:'might feel like you need to'},
+    {from:/problem|issue|error/gi,to:'challenge'},
+    {from:/wrong|broken|bad/gi,to:'unexpected'},
+    {from:/customer|user|client/gi,to:'you'},
+    {from:/we appreciate|thanks/gi,to:'we care and appreciate'},
+    {from:/(?:unfortunately|sadly)/gi,to:'we understand'},
+  ],
+  Bold:[
+    {from:/might|could|possibly|maybe/gi,to:'will'},
+    {from:/(?:somewhat|rather|quite)/gi,to:'absolutely'},
+    {from:/we think|we believe/gi,to:'We know'},
+    {from:/(?:good|nice|okay)/gi,to:'incredible'},
+    {from:/\?$/gm,to:'!'},
+    {from:/\./g,to:'. No exceptions.'},
+  ]
+};
+
+const $id=id=>document.getElementById(id);
+const tonesDiv=$id('tones');
+let selected='Casual';
+
+// Render tone buttons
+toneOptions.forEach(t=>{
+  const btn=document.createElement('button');
+  btn.className='tone-btn'+(t.name===selected?' active':'');
+  btn.textContent=t.name;
+  btn.title=t.desc;
+  btn.onclick=()=>{
+    document.querySelectorAll('.tone-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    selected=t.name;
+  };
+  tonesDiv.appendChild(btn);
+});
+
+function rewrite(text,tone){
+  let result=text;
+  const rules=rewriteRules[tone]||[];
+  rules.forEach(r=>{
+    result=result.replace(r.from,r.to);
+  });
+  // Clean up extra spaces
+  result=result.replace(/\s+/g,' ').trim();
+  return result;
+}
+
+$id('go').addEventListener('click',()=>{
+  const src=$id('source').value.trim();
+  if(!src){
+    $id('out').innerHTML='<div class="empty">Paste some copy first!</div>';
+    return;
+  }
+  const rewritten=rewrite(src,selected);
+  const out=$id('out');
+  out.innerHTML=`
+    <div class="result">
+      <div class="result-card">
+        <div class="result-title">📄 Original</div>
+        <div class="result-text">${src}</div>
+      </div>
+      <div class="result-card">
+        <div class="result-title">✨ Rewritten (${selected})</div>
+        <div class="result-text">${rewritten}</div>
+        <button class="copy-btn" onclick="
+          navigator.clipboard.writeText('${rewritten.replace(/'/g,"\\'")}');
+          const btn=event.target;
+          btn.textContent='Copied!';
+          btn.classList.add('done');
+          setTimeout(()=>{btn.textContent='Copy';btn.classList.remove('done')},2e3);
+        ">Copy</button>
+      </div>
+    </div>
+  `;
+});
+
+// Demo: pre-fill on load with a sample
+window.addEventListener('load',()=>{
+  $id('source').value='Thanks for reaching out. Unfortunately, we are unable to proceed at this time. Please contact us again when you have more information.';
+});
+</script>
+</body>
+</html>
