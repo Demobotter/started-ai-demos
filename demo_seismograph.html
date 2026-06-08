@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SEISMOGRAPH — The Earth, Shaking Right Now</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,500&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  :root{
+    --bg:#0b0a09; --panel:#15120f; --line:#2a2521;
+    --ink:#f4ede2; --dim:#9a8f7e; --faint:#6b6356;
+    --amber:#f5a623; --red:#ff5a36; --gold:#ffd166;
+  }
+  html,body{background:var(--bg);color:var(--ink);font-family:'Space Mono',monospace;overflow-x:hidden}
+  body{min-height:100vh}
+  ::selection{background:var(--red);color:#0b0a09}
+
+  .grain{position:fixed;inset:0;pointer-events:none;z-index:99;opacity:.05;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+
+  .wrap{max-width:1180px;margin:0 auto;padding:0 24px}
+
+  /* HERO */
+  header{padding:64px 0 28px;border-bottom:1px solid var(--line);position:relative}
+  .kicker{font-size:12px;letter-spacing:.32em;color:var(--amber);text-transform:uppercase;margin-bottom:20px;display:flex;align-items:center;gap:10px}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--red);box-shadow:0 0 0 0 rgba(255,90,54,.6);animation:ping 1.8s infinite}
+  @keyframes ping{0%{box-shadow:0 0 0 0 rgba(255,90,54,.5)}70%{box-shadow:0 0 0 12px rgba(255,90,54,0)}100%{box-shadow:0 0 0 0 rgba(255,90,54,0)}}
+  h1{font-family:'Fraunces',serif;font-weight:600;font-size:clamp(44px,8vw,104px);line-height:.92;letter-spacing:-.02em}
+  h1 em{font-style:italic;font-weight:500;background:linear-gradient(120deg,var(--gold),var(--red));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .sub{margin-top:22px;max-width:560px;color:var(--dim);font-size:15px;line-height:1.7}
+
+  /* trace line */
+  .trace{width:100%;height:60px;margin-top:28px;display:block}
+
+  /* STATS */
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);border:1px solid var(--line);margin:36px 0;border-radius:14px;overflow:hidden}
+  .stat{background:var(--panel);padding:22px 20px}
+  .stat .l{font-size:11px;letter-spacing:.18em;color:var(--faint);text-transform:uppercase}
+  .stat .v{font-family:'Fraunces',serif;font-size:38px;margin-top:8px;line-height:1}
+  .stat .v small{font-size:14px;color:var(--dim);font-family:'Space Mono'}
+
+  /* LAYOUT */
+  .grid{display:grid;grid-template-columns:1.5fr 1fr;gap:24px;padding-bottom:80px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+  .card h2{font-family:'Fraunces',serif;font-weight:600;font-size:17px;padding:18px 20px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
+  .card h2 span{font-family:'Space Mono';font-size:11px;color:var(--faint);letter-spacing:.1em}
+
+  /* MAP */
+  #mapWrap{position:relative;background:radial-gradient(120% 120% at 50% 0%,#181410,#0d0b09)}
+  #map{display:block;width:100%;height:auto}
+
+  /* filter */
+  .filter{padding:16px 20px;border-top:1px solid var(--line);display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  .filter label{font-size:11px;letter-spacing:.16em;color:var(--faint);text-transform:uppercase}
+  input[type=range]{-webkit-appearance:none;flex:1;height:3px;background:var(--line);border-radius:3px;outline:none;min-width:120px}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:var(--gold);cursor:pointer;border:3px solid var(--bg);box-shadow:0 0 12px rgba(255,209,102,.5)}
+  .magval{font-family:'Fraunces',serif;font-size:22px;color:var(--gold);min-width:54px;text-align:right}
+
+  /* LIST */
+  .list{max-height:520px;overflow-y:auto}
+  .list::-webkit-scrollbar{width:6px}.list::-webkit-scrollbar-thumb{background:var(--line);border-radius:6px}
+  .q{padding:14px 20px;border-bottom:1px solid var(--line);display:flex;gap:14px;align-items:center;cursor:pointer;transition:background .2s}
+  .q:hover{background:#1c1814}
+  .mag{font-family:'Fraunces',serif;font-weight:600;font-size:22px;min-width:56px;height:48px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .q .meta{min-width:0}
+  .q .place{font-size:13px;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .q .when{font-size:11px;color:var(--faint);margin-top:3px}
+
+  footer{border-top:1px solid var(--line);padding:28px 0;color:var(--faint);font-size:12px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
+  footer a{color:var(--amber);text-decoration:none}
+
+  .loading{padding:60px 20px;text-align:center;color:var(--faint);font-size:13px}
+  .shimmer{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--amber);margin:0 3px;animation:bb 1s infinite}
+  .shimmer:nth-child(2){animation-delay:.15s}.shimmer:nth-child(3){animation-delay:.3s}
+  @keyframes bb{0%,100%{opacity:.2;transform:translateY(0)}50%{opacity:1;transform:translateY(-5px)}}
+
+  @media(max-width:860px){.grid{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,1fr)}}
+  @media(prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</head>
+<body>
+<div class="grain"></div>
+<div class="wrap">
+  <header>
+    <div class="kicker"><span class="dot"></span> Live · USGS Global Feed · Past 24 Hours</div>
+    <h1>The Earth is <em>shaking</em> right now.</h1>
+    <p class="sub">Every dot is a real earthquake recorded by the U.S. Geological Survey in the last day. Bigger and redder means stronger. Drag the dial to filter by magnitude — the ground never really stops moving.</p>
+    <svg class="trace" viewBox="0 0 1000 60" preserveAspectRatio="none"><polyline id="traceLine" fill="none" stroke="#f5a623" stroke-width="1.5" opacity="0.7" points=""/></svg>
+  </header>
+
+  <div class="stats">
+    <div class="stat"><div class="l">Total Quakes</div><div class="v" id="sTotal">—</div></div>
+    <div class="stat"><div class="l">Strongest</div><div class="v" id="sMax">—</div></div>
+    <div class="stat"><div class="l">Avg Magnitude</div><div class="v" id="sAvg">—</div></div>
+    <div class="stat"><div class="l">Last One</div><div class="v" id="sLast">—<small> ago</small></div></div>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <h2>Global Epicenters <span id="shownCount">—</span></h2>
+      <div id="mapWrap">
+        <svg id="map" viewBox="0 0 1000 500" preserveAspectRatio="xMidYMid meet"></svg>
+      </div>
+      <div class="filter">
+        <label>Min Magnitude</label>
+        <input type="range" id="magSlider" min="2.5" max="7" step="0.1" value="2.5">
+        <span class="magval" id="magLabel">2.5+</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>The Feed <span>newest first</span></h2>
+      <div class="list" id="list">
+        <div class="loading">Reading the seismographs<span class="shimmer"></span><span class="shimmer"></span><span class="shimmer"></span></div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <div>SEISMOGRAPH · data <a href="https://earthquake.usgs.gov" target="_blank">earthquake.usgs.gov</a> · refreshes live</div>
+    <div>Built by an AI agent on Base44</div>
+  </footer>
+</div>
+
+<script>
+  const FEED = 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_day.geojson';
+  let quakes = [];
+  let minMag = 2.5;
+
+  const magColor = m => m>=6 ? '#ff3b1f' : m>=5 ? '#ff5a36' : m>=4 ? '#f5a623' : m>=3 ? '#ffd166' : '#c9b88f';
+  const magBg = m => {
+    const c = magColor(m);
+    return `background:${c}22;color:${c};border:1px solid ${c}55`;
+  };
+
+  function project(lon, lat){
+    // equirectangular -> 1000x500
+    const x = (lon + 180) / 360 * 1000;
+    const y = (90 - lat) / 180 * 500;
+    return [x, y];
+  }
+
+  function timeAgo(ms){
+    const s = Math.floor((Date.now()-ms)/1000);
+    if(s<60) return s+'s';
+    if(s<3600) return Math.floor(s/60)+'m';
+    if(s<86400) return Math.floor(s/3600)+'h';
+    return Math.floor(s/86400)+'d';
+  }
+
+  // simple continents outline (lat/lon polylines, low detail) for context
+  const GRID = [];
+  function drawBase(svg){
+    let g='';
+    // graticule
+    for(let lon=-150;lon<=150;lon+=30){const [x]=project(lon,0);g+=`<line x1="${x}" y1="0" x2="${x}" y2="500" stroke="#2a2521" stroke-width="0.5"/>`;}
+    for(let lat=-60;lat<=60;lat+=30){const [,y]=project(0,lat);g+=`<line x1="0" y1="${y}" x2="1000" y2="${y}" stroke="#2a2521" stroke-width="0.5"/>`;}
+    // equator emphasis
+    const [,eqy]=project(0,0);g+=`<line x1="0" y1="${eqy}" x2="1000" y2="${eqy}" stroke="#3a332b" stroke-width="0.8"/>`;
+    return g;
+  }
+
+  function renderMap(){
+    const svg = document.getElementById('map');
+    let html = drawBase(svg);
+    const shown = quakes.filter(q=>q.mag>=minMag);
+    document.getElementById('shownCount').textContent = shown.length+' shown';
+    shown.forEach((q,i)=>{
+      const [x,y]=project(q.lon,q.lat);
+      const r = Math.max(3, q.mag*1.7);
+      const c = magColor(q.mag);
+      html += `<circle cx="${x}" cy="${y}" r="${r}" fill="${c}" opacity="0.22"/>`;
+      html += `<circle class="epi" cx="${x}" cy="${y}" r="${Math.max(1.6,q.mag*0.7)}" fill="${c}">`+
+              `<animate attributeName="r" values="${Math.max(1.6,q.mag*0.7)};${r};${Math.max(1.6,q.mag*0.7)}" dur="${2.2+ (i%5)*0.3}s" repeatCount="indefinite"/>`+
+              `<animate attributeName="opacity" values="1;0.4;1" dur="${2.2+(i%5)*0.3}s" repeatCount="indefinite"/></circle>`;
+    });
+    svg.innerHTML = html;
+  }
+
+  function renderList(){
+    const el = document.getElementById('list');
+    const shown = quakes.filter(q=>q.mag>=minMag).slice(0,40);
+    if(!shown.length){el.innerHTML='<div class="loading">No quakes at this magnitude. Lower the dial.</div>';return;}
+    el.innerHTML = shown.map(q=>`
+      <div class="q">
+        <div class="mag" style="${magBg(q.mag)}">${q.mag.toFixed(1)}</div>
+        <div class="meta">
+          <div class="place">${q.place}</div>
+          <div class="when">${timeAgo(q.time)} ago · ${q.depth.toFixed(0)} km deep</div>
+        </div>
+      </div>`).join('');
+  }
+
+  function renderStats(){
+    if(!quakes.length) return;
+    const mags = quakes.map(q=>q.mag);
+    const max = Math.max(...mags);
+    const avg = mags.reduce((a,b)=>a+b,0)/mags.length;
+    const last = Math.max(...quakes.map(q=>q.time));
+    document.getElementById('sTotal').textContent = quakes.length;
+    document.getElementById('sMax').innerHTML = 'M'+max.toFixed(1);
+    document.getElementById('sMax').style.color = magColor(max);
+    document.getElementById('sAvg').innerHTML = 'M'+avg.toFixed(1);
+    document.getElementById('sLast').innerHTML = timeAgo(last)+'<small> ago</small>';
+  }
+
+  function renderTrace(){
+    // build a seismograph-style line from quake magnitudes over time
+    if(!quakes.length) return;
+    const sorted = [...quakes].sort((a,b)=>a.time-b.time);
+    const n = sorted.length;
+    let pts=[];
+    sorted.forEach((q,i)=>{
+      const x = (i/(n-1))*1000;
+      const amp = (q.mag-2)/5; // 0..1
+      // jagged spike
+      pts.push(`${x.toFixed(1)},${(30 - amp*26).toFixed(1)}`);
+      pts.push(`${(x+2).toFixed(1)},${(30 + amp*26).toFixed(1)}`);
+      pts.push(`${(x+4).toFixed(1)},30`);
+    });
+    document.getElementById('traceLine').setAttribute('points', pts.join(' '));
+  }
+
+  async function load(){
+    try{
+      const res = await fetch(FEED);
+      if(!res.ok) throw new Error('feed');
+      const data = await res.json();
+      quakes = data.features.map(f=>({
+        mag: f.properties.mag,
+        place: f.properties.place || 'Unknown region',
+        time: f.properties.time,
+        lon: f.geometry.coordinates[0],
+        lat: f.geometry.coordinates[1],
+        depth: f.geometry.coordinates[2]
+      })).filter(q=>q.mag!=null).sort((a,b)=>b.time-a.time);
+      renderStats(); renderMap(); renderList(); renderTrace();
+    }catch(e){
+      document.getElementById('list').innerHTML='<div class="loading">Couldn\'t reach the USGS feed. Retrying shortly…</div>';
+      setTimeout(load, 5000);
+    }
+  }
+
+  const slider = document.getElementById('magSlider');
+  slider.addEventListener('input', ()=>{
+    minMag = parseFloat(slider.value);
+    document.getElementById('magLabel').textContent = minMag.toFixed(1)+'+';
+    renderMap(); renderList();
+  });
+
+  load();
+  setInterval(load, 60000); // live refresh each minute
+</script>
+</body>
+</html>
