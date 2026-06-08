@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quake Check — Recent Earthquakes Near You</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;1,9..144,500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  :root{--bg:#0d0c0f;--card:#16151a;--line:#272630;--ink:#f3f0f4;--dim:#a09bac;--faint:#6b6678;--amber:#f5a623;--red:#ff5a45;--green:#4ade80;--gold:#ffd166}
+  body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-height:100vh;line-height:1.6}
+  ::selection{background:var(--amber);color:#0d0c0f}
+  .wrap{max-width:720px;margin:0 auto;padding:56px 22px 80px}
+  .kick{font-size:12px;letter-spacing:.28em;text-transform:uppercase;color:var(--amber);margin-bottom:18px;display:flex;align-items:center;gap:9px}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--red);animation:p 1.8s infinite}
+  @keyframes p{0%{box-shadow:0 0 0 0 rgba(255,90,69,.5)}70%{box-shadow:0 0 0 11px rgba(255,90,69,0)}100%{box-shadow:0 0 0 0 rgba(255,90,69,0)}}
+  h1{font-family:'Fraunces',serif;font-weight:600;font-size:clamp(38px,7vw,64px);line-height:1.0;letter-spacing:-.02em}
+  h1 em{font-style:italic;color:var(--amber)}
+  .sub{color:var(--dim);margin-top:16px;font-size:15px;max-width:520px}
+  .box{margin-top:30px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:8px;display:flex;gap:8px;box-shadow:0 20px 50px -20px rgba(0,0,0,.6)}
+  input{flex:1;background:transparent;border:none;outline:none;color:var(--ink);font-size:16px;font-family:inherit;padding:14px 14px}
+  input::placeholder{color:var(--faint)}
+  button{background:linear-gradient(120deg,var(--gold),var(--amber));color:#1a1500;border:none;border-radius:11px;padding:0 24px;font-weight:600;font-size:15px;cursor:pointer;transition:transform .15s,filter .15s;font-family:inherit}
+  button:hover{transform:translateY(-1px);filter:brightness(1.07)}button:active{transform:translateY(0)}
+  .chips{margin-top:14px;display:flex;gap:8px;flex-wrap:wrap}
+  .chip{font-size:13px;color:var(--dim);background:var(--card);border:1px solid var(--line);border-radius:20px;padding:6px 14px;cursor:pointer;transition:.15s}
+  .chip:hover{border-color:var(--amber);color:var(--ink)}
+  #out{margin-top:34px}
+  .headline{font-family:'Fraunces',serif;font-size:26px;line-height:1.25;margin-bottom:6px}
+  .loc{color:var(--dim);font-size:14px;margin-bottom:24px}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px}
+  .stat .l{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint)}
+  .stat .v{font-family:'Fraunces',serif;font-size:34px;margin-top:6px;line-height:1}
+  .stat .v small{font-family:'Inter';font-size:13px;color:var(--dim)}
+  .verdict{margin-top:14px;border-radius:14px;padding:18px 20px;font-size:15px;border:1px solid var(--line)}
+  .closest{margin-top:24px}
+  .closest h3{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint);margin-bottom:12px}
+  .q{display:flex;gap:14px;align-items:center;padding:13px 16px;background:var(--card);border:1px solid var(--line);border-radius:12px;margin-bottom:8px}
+  .mag{font-family:'Fraunces',serif;font-weight:600;font-size:20px;min-width:52px;height:44px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .q .meta{min-width:0}
+  .q .place{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .q .det{font-size:12px;color:var(--faint);margin-top:2px}
+  .loading,.err{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:34px 22px;text-align:center;color:var(--dim)}
+  .sk{height:14px;background:linear-gradient(90deg,#1d1c22,#26242c,#1d1c22);background-size:200% 100%;border-radius:6px;animation:sh 1.3s infinite}
+  @keyframes sh{0%{background-position:200% 0}100%{background-position:-200% 0}}
+  footer{margin-top:40px;color:var(--faint);font-size:12px;text-align:center}
+  footer a{color:var(--amber);text-decoration:none}
+  .fade{animation:fade .5s cubic-bezier(.16,1,.3,1) both}
+  @keyframes fade{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  @media(max-width:520px){.grid{grid-template-columns:1fr}}
+  @media(prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="kick"><span class="dot"></span> Live USGS data · past 24 hours</div>
+  <h1>Any quakes <em>near you</em>?</h1>
+  <p class="sub">Type a city or place. I'll check the live USGS feed and tell you the real earthquake activity within ~2,000 km in the last day — strongest, closest, and whether it's worth a second thought.</p>
+
+  <div class="box">
+    <input id="q" type="text" placeholder="e.g. Tokyo, Los Angeles, Santiago…" autocomplete="off">
+    <button id="go">Check</button>
+  </div>
+  <div class="chips" id="chips"></div>
+
+  <div id="out"></div>
+
+  <footer>Data from <a href="https://earthquake.usgs.gov" target="_blank">USGS</a> + <a href="https://open-meteo.com" target="_blank">Open-Meteo</a> geocoding · no tracking · built by an AI agent on Base44</footer>
+</div>
+
+<script>
+const QFEED='https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_day.geojson';
+const GEO=q=>`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=1&language=en&format=json`;
+const out=document.getElementById('out'), inp=document.getElementById('q');
+const examples=['Tokyo','Los Angeles','Istanbul','Santiago','Wellington','Reykjavík'];
+const chips=document.getElementById('chips');
+examples.forEach(c=>{const b=document.createElement('button');b.className='chip';b.textContent=c;b.onclick=()=>{inp.value=c;run();};chips.appendChild(b);});
+
+function toRad(d){return d*Math.PI/180}
+function dist(la1,lo1,la2,lo2){const R=6371,dLa=toRad(la2-la1),dLo=toRad(lo2-lo1);const a=Math.sin(dLa/2)**2+Math.cos(toRad(la1))*Math.cos(toRad(la2))*Math.sin(dLo/2)**2;return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));}
+function bearing(la1,lo1,la2,lo2){const y=Math.sin(toRad(lo2-lo1))*Math.cos(toRad(la2));const x=Math.cos(toRad(la1))*Math.sin(toRad(la2))-Math.sin(toRad(la1))*Math.cos(toRad(la2))*Math.cos(toRad(lo2-lo1));const b=(Math.atan2(y,x)*180/Math.PI+360)%360;return ['N','NE','E','SE','S','SW','W','NW'][Math.round(b/45)%8];}
+function magColor(m){return m>=6?'#ff3b1f':m>=5?'#ff5a45':m>=4?'#f5a623':m>=3?'#ffd166':'#9fe88a'}
+function magBg(m){const c=magColor(m);return `background:${c}22;color:${c};border:1px solid ${c}55`}
+function ago(ms){const s=(Date.now()-ms)/1000;if(s<3600)return Math.floor(s/60)+'m';if(s<86400)return Math.floor(s/3600)+'h';return Math.floor(s/86400)+'d';}
+
+async function run(){
+  const name=inp.value.trim(); if(!name)return;
+  out.innerHTML=`<div class="loading"><div class="sk" style="width:60%;margin:0 auto 12px"></div><div class="sk" style="width:40%;margin:0 auto"></div></div>`;
+  try{
+    const g=await (await fetch(GEO(name))).json();
+    if(!g.results||!g.results.length){out.innerHTML=`<div class="err">Couldn't find “${name}”. Try a bigger nearby city.</div>`;return;}
+    const loc=g.results[0]; const la=loc.latitude, lo=loc.longitude;
+    const place=[loc.name,loc.admin1,loc.country].filter(Boolean).join(', ');
+    const feed=await (await fetch(QFEED)).json();
+    const near=feed.features.map(f=>{
+      const c=f.geometry.coordinates;
+      return {mag:f.properties.mag,place:f.properties.place||'Unknown',time:f.properties.time,depth:c[2],lat:c[1],lon:c[0],d:dist(la,lo,c[1],c[0]),bear:bearing(la,lo,c[1],c[0])};
+    }).filter(q=>q.mag!=null && q.d<=2000).sort((a,b)=>a.d-b.d);
+
+    let html='';
+    if(!near.length){
+      html=`<div class="headline">All quiet near ${loc.name}. 🌿</div>
+        <div class="loc">${place} · within 2,000 km · past 24h</div>
+        <div class="verdict" style="background:#11271a;border-color:#1e4a32;color:#bff0cf">No earthquakes of magnitude 2.5 or greater were recorded within ~2,000 km in the last day. Nothing to worry about.</div>`;
+    }else{
+      const strongest=[...near].sort((a,b)=>b.mag-a.mag)[0];
+      const closest=near[0];
+      const max=strongest.mag;
+      let vClass,vText;
+      if(max>=6&&strongest.d<500){vClass='background:#2a1411;border-color:#5a241c;color:#ffb3a6';vText=`A strong M${max.toFixed(1)} struck ~${Math.round(strongest.d)} km away — significant. Worth staying aware of aftershocks.`;}
+      else if(max>=5||closest.d<150){vClass='background:#2a2411;border-color:#5a4a1c;color:#ffe0a6';vText=`Moderate activity nearby. Notable but not alarming for most well-built areas.`;}
+      else{vClass='background:#11271a;border-color:#1e4a32;color:#bff0cf';vText=`Only minor, distant tremors. Routine background seismicity — nothing concerning.`;}
+
+      html=`<div class="headline fade">${near.length} quake${near.length>1?'s':''} within 2,000 km of ${loc.name}.</div>
+        <div class="loc">${place} · past 24h · live USGS</div>
+        <div class="grid fade">
+          <div class="stat"><div class="l">Strongest</div><div class="v" style="color:${magColor(max)}">M${max.toFixed(1)}</div></div>
+          <div class="stat"><div class="l">Closest</div><div class="v">${Math.round(closest.d)}<small> km ${closest.bear}</small></div></div>
+        </div>
+        <div class="verdict fade" style="${vClass}">${vText}</div>
+        <div class="closest fade"><h3>Closest events</h3>${near.slice(0,5).map(q=>`
+          <div class="q"><div class="mag" style="${magBg(q.mag)}">${q.mag.toFixed(1)}</div>
+          <div class="meta"><div class="place">${q.place}</div>
+          <div class="det">${Math.round(q.d)} km ${q.bear} · ${q.depth.toFixed(0)} km deep · ${ago(q.time)} ago</div></div></div>`).join('')}</div>`;
+    }
+    out.innerHTML=html;
+  }catch(e){out.innerHTML=`<div class="err">Couldn't reach the data feeds. Check your connection and try again.</div>`;}
+}
+document.getElementById('go').onclick=run;
+inp.addEventListener('keydown',e=>{if(e.key==='Enter')run();});
+inp.value='Tokyo'; run();
+</script>
+</body>
+</html>
