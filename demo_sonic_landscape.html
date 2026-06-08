@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sonic Landscape — Real-Time Wind Visualizer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            font-family: 'Hanken Grotesk', sans-serif;
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 50%, #0f2b4a 100%);
+            color: #e0e6ff;
+            overflow: hidden;
+        }
+
+        /* Respect reduced motion */
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation: none !important;
+                transition: none !important;
+            }
+        }
+
+        .container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        /* Hero / Canvas area */
+        .hero {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        /* Data overlay on hero */
+        .hero-overlay {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            bottom: auto;
+            z-index: 10;
+            opacity: 0;
+            animation: fadeInDown 1s ease-out 0.3s forwards;
+        }
+
+        .hero-title {
+            font-family: 'DM Serif Display', serif;
+            font-size: clamp(28px, 6vw, 56px);
+            font-weight: 400;
+            line-height: 1.1;
+            margin-bottom: 8px;
+            letter-spacing: -0.02em;
+        }
+
+        .hero-subtitle {
+            font-size: clamp(12px, 3vw, 16px);
+            color: #a0b0ff;
+            font-weight: 400;
+            letter-spacing: 0.05em;
+        }
+
+        /* Footer / Control panel */
+        .control-panel {
+            background: rgba(10, 14, 39, 0.8);
+            backdrop-filter: blur(16px);
+            border-top: 1px solid rgba(224, 230, 255, 0.1);
+            padding: 20px;
+            z-index: 20;
+            opacity: 0;
+            animation: fadeInUp 1s ease-out 0.5s forwards;
+        }
+
+        .control-inner {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            align-items: start;
+        }
+
+        .data-display {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .data-item {
+            padding: 12px;
+            background: rgba(160, 176, 255, 0.05);
+            border: 1px solid rgba(160, 176, 255, 0.15);
+            border-radius: 8px;
+            transition: all 0.3s cubic-bezier(.16,1,.3,1);
+        }
+
+        .data-item:hover {
+            background: rgba(160, 176, 255, 0.1);
+            border-color: rgba(160, 176, 255, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .data-label {
+            font-size: 12px;
+            color: #7080c0;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 4px;
+            font-weight: 600;
+        }
+
+        .data-value {
+            font-family: 'DM Serif Display', serif;
+            font-size: 24px;
+            font-weight: 400;
+            color: #ffffff;
+        }
+
+        .data-unit {
+            font-size: 12px;
+            color: #a0b0ff;
+            margin-left: 4px;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .input-label {
+            font-size: 12px;
+            color: #7080c0;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            font-weight: 600;
+        }
+
+        .input-wrapper {
+            display: flex;
+            gap: 8px;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 10px 12px;
+            background: rgba(160, 176, 255, 0.05);
+            border: 1px solid rgba(160, 176, 255, 0.2);
+            border-radius: 6px;
+            color: #e0e6ff;
+            font-family: 'Hanken Grotesk', sans-serif;
+            font-size: 14px;
+            transition: all 0.2s ease;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            background: rgba(160, 176, 255, 0.1);
+            border-color: rgba(160, 176, 255, 0.4);
+            box-shadow: 0 0 12px rgba(160, 176, 255, 0.2);
+        }
+
+        input[type="text"]::placeholder {
+            color: #6070b0;
+        }
+
+        button {
+            padding: 10px 16px;
+            background: linear-gradient(135deg, #5070ff 0%, #3050d0 100%);
+            border: none;
+            border-radius: 6px;
+            color: white;
+            font-family: 'Hanken Grotesk', sans-serif;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(.16,1,.3,1);
+            letter-spacing: 0.05em;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(80, 112, 255, 0.3);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .error-message {
+            color: #ff6b80;
+            font-size: 12px;
+            margin-top: 4px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .error-message.show {
+            opacity: 1;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border: 2px solid rgba(224, 230, 255, 0.3);
+            border-top-color: #e0e6ff;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-right: 6px;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-16px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(16px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Mobile */
+        @media (max-width: 640px) {
+            .control-inner {
+                grid-template-columns: 1fr;
+                gap: 16px;
+            }
+
+            .data-display {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .hero-title {
+                font-size: clamp(24px, 5vw, 36px);
+            }
+
+            .control-panel {
+                padding: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="hero">
+            <canvas id="windCanvas"></canvas>
+            <div class="hero-overlay">
+                <div class="hero-title">Wind Made Visible</div>
+                <div class="hero-subtitle">Real-time particle flow from your location</div>
+            </div>
+        </div>
+
+        <div class="control-panel">
+            <div class="control-inner">
+                <div class="data-display">
+                    <div class="data-item">
+                        <div class="data-label">Wind Speed</div>
+                        <div class="data-value">
+                            <span id="windSpeed">—</span><span class="data-unit">km/h</span>
+                        </div>
+                    </div>
+                    <div class="data-item">
+                        <div class="data-label">Direction</div>
+                        <div class="data-value" id="windDir">—</div>
+                    </div>
+                    <div class="data-item">
+                        <div class="data-label">Temperature</div>
+                        <div class="data-value">
+                            <span id="temperature">—</span><span class="data-unit">°C</span>
+                        </div>
+                    </div>
+                    <div class="data-item">
+                        <div class="data-label">Location</div>
+                        <div class="data-value" id="location" style="font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">—</div>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label class="input-label">Search Location</label>
+                    <div class="input-wrapper">
+                        <input 
+                            type="text" 
+                            id="locationInput" 
+                            placeholder="City name or coordinates (lat, lon)"
+                            autocomplete="off"
+                        >
+                        <button id="searchBtn">Search</button>
+                    </div>
+                    <div class="error-message" id="errorMsg"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('windCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Set canvas size
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight - 200; // Account for control panel
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        let windData = {
+            speed: 0,
+            direction: 0,
+            temperature: 0,
+            location: 'San Francisco, CA'
+        };
+
+        let particles = [];
+
+        class Particle {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.vx = 0;
+                this.vy = 0;
+                this.life = Math.random() * 0.5 + 0.5;
+                this.maxLife = this.life;
+                this.size = Math.random() * 3 + 1;
+            }
+
+            update(windSpeedNorm, windDirRad) {
+                // Wind velocity
+                this.vx = Math.cos(windDirRad) * windSpeedNorm * 2;
+                this.vy = Math.sin(windDirRad) * windSpeedNorm * 2;
+
+                // Brownian motion for naturalness
+                this.vx += (Math.random() - 0.5) * 0.5;
+                this.vy += (Math.random() - 0.5) * 0.5;
+
+                this.x += this.vx;
+                this.y += this.vy;
+                this.life -= 0.008;
+
+                // Wrap around edges
+                if (this.x < 0) this.x = canvas.width;
+                if (this.x > canvas.width) this.x = 0;
+                if (this.y < 0) this.y = canvas.height;
+                if (this.y > canvas.height) this.y = 0;
+            }
+
+            draw(ctx) {
+                const opacity = Math.max(0, this.life / this.maxLife);
+                ctx.fillStyle = `rgba(160, 176, 255, ${opacity * 0.6})`;
+                ctx.fillRect(this.x, this.y, this.size, this.size);
+            }
+        }
+
+        function initParticles() {
+            particles = [];
+            const particleCount = Math.min(150, Math.floor(canvas.width / 8));
+            for (let i = 0; i < particleCount; i++) {
+                particles.push(new Particle(
+                    Math.random() * canvas.width,
+                    Math.random() * canvas.height
+                ));
+            }
+        }
+
+        function drawGradientBackground() {
+            // Base gradient that shifts with temperature
+            const tempNorm = Math.max(-30, Math.min(50, windData.temperature)) / 50;
+            const hue1 = 220 + tempNorm * 20; // Blue to cyan
+            const hue2 = 260 - tempNorm * 30; // Purple to blue
+
+            const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+            gradient.addColorStop(0, `hsl(${hue1}, 80%, 15%)`);
+            gradient.addColorStop(0.5, `hsl(240, 70%, 12%)`);
+            gradient.addColorStop(1, `hsl(${hue2}, 90%, 18%)`);
+
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Subtle mesh gradient overlay
+            ctx.fillStyle = 'rgba(80, 112, 255, 0.05)';
+            for (let i = 0; i < 5; i++) {
+                for (let j = 0; j < 5; j++) {
+                    const x = (i / 5) * canvas.width;
+                    const y = (j / 5) * canvas.height;
+                    const circGradient = ctx.createRadialGradient(x, y, 0, x, y, 200);
+                    circGradient.addColorStop(0, 'rgba(80, 112, 255, 0.15)');
+                    circGradient.addColorStop(1, 'rgba(80, 112, 255, 0)');
+                    ctx.fillStyle = circGradient;
+                    ctx.fillRect(x - 200, y - 200, 400, 400);
+                }
+            }
+        }
+
+        function drawDirectionIndicator() {
+            // Cardinal direction line
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const length = Math.min(canvas.width, canvas.height) * 0.15;
+            const dirRad = (windData.direction * Math.PI) / 180;
+
+            ctx.strokeStyle = 'rgba(160, 176, 255, 0.3)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY);
+            ctx.lineTo(
+                centerX + Math.cos(dirRad) * length,
+                centerY + Math.sin(dirRad) * length
+            );
+            ctx.stroke();
+
+            // Subtle compass rose
+            ctx.fillStyle = 'rgba(160, 176, 255, 0.1)';
+            ctx.fillRect(centerX - 20, centerY - 1, 40, 2);
+            ctx.fillRect(centerX - 1, centerY - 20, 2, 40);
+        }
+
+        function animate() {
+            drawGradientBackground();
+            drawDirectionIndicator();
+
+            // Spawn new particles
+            if (particles.length < 150) {
+                particles.push(new Particle(
+                    Math.random() * canvas.width,
+                    Math.random() * canvas.height
+                ));
+            }
+
+            const windSpeedNorm = Math.min(windData.speed / 100, 1);
+            const windDirRad = (windData.direction * Math.PI) / 180;
+
+            // Update & draw particles
+            for (let i = particles.length - 1; i >= 0; i--) {
+                particles[i].update(windSpeedNorm, windDirRad);
+                if (particles[i].life <= 0) {
+                    particles.splice(i, 1);
+                } else {
+                    particles[i].draw(ctx);
+                }
+            }
+
+            requestAnimationFrame(animate);
+        }
+
+        async function fetchWeather(lat, lon) {
+            const searchBtn = document.getElementById('searchBtn');
+            const errorMsg = document.getElementById('errorMsg');
+            errorMsg.textContent = '';
+
+            try {
+                searchBtn.disabled = true;
+                searchBtn.innerHTML = '<span class="loading-spinner"></span>Loading...';
+
+                const response = await fetch(
+                    `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,wind_speed_10m,wind_direction_10m&timezone=auto`
+                );
+
+                if (!response.ok) throw new Error('Location not found');
+
+                const data = await response.json();
+                const current = data.current;
+
+                windData.speed = current.wind_speed_10m;
+                windData.direction = current.wind_direction_10m;
+                windData.temperature = Math.round(current.temperature_2m);
+
+                // Reverse geocode (rough approximation)
+                document.getElementById('windSpeed').textContent = Math.round(windData.speed);
+                document.getElementById('windDir').textContent = getCardinal(windData.direction);
+                document.getElementById('temperature').textContent = windData.temperature;
+
+                searchBtn.innerHTML = 'Search';
+                searchBtn.disabled = false;
+            } catch (err) {
+                errorMsg.classList.add('show');
+                errorMsg.textContent = 'Could not fetch weather. Try a different location.';
+                searchBtn.innerHTML = 'Search';
+                searchBtn.disabled = false;
+            }
+        }
+
+        function getCardinal(degrees) {
+            const directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+            return directions[Math.round((degrees % 360) / 45) % 8];
+        }
+
+        async function parseAndFetch(input) {
+            const coordRegex = /^(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)$/;
+            const match = input.trim().match(coordRegex);
+
+            if (match) {
+                const lat = parseFloat(match[1]);
+                const lon = parseFloat(match[2]);
+                if (lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180) {
+                    document.getElementById('location').textContent = `${lat.toFixed(2)}, ${lon.toFixed(2)}`;
+                    await fetchWeather(lat, lon);
+                    return;
+                }
+            }
+
+            // Geocode city name
+            try {
+                const response = await fetch(
+                    `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(input)}&count=1&language=en&format=json`
+                );
+                const data = await response.json();
+                if (data.results && data.results.length > 0) {
+                    const result = data.results[0];
+                    document.getElementById('location').textContent = `${result.name}, ${result.admin1 || result.country}`;
+                    await fetchWeather(result.latitude, result.longitude);
+                } else {
+                    document.getElementById('errorMsg').classList.add('show');
+                    document.getElementById('errorMsg').textContent = 'Location not found. Try another.';
+                }
+            } catch (err) {
+                document.getElementById('errorMsg').classList.add('show');
+                document.getElementById('errorMsg').textContent = 'Geocoding error. Try coordinates (lat, lon).';
+            }
+        }
+
+        document.getElementById('searchBtn').addEventListener('click', async () => {
+            const input = document.getElementById('locationInput').value.trim();
+            if (input) {
+                await parseAndFetch(input);
+            }
+        });
+
+        document.getElementById('locationInput').addEventListener('keypress', async (e) => {
+            if (e.key === 'Enter') {
+                const input = e.target.value.trim();
+                if (input) {
+                    await parseAndFetch(input);
+                }
+            }
+        });
+
+        // Initialize with default location (San Francisco)
+        initParticles();
+        fetchWeather(37.7749, -122.4194);
+        animate();
+    </script>
+</body>
+</html>
