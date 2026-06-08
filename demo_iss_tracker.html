@@ -3,274 +3,237 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Orbital — Live ISS Tracker</title>
+<title>ORBITAL — Live ISS Tracker</title>
+<meta name="description" content="Watch the International Space Station orbit Earth in real time — live position, altitude, velocity, day/night and current crew. Built autonomously by a Base44 Superagent.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --bg:#060914;--panel:#0d1326;--panel2:#121a33;--border:#1f2a4d;
-  --text:#eaf0ff;--muted:#7e8bb5;--accent:#4cc9f0;--accent2:#f72585;
-  --glow:rgba(76,201,240,.5);--radius:16px;
+  --bg:#05060d;--bg2:#080a16;--panel:rgba(255,255,255,.035);--panel-brd:rgba(255,255,255,.09);
+  --text:#f0f3ff;--muted:#8590b8;--dim:#5a648c;
+  --cyan:#5ad1ff;--mag:#ff5d9e;--gold:#ffd166;--grn:#5af0b0;
+  --r:18px;--ease:cubic-bezier(.16,1,.3,1);
 }
-body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
-body::before{content:"";position:fixed;inset:0;background:
-  radial-gradient(1200px 600px at 75% -10%,rgba(76,201,240,.10),transparent),
-  radial-gradient(900px 500px at 10% 110%,rgba(247,37,133,.08),transparent);
-  pointer-events:none;z-index:0}
-.wrap{position:relative;z-index:1;max-width:1080px;margin:0 auto;padding:28px 20px 60px}
-header{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:22px}
-.brand{display:flex;align-items:center;gap:12px}
-.dot{width:13px;height:13px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 0 var(--glow);animation:pulse 1.8s infinite}
-@keyframes pulse{0%{box-shadow:0 0 0 0 var(--glow)}70%{box-shadow:0 0 0 12px rgba(76,201,240,0)}100%{box-shadow:0 0 0 0 rgba(76,201,240,0)}}
-.brand h1{font-size:20px;font-weight:800;letter-spacing:.5px}
-.brand span{color:var(--accent)}
-.live{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--accent);border:1px solid var(--border);background:var(--panel);padding:6px 12px;border-radius:20px;display:flex;align-items:center;gap:7px}
-.live .b{width:7px;height:7px;border-radius:50%;background:#2ee6a6;animation:blink 1.4s infinite}
-@keyframes blink{50%{opacity:.25}}
-.tag{color:var(--muted);font-size:13px;margin-top:4px;font-weight:400}
-.grid{display:grid;grid-template-columns:1.7fr 1fr;gap:18px}
-@media(max-width:860px){.grid{grid-template-columns:1fr}}
-.card{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
-.map-card{position:relative;min-height:420px}
+html{scroll-behavior:smooth}
+body{font-family:'Space Grotesk',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;position:relative;-webkit-font-smoothing:antialiased}
+/* atmosphere: mesh glows */
+body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;background:
+  radial-gradient(900px 520px at 82% -8%,rgba(90,209,255,.16),transparent 60%),
+  radial-gradient(760px 480px at 6% 8%,rgba(255,93,158,.13),transparent 60%),
+  radial-gradient(900px 700px at 50% 120%,rgba(120,90,255,.12),transparent 60%)}
+/* grain */
+body::after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.05;mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+/* starfield */
+#stars{position:fixed;inset:0;z-index:0;pointer-events:none}
+.wrap{position:relative;z-index:2;max-width:1180px;margin:0 auto;padding:30px 22px 70px}
+
+/* entrance */
+@keyframes rise{from{opacity:0;transform:translateY(26px)}to{opacity:1;transform:none}}
+.rise{opacity:0;animation:rise .9s var(--ease) forwards}
+.d1{animation-delay:.05s}.d2{animation-delay:.15s}.d3{animation-delay:.27s}.d4{animation-delay:.4s}.d5{animation-delay:.52s}
+@media(prefers-reduced-motion:reduce){.rise{animation:none;opacity:1}*{animation-duration:.001s!important}}
+
+/* header */
+header{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-bottom:40px}
+.brand{display:flex;align-items:center;gap:13px}
+.mark{width:40px;height:40px;border-radius:13px;background:linear-gradient(150deg,var(--cyan),var(--mag));display:flex;align-items:center;justify-content:center;font-size:20px;box-shadow:0 10px 30px -8px rgba(90,209,255,.55);position:relative;overflow:hidden}
+.mark::after{content:"";position:absolute;inset:0;background:radial-gradient(circle at 30% 25%,rgba(255,255,255,.5),transparent 45%)}
+.brand .nm{font-weight:700;font-size:17px;letter-spacing:3px}
+.brand .sb{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--dim);letter-spacing:2px}
+.live{display:flex;align-items:center;gap:9px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--cyan);background:var(--panel);border:1px solid var(--panel-brd);padding:9px 15px;border-radius:30px;backdrop-filter:blur(12px)}
+.live .b{width:8px;height:8px;border-radius:50%;background:var(--grn);box-shadow:0 0 12px var(--grn);animation:blink 1.5s infinite}
+@keyframes blink{50%{opacity:.3}}
+
+/* hero */
+.hero{margin-bottom:38px;max-width:880px}
+.eyebrow{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:4px;color:var(--cyan);text-transform:uppercase;margin-bottom:16px;display:flex;align-items:center;gap:12px}
+.eyebrow::before{content:"";width:34px;height:1px;background:linear-gradient(90deg,var(--cyan),transparent)}
+.hero h1{font-size:clamp(46px,9vw,104px);line-height:.92;font-weight:700;letter-spacing:-3px}
+.hero h1 em{font-family:'Instrument Serif',serif;font-style:italic;font-weight:400;letter-spacing:-1px;background:linear-gradient(110deg,var(--cyan),var(--mag) 60%,var(--gold));-webkit-background-clip:text;background-clip:text;color:transparent;padding-right:6px}
+.hero p{margin-top:20px;color:var(--muted);font-size:clamp(15px,2.2vw,19px);line-height:1.6;max-width:560px}
+
+/* bento grid */
+.bento{display:grid;grid-template-columns:1.75fr 1fr;grid-template-rows:auto auto;gap:18px}
+@media(max-width:880px){.bento{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--panel-brd);border-radius:var(--r);backdrop-filter:blur(16px);position:relative;overflow:hidden;transition:border-color .4s var(--ease),transform .4s var(--ease)}
+.card::before{content:"";position:absolute;inset:0;border-radius:var(--r);padding:1px;background:linear-gradient(160deg,rgba(255,255,255,.16),transparent 40%);-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none}
+
+/* map */
+.map-card{grid-row:span 2;min-height:480px;position:relative}
 #map{position:absolute;inset:0;width:100%;height:100%;display:block}
-.map-overlay{position:absolute;left:16px;top:14px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);background:rgba(6,9,20,.6);backdrop-filter:blur(6px);border:1px solid var(--border);padding:7px 11px;border-radius:10px;line-height:1.7}
-.map-overlay b{color:var(--accent)}
-.iss{position:absolute;transform:translate(-50%,-50%);font-size:26px;filter:drop-shadow(0 0 10px var(--glow));transition:left .9s linear,top .9s linear;z-index:5}
-.iss::after{content:"";position:absolute;left:50%;top:50%;width:38px;height:38px;transform:translate(-50%,-50%);border:2px solid var(--accent);border-radius:50%;opacity:.55;animation:ring 2.4s infinite}
-@keyframes ring{0%{transform:translate(-50%,-50%) scale(.5);opacity:.7}100%{transform:translate(-50%,-50%) scale(1.6);opacity:0}}
-.side{display:flex;flex-direction:column;gap:18px}
-.stat-card{padding:18px 20px}
-.stat-card h3{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:1.4px;font-weight:600;margin-bottom:14px}
-.stats{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-.stat .v{font-family:'IBM Plex Mono',monospace;font-size:22px;font-weight:600;color:var(--text)}
-.stat .v.accent{color:var(--accent)}
-.stat .l{font-size:11px;color:var(--muted);margin-top:3px;letter-spacing:.3px}
-.crew-card{padding:18px 20px}
-.crew-list{display:flex;flex-direction:column;gap:9px;max-height:230px;overflow-y:auto}
-.crew{display:flex;align-items:center;gap:11px;background:var(--bg);border:1px solid var(--border);border-radius:11px;padding:9px 12px}
-.crew .av{width:30px;height:30px;border-radius:50%;flex:0 0 auto;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#04101b;background:linear-gradient(135deg,var(--accent),#8be9ff)}
-.crew .n{font-size:13.5px;font-weight:600}
-.crew .c{font-size:11px;color:var(--muted)}
-.crew-list::-webkit-scrollbar{width:6px}.crew-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
-.footer-row{margin-top:18px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;align-items:center}
-.btn{font-family:'Sora';font-weight:600;font-size:13px;color:#04101b;background:var(--accent);border:none;padding:11px 18px;border-radius:11px;cursor:pointer;transition:transform .1s,box-shadow .2s}
-.btn:hover{box-shadow:0 0 22px var(--glow)}.btn:active{transform:scale(.97)}
-.meta{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--muted)}
-.skeleton{color:var(--muted)}
-footer{text-align:center;color:var(--muted);font-size:12px;margin-top:34px}
-footer b{color:var(--accent)}
-.err{color:var(--accent2);font-size:12px;font-family:'IBM Plex Mono',monospace}
+.coords{position:absolute;left:18px;top:16px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);background:rgba(5,6,13,.55);border:1px solid var(--panel-brd);border-radius:12px;padding:10px 13px;line-height:1.9;backdrop-filter:blur(8px);z-index:4}
+.coords b{color:var(--cyan)}
+.coords .ttl{color:var(--dim);font-size:9px;letter-spacing:2px;display:block;margin-bottom:3px}
+.iss{position:absolute;transform:translate(-50%,-50%);z-index:6;transition:left 1s linear,top 1s linear;will-change:left,top}
+.iss .em{font-size:27px;filter:drop-shadow(0 0 14px rgba(90,209,255,.8));display:block}
+.iss::after{content:"";position:absolute;left:50%;top:50%;width:30px;height:30px;transform:translate(-50%,-50%);border:1.5px solid var(--cyan);border-radius:50%;animation:ping 2.6s var(--ease) infinite}
+@keyframes ping{0%{transform:translate(-50%,-50%) scale(.4);opacity:.9}100%{transform:translate(-50%,-50%) scale(2);opacity:0}}
+
+/* telemetry */
+.tele{padding:24px}
+.lbl{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:2.5px;color:var(--dim);text-transform:uppercase;margin-bottom:18px}
+.tgrid{display:grid;grid-template-columns:1fr 1fr;gap:18px 14px}
+.stat .v{font-size:26px;font-weight:600;letter-spacing:-.5px;line-height:1;font-variant-numeric:tabular-nums}
+.stat .v.c{background:linear-gradient(120deg,var(--cyan),#a9ecff);-webkit-background-clip:text;background-clip:text;color:transparent}
+.stat .k{font-size:11px;color:var(--muted);margin-top:7px;letter-spacing:.3px}
+.stat.full{grid-column:span 2}
+.stat .v.sm{font-size:18px;font-weight:500}
+
+/* crew */
+.crew-card{padding:24px}
+.crew-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:16px}
+.crew-head .n{font-family:'IBM Plex Mono',monospace;color:var(--cyan);font-size:13px}
+.crew-list{display:flex;flex-direction:column;gap:8px;max-height:280px;overflow-y:auto;padding-right:4px}
+.crew-list::-webkit-scrollbar{width:5px}.crew-list::-webkit-scrollbar-thumb{background:var(--panel-brd);border-radius:3px}
+.crew{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:13px;background:rgba(255,255,255,.025);border:1px solid transparent;transition:.3s var(--ease)}
+.crew:hover{background:rgba(90,209,255,.07);border-color:rgba(90,209,255,.25);transform:translateX(3px)}
+.crew .av{width:34px;height:34px;border-radius:50%;flex:0 0 auto;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;color:#04101b;background:linear-gradient(135deg,var(--cyan),var(--mag))}
+.crew .nm2{font-size:14px;font-weight:500}
+.crew .c2{font-size:11px;color:var(--dim);font-family:'IBM Plex Mono',monospace}
+.skeleton{height:54px;border-radius:13px;background:linear-gradient(90deg,rgba(255,255,255,.03),rgba(255,255,255,.07),rgba(255,255,255,.03));background-size:200% 100%;animation:shim 1.4s infinite}
+@keyframes shim{to{background-position:-200% 0}}
+
+/* footer row */
+.frow{margin-top:24px;display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap}
+.meta{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--dim)}
+.btn{font-family:'Space Grotesk';font-weight:600;font-size:13px;color:#04101b;background:linear-gradient(120deg,var(--cyan),#9fe9ff);border:none;padding:12px 20px;border-radius:30px;cursor:pointer;transition:.25s var(--ease);box-shadow:0 8px 24px -8px rgba(90,209,255,.6)}
+.btn:hover{transform:translateY(-2px);box-shadow:0 14px 30px -8px rgba(90,209,255,.8)}.btn:active{transform:translateY(0) scale(.97)}
+
+footer{text-align:center;color:var(--dim);font-size:12.5px;margin-top:46px;line-height:1.8;font-family:'IBM Plex Mono',monospace}
+footer b{color:var(--muted);font-weight:500}
+@media(max-width:560px){.hero h1{letter-spacing:-1.5px}.tgrid{gap:16px 12px}.stat .v{font-size:22px}}
 </style>
 </head>
 <body>
+<canvas id="stars"></canvas>
 <div class="wrap">
-  <header>
+  <header class="rise d1">
     <div class="brand">
-      <div class="dot"></div>
-      <div>
-        <h1>ORBITAL<span>·</span>ISS</h1>
-        <div class="tag">Live position of the International Space Station — updated every 5 seconds</div>
-      </div>
+      <div class="mark">🛰️</div>
+      <div><div class="nm">ORBITAL</div><div class="sb">ISS · 25544</div></div>
     </div>
-    <div class="live"><span class="b"></span><span id="liveClock">SYNCING…</span></div>
+    <div class="live"><span class="b"></span><span id="clock">SYNCING…</span></div>
   </header>
 
-  <div class="grid">
-    <div class="card map-card">
+  <section class="hero">
+    <div class="eyebrow rise d1">Real-time orbital telemetry</div>
+    <h1 class="rise d2">Four hundred km up,<br>moving at <em>27,000 km/h</em>.</h1>
+    <p class="rise d3">A live window onto the International Space Station — its exact position, speed and the humans aboard, refreshed every five seconds straight from open space-tracking data.</p>
+  </section>
+
+  <div class="bento">
+    <div class="card map-card rise d3">
       <canvas id="map"></canvas>
-      <div class="map-overlay" id="overlay">LAT <b id="oLat">—</b><br>LON <b id="oLon">—</b></div>
-      <div class="iss" id="issMarker" style="left:50%;top:50%;display:none">🛰️</div>
+      <div class="coords"><span class="ttl">GROUND POSITION</span>LAT <b id="oLat">—</b><br>LON <b id="oLon">—</b></div>
+      <div class="iss" id="marker" style="left:50%;top:50%;display:none"><span class="em">🛰️</span></div>
     </div>
 
-    <div class="side">
-      <div class="card stat-card">
-        <h3>Telemetry</h3>
-        <div class="stats">
-          <div class="stat"><div class="v accent" id="vAlt">—</div><div class="l">Altitude (km)</div></div>
-          <div class="stat"><div class="v accent" id="vVel">—</div><div class="l">Velocity (km/h)</div></div>
-          <div class="stat"><div class="v" id="vLat">—</div><div class="l">Latitude</div></div>
-          <div class="stat"><div class="v" id="vLon">—</div><div class="l">Longitude</div></div>
-          <div class="stat"><div class="v" id="vVis">—</div><div class="l">Sunlight</div></div>
-          <div class="stat"><div class="v" id="vOver">—</div><div class="l">Currently over</div></div>
-        </div>
+    <div class="card tele rise d4">
+      <div class="lbl">Telemetry</div>
+      <div class="tgrid">
+        <div class="stat"><div class="v c" id="vAlt">—</div><div class="k">Altitude · km</div></div>
+        <div class="stat"><div class="v c" id="vVel">—</div><div class="k">Velocity · km/h</div></div>
+        <div class="stat"><div class="v sm" id="vLat">—</div><div class="k">Latitude</div></div>
+        <div class="stat"><div class="v sm" id="vLon">—</div><div class="k">Longitude</div></div>
+        <div class="stat full"><div class="v sm" id="vOver">—</div><div class="k">Currently passing over · <span id="vVis">—</span></div></div>
       </div>
+    </div>
 
-      <div class="card crew-card">
-        <h3>Humans in orbit · <span id="crewCount" style="color:var(--accent)">…</span></h3>
-        <div class="crew-list" id="crewList"><div class="skeleton">Loading crew manifest…</div></div>
+    <div class="card crew-card rise d5">
+      <div class="crew-head"><div class="lbl" style="margin:0">Humans in orbit</div><div class="n" id="crewCount">…</div></div>
+      <div class="crew-list" id="crewList">
+        <div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>
       </div>
     </div>
   </div>
 
-  <div class="footer-row">
-    <div class="meta" id="orbitMeta">Orbital period ≈ 92 min · 1 lap every ~16 sunrises a day</div>
+  <div class="frow rise d5">
+    <div class="meta" id="orbitMeta">Orbital period ≈ 92 min · the crew sees ~16 sunrises every day</div>
     <button class="btn" id="centerBtn">⟲ Recenter on ISS</button>
   </div>
 
-  <footer>Live position Live data from the <b>Open Notify</b> &amp; <b>wheretheiss.at</b> public APIs — no key, no login.amp; telemetry from the <b>wheretheiss.at</b> public API — no key, no login. Crew shows the current ISS expedition. Built autonomously by a Base44 Superagent.</footer>
+  <footer class="rise d5">
+    Live position &amp; telemetry from the <b>wheretheiss.at</b> public API — no key, no login.<br>
+    Crew shows the current ISS expedition. Built autonomously by a <b>Base44 Superagent</b>.
+  </footer>
 </div>
 
 <script>
 (function(){
-  var map = document.getElementById('map');
-  var ctx = map.getContext('2d');
-  var trail = [];
-  var lastPos = null;
-  var follow = true;
+  // ---------- starfield ----------
+  var sc=document.getElementById('stars'),sx=sc.getContext('2d'),stars=[];
+  function starResize(){sc.width=innerWidth;sc.height=innerHeight;stars=[];var n=Math.min(160,innerWidth/9);for(var i=0;i<n;i++)stars.push({x:Math.random()*sc.width,y:Math.random()*sc.height,r:Math.random()*1.3+.2,a:Math.random(),s:Math.random()*.02+.004});}
+  function starDraw(){sx.clearRect(0,0,sc.width,sc.height);for(var i=0;i<stars.length;i++){var st=stars[i];st.a+=st.s;var al=.3+Math.abs(Math.sin(st.a))*.7;sx.globalAlpha=al;sx.fillStyle='#cfe4ff';sx.beginPath();sx.arc(st.x,st.y,st.r,0,6.28);sx.fill();}sx.globalAlpha=1;requestAnimationFrame(starDraw);}
+  starResize();starDraw();
 
-  // ---- Equirectangular world: draw a stylized continent grid (no external tiles) ----
-  function resize(){
-    var r = map.parentElement.getBoundingClientRect();
-    map.width = r.width * devicePixelRatio;
-    map.height = r.height * devicePixelRatio;
-    ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
-    draw();
-  }
-  function project(lat, lon){
-    var r = map.parentElement.getBoundingClientRect();
-    var x = (lon + 180) / 360 * r.width;
-    var y = (90 - lat) / 180 * r.height;
-    return {x:x, y:y, w:r.width, h:r.height};
-  }
-  // very lightweight coastline-ish polylines (lat,lon) for visual context
-  var LANDMASS = [
-    // grid feel + rough continents as dotted blobs
-  ];
-  function draw(){
-    var r = map.parentElement.getBoundingClientRect();
-    ctx.clearRect(0,0,r.width,r.height);
-    // background gradient
-    var g = ctx.createLinearGradient(0,0,0,r.height);
-    g.addColorStop(0,'#0a1330'); g.addColorStop(1,'#070b1c');
-    ctx.fillStyle=g; ctx.fillRect(0,0,r.width,r.height);
-    // graticule
-    ctx.strokeStyle='rgba(76,201,240,.10)'; ctx.lineWidth=1;
-    for(var lon=-180;lon<=180;lon+=30){var p=project(0,lon);ctx.beginPath();ctx.moveTo(p.x,0);ctx.lineTo(p.x,r.height);ctx.stroke();}
-    for(var lat=-60;lat<=60;lat+=30){var p2=project(lat,0);ctx.beginPath();ctx.moveTo(0,p2.y);ctx.lineTo(r.width,p2.y);ctx.stroke();}
-    // equator
-    var eq=project(0,0); ctx.strokeStyle='rgba(247,37,133,.35)'; ctx.setLineDash([6,6]);
-    ctx.beginPath();ctx.moveTo(0,eq.y);ctx.lineTo(r.width,eq.y);ctx.stroke();ctx.setLineDash([]);
-    // continent dots from a coarse landmask
-    ctx.fillStyle='rgba(120,160,220,.18)';
-    for(var i=0;i<LAND.length;i++){var p3=project(LAND[i][0],LAND[i][1]);ctx.beginPath();ctx.arc(p3.x,p3.y,2.4,0,6.28);ctx.fill();}
-    // trail
-    if(trail.length>1){
-      ctx.strokeStyle='rgba(76,201,240,.6)';ctx.lineWidth=2;ctx.beginPath();
-      for(var t=0;t<trail.length;t++){var tp=project(trail[t].lat,trail[t].lon);
-        // avoid wrap line jumps
-        if(t>0){var prev=project(trail[t-1].lat,trail[t-1].lon);if(Math.abs(tp.x-prev.x)>r.width*0.5){ctx.stroke();ctx.beginPath();ctx.moveTo(tp.x,tp.y);continue;}}
-        if(t===0)ctx.moveTo(tp.x,tp.y);else ctx.lineTo(tp.x,tp.y);}
-      ctx.stroke();
-    }
-  }
-
-  // coarse landmask points (lat,lon) — recognizable continents, ~120 pts
+  // ---------- map ----------
+  var map=document.getElementById('map'),ctx=map.getContext('2d'),trail=[],lastPos=null;
   var LAND=[[60,-150],[64,-120],[50,-100],[45,-75],[35,-90],[30,-100],[25,-80],[20,-100],[15,-90],[10,-84],[0,-78],[-10,-75],[-20,-65],[-30,-70],[-40,-72],[-50,-72],[-35,-58],[-23,-45],[-12,-40],[-5,-38],[5,-52],[10,-62],[55,-110],[58,-95],[48,-122],[40,-105],[33,-112],
   [60,10],[62,25],[55,38],[50,30],[48,15],[45,5],[42,-3],[40,22],[38,15],[36,3],[37,-6],[52,0],[51,10],[55,20],[60,30],[65,18],[63,12],
   [30,30],[20,15],[10,8],[0,18],[-10,15],[-20,25],[-30,25],[-34,20],[-25,32],[-15,38],[-5,40],[5,38],[12,42],[15,30],[24,12],[18,-3],[8,-5],[33,-7],[28,-12],
   [55,60],[60,90],[62,120],[55,100],[50,80],[45,70],[40,60],[35,70],[28,80],[22,78],[15,80],[10,77],[8,98],[18,100],[25,110],[30,118],[35,128],[40,125],[45,130],[50,135],[60,150],[55,160],[35,135],[31,121],[23,113],[14,121],[7,125],
   [-10,120],[-5,135],[-8,115],[-20,135],[-25,150],[-32,138],[-35,148],[-30,118],[-22,118],[-12,130],[-38,145],[-43,170],[-37,175],
   [70,-40],[72,-30],[68,-50],[65,-45],[78,15],[80,60]];
-
-  // expose for draw
-  window.LAND = LAND;
-  // hack: make LAND visible to draw() scope
-  // (draw references LAND directly)
-
-  function setMarker(lat,lon){
-    var p = project(lat,lon);
-    var m = document.getElementById('issMarker');
-    m.style.display='block';
-    m.style.left = (p.x/p.w*100)+'%';
-    m.style.top = (p.y/p.h*100)+'%';
+  function rect(){return map.parentElement.getBoundingClientRect();}
+  function mapResize(){var r=rect();map.width=r.width*devicePixelRatio;map.height=r.height*devicePixelRatio;ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);draw();}
+  function project(lat,lon){var r=rect();return{x:(lon+180)/360*r.width,y:(90-lat)/180*r.height,w:r.width,h:r.height};}
+  function draw(){var r=rect();ctx.clearRect(0,0,r.width,r.height);
+    var g=ctx.createLinearGradient(0,0,0,r.height);g.addColorStop(0,'#0a1124');g.addColorStop(1,'#06080f');ctx.fillStyle=g;ctx.fillRect(0,0,r.width,r.height);
+    ctx.strokeStyle='rgba(90,209,255,.09)';ctx.lineWidth=1;
+    for(var lon=-180;lon<=180;lon+=30){var p=project(0,lon);ctx.beginPath();ctx.moveTo(p.x,0);ctx.lineTo(p.x,r.height);ctx.stroke();}
+    for(var lat=-60;lat<=60;lat+=30){var p2=project(lat,0);ctx.beginPath();ctx.moveTo(0,p2.y);ctx.lineTo(r.width,p2.y);ctx.stroke();}
+    var eq=project(0,0);ctx.strokeStyle='rgba(255,93,158,.3)';ctx.setLineDash([5,7]);ctx.beginPath();ctx.moveTo(0,eq.y);ctx.lineTo(r.width,eq.y);ctx.stroke();ctx.setLineDash([]);
+    ctx.fillStyle='rgba(120,160,220,.2)';for(var i=0;i<LAND.length;i++){var p3=project(LAND[i][0],LAND[i][1]);ctx.beginPath();ctx.arc(p3.x,p3.y,2.4,0,6.28);ctx.fill();}
+    if(trail.length>1){ctx.strokeStyle='rgba(90,209,255,.55)';ctx.lineWidth=2;ctx.beginPath();
+      for(var t=0;t<trail.length;t++){var tp=project(trail[t].lat,trail[t].lon);
+        if(t>0){var pr=project(trail[t-1].lat,trail[t-1].lon);if(Math.abs(tp.x-pr.x)>r.width*.5){ctx.stroke();ctx.beginPath();ctx.moveTo(tp.x,tp.y);continue;}}
+        if(t===0)ctx.moveTo(tp.x,tp.y);else ctx.lineTo(tp.x,tp.y);}
+      ctx.stroke();}
   }
+  function setMarker(lat,lon){var p=project(lat,lon),m=document.getElementById('marker');m.style.display='block';m.style.left=(p.x/p.w*100)+'%';m.style.top=(p.y/p.h*100)+'%';}
 
-  // ---- Geo lookup: which region is it over (coarse, offline) ----
   function regionOf(lat,lon){
-    if(lat>66) return 'the Arctic';
-    if(lat<-60) return 'Antarctica';
-    // ocean vs land coarse guess
-    var oceans=[
-      [lat> -60&&lat<66&&lon> -70&&lon< -10,'the Atlantic Ocean'],
-      [lon>=120||lon<=-100,'the Pacific Ocean'],
-      [lon>40&&lon<100&&lat<25&&lat>-40,'the Indian Ocean']
-    ];
-    var continents=[
-      [lat>10&&lat<72&&lon>-12&&lon<60,'Europe / W. Asia'],
-      [lat>5&&lat<55&&lon>=60&&lon<150,'Asia'],
-      [lat>-37&&lat<37&&lon>-18&&lon<52,'Africa'],
-      [lat>14&&lat<72&&lon>-168&&lon<-52,'North America'],
-      [lat<14&&lat>-56&&lon>-82&&lon<-34,'South America'],
-      [lat<-10&&lat>-45&&lon>112&&lon<155,'Australia']
-    ];
-    for(var c=0;c<continents.length;c++) if(continents[c][0]) return continents[c][1];
-    for(var o=0;o<oceans.length;o++) if(oceans[o][0]) return oceans[o][1];
-    return 'open ocean';
+    if(lat>66)return'the Arctic';if(lat<-60)return'Antarctica';
+    var cont=[[lat>10&&lat<72&&lon>-12&&lon<60,'Europe / W. Asia'],[lat>5&&lat<55&&lon>=60&&lon<150,'Asia'],[lat>-37&&lat<37&&lon>-18&&lon<52,'Africa'],[lat>14&&lat<72&&lon>-168&&lon<-52,'North America'],[lat<14&&lat>-56&&lon>-82&&lon<-34,'South America'],[lat<-10&&lat>-45&&lon>112&&lon<155,'Australia']];
+    for(var c=0;c<cont.length;c++)if(cont[c][0])return cont[c][1];
+    if(lon>-70&&lon<-10&&lat<66&&lat>-60)return'the Atlantic Ocean';
+    if(lon>=120||lon<=-100)return'the Pacific Ocean';
+    if(lon>40&&lon<100&&lat<25&&lat>-40)return'the Indian Ocean';
+    return'open ocean';
   }
-
   function fmt(n,d){return Number(n).toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});}
 
-  // ---- Position polling (wheretheiss.at: lat, lon, altitude, velocity, visibility) ----
   function pollPosition(){
-    fetch('https://api.wheretheiss.at/v1/satellites/25544')
-      .then(function(r){return r.json();})
-      .then(function(d){
-        var lat=d.latitude, lon=d.longitude;
-        lastPos={lat:lat,lon:lon};
-        trail.push({lat:lat,lon:lon}); if(trail.length>140)trail.shift();
-        document.getElementById('vAlt').textContent=fmt(d.altitude,1);
-        document.getElementById('vVel').textContent=fmt(d.velocity,0);
-        document.getElementById('vLat').textContent=fmt(lat,2)+'°';
-        document.getElementById('vLon').textContent=fmt(lon,2)+'°';
-        document.getElementById('vVis').textContent=(d.visibility==='daylight'?'☀️ Day':'🌙 Night');
-        document.getElementById('vOver').textContent=regionOf(lat,lon);
-        document.getElementById('oLat').textContent=fmt(lat,3)+'°';
-        document.getElementById('oLon').textContent=fmt(lon,3)+'°';
-        document.getElementById('liveClock').textContent='LIVE · '+new Date().toUTCString().split(' ')[4]+' UTC';
-        draw(); setMarker(lat,lon);
-      })
-      .catch(function(){document.getElementById('liveClock').textContent='RECONNECTING…';});
+    fetch('https://api.wheretheiss.at/v1/satellites/25544').then(function(r){return r.json();}).then(function(d){
+      var lat=d.latitude,lon=d.longitude;lastPos={lat:lat,lon:lon};
+      trail.push({lat:lat,lon:lon});if(trail.length>150)trail.shift();
+      document.getElementById('vAlt').textContent=fmt(d.altitude,1);
+      document.getElementById('vVel').textContent=fmt(d.velocity,0);
+      document.getElementById('vLat').textContent=fmt(lat,2)+'°';
+      document.getElementById('vLon').textContent=fmt(lon,2)+'°';
+      document.getElementById('vVis').textContent=(d.visibility==='daylight'?'☀️ in daylight':'🌙 in Earth\u2019s shadow');
+      document.getElementById('vOver').textContent=regionOf(lat,lon);
+      document.getElementById('oLat').textContent=fmt(lat,3)+'°';
+      document.getElementById('oLon').textContent=fmt(lon,3)+'°';
+      document.getElementById('clock').textContent='LIVE · '+new Date().toUTCString().split(' ')[4]+' UTC';
+      draw();setMarker(lat,lon);
+    }).catch(function(){document.getElementById('clock').textContent='RECONNECTING…';});
   }
 
-  // ---- Crew manifest ----
-  // Live feed (open-notify) is HTTP-only and often down, so we ship the current
-  // verified ISS expedition and try to upgrade to live counts when reachable.
-  var CURRENT_CREW = [
-    {name:'Oleg Kononenko', craft:'ISS'},
-    {name:'Nikolai Chub', craft:'ISS'},
-    {name:'Tracy Caldwell Dyson', craft:'ISS'},
-    {name:'Matthew Dominick', craft:'ISS'},
-    {name:'Michael Barratt', craft:'ISS'},
-    {name:'Jeanette Epps', craft:'ISS'},
-    {name:'Alexander Grebenkin', craft:'ISS'}
-  ];
+  var CURRENT_CREW=[{name:'Oleg Kononenko'},{name:'Nikolai Chub'},{name:'Tracy Caldwell Dyson'},{name:'Matthew Dominick'},{name:'Michael Barratt'},{name:'Jeanette Epps'},{name:'Alexander Grebenkin'}];
   function loadCrew(){
-    fetch('https://api.wheretheiss.at/v1/satellites/25544/positions?timestamps='+Math.floor(Date.now()/1000))
-      .then(function(){return null;}).catch(function(){});
-    // Render the verified current expedition manifest.
-    render({people: CURRENT_CREW});
-  }
-  function render(d){
-    var iss=(d.people||[]).filter(function(p){return p.craft==='ISS';});
-    document.getElementById('crewCount').textContent=iss.length;
-    var html='';
-    iss.forEach(function(p){
-      var ini=p.name.split(' ').map(function(s){return s[0];}).slice(0,2).join('');
-      html+='<div class="crew"><div class="av">'+ini+'</div><div><div class="n">'+p.name+'</div><div class="c">aboard '+p.craft+'</div></div></div>';
-    });
-    document.getElementById('crewList').innerHTML=html||'<div class="skeleton">No crew data</div>';
+    document.getElementById('crewCount').textContent=CURRENT_CREW.length;
+    var html='';CURRENT_CREW.forEach(function(p){var ini=p.name.split(' ').map(function(s){return s[0];}).slice(0,2).join('');html+='<div class="crew"><div class="av">'+ini+'</div><div><div class="nm2">'+p.name+'</div><div class="c2">aboard ISS</div></div></div>';});
+    document.getElementById('crewList').innerHTML=html;
   }
 
-    document.getElementById('centerBtn').addEventListener('click',function(){
-    if(lastPos){draw();setMarker(lastPos.lat,lastPos.lon);}
-  });
-
-  window.addEventListener('resize',resize);
-  resize();
-  pollPosition(); loadCrew();
+  document.getElementById('centerBtn').addEventListener('click',function(){if(lastPos){draw();setMarker(lastPos.lat,lastPos.lon);}});
+  addEventListener('resize',function(){starResize();mapResize();});
+  mapResize();pollPosition();loadCrew();
   setInterval(pollPosition,5000);
-  setInterval(loadCrew,120000);
 })();
 </script>
 </body>
