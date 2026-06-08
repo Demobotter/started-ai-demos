@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cold Email Scorer — Will They Actually Reply?</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  :root{--bg:#0a0e13;--card:#121820;--line:#1e2736;--ink:#e8eaec;--dim:#8b91a0;--faint:#5a6170;--accent:#64c9ff;--accent2:#3fa9d6;--warm:#ffb86c;--good:#66d9a0;--mid:#ffaa5c;--warn:#ff7e7e}
+  body{background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;min-height:100vh;line-height:1.55}
+  ::selection{background:var(--accent);color:var(--bg)}
+  .wrap{max-width:900px;margin:0 auto;padding:60px 22px 80px}
+  .kick{font-size:12px;letter-spacing:.28em;text-transform:uppercase;color:var(--accent2);margin-bottom:14px;font-weight:600}
+  h1{font-size:clamp(36px,6.5vw,56px);line-height:1.05;letter-spacing:-.015em;font-weight:700}
+  h1 em{font-style:italic;color:var(--accent)}
+  .sub{color:var(--dim);margin-top:12px;font-size:15px;max-width:600px}
+  .split{display:grid;grid-template-columns:1fr 1fr;gap:30px;margin-top:32px;align-items:start}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:28px 26px;box-shadow:0 24px 60px -28px rgba(0,0,0,.5)}
+  .field{margin-bottom:20px}
+  label{display:block;font-size:13px;color:var(--dim);margin-bottom:8px;font-weight:500}
+  textarea{width:100%;background:#0f1419;border:1px solid var(--line);border-radius:12px;padding:14px;color:var(--ink);font-family:'IBM Plex Mono',monospace;font-size:14px;line-height:1.6;resize:vertical;min-height:220px;transition:border-color .15s}
+  textarea:focus{outline:none;border-color:var(--accent2)}
+  textarea::placeholder{color:var(--faint)}
+  button{background:linear-gradient(135deg,var(--accent2),var(--accent));color:#000;border:none;border-radius:11px;padding:13px 28px;font-weight:600;font-size:15px;cursor:pointer;transition:all .2s;font-family:inherit}
+  button:hover{transform:translateY(-2px);box-shadow:0 12px 32px -8px var(--accent)}
+  button:active{transform:translateY(0)}
+  .result{background:linear-gradient(160deg,#0f1b25,#0a1420);border:1px solid #1a3a4d;border-radius:16px;padding:32px;margin-top:30px;animation:f .5s cubic-bezier(.16,1,.3,1)}
+  .r-top{display:flex;gap:20px;margin-bottom:28px;align-items:baseline}
+  .big-score{font-family:'IBM Plex Mono',monospace;font-size:clamp(52px,12vw,72px);font-weight:600;line-height:1;color:var(--accent)}
+  .big-score.good{color:var(--good)}
+  .big-score.mid{color:var(--mid)}
+  .big-score.warn{color:var(--warn)}
+  .score-label{color:var(--dim);font-size:14px}
+  .metrics{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:26px}
+  .metric{background:rgba(100,201,255,.08);border:1px solid var(--line);border-radius:12px;padding:16px;text-align:center}
+  .metric-val{font-family:'IBM Plex Mono',monospace;font-size:clamp(22px,4vw,32px);font-weight:600;color:var(--ink);line-height:1}
+  .metric-lab{font-size:12px;color:var(--dim);margin-top:6px;text-transform:uppercase;letter-spacing:.12em}
+  .breakdown{margin-top:28px;border-top:1px solid var(--line);padding-top:24px}
+  .break-item{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;font-size:14px}
+  .break-lab{color:var(--dim)}
+  .break-score{font-family:'IBM Plex Mono',monospace;font-weight:600;color:var(--ink)}
+  .break-score.good{color:var(--good)}
+  .break-score.mid{color:var(--mid)}
+  .break-score.warn{color:var(--warn)}
+  .note{margin-top:20px;padding:14px 16px;border-radius:12px;font-size:13px;line-height:1.5}
+  .note.ok{background:#0f2718;color:#6fd99f;border:1px solid #1a4a2e}
+  .note.info{background:#0f1925;color:#6fb8e5;border:1px solid #1a3a54}
+  .note.caution{background:#2a1810;color:#ffb86c;border:1px solid #5a3a1a}
+  .empty{text-align:center;padding:40px 20px;color:var(--dim)}
+  .empty-icon{font-size:48px;margin-bottom:12px;opacity:.5}
+  footer{margin-top:40px;color:var(--faint);font-size:12px;text-align:center}
+  .fade{animation:f .5s cubic-bezier(.16,1,.3,1) both}
+  @keyframes f{from{opacity:0;transform:translateY(8px)}to{opacity:1}}
+  @media(max-width:768px){
+    .split{grid-template-columns:1fr}
+    .metrics{grid-template-columns:1fr}
+    h1{font-size:clamp(28px,5vw,40px)}
+  }
+  @media(prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="kick">Email Analysis</div>
+  <h1>Will they <em>actually</em> reply?</h1>
+  <p class="sub">Paste a cold email and get scored on hook strength, personalization, CTA clarity, and more. See exactly what's working and what's dragging your reply rate down.</p>
+
+  <div class="split">
+    <div class="card">
+      <div class="field">
+        <label>Paste your cold email</label>
+        <textarea id="email" placeholder="Subject: [paste the whole thing — subject + body]"></textarea>
+      </div>
+      <button onclick="score()">Score This Email</button>
+    </div>
+    <div id="out"></div>
+  </div>
+
+  <footer>Analysis runs in your browser · built by an AI agent on Base44</footer>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const out=$('out');
+
+function score(){
+  const email=(($('email').value||'').trim()).toLowerCase();
+  if(!email){
+    out.innerHTML='<div class="empty"><div class="empty-icon">📧</div><div>Paste an email above</div></div>';
+    return;
+  }
+
+  // 1. HOOK STRENGTH (opening urgency / relevance)
+  const hookPatterns=[
+    /^(hey|hi|hello)\s+\w+\s*[,:]?\s*(i|we)\s+(wanted|found|noticed|saw|stumbled|discovered|read)/i,
+    /^(i\s+)?(noticed|found|saw|read)\s+(that\s+)?(you|your company)/i,
+    /^(quick\s+)?(thought|idea|opportunity)/i,
+    /^(one\s+)?(thing|question)/i,
+    /(urgent|quick win|opportunity|specific reason)/i
+  ];
+  const hookMatch=hookPatterns.filter(p=>p.test(email)).length;
+  const hookScore=Math.min(100,hookMatch*20+(email.length>180?20:0));
+
+  // 2. PERSONALIZATION (name mention, company detail, custom ref)
+  const nameMatch=email.match(/\b(you|your)\b/g)||[];
+  const companyMatch=email.match(/\b(your|the|at)\s+(company|team|product|organization)\b/g)||[];
+  const specificRef=/\(([a-z\s]{3,20})\)/.test(email) || /\[([a-z\s]{3,20})\]/.test(email);
+  const personalScore=Math.min(100,(nameMatch.length*5)+(companyMatch.length*15)+(specificRef?20:0));
+
+  // 3. CTA CLARITY (is the ask obvious? one clear next step?)
+  const ctaKeywords=['would you', 'open to', 'interested in', 'available', 'coffee', 'call', 'chat', 'quick', 'let me know', 'thoughts', 'reply', 'check out', 'try'];
+  const ctaMatch=ctaKeywords.filter(k=>email.includes(k)).length;
+  const ctaScore=Math.min(100,ctaMatch*15+(/([\?\!])\s*$/.test(email.trim())?10:0));
+
+  // 4. SOCIAL PROOF (numbers, testimonials, credibility)
+  const numberMatch=email.match(/\b(\d+(?:\.\d+)?[km%x]?)\b/g)||[];
+  const proofMatch=email.match(/(helped|worked with|used by|trusted by|increased|grew|revenue)/g)||[];
+  const proofScore=Math.min(100,(numberMatch.length*12)+(proofMatch.length*8));
+
+  // 5. TONE (professional, casual, match intent)
+  const tonePatterns=[
+    {pattern:/\b(best regards|sincerely|thanks|cheers|looking forward)\b/i,score:10},
+    {pattern:/\b(thanks!|thanks\.|thx|lol|smile|thumbsup)\b/i,score:5},
+    {pattern:/\b(asap|urgent|critical|now)\b/i,score:-10}
+  ];
+  let toneScore=50;
+  tonePatterns.forEach(({pattern,score:s})=>{
+    if(pattern.test(email)) toneScore+=s;
+  });
+  toneScore=Math.max(0,Math.min(100,toneScore));
+
+  // OVERALL (weighted average)
+  const overall=Math.round((hookScore*0.2)+(personalScore*0.25)+(ctaScore*0.2)+(proofScore*0.15)+(toneScore*0.2));
+
+  // LIKELIHOOD (heuristic)
+  let likelihood='low';
+  if(overall>70) likelihood='high';
+  else if(overall>55) likelihood='medium';
+
+  const verdict=overall>70?'Strong email. Your hook is solid, ask is clear, and you have credibility. Good shot at a reply.':overall>55?'Decent email. You have the basics, but tighten one or two weak spots to push past the noise.':'Needs work. Your hook is buried, the ask is vague, or credibility is missing. Rewrite before sending.';
+
+  const issueList=[
+    {label:'your hook is weak — open with relevance or urgency',active:hookScore<50},
+    {label:'you did not personalize enough',active:personalScore<50},
+    {label:'your ask is buried or vague',active:ctaScore<50},
+    {label:'add numbers or proof points',active:proofScore<40},
+    {label:'tone might be off for this type of ask',active:toneScore<50}
+  ];
+  const issues=issueList.filter(i=>i.active).map(i=>i.label).join('; ');
+  const issueNote=overall<55?'<div class="note caution"><strong>⚠ Biggest issue:</strong> '+issues+'</div>':'';
+  const successNote=overall>70?'<div class="note ok"><strong>✓ What is working:</strong> You have hooked them with relevance, personalized well, and made the ask clear. This will get replies.</div>':'';
+
+  const html=`<div class="result">
+    <div class="r-top">
+      <div>
+        <div class="big-score ${overall>70?'good':overall>55?'mid':'warn'}">${overall}</div>
+        <div class="score-label">reply likelihood</div>
+      </div>
+      <div style="flex:1">
+        <div style="font-size:15px;color:var(--dim);line-height:1.5">
+          ${verdict}
+        </div>
+      </div>
+    </div>
+
+    <div class="metrics">
+      <div class="metric">
+        <div class="metric-val">${hookScore}</div>
+        <div class="metric-lab">Hook Strength</div>
+      </div>
+      <div class="metric">
+        <div class="metric-val">${personalScore}</div>
+        <div class="metric-lab">Personalization</div>
+      </div>
+      <div class="metric">
+        <div class="metric-val">${ctaScore}</div>
+        <div class="metric-lab">CTA Clarity</div>
+      </div>
+      <div class="metric">
+        <div class="metric-val">${proofScore}</div>
+        <div class="metric-lab">Social Proof</div>
+      </div>
+      <div class="metric">
+        <div class="metric-val">${toneScore}</div>
+        <div class="metric-lab">Tone Fit</div>
+      </div>
+      <div class="metric">
+        <div class="metric-val">${email.split(/\s+/).length}</div>
+        <div class="metric-lab">Word Count</div>
+      </div>
+    </div>
+
+    <div class="breakdown">
+      <div style="font-size:13px;color:var(--dim);margin-bottom:16px;text-transform:uppercase;letter-spacing:.12em">Dimension Scores</div>
+      <div class="break-item">
+        <span class="break-lab">🎣 Hook opens with urgency / relevance?</span>
+        <span class="break-score ${hookScore>60?'good':hookScore>40?'mid':'warn'}">${hookScore}</span>
+      </div>
+      <div class="break-item">
+        <span class="break-lab">🔍 Personalized to this specific person?</span>
+        <span class="break-score ${personalScore>60?'good':personalScore>40?'mid':'warn'}">${personalScore}</span>
+      </div>
+      <div class="break-item">
+        <span class="break-lab">✋ Ask is obvious and one clear next step?</span>
+        <span class="break-score ${ctaScore>60?'good':ctaScore>40?'mid':'warn'}">${ctaScore}</span>
+      </div>
+      <div class="break-item">
+        <span class="break-lab">⭐ Numbers / testimonials / credibility hints?</span>
+        <span class="break-score ${proofScore>50?'good':proofScore>30?'mid':'warn'}">${proofScore}</span>
+      </div>
+      <div class="break-item">
+        <span class="break-lab">💬 Tone matches intent (professional / casual)?</span>
+        <span class="break-score ${toneScore>55?'good':toneScore>45?'mid':'warn'}">${toneScore}</span>
+      </div>
+    </div>
+
+    ${issueNote}
+    ${successNote}
+  </div>`;
+
+  out.innerHTML=html;
+}
+
+$('email').addEventListener('keydown',e=>{if(e.key==='Enter'&&e.ctrlKey) score()});
+</script>
+</body>
+</html>
