@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crypto Portfolio Tracker — Real CoinGecko Prices</title>
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            font-family: 'Sora', sans-serif;
+            background: linear-gradient(135deg, #0f0e1e 0%, #1a1a3e 50%, #0d3b4a 100%);
+            color: #e5e7eb;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        /* Header / Hero */
+        .hero {
+            text-align: center;
+            margin-bottom: 40px;
+            animation: fadeInDown 0.8s ease-out;
+        }
+
+        .hero h1 {
+            font-size: clamp(32px, 6vw, 56px);
+            font-weight: 700;
+            background: linear-gradient(135deg, #4ecca3 0%, #64c9ff 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 8px;
+            letter-spacing: -1px;
+        }
+
+        .hero p {
+            font-size: 16px;
+            color: #9ca3af;
+            font-family: 'Courier Prime', monospace;
+        }
+
+        /* Portfolio Summary */
+        .portfolio-summary {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 32px;
+            margin-bottom: 32px;
+            text-align: center;
+            animation: fadeInUp 0.8s ease-out 0.1s backwards;
+        }
+
+        .summary-label {
+            font-size: 14px;
+            color: #9ca3af;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+
+        .summary-value {
+            font-size: clamp(36px, 8vw, 64px);
+            font-weight: 700;
+            font-family: 'Courier Prime', monospace;
+            letter-spacing: -2px;
+            color: #4ecca3;
+            transition: all 0.3s ease;
+        }
+
+        .summary-change {
+            font-size: 18px;
+            margin-top: 8px;
+            font-family: 'Courier Prime', monospace;
+            font-weight: 600;
+        }
+
+        .summary-change.positive {
+            color: #4ecca3;
+        }
+
+        .summary-change.negative {
+            color: #ff6b6b;
+        }
+
+        .summary-change.neutral {
+            color: #9ca3af;
+        }
+
+        /* Holdings Grid */
+        .holdings-section {
+            animation: fadeInUp 0.8s ease-out 0.2s backwards;
+        }
+
+        .section-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: #e5e7eb;
+        }
+
+        .add-holding {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr auto;
+            gap: 12px;
+            margin-bottom: 24px;
+            padding: 16px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+        }
+
+        .add-holding input,
+        .add-holding select {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 8px;
+            padding: 12px;
+            color: #e5e7eb;
+            font-family: 'Sora', sans-serif;
+            font-size: 14px;
+            transition: all 0.2s ease;
+        }
+
+        .add-holding input::placeholder {
+            color: #6b7280;
+        }
+
+        .add-holding input:focus,
+        .add-holding select:focus {
+            outline: none;
+            border-color: #4ecca3;
+            background: rgba(78, 204, 163, 0.1);
+        }
+
+        .add-holding button {
+            background: linear-gradient(135deg, #4ecca3 0%, #64c9ff 100%);
+            color: #0f0e1e;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 24px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-family: 'Sora', sans-serif;
+        }
+
+        .add-holding button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(78, 204, 163, 0.3);
+        }
+
+        .add-holding button:active {
+            transform: translateY(0);
+        }
+
+        @media (max-width: 768px) {
+            .add-holding {
+                grid-template-columns: 1fr;
+            }
+
+            .add-holding button {
+                grid-column: 1;
+            }
+        }
+
+        /* Holdings Grid */
+        .holdings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+
+        .holding-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 20px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .holding-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #4ecca3 0%, #64c9ff 100%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .holding-card:hover {
+            border-color: rgba(78, 204, 163, 0.5);
+            background: rgba(78, 204, 163, 0.08);
+            transform: translateY(-4px);
+        }
+
+        .holding-card:hover::before {
+            opacity: 1;
+        }
+
+        .coin-name {
+            font-size: 16px;
+            font-weight: 700;
+            color: #e5e7eb;
+            margin-bottom: 8px;
+            font-family: 'Courier Prime', monospace;
+            text-transform: uppercase;
+        }
+
+        .coin-amount {
+            font-size: 14px;
+            color: #9ca3af;
+            margin-bottom: 12px;
+        }
+
+        .coin-price {
+            font-size: 14px;
+            color: #6b7280;
+            margin-bottom: 8px;
+        }
+
+        .coin-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #4ecca3;
+            font-family: 'Courier Prime', monospace;
+            margin-bottom: 12px;
+        }
+
+        .coin-change {
+            font-size: 14px;
+            font-weight: 600;
+            font-family: 'Courier Prime', monospace;
+            padding: 8px 12px;
+            border-radius: 6px;
+            text-align: center;
+            display: inline-block;
+            width: 100%;
+        }
+
+        .coin-change.positive {
+            background: rgba(78, 204, 163, 0.2);
+            color: #4ecca3;
+        }
+
+        .coin-change.negative {
+            background: rgba(255, 107, 107, 0.2);
+            color: #ff6b6b;
+        }
+
+        .coin-change.neutral {
+            background: rgba(107, 114, 128, 0.2);
+            color: #9ca3af;
+        }
+
+        .remove-btn {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: rgba(255, 107, 107, 0.2);
+            border: none;
+            color: #ff6b6b;
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 700;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .remove-btn:hover {
+            background: rgba(255, 107, 107, 0.4);
+            transform: scale(1.1);
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            opacity: 0;
+            animation: fadeIn 0.6s ease-out forwards;
+            animation-delay: 0.3s;
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        .empty-state p {
+            color: #9ca3af;
+            font-size: 16px;
+        }
+
+        /* Loading */
+        .loading {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: rgba(78, 204, 163, 0.5);
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        /* Animations */
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 1; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            margin-top: 48px;
+            padding: 20px;
+            font-size: 12px;
+            color: #6b7280;
+            font-family: 'Courier Prime', monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="hero">
+            <h1>Portfolio Tracker</h1>
+            <p>Real-time crypto prices • Updated every 30 seconds</p>
+        </div>
+
+        <div class="portfolio-summary">
+            <div class="summary-label">Total Portfolio Value</div>
+            <div class="summary-value" id="totalValue">$0.00</div>
+            <div class="summary-change neutral" id="totalChange">—</div>
+        </div>
+
+        <div class="holdings-section">
+            <h2 class="section-title">Your Holdings</h2>
+
+            <div class="add-holding">
+                <input type="text" id="coinInput" placeholder="Enter coin (BTC, ETH, ADA...)" list="coinList">
+                <datalist id="coinList">
+                    <option value="BTC">BTC</option>
+                    <option value="ETH">ETH</option>
+                    <option value="ADA">ADA</option>
+                    <option value="SOL">SOL</option>
+                    <option value="DOGE">DOGE</option>
+                    <option value="XRP">XRP</option>
+                    <option value="MATIC">MATIC</option>
+                    <option value="AVAX">AVAX</option>
+                    <option value="LINK">LINK</option>
+                    <option value="UNI">UNI</option>
+                </datalist>
+                <input type="number" id="amountInput" placeholder="Amount" step="0.00000001" min="0">
+                <button onclick="addHolding()">Add</button>
+            </div>
+
+            <div class="holdings-grid" id="holdingsGrid"></div>
+            <div class="empty-state" id="emptyState">
+                <div class="empty-state-icon">🚀</div>
+                <p>Add holdings to get started</p>
+            </div>
+        </div>
+
+        <div class="footer">
+            Data from CoinGecko API • Not financial advice
+        </div>
+    </div>
+
+    <script>
+        const COINGECKO_BASE = 'https://api.coingecko.com/api/v3';
+        const COIN_ID_MAP = {
+            'BTC': 'bitcoin',
+            'ETH': 'ethereum',
+            'ADA': 'cardano',
+            'SOL': 'solana',
+            'DOGE': 'dogecoin',
+            'XRP': 'ripple',
+            'MATIC': 'matic-network',
+            'AVAX': 'avalanche-2',
+            'LINK': 'chainlink',
+            'UNI': 'uniswap',
+            'BNB': 'binancecoin',
+            'ARB': 'arbitrum',
+            'OP': 'optimism',
+            'PEPE': 'pepe',
+            'SHIB': 'shiba-inu'
+        };
+
+        let holdings = [];
+        let priceCache = {};
+        let lastPriceUpdate = 0;
+
+        function getCoinId(symbol) {
+            return COIN_ID_MAP[symbol.toUpperCase()] || null;
+        }
+
+        async function fetchPrices(coinIds) {
+            if (!coinIds || coinIds.length === 0) return {};
+
+            const url = `${COINGECKO_BASE}/simple/price?ids=${coinIds.join(',')}&vs_currencies=usd&include_market_cap=true&include_24hr_change=true`;
+
+            try {
+                const res = await fetch(url);
+                if (!res.ok) throw new Error(`Status ${res.status}`);
+                const data = await res.json();
+                priceCache = data;
+                lastPriceUpdate = Date.now();
+                return data;
+            } catch (err) {
+                console.error('Fetch error:', err);
+                return priceCache;
+            }
+        }
+
+        function addHolding() {
+            const coin = document.getElementById('coinInput').value.trim().toUpperCase();
+            const amount = parseFloat(document.getElementById('amountInput').value);
+
+            if (!coin || !amount || amount <= 0) {
+                alert('Enter a valid coin and amount');
+                return;
+            }
+
+            const coinId = getCoinId(coin);
+            if (!coinId) {
+                alert(`Unknown coin: ${coin}`);
+                return;
+            }
+
+            // Prevent duplicates
+            if (holdings.find(h => h.coin === coin)) {
+                alert(`${coin} already added`);
+                return;
+            }
+
+            holdings.push({ coin, amount, coinId });
+            document.getElementById('coinInput').value = '';
+            document.getElementById('amountInput').value = '';
+            render();
+        }
+
+        function removeHolding(coin) {
+            holdings = holdings.filter(h => h.coin !== coin);
+            render();
+        }
+
+        function formatCurrency(value) {
+            return new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD',
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }).format(value);
+        }
+
+        function formatPercent(value) {
+            const sign = value >= 0 ? '+' : '';
+            return `${sign}${value.toFixed(2)}%`;
+        }
+
+        async function render() {
+            const emptyState = document.getElementById('emptyState');
+            const grid = document.getElementById('holdingsGrid');
+
+            if (holdings.length === 0) {
+                grid.innerHTML = '';
+                emptyState.style.display = 'block';
+                document.getElementById('totalValue').textContent = '$0.00';
+                document.getElementById('totalChange').textContent = '—';
+                return;
+            }
+
+            emptyState.style.display = 'none';
+
+            // Fetch fresh prices
+            const coinIds = holdings.map(h => h.coinId);
+            const prices = await fetchPrices(coinIds);
+
+            let totalValue = 0;
+            let totalChange = 0;
+            let changeCount = 0;
+
+            grid.innerHTML = holdings.map(holding => {
+                const priceData = prices[holding.coinId] || {};
+                const price = priceData.usd || 0;
+                const change24h = priceData.usd_24h_change || 0;
+                const value = price * holding.amount;
+
+                totalValue += value;
+                if (!isNaN(change24h)) {
+                    totalChange += change24h;
+                    changeCount++;
+                }
+
+                const changeClass = change24h > 0 ? 'positive' : change24h < 0 ? 'negative' : 'neutral';
+                const avgChange = changeCount > 0 ? totalChange / changeCount : 0;
+
+                return `
+                    <div class="holding-card">
+                        <button class="remove-btn" onclick="removeHolding('${holding.coin}')">✕</button>
+                        <div class="coin-name">${holding.coin}</div>
+                        <div class="coin-amount">${holding.amount.toFixed(8)} coin${holding.amount !== 1 ? 's' : ''}</div>
+                        <div class="coin-price">@ ${formatCurrency(price)}</div>
+                        <div class="coin-value">${formatCurrency(value)}</div>
+                        <div class="coin-change ${changeClass}">${formatPercent(change24h)} (24h)</div>
+                    </div>
+                `;
+            }).join('');
+
+            // Update summary
+            const avgChange = changeCount > 0 ? totalChange / changeCount : 0;
+            const summaryChange = document.getElementById('totalChange');
+            const summaryChangeClass = avgChange > 0 ? 'positive' : avgChange < 0 ? 'negative' : 'neutral';
+            summaryChange.className = `summary-change ${summaryChangeClass}`;
+            summaryChange.textContent = formatPercent(avgChange) + ' avg (24h)';
+            document.getElementById('totalValue').textContent = formatCurrency(totalValue);
+        }
+
+        // Initial render + set up auto-refresh
+        render();
+        setInterval(() => {
+            if (holdings.length > 0) {
+                render();
+            }
+        }, 30000);
+
+        // Allow Enter key in amount input
+        document.getElementById('amountInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') addHolding();
+        });
+    </script>
+</body>
+</html>
