@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Funding Stage Finder — Know Your Startup's Position</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0d1117; --card:rgba(19,28,42,.6); --line:rgba(255,255,255,.06);
+    --txt:#f0f3f7; --mut:#8b94a6; --acc:#00d9ff; --acc2:#ff6b9d; --ok:#4ade80;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--txt);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+  .container{max-width:520px;width:100%}
+  .hero{text-align:center;margin-bottom:40px;animation:fadeInDown .6s cubic-bezier(.16,1,.3,1)}
+  .hero h1{font-family:'Outfit',sans-serif;font-size:clamp(32px,7vw,48px);font-weight:800;letter-spacing:-.8px;margin-bottom:12px}
+  .hero p{color:var(--mut);font-size:15px;line-height:1.6;max-width:420px;margin:0 auto}
+  .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--acc);margin-right:8px;vertical-align:middle;animation:pulse 1.4s infinite}
+  @keyframes pulse{0%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(1.2)}100%{opacity:1;transform:scale(1)}}
+  .question{display:none;animation:fadeIn .5s ease-in}
+  .question.active{display:block}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes fadeInDown{from{opacity:0;transform:translateY(-15px)}to{opacity:1;transform:translateY(0)}}
+  .q-card{background:var(--card);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--line);border-radius:16px;padding:28px;margin-bottom:24px}
+  .q-num{font-size:12px;font-weight:700;letter-spacing:1px;color:var(--acc);text-transform:uppercase;margin-bottom:12px}
+  .q-title{font-family:'Outfit',sans-serif;font-size:20px;font-weight:700;letter-spacing:-.4px;margin-bottom:20px}
+  .options{display:flex;flex-direction:column;gap:12px}
+  .opt{padding:14px 16px;border:1.5px solid var(--line);border-radius:12px;background:transparent;color:var(--txt);cursor:pointer;text-align:left;font-size:14px;font-weight:500;font-family:'Inter',sans-serif;transition:.2s;position:relative;overflow:hidden}
+  .opt:hover{border-color:var(--acc);background:rgba(0,217,255,.06)}
+  .opt.selected{background:rgba(0,217,255,.12);border-color:var(--acc);color:var(--acc)}
+  .opt::before{content:'';position:absolute;left:0;top:0;width:3px;height:0;background:var(--acc);transition:.3s}
+  .opt.selected::before{height:100%}
+  .nav{display:flex;gap:12px;margin-top:24px}
+  .nav button{flex:1;padding:12px;border:1px solid var(--line);background:transparent;color:var(--txt);border-radius:10px;cursor:pointer;font-size:13px;font-weight:600;font-family:'Inter',sans-serif;transition:.2s}
+  .nav button:hover:not(:disabled){border-color:var(--acc);color:var(--acc)}
+  .nav button:disabled{opacity:.4;cursor:not-allowed}
+  .nav button.primary{background:var(--acc);color:var(--bg);border-color:var(--acc)}
+  .nav button.primary:hover{opacity:.9}
+  .result{display:none;animation:fadeIn .6s ease-in}
+  .result.show{display:block}
+  .result-box{background:var(--card);backdrop-filter:blur(12px);border:1px solid var(--line);border-radius:16px;padding:36px;text-align:center;margin-bottom:24px}
+  .stage-badge{font-family:'Outfit',sans-serif;font-size:28px;font-weight:800;letter-spacing:-.6px;color:var(--acc);margin-bottom:16px}
+  .stage-name{font-family:'Outfit',sans-serif;font-size:20px;font-weight:700;margin:16px 0}
+  .stage-desc{color:var(--mut);font-size:13px;line-height:1.7;margin:16px 0 20px;padding:0 12px}
+  .funding-range{background:rgba(0,217,255,.08);border:1px solid rgba(0,217,255,.2);border-radius:12px;padding:16px;margin:20px 0;text-align:left}
+  .funding-range strong{color:var(--acc);display:block;font-size:12px;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+  .funding-range span{font-size:18px;font-family:'Outfit',sans-serif;font-weight:700}
+  .checklist{text-align:left;margin:20px 0;background:rgba(74,222,128,.06);border:1px solid rgba(74,222,128,.2);border-radius:12px;padding:16px}
+  .checklist strong{color:var(--ok);display:block;font-size:12px;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px}
+  .checklist li{list-style:none;padding:6px 0;font-size:13px;color:var(--mut);display:flex;align-items:center}
+  .checklist li::before{content:'✓';color:var(--ok);font-weight:700;margin-right:8px;display:inline-block;width:16px}
+  .restart{padding:12px;border:1px solid var(--line);background:transparent;color:var(--acc);border-radius:10px;cursor:pointer;font-weight:600;font-size:13px;font-family:'Inter',sans-serif;width:100%;transition:.2s;margin-top:16px}
+  .restart:hover{background:rgba(0,217,255,.1);border-color:var(--acc)}
+  .progress{height:3px;background:rgba(255,255,255,.05);border-radius:2px;margin-bottom:24px;overflow:hidden}
+  .progress-fill{height:100%;background:linear-gradient(90deg,var(--acc),var(--acc2));transition:width .4s ease}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="progress">
+    <div class="progress-fill" id="prog" style="width:0%"></div>
+  </div>
+  <div class="hero" id="heroSection">
+    <h1><span class="dot"></span>Funding Stage</h1>
+    <p>Answer 5 quick questions to discover where your startup stands—and what to focus on next.</p>
+  </div>
+
+  <div id="quiz">
+    <!-- Q1: Revenue -->
+    <div class="question active">
+      <div class="q-card">
+        <div class="q-num">Question 1 of 5</div>
+        <div class="q-title">What's your current monthly revenue?</div>
+        <div class="options">
+          <button class="opt" data-q="1" data-val="0">$0 — no revenue yet</button>
+          <button class="opt" data-q="1" data-val="1">$1–5K/month</button>
+          <button class="opt" data-q="1" data-val="2">$5–50K/month</button>
+          <button class="opt" data-q="1" data-val="3">$50K+/month</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Q2: Runway -->
+    <div class="question">
+      <div class="q-card">
+        <div class="q-num">Question 2 of 5</div>
+        <div class="q-title">How much runway do you have?</div>
+        <div class="options">
+          <button class="opt" data-q="2" data-val="0">&lt;3 months (urgent)</button>
+          <button class="opt" data-q="2" data-val="1">3–6 months</button>
+          <button class="opt" data-q="2" data-val="2">6–12 months</button>
+          <button class="opt" data-q="2" data-val="3">12+ months</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Q3: Team -->
+    <div class="question">
+      <div class="q-card">
+        <div class="q-num">Question 3 of 5</div>
+        <div class="q-title">What's your core team size?</div>
+        <div class="options">
+          <button class="opt" data-q="3" data-val="0">Solo founder</button>
+          <button class="opt" data-q="3" data-val="1">2–3 people</button>
+          <button class="opt" data-q="3" data-val="2">4–10 people</button>
+          <button class="opt" data-q="3" data-val="3">10+ people</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Q4: Traction -->
+    <div class="question">
+      <div class="q-card">
+        <div class="q-num">Question 4 of 5</div>
+        <div class="q-title">Do you have active investor interest?</div>
+        <div class="options">
+          <button class="opt" data-q="4" data-val="0">No interest yet</button>
+          <button class="opt" data-q="4" data-val="1">Early conversations</button>
+          <button class="opt" data-q="4" data-val="2">Multiple warm leads</button>
+          <button class="opt" data-q="4" data-val="3">Term sheets / offers</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Q5: Growth -->
+    <div class="question">
+      <div class="q-card">
+        <div class="q-num">Question 5 of 5</div>
+        <div class="q-title">What's your monthly growth rate?</div>
+        <div class="options">
+          <button class="opt" data-q="5" data-val="0">Flat or declining</button>
+          <button class="opt" data-q="5" data-val="1">0–5% month-over-month</button>
+          <button class="opt" data-q="5" data-val="2">5–20% month-over-month</button>
+          <button class="opt" data-q="5" data-val="3">20%+ month-over-month</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="result" id="result">
+    <div class="result-box">
+      <div class="stage-badge" id="badge">→</div>
+      <div class="stage-name" id="stageName">Loading…</div>
+      <div class="stage-desc" id="stageDesc"></div>
+      <div class="funding-range">
+        <strong>Typical funding range</strong>
+        <span id="fundingRange">$0K</span>
+      </div>
+      <div class="checklist">
+        <strong>Next steps</strong>
+        <ul id="nextSteps"></ul>
+      </div>
+      <button class="restart" onclick="restartQuiz()">← Take Quiz Again</button>
+    </div>
+  </div>
+
+  <div class="nav" id="nav" style="display:none">
+    <button onclick="prevQ()" id="prev" disabled>← Back</button>
+    <button class="primary" onclick="nextQ()" id="next" disabled>Next →</button>
+  </div>
+</div>
+
+<script>
+  const STAGES = {
+    0: {badge: '🌱', name: 'Pre-Seed', desc: 'You\'re validating an idea with early users. Focus on product-market fit and building a compelling story for investors.', funding: '$0–500K', steps: ['Launch MVP or public beta', 'Get 100–500 active users', 'Build pitch deck + financial model', 'Start networking with angels']},
+    1: {badge: '🔬', name: 'Seed Stage', desc: 'You have early traction and a small team. It\'s time to prove unit economics and accelerate growth.', funding: '$500K–2M', steps: ['Hit consistent $1K–10K MRR', 'Recruit experienced co-founder/CTO', 'Conduct customer interviews (20+)', 'Apply to seed accelerators']},
+    2: {badge: '🚀', name: 'Series A Track', desc: 'You\'re growing fast with meaningful revenue. You\'re ready to invest in growth and scale the business.', funding: '$2M–10M', steps: ['Grow to $10K–50K MRR', 'Hire senior hires (COO, VP Sales)', 'Build 18–24 month financial projections', 'Pitch to Series A firms']},
+    3: {badge: '⚡', name: 'Series A Ready', desc: 'You\'re a hot company with strong metrics and team. Investors are actively pursuing you.', funding: '$10M–50M+', steps: ['Maintain 10%+ monthly growth', 'Build world-class executive team', 'Demonstrate product-market fit at scale', 'Prepare due diligence docs']},
+  };
+
+  let answers = {1: -1, 2: -1, 3: -1, 4: -1, 5: -1};
+  let currentQ = 1;
+  const totalQ = 5;
+
+  function updateProgress(){
+    const pct = ((currentQ - 1) / totalQ) * 100;
+    document.getElementById('prog').style.width = pct + '%';
+  }
+
+  function showQuestion(n){
+    document.querySelectorAll('.question').forEach((el, i) => {
+      el.classList.toggle('active', i === n - 1);
+    });
+    document.getElementById('nav').style.display = n <= totalQ ? 'flex' : 'none';
+    document.getElementById('prev').disabled = n === 1;
+    document.getElementById('next').disabled = answers[n] === -1;
+    updateProgress();
+  }
+
+  document.querySelectorAll('.opt').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const q = parseInt(e.target.dataset.q);
+      const val = parseInt(e.target.dataset.val);
+      answers[q] = val;
+      document.querySelectorAll(`.opt[data-q="${q}"]`).forEach(b => b.classList.remove('selected'));
+      e.target.classList.add('selected');
+      document.getElementById('next').disabled = false;
+    });
+  });
+
+  function nextQ(){
+    if (currentQ < totalQ) {
+      currentQ++;
+      showQuestion(currentQ);
+    } else {
+      showResult();
+    }
+  }
+
+  function prevQ(){
+    if (currentQ > 1) {
+      currentQ--;
+      showQuestion(currentQ);
+    }
+  }
+
+  function showResult(){
+    const score = (answers[1] || 0) + (answers[2] || 0) + (answers[3] || 0) + (answers[4] || 0) + (answers[5] || 0);
+    let stage;
+    if (score <= 3) stage = STAGES[0];
+    else if (score <= 8) stage = STAGES[1];
+    else if (score <= 13) stage = STAGES[2];
+    else stage = STAGES[3];
+
+    document.getElementById('quiz').style.display = 'none';
+    document.getElementById('nav').style.display = 'none';
+    document.getElementById('result').classList.add('show');
+    document.getElementById('badge').textContent = stage.badge;
+    document.getElementById('stageName').textContent = stage.name;
+    document.getElementById('stageDesc').textContent = stage.desc;
+    document.getElementById('fundingRange').textContent = stage.funding;
+    document.getElementById('nextSteps').innerHTML = stage.steps.map(s => `<li>${s}</li>`).join('');
+    document.getElementById('prog').style.width = '100%';
+  }
+
+  function restartQuiz(){
+    answers = {1: -1, 2: -1, 3: -1, 4: -1, 5: -1};
+    currentQ = 1;
+    document.querySelectorAll('.opt').forEach(el => el.classList.remove('selected'));
+    document.getElementById('result').classList.remove('show');
+    document.getElementById('quiz').style.display = 'block';
+    document.getElementById('nav').style.display = 'flex';
+    showQuestion(1);
+  }
+
+  showQuestion(1);
+</script>
+</body>
+</html>
