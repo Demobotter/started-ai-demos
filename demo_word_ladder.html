@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Word Ladder Game</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Space Grotesk', sans-serif;
+      background: linear-gradient(135deg, #0f2447 0%, #1a3a52 50%, #0d2236 100%);
+      color: #e0e7ff;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .container {
+      max-width: 600px;
+      width: 100%;
+    }
+    .hero {
+      text-align: center;
+      margin-bottom: 40px;
+      animation: fadeSlideIn 0.8s cubic-bezier(.16,1,.3,1);
+    }
+    .hero h1 {
+      font-size: clamp(2.5rem, 8vw, 4rem);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 8px;
+      background: linear-gradient(135deg, #64d5ff 0%, #4ecca3 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero p {
+      font-size: 1rem;
+      color: #a0adc7;
+      margin-bottom: 24px;
+    }
+    .game-card {
+      background: rgba(15, 36, 71, 0.6);
+      border: 1px solid rgba(100, 213, 255, 0.3);
+      border-radius: 16px;
+      padding: 32px;
+      backdrop-filter: blur(10px);
+      animation: fadeSlideIn 1s cubic-bezier(.16,1,.3,1) 0.1s backwards;
+    }
+    @keyframes fadeSlideIn {
+      from {
+        opacity: 0;
+        transform: translateY(16px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    .difficulty-selector {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 32px;
+      flex-wrap: wrap;
+    }
+    .diff-btn {
+      flex: 1;
+      min-width: 100px;
+      padding: 12px 16px;
+      border: 2px solid rgba(100, 213, 255, 0.3);
+      border-radius: 12px;
+      background: transparent;
+      color: #a0adc7;
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    .diff-btn:hover {
+      border-color: #64d5ff;
+      background: rgba(100, 213, 255, 0.1);
+      color: #64d5ff;
+    }
+    .diff-btn.active {
+      background: linear-gradient(135deg, #64d5ff 0%, #4ecca3 100%);
+      border-color: transparent;
+      color: #0f2447;
+      font-weight: 700;
+    }
+    .game-state {
+      display: none;
+    }
+    .game-state.active {
+      display: block;
+    }
+    .word-path {
+      background: rgba(25, 55, 95, 0.5);
+      border: 1px solid rgba(78, 204, 163, 0.3);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 24px;
+    }
+    .path-item {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 1.1rem;
+      font-weight: 500;
+      color: #4ecca3;
+      display: inline-block;
+      margin-right: 12px;
+      margin-bottom: 8px;
+      animation: slideIn 0.4s cubic-bezier(.16,1,.3,1);
+    }
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateX(-12px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+    .path-divider {
+      color: #64d5ff;
+      margin: 0 8px;
+      opacity: 0.6;
+    }
+    .target {
+      background: rgba(78, 204, 163, 0.1);
+      border: 2px solid #4ecca3;
+      border-radius: 12px;
+      padding: 12px 16px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #4ecca3;
+      text-align: center;
+      text-transform: uppercase;
+      margin-top: 12px;
+    }
+    .input-group {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 24px;
+    }
+    .word-input {
+      flex: 1;
+      padding: 12px 16px;
+      border: 2px solid rgba(100, 213, 255, 0.3);
+      border-radius: 12px;
+      background: rgba(13, 34, 54, 0.8);
+      color: #e0e7ff;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 1rem;
+      text-transform: uppercase;
+      transition: all 0.3s ease;
+    }
+    .word-input:focus {
+      outline: none;
+      border-color: #64d5ff;
+      background: rgba(13, 34, 54, 1);
+      box-shadow: 0 0 12px rgba(100, 213, 255, 0.2);
+    }
+    .submit-btn {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #64d5ff 0%, #4ecca3 100%);
+      color: #0f2447;
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 600;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    .submit-btn:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(100, 213, 255, 0.3);
+    }
+    .submit-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 24px;
+      padding: 16px;
+      background: rgba(78, 204, 163, 0.05);
+      border: 1px solid rgba(78, 204, 163, 0.2);
+      border-radius: 12px;
+    }
+    .stat-item {
+      text-align: center;
+    }
+    .stat-label {
+      font-size: 0.875rem;
+      color: #a0adc7;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 4px;
+    }
+    .stat-value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #4ecca3;
+      font-family: 'IBM Plex Mono', monospace;
+    }
+    .message {
+      padding: 12px 16px;
+      border-radius: 12px;
+      margin-bottom: 16px;
+      font-size: 0.95rem;
+      animation: slideIn 0.4s cubic-bezier(.16,1,.3,1);
+    }
+    .message.error {
+      background: rgba(255, 82, 82, 0.15);
+      border: 1px solid rgba(255, 82, 82, 0.3);
+      color: #ff5252;
+    }
+    .message.success {
+      background: rgba(78, 204, 163, 0.15);
+      border: 1px solid rgba(78, 204, 163, 0.3);
+      color: #4ecca3;
+    }
+    .message.info {
+      background: rgba(100, 213, 255, 0.15);
+      border: 1px solid rgba(100, 213, 255, 0.3);
+      color: #64d5ff;
+    }
+    .new-game-btn {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, #64d5ff 0%, #4ecca3 100%);
+      border: none;
+      border-radius: 12px;
+      color: #0f2447;
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 600;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    .new-game-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(100, 213, 255, 0.3);
+    }
+    .hint {
+      font-size: 0.875rem;
+      color: #a0adc7;
+      text-align: center;
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid rgba(100, 213, 255, 0.1);
+    }
+    .hidden {
+      display: none !important;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="hero">
+      <h1>🪜 Word Ladder</h1>
+      <p>Transform one word into another by changing one letter at a time</p>
+    </div>
+
+    <div class="game-card">
+      <!-- Difficulty Selector -->
+      <div id="difficultySelector" class="difficulty-selector">
+        <button class="diff-btn active" data-difficulty="easy">Easy</button>
+        <button class="diff-btn" data-difficulty="medium">Medium</button>
+        <button class="diff-btn" data-difficulty="hard">Hard</button>
+      </div>
+
+      <!-- Game State -->
+      <div id="gameState" class="game-state active">
+        <div id="messageBox"></div>
+
+        <div class="stats">
+          <div class="stat-item">
+            <div class="stat-label">Moves</div>
+            <div class="stat-value" id="moveCount">0</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">Best Known</div>
+            <div class="stat-value" id="bestMoves">—</div>
+          </div>
+        </div>
+
+        <div class="word-path">
+          <div>
+            <span class="path-item" id="pathStart"></span>
+            <div id="pathItems"></div>
+            <span class="target" id="targetWord"></span>
+          </div>
+        </div>
+
+        <div class="input-group">
+          <input type="text" class="word-input" id="wordInput" placeholder="Type next word..." maxlength="5">
+          <button class="submit-btn" id="submitBtn">Go</button>
+        </div>
+
+        <div class="hint" id="hint"></div>
+      </div>
+
+      <!-- Win State -->
+      <div id="winState" class="game-state">
+        <div class="message success">
+          <strong>🎉 Success!</strong> You completed the word ladder in <span id="winMoves">0</span> moves!
+        </div>
+        <button class="new-game-btn">New Game</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 5-letter word list for word ladder
+    const WORD_LIST = new Set([
+      'about', 'above', 'abuse', 'acute', 'admit', 'adopt', 'adult', 'after', 'again', 'agent',
+      'agree', 'ahead', 'alarm', 'album', 'alert', 'alibi', 'alien', 'align', 'alike', 'alive',
+      'allow', 'alone', 'along', 'alter', 'amber', 'amend', 'angel', 'anger', 'angle', 'angry',
+      'apart', 'apple', 'apply', 'arena', 'argue', 'arise', 'array', 'arrow', 'aside', 'asset',
+      'avoid', 'awake', 'award', 'aware', 'badly', 'baker', 'balan', 'banks', 'based', 'beach',
+      'begin', 'being', 'below', 'bench', 'billy', 'birth', 'black', 'blade', 'blame', 'blank',
+      'blaze', 'bleed', 'bless', 'blind', 'block', 'blood', 'board', 'boost', 'booth', 'bound',
+      'brain', 'brake', 'brand', 'brass', 'brave', 'bread', 'break', 'breed', 'brick', 'bride',
+      'brief', 'bring', 'broad', 'broke', 'brown', 'build', 'built', 'burst', 'buyer', 'cable',
+      'calif', 'canal', 'candy', 'canon', 'cargo', 'carry', 'cause', 'chain', 'chair', 'chalk',
+      'champ', 'chant', 'chaos', 'charm', 'chart', 'chase', 'cheap', 'cheat', 'check', 'chess',
+      'chest', 'chief', 'child', 'china', 'chose', 'civic', 'civil', 'claim', 'class', 'clean',
+      'clear', 'click', 'cliff', 'climb', 'close', 'cloth', 'cloud', 'coach', 'coast', 'coats',
+      'cocoa', 'codes', 'coils', 'coins', 'colon', 'color', 'comes', 'comic', 'couch', 'cough',
+      'could', 'count', 'court', 'cover', 'cower', 'crack', 'craft', 'crash', 'crate', 'crave',
+      'craze', 'crazy', 'cream', 'creed', 'creek', 'creep', 'crime', 'crisp', 'crops', 'cross',
+      'crowd', 'crown', 'crude', 'cruel', 'crush', 'curve', 'cycle', 'daily', 'dance', 'dated',
+      'daunt', 'deals', 'death', 'debug', 'debut', 'decal', 'decay', 'decor', 'decoy', 'deeds',
+      'denim', 'dense', 'depth', 'derby', 'deter', 'diary', 'dices', 'diner', 'dirty', 'disco',
+      'diver', 'dizzy', 'doing', 'donor', 'doubt', 'dough', 'downs', 'dozen', 'draft', 'drain',
+      'drank', 'drawn', 'dread', 'dream', 'dress', 'dried', 'drier', 'dries', 'drift', 'drill',
+      'drink', 'drive', 'droit', 'droll', 'drone', 'drool', 'droop', 'drops', 'drove', 'drown',
+      'drugs', 'drums', 'drunk', 'ducks', 'dudes', 'duels', 'duets', 'duffs', 'dulls', 'dummy',
+      'dumps', 'dunks', 'dusky', 'dusty', 'dutch', 'dwell', 'dying', 'eager', 'eagle', 'early',
+      'earth', 'easel', 'eased', 'eaten', 'eater', 'ebony', 'edges', 'edits', 'egged', 'eight',
+      'eject', 'elope', 'email', 'embed', 'ember', 'emcee', 'emery', 'emoji', 'empty', 'enact',
+      'ended', 'endor', 'enemy', 'enjoy', 'ennui', 'enter', 'entry', 'equal', 'equip', 'erase',
+      'erect', 'error', 'erupt', 'essay', 'ether', 'ethic', 'evade', 'event', 'every', 'evict',
+      'evoke', 'exact', 'exams', 'excel', 'exert', 'exile', 'exist', 'exits', 'expat', 'expel',
+      'extol', 'extra', 'exult', 'faced', 'faces', 'facet', 'facts', 'faded', 'fader', 'fades',
+      'fails', 'faint', 'fairy', 'faith', 'falls', 'false', 'famed', 'fancy', 'fangs', 'farce',
+      'fares', 'farms', 'fatal', 'fated', 'fatty', 'fault', 'fauna', 'favor', 'fears', 'feast',
+      'feats', 'feeds', 'feels', 'feign', 'feint', 'fells', 'felon', 'felts', 'femur', 'fends',
+      'ferns', 'ferry', 'fests', 'fetch', 'fetid', 'fetus', 'feuds', 'fever', 'fewer', 'fiber',
+      'fiche', 'field', 'fiend', 'fiery', 'fifes', 'fifth', 'fifty', 'fight', 'filed', 'files',
+      'filer', 'fills', 'filly', 'films', 'filmy', 'filth', 'final', 'finch', 'finds', 'fined',
+      'fines', 'fired', 'fires', 'first', 'firth', 'fishy', 'fists', 'fitly', 'fixed', 'fixer',
+      'fixes', 'fizzy', 'fjord', 'flack', 'flags', 'flail', 'flake', 'flaky', 'flame', 'flank',
+      'flaps', 'flare', 'flash', 'flask', 'flats', 'flaws', 'fleas', 'fleck', 'flees', 'fleet',
+      'flesh', 'flick', 'flier', 'flies', 'fling', 'flint', 'flips', 'flirt', 'float', 'flock',
+      'flood', 'floor', 'flops', 'flora', 'flour', 'flout', 'flown', 'flows', 'fluid', 'fluke',
+      'flung', 'flush', 'flute', 'foams', 'foamy', 'focal', 'focus', 'foggy', 'foils', 'folds',
+      'folks', 'folly', 'fonts', 'foods', 'fools', 'foots', 'foray', 'force', 'fords', 'forge',
+      'forgo', 'forks', 'forms', 'forte', 'forth', 'forty', 'forum', 'fossil', 'fossa', 'fought',
+      'fouls', 'found', 'fours', 'fowls', 'foxes', 'foyer', 'frail', 'frame', 'frank', 'fraud',
+      'frays', 'freak', 'freed', 'freer', 'fresh', 'fried', 'fries', 'frill', 'frisk', 'front',
+      'frost', 'frown', 'froze', 'fruit', 'fryer', 'fuels', 'fully', 'fumes', 'funds', 'funks',
+      'funny', 'furls', 'furry', 'fused', 'fuses', 'fussy', 'fuzzy', 'gaily', 'gains', 'gales',
+      'galls', 'games', 'gangs', 'gapes', 'garbs', 'gates', 'gauze', 'gaudy', 'gaunt', 'gavel',
+      'gawks', 'gawky', 'gazer', 'gazes', 'gears', 'geese', 'genre', 'genes', 'gents', 'germs',
+      'ghost', 'giant', 'gifts', 'gigas', 'gills', 'gilts', 'girds', 'girls', 'girth', 'gives',
+      'gizmo', 'glade', 'glads', 'glair', 'glans', 'glare', 'glass', 'glaze', 'gleam', 'glean',
+      'glees', 'glide', 'glint', 'glitz', 'gloat', 'globe', 'gloom', 'glory', 'gloss', 'glove',
+      'glued', 'glues', 'gnash', 'gnats', 'gnome', 'goals', 'goats', 'godly', 'goers', 'going',
+      'golds', 'golfs', 'golly', 'gonad', 'gonna', 'goods', 'goody', 'gooey', 'goofs', 'goofy',
+      'goons', 'goose', 'gorge', 'gorse', 'gouge', 'gourd', 'gowns', 'grace', 'grade', 'graft',
+      'grain', 'grail', 'grand', 'grant', 'grape', 'graph', 'grasp', 'grass', 'grate', 'grave',
+      'gravy', 'grays', 'graze', 'great', 'greed', 'greek', 'green', 'greet', 'grief', 'grift',
+      'grill', 'grime', 'grimy', 'grind', 'grins', 'gripe', 'grist', 'grits', 'groom', 'grope',
+      'gross', 'group', 'grout', 'grove', 'growl', 'grown', 'grows', 'grubs', 'grudge', 'gruel',
+      'gruff', 'grunt', 'guano', 'guard', 'guava', 'guess', 'guest', 'guide', 'guild', 'guile',
+      'guilt', 'guise', 'gulfs', 'gulls', 'gulps', 'gummy', 'gunks', 'gurus', 'gusts', 'gusty',
+      'gutsy', 'gypsy', 'habits', 'hacks', 'hafts', 'haiku', 'hails', 'hairs', 'hairy', 'halal',
+      'haled', 'haler', 'hales', 'halfs', 'halls', 'halms', 'halos', 'halts', 'halve', 'hammy',
+      'hamps', 'hands', 'handy', 'hangs', 'hanky', 'hanse', 'hants', 'happy', 'hardy', 'harem',
+      'harks', 'harms', 'harps', 'harsh', 'hasps', 'haste', 'hasty', 'hated', 'hater', 'hates',
+      'hauls', 'haunt', 'haven', 'haves', 'havoc', 'hawks', 'hazel', 'hazer', 'hazes', 'heads',
+      'heady', 'heals', 'heaps', 'heard', 'hears', 'heart', 'heats', 'heath', 'heats', 'heaved',
+      'heave', 'heavy', 'hedge', 'heeds', 'heels', 'hefts', 'hefty', 'heigh', 'heirs', 'heist',
+      'helix', 'hello', 'bells', 'helms', 'helps', 'hence', 'henna', 'henry', 'herbs', 'herds',
+      'heron', 'heros', 'hers', 'hertz', 'hewed', 'hewer', 'hexed', 'hexes', 'hicks', 'hided',
+      'hider', 'hides', 'highs', 'hiker', 'hikes', 'hills', 'hilts', 'hinds', 'hinge', 'hints',
+      'hippo', 'hippy', 'hired', 'hirer', 'hires', 'hissy', 'hitch', 'hived', 'hives', 'hoagie',
+      'hoars', 'hoary', 'hobby', 'hocks', 'hocus', 'hogan', 'hoist', 'holds', 'holes', 'holly',
+      'holms', 'holts', 'homes', 'homed', 'homer', 'hones', 'honey', 'honks', 'honor', 'hoods',
+      'hoofs', 'hooks', 'hooky', 'hoops', 'hoots', 'hooty', 'hoped', 'hoper', 'hopes', 'horns',
+      'horny', 'horse', 'hosed', 'hoses', 'hosts', 'hotly', 'hound', 'hours', 'house', 'hovel',
+      'hover', 'howdy', 'howls', 'hubby', 'huffs', 'huffy', 'hulks', 'hulls', 'human', 'humid',
+      'humps', 'humus', 'hunch', 'hunks', 'hunky', 'hunts', 'hurls', 'hurry', 'hurts', 'husky',
+      'hutch', 'hydra', 'hyena', 'hymen', 'hymns', 'hyped', 'hyper', 'icing', 'icily', 'icons',
+      'ictus', 'ideal', 'ideas', 'idiom', 'idiot', 'idles', 'idled', 'idler', 'idly', 'idols',
+      'idyll', 'igloo', 'ileal', 'ileum', 'iliac', 'image', 'imago', 'imbed', 'imbue', 'imide',
+      'imino', 'immix', 'imped', 'impel', 'imply', 'impost', 'impel', 'inane', 'inapt', 'inarm',
+      'inbar', 'inbye', 'incas', 'incur', 'index', 'indue', 'india', 'infer', 'infra', 'ingot',
+      'inked', 'inker', 'inlay', 'inlet', 'inned', 'inner', 'input', 'inset', 'inter', 'intro',
+      'intus', 'inure', 'inurn', 'iodid', 'iodid', 'iodins', 'iodise', 'iodize', 'ionic', 'ionas',
+      'irade', 'irate', 'irids', 'irish', 'irked', 'irker', 'irons', 'irons', 'irony', 'islet',
+      'issue', 'istle', 'itched', 'itches', 'items', 'ivied', 'ivied', 'ivies', 'ivory', 'ixias',
+      'ixora', 'ixtle', 'jacks', 'jacob', 'jacky', 'jaggy', 'jails', 'jakes', 'jamon', 'james',
+      'jangle', 'janty', 'japan', 'japes', 'japed', 'japer', 'jargon', 'jarls', 'jars', 'jarvy',
+      'jaunt', 'javas', 'jawed', 'jawed', 'jawed', 'jawed', 'jayed', 'jeans', 'jeeps', 'jeers',
+      'jeers', 'jells', 'jello', 'jells', 'jelly', 'jerum', 'jests', 'jests', 'jete', 'jetes',
+      'jetty', 'jeune', 'jewed', 'jewel', 'jewed', 'jews', 'jheel', 'jiao', 'jibas', 'jibed',
+      'jiber', 'jibes', 'jibes', 'jiffs', 'jiffy', 'jihad', 'jilks', 'jill', 'jilts', 'jimmy',
+      'jingle', 'jinns', 'jinny', 'jinny', 'jived', 'jiver', 'jives', 'jivers', 'jizz', 'jives',
+      'joans', 'jocks', 'jocks', 'jocko', 'jocund', 'jocose', 'jocund', 'joeys', 'joint', 'joins',
+      'joist', 'joked', 'joker', 'jokier', 'jokily', 'jokes', 'jokish', 'joled', 'joled', 'jolly',
+      'jolts', 'joram', 'joram', 'jorum', 'josers', 'joshed', 'josher', 'joshes', 'joskin', 'josses',
+      'josses', 'jostle', 'jotun', 'joual', 'joule', 'jounce', 'joust', 'jowari', 'jowed', 'jowled',
+      'jowly', 'joyed', 'joyed', 'joyful', 'joyous', 'jubae', 'jubas', 'jubbe', 'jubbes', 'jubil',
+      'judas', 'judds', 'judder', 'judge', 'judos', 'judogi', 'judoka', 'judos', 'jugate', 'jugful',
+      'jugful', 'juggler', 'juggle', 'jugum', 'juguns', 'juguns', 'juguns', 'juguns', 'juguns', 'juguns',
+      'jugulum', 'jugals', 'jugals', 'jugals', 'jugals', 'jugals', 'jugals', 'jugals', 'jugals', 'jugals'
+    ].map(w => w.toLowerCase()));
+
+    // Curated word ladder puzzles
+    const PUZZLES = {
+      easy: [
+        { start: 'brain', target: 'brain', best: 0 },
+        { start: 'cold', target: 'warm', best: 4 },
+        { start: 'head', target: 'tail', best: 4 },
+        { start: 'slow', target: 'fast', best: 4 }
+      ],
+      medium: [
+        { start: 'stone', target: 'phone', best: 4 },
+        { start: 'heart', target: 'smart', best: 4 },
+        { start: 'black', target: 'white', best: 5 }
+      ],
+      hard: [
+        { start: 'chaos', target: 'order', best: 5 },
+        { start: 'light', target: 'night', best: 3 },
+        { start: 'ocean', target: 'beach', best: 5 }
+      ]
+    };
+
+    class WordLadderGame {
+      constructor() {
+        this.difficulty = 'easy';
+        this.puzzle = null;
+        this.path = [];
+        this.setupEventListeners();
+        this.startNewGame();
+      }
+
+      setupEventListeners() {
+        document.querySelectorAll('.diff-btn').forEach(btn => {
+          btn.addEventListener('click', (e) => this.changeDifficulty(e.target.dataset.difficulty));
+        });
+        document.getElementById('submitBtn').addEventListener('click', () => this.submitWord());
+        document.getElementById('wordInput').addEventListener('keypress', (e) => {
+          if (e.key === 'Enter') this.submitWord();
+        });
+        document.querySelectorAll('.new-game-btn').forEach(btn => {
+          btn.addEventListener('click', () => this.startNewGame());
+        });
+      }
+
+      changeDifficulty(difficulty) {
+        if (this.path.length > 0) return; // Can't change mid-game
+        this.difficulty = difficulty;
+        document.querySelectorAll('.diff-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelector(`[data-difficulty="${difficulty}"]`).classList.add('active');
+        this.startNewGame();
+      }
+
+      startNewGame() {
+        const puzzles = PUZZLES[this.difficulty];
+        this.puzzle = puzzles[Math.floor(Math.random() * puzzles.length)];
+        this.path = [this.puzzle.start];
+        this.render();
+        this.showMessage('', '');
+        document.getElementById('wordInput').focus();
+      }
+
+      isValidWord(word) {
+        return WORD_LIST.has(word.toLowerCase()) || word.toLowerCase() === this.puzzle.target.toLowerCase();
+      }
+
+      differsByOneChar(word1, word2) {
+        if (word1.length !== word2.length) return false;
+        let differences = 0;
+        for (let i = 0; i < word1.length; i++) {
+          if (word1[i] !== word2[i]) differences++;
+          if (differences > 1) return false;
+        }
+        return differences === 1;
+      }
+
+      submitWord() {
+        const input = document.getElementById('wordInput');
+        const word = input.value.trim().toLowerCase();
+        input.value = '';
+
+        if (!word) {
+          this.showMessage('Please enter a word', 'error');
+          return;
+        }
+
+        if (word.length !== 5) {
+          this.showMessage('Words must be 5 letters', 'error');
+          return;
+        }
+
+        if (!this.isValidWord(word)) {
+          this.showMessage(`"${word}" is not a valid word`, 'error');
+          return;
+        }
+
+        if (!this.differsByOneChar(this.path[this.path.length - 1], word)) {
+          this.showMessage(`"${word}" must differ by exactly 1 letter from "${this.path[this.path.length - 1]}"`, 'error');
+          return;
+        }
+
+        if (this.path.includes(word)) {
+          this.showMessage(`Already used "${word}"`, 'error');
+          return;
+        }
+
+        this.path.push(word);
+
+        if (word === this.puzzle.target.toLowerCase()) {
+          this.win();
+        } else {
+          this.render();
+          this.showMessage(`Great! ${this.path.length - 1} step${this.path.length > 2 ? 's' : ''} taken`, 'success');
+          document.getElementById('wordInput').focus();
+        }
+      }
+
+      win() {
+        const moves = this.path.length - 1;
+        document.getElementById('gameState').classList.remove('active');
+        document.getElementById('winState').classList.add('active');
+        document.getElementById('winMoves').textContent = moves;
+      }
+
+      render() {
+        document.getElementById('pathStart').textContent = this.path[0].toUpperCase();
+        const items = this.path.slice(1, -1).map((w, i) => 
+          `<span class="path-item">${w.toUpperCase()}</span> <span class="path-divider">→</span> `
+        ).join('');
+        document.getElementById('pathItems').innerHTML = items + (this.path.length > 1 ? '<span class="path-divider">→</span>' : '');
+        document.getElementById('targetWord').textContent = this.puzzle.target.toUpperCase();
+        document.getElementById('moveCount').textContent = this.path.length - 1;
+        document.getElementById('bestMoves').textContent = this.puzzle.best;
+      }
+
+      showMessage(text, type) {
+        const box = document.getElementById('messageBox');
+        if (!text) {
+          box.innerHTML = '';
+          return;
+        }
+        box.innerHTML = `<div class="message ${type}">${text}</div>`;
+      }
+    }
+
+    // Initialize game
+    window.addEventListener('load', () => {
+      new WordLadderGame();
+    });
+  </script>
+</body>
+</html>
