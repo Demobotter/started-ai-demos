@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Smart Shopping List — Auto-Organize & Share</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Karla:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: linear-gradient(135deg, #0f3d0f 0%, #1a4d2e 100%);
+    --txt: #f0f4f8;
+    --txt-muted: #a8c5a3;
+    --accent: #52b788;
+    --accent-light: #74d9a8;
+    --panel: rgba(20, 45, 25, 0.75);
+    --line: rgba(82, 183, 136, 0.15);
+    --danger: #ff6b6b;
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  html, body {
+    width: 100%;
+    height: 100%;
+  }
+
+  body {
+    font-family: 'Karla', sans-serif;
+    background: var(--bg);
+    color: var(--txt);
+    overflow-x: hidden;
+    padding: 20px;
+  }
+
+  .container {
+    max-width: 720px;
+    margin: 0 auto;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 32px;
+    animation: slideDown 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  @keyframes slideDown {
+    from {
+      opacity: 0;
+      transform: translateY(-20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  h1 {
+    font-size: clamp(28px, 8vw, 44px);
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+  }
+
+  .dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--accent-light);
+    box-shadow: 0 0 0 0 rgba(82, 183, 136, 0.7);
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0% {
+      box-shadow: 0 0 0 0 rgba(82, 183, 136, 0.7);
+    }
+    70% {
+      box-shadow: 0 0 0 20px rgba(82, 183, 136, 0);
+    }
+    100% {
+      box-shadow: 0 0 0 0 rgba(82, 183, 136, 0);
+    }
+  }
+
+  .subtitle {
+    color: var(--txt-muted);
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  .input-section {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 24px;
+    backdrop-filter: blur(12px);
+    animation: fadeInUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.1s both;
+  }
+
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .input-label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--txt-muted);
+    margin-bottom: 10px;
+  }
+
+  textarea {
+    width: 100%;
+    height: 120px;
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 14px;
+    color: var(--txt);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    resize: vertical;
+    margin-bottom: 12px;
+    transition: 0.18s;
+  }
+
+  textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+    background: rgba(0, 0, 0, 0.3);
+    box-shadow: 0 0 0 3px rgba(82, 183, 136, 0.1);
+  }
+
+  textarea::placeholder {
+    color: rgba(168, 197, 163, 0.4);
+  }
+
+  .button-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  button {
+    flex: 1;
+    min-width: 120px;
+    padding: 12px 16px;
+    border: none;
+    border-radius: 10px;
+    font-family: 'Karla', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: 0.18s;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #0f3d0f;
+    flex: 1.2;
+  }
+
+  .btn-primary:hover {
+    background: var(--accent-light);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(82, 183, 136, 0.3);
+  }
+
+  .btn-primary:active {
+    transform: translateY(0);
+  }
+
+  .btn-secondary {
+    background: rgba(82, 183, 136, 0.15);
+    color: var(--accent);
+    border: 1px solid var(--line);
+  }
+
+  .btn-secondary:hover {
+    background: rgba(82, 183, 136, 0.25);
+    transform: translateY(-2px);
+  }
+
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+
+  .stat {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 14px;
+    text-align: center;
+    animation: fadeInUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.15s both;
+  }
+
+  .stat-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 28px;
+    font-weight: 600;
+    color: var(--accent);
+    margin-bottom: 4px;
+  }
+
+  .stat-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--txt-muted);
+  }
+
+  .categories {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .category {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    overflow: hidden;
+    animation: fadeInUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.2s both;
+  }
+
+  .category-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px;
+    background: rgba(82, 183, 136, 0.08);
+    cursor: pointer;
+    user-select: none;
+    transition: 0.18s;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .category-header:hover {
+    background: rgba(82, 183, 136, 0.12);
+  }
+
+  .category-header.collapsed ~ .category-items {
+    display: none;
+  }
+
+  .category-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 600;
+    font-size: 15px;
+  }
+
+  .category-icon {
+    font-size: 20px;
+  }
+
+  .category-count {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    background: rgba(82, 183, 136, 0.2);
+    color: var(--accent);
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-weight: 600;
+  }
+
+  .toggle-icon {
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--accent);
+    transition: 0.2s;
+    font-weight: 600;
+  }
+
+  .category-header.collapsed .toggle-icon {
+    transform: rotate(180deg);
+  }
+
+  .category-items {
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    font-size: 14px;
+    transition: 0.15s;
+  }
+
+  .item:hover {
+    background: rgba(82, 183, 136, 0.1);
+  }
+
+  .item-name {
+    flex: 1;
+  }
+
+  .item-remove {
+    width: 28px;
+    height: 28px;
+    background: transparent;
+    border: none;
+    color: var(--danger);
+    cursor: pointer;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    transition: 0.15s;
+  }
+
+  .item-remove:hover {
+    background: rgba(255, 107, 107, 0.15);
+    transform: scale(1.1);
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--txt-muted);
+  }
+
+  .empty-state-icon {
+    font-size: 48px;
+    margin-bottom: 12px;
+    opacity: 0.5;
+  }
+
+  .add-item-section {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 16px;
+    margin-bottom: 24px;
+    animation: fadeInUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.25s both;
+  }
+
+  .add-item-row {
+    display: flex;
+    gap: 10px;
+  }
+
+  .add-item-input {
+    flex: 1;
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 10px 12px;
+    color: var(--txt);
+    font-family: 'Karla', sans-serif;
+    font-size: 14px;
+    transition: 0.18s;
+  }
+
+  .add-item-input:focus {
+    outline: none;
+    border-color: var(--accent);
+    background: rgba(0, 0, 0, 0.3);
+    box-shadow: 0 0 0 3px rgba(82, 183, 136, 0.1);
+  }
+
+  .add-item-select {
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 10px 12px;
+    color: var(--txt);
+    font-family: 'Karla', sans-serif;
+    font-size: 14px;
+    cursor: pointer;
+    transition: 0.18s;
+  }
+
+  .add-item-select:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+
+  .add-item-btn {
+    background: var(--accent);
+    color: #0f3d0f;
+    padding: 10px 16px;
+    min-width: auto;
+  }
+
+  .add-item-btn:hover {
+    background: var(--accent-light);
+  }
+
+  .export-section {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 16px;
+    animation: fadeInUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.3s both;
+  }
+
+  .export-label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--txt-muted);
+    margin-bottom: 12px;
+  }
+
+  .export-buttons {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    gap: 10px;
+  }
+
+  @media (max-width: 600px) {
+    .button-row {
+      flex-direction: column;
+    }
+
+    button {
+      min-width: unset;
+      width: 100%;
+    }
+
+    header {
+      margin-bottom: 24px;
+    }
+
+    h1 {
+      font-size: 28px;
+    }
+
+    .export-buttons {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1><span class="dot"></span>Smart Shopping List</h1>
+    <p class="subtitle">Paste your items — we'll organize them by category automatically.</p>
+  </header>
+
+  <div class="input-section">
+    <label class="input-label">Paste or type your items</label>
+    <textarea id="input" placeholder="Example:&#10;apples&#10;chicken breast&#10;milk&#10;rice&#10;frozen peas&#10;...or paste a full list!"></textarea>
+    <div class="button-row">
+      <button class="btn-primary" onclick="parseAndOrganize()">📦 Organize</button>
+      <button class="btn-secondary" onclick="clearAll()">Clear</button>
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="stat">
+      <div class="stat-num" id="totalCount">0</div>
+      <div class="stat-label">Total Items</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num" id="categoryCount">0</div>
+      <div class="stat-label">Categories</div>
+    </div>
+  </div>
+
+  <div id="categoriesContainer"></div>
+
+  <div class="add-item-section" id="addItemSection" style="display: none;">
+    <div class="add-item-row">
+      <input class="add-item-input" type="text" id="newItemName" placeholder="Add new item...">
+      <select class="add-item-select" id="newItemCategory">
+        <option value="">Auto-detect</option>
+        <option value="Produce">🥬 Produce</option>
+        <option value="Dairy">🧀 Dairy</option>
+        <option value="Meat">🥩 Meat</option>
+        <option value="Frozen">❄️ Frozen</option>
+        <option value="Pantry">🥫 Pantry</option>
+        <option value="Snacks">🍿 Snacks</option>
+        <option value="Drinks">🥤 Drinks</option>
+        <option value="Other">📦 Other</option>
+      </select>
+      <button class="add-item-btn btn-primary" onclick="addNewItem()">+</button>
+    </div>
+  </div>
+
+  <div class="export-section" id="exportSection" style="display: none;">
+    <label class="export-label">Export</label>
+    <div class="export-buttons">
+      <button class="btn-secondary" onclick="exportTxt()">📄 .txt</button>
+      <button class="btn-secondary" onclick="exportMd()">📝 .md</button>
+      <button class="btn-secondary" onclick="exportHtml()">🌐 .html</button>
+      <button class="btn-secondary" onclick="copyToClipboard()">📋 Copy</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const categoryIcons = {
+    "Produce": "🥬",
+    "Dairy": "🧀",
+    "Meat": "🥩",
+    "Frozen": "❄️",
+    "Pantry": "🥫",
+    "Snacks": "🍿",
+    "Drinks": "🥤",
+    "Other": "📦"
+  };
+
+  const categoryKeywords = {
+    "Produce": ["apple", "banana", "carrot", "lettuce", "tomato", "onion", "potato", "broccoli", "spinach", "pepper", "cucumber", "asparagus", "pumpkin", "squash", "zucchini", "celery", "garlic", "basil", "kale", "arugula", "berry", "strawberry", "blueberry", "raspberry", "lemon", "lime", "orange", "grapes", "melon", "watermelon", "pineapple", "mango", "avocado", "coconut", "peach", "pear", "plum", "apricot", "papaya", "kiwi"],
+    "Dairy": ["milk", "yogurt", "cheese", "butter", "cream", "eggs", "egg", "sour cream", "whipped cream", "cottage cheese", "mozzarella", "cheddar", "feta", "ricotta", "parmesan", "brie", "goat cheese", "halloumi"],
+    "Meat": ["chicken", "beef", "pork", "fish", "turkey", "salmon", "tuna", "cod", "ham", "bacon", "sausage", "ground meat", "steak", "chop", "rib", "wing", "thigh", "breast", "lamb", "veal", "duck", "shrimp", "crab", "lobster", "squid", "clam", "mussel", "oyster"],
+    "Frozen": ["frozen peas", "ice cream", "frozen pizza", "frozen berries", "frozen vegetables", "frozen", "fries", "french fries", "frozen chicken", "frozen fish", "popsicle", "ice", "gelato"],
+    "Pantry": ["rice", "pasta", "flour", "beans", "canned", "oil", "vinegar", "salt", "pepper", "sugar", "honey", "jam", "peanut butter", "almond butter", "soy sauce", "teriyaki", "sriracha", "hot sauce", "ketchup", "mustard", "mayo", "mayonnaise", "olive oil", "coconut oil", "sesame oil", "balsamic", "garlic powder", "paprika", "cumin", "oregano", "thyme", "basil", "rosemary", "cinnamon", "vanilla", "cocoa", "chocolate", "coffee", "tea", "cereal", "oats", "granola", "nuts", "almonds", "walnuts", "cashews", "peanuts", "sunflower seeds"],
+    "Snacks": ["chips", "crackers", "granola", "nuts", "cookies", "popcorn", "pretzels", "granola bar", "protein bar", "candy", "chocolate", "caramel", "gummy", "trail mix", "mixed nuts", "almonds", "cashews", "peanuts", "walnuts"],
+    "Drinks": ["coffee", "tea", "juice", "soda", "wine", "beer", "water", "cola", "sprite", "fanta", "orange juice", "apple juice", "cranberry juice", "lemonade", "smoothie", "energy drink", "sports drink", "milk", "coconut water", "almond milk", "oat milk", "soy milk", "rum", "vodka", "gin", "whiskey", "tequila", "brandy", "champagne", "prosecco"],
+    "Other": []
+  };
+
+  let items = {};
+
+  function categorizeItem(item) {
+    const lower = item.toLowerCase().trim();
+    for (const [cat, keywords] of Object.entries(categoryKeywords)) {
+      if (keywords.some(kw => lower.includes(kw))) {
+        return cat;
+      }
+    }
+    return "Other";
+  }
+
+  function parseAndOrganize() {
+    const text = document.getElementById("input").value;
+    if (!text.trim()) {
+      alert("Please enter some items!");
+      return;
+    }
+
+    items = {};
+    const lines = text.split(/[\n,]/);
+
+    lines.forEach(line => {
+      const item = line.trim();
+      if (item) {
+        const category = categorizeItem(item);
+        if (!items[category]) items[category] = [];
+        items[category].push(item);
+      }
+    });
+
+    Object.keys(items).forEach(cat => {
+      items[cat].sort();
+    });
+
+    render();
+    document.getElementById("addItemSection").style.display = "block";
+    document.getElementById("exportSection").style.display = "block";
+  }
+
+  function render() {
+    const container = document.getElementById("categoriesContainer");
+    container.innerHTML = "";
+
+    if (Object.keys(items).length === 0) {
+      container.innerHTML = `<div class="empty-state"><div class="empty-state-icon">🛒</div><p>Your organized list will appear here</p></div>`;
+      document.getElementById("totalCount").textContent = "0";
+      document.getElementById("categoryCount").textContent = "0";
+      return;
+    }
+
+    const orderedCategories = ["Produce", "Dairy", "Meat", "Frozen", "Pantry", "Snacks", "Drinks", "Other"];
+    let totalItems = 0;
+
+    orderedCategories.forEach(cat => {
+      if (!items[cat]) return;
+
+      totalItems += items[cat].length;
+      const icon = categoryIcons[cat];
+      const catHtml = `
+        <div class="category">
+          <div class="category-header">
+            <div class="category-title">
+              <span class="category-icon">${icon}</span>
+              <span>${cat}</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <span class="category-count">${items[cat].length}</span>
+              <div class="toggle-icon">▼</div>
+            </div>
+          </div>
+          <div class="category-items">
+            ${items[cat].map((item, idx) => `
+              <div class="item">
+                <span class="item-name">${escapeHtml(item)}</span>
+                <button class="item-remove" onclick="removeItem('${cat}', ${idx})">×</button>
+              </div>
+            `).join("")}
+          </div>
+        </div>
+      `;
+      container.innerHTML += catHtml;
+    });
+
+    document.getElementById("totalCount").textContent = totalItems;
+    document.getElementById("categoryCount").textContent = Object.keys(items).length;
+
+    document.querySelectorAll(".category-header").forEach(header => {
+      header.addEventListener("click", function() {
+        this.classList.toggle("collapsed");
+      });
+    });
+  }
+
+  function removeItem(category, index) {
+    if (items[category]) {
+      items[category].splice(index, 1);
+      if (items[category].length === 0) delete items[category];
+    }
+    render();
+  }
+
+  function addNewItem() {
+    const name = document.getElementById("newItemName").value.trim();
+    if (!name) return;
+
+    let category = document.getElementById("newItemCategory").value;
+    if (!category) category = categorizeItem(name);
+
+    if (!items[category]) items[category] = [];
+    items[category].push(name);
+    items[category].sort();
+
+    document.getElementById("newItemName").value = "";
+    document.getElementById("newItemCategory").value = "";
+    render();
+  }
+
+  function exportTxt() {
+    const lines = [];
+    const orderedCategories = ["Produce", "Dairy", "Meat", "Frozen", "Pantry", "Snacks", "Drinks", "Other"];
+    orderedCategories.forEach(cat => {
+      if (items[cat]) {
+        lines.push(`## ${cat}`);
+        items[cat].forEach(item => lines.push(`- ${item}`));
+        lines.push("");
+      }
+    });
+    downloadFile(lines.join("\n"), "shopping-list.txt", "text/plain");
+  }
+
+  function exportMd() {
+    const lines = [];
+    const orderedCategories = ["Produce", "Dairy", "Meat", "Frozen", "Pantry", "Snacks", "Drinks", "Other"];
+    orderedCategories.forEach(cat => {
+      if (items[cat]) {
+        lines.push(`## ${cat}`);
+        items[cat].forEach(item => lines.push(`- [ ] ${item}`));
+        lines.push("");
+      }
+    });
+    downloadFile(lines.join("\n"), "shopping-list.md", "text/markdown");
+  }
+
+  function exportHtml() {
+    let html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shopping List</title>
+  <style>
+    body { font-family: sans-serif; max-width: 600px; margin: 40px auto; padding: 20px; background: #f5f5f5; }
+    h1 { color: #333; }
+    .category { margin-bottom: 24px; background: white; padding: 16px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    .category h2 { margin-top: 0; color: #52b788; }
+    .item { padding: 8px 0; border-bottom: 1px solid #eee; }
+    .item:last-child { border-bottom: none; }
+  </style>
+</head>
+<body>
+  <h1>Shopping List</h1>`;
+
+    const orderedCategories = ["Produce", "Dairy", "Meat", "Frozen", "Pantry", "Snacks", "Drinks", "Other"];
+    orderedCategories.forEach(cat => {
+      if (items[cat]) {
+        html += `<div class="category"><h2>${cat}</h2>`;
+        items[cat].forEach(item => {
+          html += `<div class="item">☐ ${escapeHtml(item)}</div>`;
+        });
+        html += `</div>`;
+      }
+    });
+
+    html += `</body></html>`;
+    downloadFile(html, "shopping-list.html", "text/html");
+  }
+
+  function copyToClipboard() {
+    const lines = [];
+    const orderedCategories = ["Produce", "Dairy", "Meat", "Frozen", "Pantry", "Snacks", "Drinks", "Other"];
+    orderedCategories.forEach(cat => {
+      if (items[cat]) {
+        lines.push(`${cat}:`);
+        items[cat].forEach(item => lines.push(`  ${item}`));
+      }
+    });
+
+    const text = lines.join("\n");
+    navigator.clipboard.writeText(text).then(() => {
+      alert("✅ Copied to clipboard!");
+    });
+  }
+
+  function downloadFile(content, filename, type) {
+    const blob = new Blob([content], { type });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  function clearAll() {
+    document.getElementById("input").value = "";
+    items = {};
+    render();
+    document.getElementById("addItemSection").style.display = "none";
+    document.getElementById("exportSection").style.display = "none";
+  }
+
+  function escapeHtml(text) {
+    const map = {
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#039;"
+    };
+    return text.replace(/[&<>"']/g, m => map[m]);
+  }
+
+  document.addEventListener("keypress", (e) => {
+    if (e.key === "Enter" && document.getElementById("newItemName") === document.activeElement) {
+      addNewItem();
+    }
+  });
+</script>
+</body>
+</html>
