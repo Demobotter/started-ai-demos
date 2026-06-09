@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rock Paper Scissors vs AI</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background: linear-gradient(135deg, #2d1b4e 0%, #1a0f2e 100%);
+            color: #f0f0f0;
+            min-height: 100vh;
+            padding: 40px 20px;
+            overflow-x: hidden;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 60px;
+            animation: fadeInDown 0.8s cubic-bezier(.16,1,.3,1);
+        }
+        
+        .header h1 {
+            font-family: 'Syne', sans-serif;
+            font-size: clamp(48px, 8vw, 72px);
+            font-weight: 800;
+            letter-spacing: -2px;
+            color: #00ff88;
+            text-shadow: 0 0 20px rgba(0, 255, 136, 0.5);
+            margin-bottom: 8px;
+        }
+        
+        .header p {
+            font-size: 16px;
+            color: #aaa;
+            font-weight: 400;
+            letter-spacing: 1px;
+        }
+        
+        .game-board {
+            display: grid;
+            grid-template-columns: 1fr 2fr 1fr;
+            gap: 40px;
+            margin-bottom: 40px;
+            animation: fadeIn 1s cubic-bezier(.16,1,.3,1) 0.2s both;
+        }
+        
+        .opponent-section, .score-section {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        
+        .opponent-section {
+            align-items: center;
+        }
+        
+        .opponent-label {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #00ff88;
+            margin-bottom: 16px;
+            opacity: 0.8;
+        }
+        
+        .opponent-choice {
+            font-size: 80px;
+            height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 12px;
+            min-height: 100px;
+            animation: opponentThink 0.5s cubic-bezier(.16,1,.3,1);
+        }
+        
+        .opponent-choice.reveal {
+            animation: revealChoice 0.6s cubic-bezier(.16,1,.3,1);
+        }
+        
+        @keyframes opponentThink {
+            0% { opacity: 0.3; transform: scale(0.8); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+        
+        @keyframes revealChoice {
+            0% { transform: rotateY(180deg) scale(0.5); opacity: 0; }
+            50% { transform: rotateY(90deg) scale(0.9); }
+            100% { transform: rotateY(0) scale(1); opacity: 1; }
+        }
+        
+        .thinking {
+            font-size: 14px;
+            color: #888;
+            height: 20px;
+            animation: blink 1.5s infinite;
+        }
+        
+        @keyframes blink {
+            0%, 100% { opacity: 0.4; }
+            50% { opacity: 1; }
+        }
+        
+        .game-center {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .buttons-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+            width: 100%;
+            max-width: 300px;
+        }
+        
+        .choice-btn {
+            background: rgba(0, 255, 136, 0.1);
+            border: 2px solid #00ff88;
+            color: #00ff88;
+            padding: 16px;
+            border-radius: 12px;
+            font-size: 48px;
+            cursor: pointer;
+            font-family: inherit;
+            font-weight: 600;
+            transition: all 0.3s cubic-bezier(.16,1,.3,1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 80px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .choice-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(0, 255, 136, 0.2), transparent);
+            transition: left 0.5s;
+        }
+        
+        .choice-btn:hover {
+            background: rgba(0, 255, 136, 0.15);
+            box-shadow: 0 0 20px rgba(0, 255, 136, 0.3);
+            transform: translateY(-4px);
+        }
+        
+        .choice-btn:hover::before {
+            left: 100%;
+        }
+        
+        .choice-btn:active {
+            transform: translateY(-2px);
+        }
+        
+        .choice-btn.selected {
+            background: #00ff88;
+            color: #1a0f2e;
+            box-shadow: 0 0 30px rgba(0, 255, 136, 0.6);
+        }
+        
+        .choice-label {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #00ff88;
+            margin-bottom: 12px;
+            opacity: 0.8;
+        }
+        
+        .result-card {
+            background: rgba(0, 255, 136, 0.05);
+            border: 2px solid #00ff88;
+            border-radius: 16px;
+            padding: 24px;
+            text-align: center;
+            margin-bottom: 24px;
+            min-height: 100px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            animation: slideUp 0.6s cubic-bezier(.16,1,.3,1);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .result-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #00ff88, transparent);
+            animation: shimmer 2s infinite;
+        }
+        
+        @keyframes shimmer {
+            0%, 100% { opacity: 0; }
+            50% { opacity: 1; }
+        }
+        
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .result-text {
+            font-family: 'Syne', sans-serif;
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            letter-spacing: -1px;
+        }
+        
+        .result-text.win {
+            color: #00ff88;
+            text-shadow: 0 0 20px rgba(0, 255, 136, 0.5);
+        }
+        
+        .result-text.loss {
+            color: #ff4466;
+            text-shadow: 0 0 20px rgba(255, 68, 102, 0.5);
+        }
+        
+        .result-text.draw {
+            color: #ffb800;
+            text-shadow: 0 0 20px rgba(255, 184, 0, 0.5);
+        }
+        
+        .hint-text {
+            font-size: 13px;
+            color: #999;
+            margin-top: 8px;
+            font-style: italic;
+        }
+        
+        .reset-btn {
+            background: linear-gradient(135deg, #00ff88, #00cc6f);
+            color: #1a0f2e;
+            border: none;
+            padding: 12px 32px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(.16,1,.3,1);
+            font-family: inherit;
+        }
+        
+        .reset-btn:hover {
+            box-shadow: 0 0 20px rgba(0, 255, 136, 0.4);
+            transform: translateY(-2px);
+        }
+        
+        .reset-btn:active {
+            transform: translateY(0);
+        }
+        
+        .score-section {
+            background: rgba(0, 255, 136, 0.05);
+            border: 2px solid #00ff88;
+            border-radius: 16px;
+            padding: 24px;
+        }
+        
+        .score-title {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #00ff88;
+            margin-bottom: 16px;
+            opacity: 0.8;
+        }
+        
+        .score-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid rgba(0, 255, 136, 0.2);
+        }
+        
+        .score-item:last-child {
+            margin-bottom: 0;
+            border-bottom: none;
+        }
+        
+        .score-label {
+            font-size: 13px;
+            color: #aaa;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .score-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #00ff88;
+            font-family: 'Syne', sans-serif;
+        }
+        
+        .streak {
+            font-size: 12px;
+            color: #ffb800;
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid rgba(0, 255, 136, 0.2);
+            text-align: center;
+        }
+        
+        @media (max-width: 768px) {
+            .game-board {
+                grid-template-columns: 1fr;
+                gap: 24px;
+            }
+            
+            .header h1 {
+                font-size: 40px;
+            }
+            
+            .opponent-choice {
+                font-size: 64px;
+            }
+            
+            .choice-btn {
+                font-size: 36px;
+                min-height: 60px;
+            }
+            
+            .result-card {
+                min-height: 80px;
+            }
+            
+            .result-text {
+                font-size: 24px;
+            }
+        }
+        
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 Rock Paper Scissors AI</h1>
+            <p>Challenge the artificial intelligence</p>
+        </div>
+        
+        <div class="game-board">
+            <!-- Opponent section -->
+            <div class="opponent-section">
+                <div class="opponent-label">Opponent</div>
+                <div class="opponent-choice" id="opponentChoice">🤖</div>
+                <div class="thinking" id="thinking" style="display:none;">thinking...</div>
+            </div>
+            
+            <!-- Game center -->
+            <div class="game-center">
+                <div class="choice-label">Your choice</div>
+                <div class="buttons-grid">
+                    <button class="choice-btn" data-choice="rock">✊</button>
+                    <button class="choice-btn" data-choice="paper">✋</button>
+                    <button class="choice-btn" data-choice="scissors">✌️</button>
+                </div>
+                
+                <div class="result-card" id="resultCard" style="display:none;">
+                    <div class="result-text" id="resultText"></div>
+                    <div class="hint-text" id="hintText"></div>
+                </div>
+                
+                <button class="reset-btn" id="resetBtn">Play Again</button>
+            </div>
+            
+            <!-- Score section -->
+            <div class="score-section">
+                <div class="score-title">Score</div>
+                <div class="score-item">
+                    <span class="score-label">Wins</span>
+                    <span class="score-value" id="winCount">0</span>
+                </div>
+                <div class="score-item">
+                    <span class="score-label">Losses</span>
+                    <span class="score-value" id="lossCount">0</span>
+                </div>
+                <div class="score-item">
+                    <span class="score-label">Draws</span>
+                    <span class="score-value" id="drawCount">0</span>
+                </div>
+                <div class="streak" id="streakText"></div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const choices = ['rock', 'paper', 'scissors'];
+        const choiceEmoji = {
+            rock: '✊',
+            paper: '✋',
+            scissors: '✌️'
+        };
+        
+        let stats = {
+            wins: 0,
+            losses: 0,
+            draws: 0,
+            streak: 0,
+            streakType: null
+        };
+        
+        let playerMoveHistory = [];
+        let gameInProgress = false;
+        
+        // AI logic: simple pattern detection
+        function getAIChoice() {
+            if (playerMoveHistory.length < 2) {
+                return choices[Math.floor(Math.random() * 3)];
+            }
+            
+            // Look at the last 2 moves
+            const lastMove = playerMoveHistory[playerMoveHistory.length - 1];
+            const beforeLastMove = playerMoveHistory[playerMoveHistory.length - 2];
+            
+            // If player repeated, they might do it again — counter it
+            if (lastMove === beforeLastMove) {
+                if (lastMove === 'rock') return 'paper';
+                if (lastMove === 'paper') return 'scissors';
+                return 'rock';
+            }
+            
+            // Otherwise, predict based on weighted random + bias to the player's most common move
+            const freq = {};
+            playerMoveHistory.forEach(m => freq[m] = (freq[m] || 0) + 1);
+            const mostCommon = Object.keys(freq).reduce((a, b) => freq[a] > freq[b] ? a : b);
+            
+            // Counter the most common move
+            if (mostCommon === 'rock') return 'paper';
+            if (mostCommon === 'paper') return 'scissors';
+            return 'rock';
+        }
+        
+        function determineWinner(player, ai) {
+            if (player === ai) return 'draw';
+            if (
+                (player === 'rock' && ai === 'scissors') ||
+                (player === 'paper' && ai === 'rock') ||
+                (player === 'scissors' && ai === 'paper')
+            ) {
+                return 'win';
+            }
+            return 'loss';
+        }
+        
+        function updateStreak(result) {
+            if (result === 'draw') {
+                stats.streak = 0;
+                stats.streakType = null;
+            } else if (result === stats.streakType) {
+                stats.streak++;
+            } else {
+                stats.streak = 1;
+                stats.streakType = result;
+            }
+        }
+        
+        function updateUI() {
+            document.getElementById('winCount').textContent = stats.wins;
+            document.getElementById('lossCount').textContent = stats.losses;
+            document.getElementById('drawCount').textContent = stats.draws;
+            
+            if (stats.streak > 1) {
+                const streakLabel = stats.streakType === 'win' ? 'Win' : 'Loss';
+                document.getElementById('streakText').textContent = `${stats.streak}x ${streakLabel} Streak! 🔥`;
+            } else {
+                document.getElementById('streakText').textContent = '';
+            }
+        }
+        
+        function playGame(playerChoice) {
+            if (gameInProgress) return;
+            gameInProgress = true;
+            
+            // Record player move
+            playerMoveHistory.push(playerChoice);
+            
+            // Show player choice selected
+            document.querySelectorAll('.choice-btn').forEach(btn => {
+                btn.classList.remove('selected');
+            });
+            document.querySelector(`[data-choice="${playerChoice}"]`).classList.add('selected');
+            
+            // Show thinking animation
+            document.getElementById('opponentChoice').textContent = '🤖';
+            document.getElementById('thinking').style.display = 'block';
+            document.getElementById('resultCard').style.display = 'none';
+            
+            // Get AI choice
+            const aiChoice = getAIChoice();
+            
+            // Delay reveal for drama
+            setTimeout(() => {
+                document.getElementById('thinking').style.display = 'none';
+                
+                // Reveal opponent choice
+                document.getElementById('opponentChoice').textContent = choiceEmoji[aiChoice];
+                document.getElementById('opponentChoice').classList.add('reveal');
+                
+                // Determine winner
+                const result = determineWinner(playerChoice, aiChoice);
+                
+                // Update stats
+                if (result === 'win') {
+                    stats.wins++;
+                } else if (result === 'loss') {
+                    stats.losses++;
+                } else {
+                    stats.draws++;
+                }
+                updateStreak(result);
+                updateUI();
+                
+                // Show result
+                const resultCard = document.getElementById('resultCard');
+                const resultText = document.getElementById('resultText');
+                const hintText = document.getElementById('hintText');
+                
+                if (result === 'win') {
+                    resultText.textContent = '🎉 You Won!';
+                    resultText.className = 'result-text win';
+                    hintText.textContent = 'AI detected your pattern. It will counter next!';
+                } else if (result === 'loss') {
+                    resultText.textContent = '❌ AI Wins';
+                    resultText.className = 'result-text loss';
+                    hintText.textContent = 'The AI predicted your move!';
+                } else {
+                    resultText.textContent = '🤝 Draw';
+                    resultText.className = 'result-text draw';
+                    hintText.textContent = 'Great minds think alike!';
+                }
+                
+                resultCard.style.display = 'flex';
+                
+                // Re-enable buttons after delay
+                setTimeout(() => {
+                    gameInProgress = false;
+                    document.getElementById('opponentChoice').classList.remove('reveal');
+                }, 800);
+            }, 1200);
+        }
+        
+        function resetGame() {
+            playerMoveHistory = [];
+            stats = { wins: 0, losses: 0, draws: 0, streak: 0, streakType: null };
+            gameInProgress = false;
+            document.querySelectorAll('.choice-btn').forEach(btn => btn.classList.remove('selected'));
+            document.getElementById('resultCard').style.display = 'none';
+            document.getElementById('opponentChoice').textContent = '🤖';
+            document.getElementById('thinking').style.display = 'none';
+            updateUI();
+        }
+        
+        // Event listeners
+        document.querySelectorAll('.choice-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                playGame(btn.dataset.choice);
+            });
+        });
+        
+        document.getElementById('resetBtn').addEventListener('click', resetGame);
+        
+        // Initial UI update
+        updateUI();
+    </script>
+</body>
+</html>
