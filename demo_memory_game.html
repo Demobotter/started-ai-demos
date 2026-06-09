@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Memory Match — Concentration Card Game</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700&family=Cousine:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #1a0f2e;
+      --bg-light: #2d1b4e;
+      --panel: rgba(30, 15, 60, 0.9);
+      --line: rgba(236, 72, 153, 0.2);
+      --txt: #f0e6ff;
+      --mut: #c4a8d8;
+      --accent1: #ec4899;
+      --accent2: #06b6d4;
+      --accent3: #84cc16;
+      --success: #10b981;
+    }
+    
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      font-family: 'Sora', sans-serif;
+      background: linear-gradient(135deg, var(--bg-dark) 0%, #3d1f5e 50%, #1a0f2e 100%);
+      color: var(--txt);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      overflow-x: hidden;
+    }
+    
+    .container {
+      max-width: 900px;
+      width: 100%;
+      animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(40px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .hero {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+    
+    .hero h1 {
+      font-size: clamp(28px, 6vw, 44px);
+      font-weight: 700;
+      margin-bottom: 12px;
+      letter-spacing: -0.8px;
+      background: linear-gradient(135deg, #ec4899, #06b6d4, #84cc16);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    
+    .hero p {
+      color: var(--mut);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    
+    .controls {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      margin-bottom: 28px;
+      flex-wrap: wrap;
+    }
+    
+    .diff-btn {
+      padding: 10px 20px;
+      border: 2px solid var(--line);
+      background: rgba(236, 72, 153, 0.1);
+      color: var(--txt);
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: 'Sora', sans-serif;
+    }
+    
+    .diff-btn:hover {
+      border-color: var(--accent1);
+      background: rgba(236, 72, 153, 0.2);
+    }
+    
+    .diff-btn.active {
+      border-color: var(--accent1);
+      background: var(--accent1);
+      color: #1a0f2e;
+    }
+    
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    
+    .stat-box {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 14px;
+      text-align: center;
+    }
+    
+    .stat-value {
+      font-family: 'Cousine', monospace;
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--accent2);
+      margin-bottom: 4px;
+    }
+    
+    .stat-label {
+      font-size: 11px;
+      color: var(--mut);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .board {
+      display: grid;
+      gap: 8px;
+      margin-bottom: 24px;
+      max-width: 100%;
+      justify-items: center;
+    }
+    
+    .card {
+      width: 60px;
+      height: 60px;
+      cursor: pointer;
+      perspective: 1000px;
+      flex: 0 0 auto;
+    }
+    
+    .card-inner {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      transition: transform 0.6s;
+      transform-style: preserve-3d;
+    }
+    
+    .card.flipped .card-inner {
+      transform: rotateY(180deg);
+    }
+    
+    .card-face {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      backface-visibility: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 2px solid var(--line);
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 24px;
+      font-family: 'Cousine', monospace;
+      transition: all 0.2s;
+    }
+    
+    .card-back {
+      background: linear-gradient(135deg, var(--accent1), var(--accent2));
+      color: #1a0f2e;
+    }
+    
+    .card:hover:not(.matched) .card-back {
+      transform: scale(1.08);
+      box-shadow: 0 0 20px rgba(236, 72, 153, 0.4);
+    }
+    
+    .card-front {
+      background: var(--panel);
+      color: var(--txt);
+      transform: rotateY(180deg);
+    }
+    
+    .card.matched .card-face {
+      background: rgba(16, 185, 129, 0.15);
+      border-color: rgba(16, 185, 129, 0.5);
+    }
+    
+    .card.matched .card-front {
+      color: var(--success);
+    }
+    
+    .actions {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    
+    .action-btn {
+      padding: 12px 24px;
+      border: none;
+      background: linear-gradient(135deg, var(--accent1), var(--accent2));
+      color: #1a0f2e;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: 'Sora', sans-serif;
+    }
+    
+    .action-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(236, 72, 153, 0.3);
+    }
+    
+    .action-btn:active {
+      transform: translateY(0);
+    }
+    
+    .game-over {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      backdrop-filter: blur(4px);
+    }
+    
+    .game-over.show {
+      display: flex;
+    }
+    
+    .game-over-content {
+      background: var(--panel);
+      border: 2px solid var(--accent1);
+      border-radius: 20px;
+      padding: 40px;
+      text-align: center;
+      max-width: 400px;
+      animation: popIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    
+    @keyframes popIn {
+      from { opacity: 0; transform: scale(0.8); }
+      to { opacity: 1; transform: scale(1); }
+    }
+    
+    .game-over-content h2 {
+      font-size: 32px;
+      margin-bottom: 16px;
+      color: var(--accent1);
+    }
+    
+    .game-over-content p {
+      color: var(--mut);
+      margin-bottom: 12px;
+      line-height: 1.6;
+    }
+    
+    .game-over-btn {
+      margin-top: 24px;
+      padding: 12px 32px;
+      background: var(--accent1);
+      color: #1a0f2e;
+      border: none;
+      border-radius: 10px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: 'Sora', sans-serif;
+    }
+    
+    @media (max-width: 600px) {
+      .card {
+        width: 50px;
+        height: 50px;
+        font-size: 18px;
+      }
+      
+      .board {
+        gap: 6px;
+      }
+      
+      .stats {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      
+      .game-over-content {
+        padding: 30px;
+        margin: 20px;
+      }
+    }
+    
+    @media (prefers-reduced-motion: reduce) {
+      * {
+        animation: none !important;
+        transition: none !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="hero">
+      <h1>Memory Match</h1>
+      <p>Flip cards to find matching pairs. Beat your best time!</p>
+    </div>
+    
+    <div class="controls">
+      <button class="diff-btn active" data-difficulty="easy">Easy (4×4)</button>
+      <button class="diff-btn" data-difficulty="medium">Medium (6×6)</button>
+      <button class="diff-btn" data-difficulty="hard">Hard (8×8)</button>
+    </div>
+    
+    <div class="stats">
+      <div class="stat-box">
+        <div class="stat-value" id="timer">0:00</div>
+        <div class="stat-label">Time</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-value" id="pairs">0</div>
+        <div class="stat-label">Pairs Found</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-value" id="moves">0</div>
+        <div class="stat-label">Flips</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-value" id="best">—</div>
+        <div class="stat-label">Best Time</div>
+      </div>
+    </div>
+    
+    <div class="board" id="board"></div>
+    
+    <div class="actions">
+      <button class="action-btn" id="hintBtn">💡 Hint (Show All)</button>
+      <button class="action-btn" id="resetBtn">🔄 New Game</button>
+    </div>
+  </div>
+  
+  <div class="game-over" id="gameOverModal">
+    <div class="game-over-content">
+      <h2>You Won! 🎉</h2>
+      <p id="winStats"></p>
+      <button class="game-over-btn" onclick="document.getElementById('gameOverModal').classList.remove('show')">Play Again</button>
+    </div>
+  </div>
+  
+  <script>
+    const suits = ['🌟', '🎨', '🎭', '🎪', '🎯', '🎲', '🎸', '🎮'];
+    let difficulty = 'easy';
+    let cards = [];
+    let flipped = [];
+    let matched = new Set();
+    let moves = 0;
+    let startTime = null;
+    let timerInterval = null;
+    let gameRunning = false;
+    let hintUsed = false;
+    
+    const board = document.getElementById('board');
+    const diffBtns = document.querySelectorAll('.diff-btn');
+    const hintBtn = document.getElementById('hintBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const timerEl = document.getElementById('timer');
+    const pairsEl = document.getElementById('pairs');
+    const movesEl = document.getElementById('moves');
+    const bestEl = document.getElementById('best');
+    const gameOverModal = document.getElementById('gameOverModal');
+    const winStatsEl = document.getElementById('winStats');
+    
+    function getDifficulty() {
+      const sizes = { easy: 4, medium: 6, hard: 8 };
+      return sizes[difficulty];
+    }
+    
+    function initGame() {
+      cards = [];
+      flipped = [];
+      matched.clear();
+      moves = 0;
+      startTime = null;
+      hintUsed = false;
+      gameRunning = true;
+      movesEl.textContent = '0';
+      pairsEl.textContent = '0';
+      timerEl.textContent = '0:00';
+      
+      clearInterval(timerInterval);
+      
+      const gridSize = getDifficulty();
+      const numPairs = (gridSize * gridSize) / 2;
+      const deck = [];
+      for (let i = 0; i < numPairs; i++) {
+        deck.push(suits[i % suits.length]);
+        deck.push(suits[i % suits.length]);
+      }
+      
+      // Shuffle
+      for (let i = deck.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [deck[i], deck[j]] = [deck[j], deck[i]];
+      }
+      
+      cards = deck.map((symbol, idx) => ({ id: idx, symbol, flipped: false, matched: false }));
+      
+      renderBoard();
+      updateBestTime();
+    }
+    
+    function renderBoard() {
+      const gridSize = getDifficulty();
+      board.style.gridTemplateColumns = `repeat(${gridSize}, minmax(50px, 1fr))`;
+      board.innerHTML = '';
+      
+      cards.forEach((card, idx) => {
+        const cardEl = document.createElement('div');
+        cardEl.className = 'card';
+        if (card.flipped || card.matched) cardEl.classList.add('flipped');
+        if (card.matched) cardEl.classList.add('matched');
+        
+        const inner = document.createElement('div');
+        inner.className = 'card-inner';
+        inner.innerHTML = `
+          <div class="card-face card-back">?</div>
+          <div class="card-face card-front">${card.symbol}</div>
+        `;
+        cardEl.appendChild(inner);
+        cardEl.addEventListener('click', () => flipCard(idx));
+        board.appendChild(cardEl);
+      });
+    }
+    
+    function flipCard(idx) {
+      if (!gameRunning || cards[idx].matched || cards[idx].flipped || flipped.length >= 2) return;
+      
+      if (!startTime) {
+        startTime = Date.now();
+        startTimer();
+      }
+      
+      cards[idx].flipped = true;
+      flipped.push(idx);
+      renderBoard();
+      
+      if (flipped.length === 2) {
+        setTimeout(checkMatch, 600);
+      }
+    }
+    
+    function checkMatch() {
+      const [idx1, idx2] = flipped;
+      moves++;
+      movesEl.textContent = moves;
+      
+      if (cards[idx1].symbol === cards[idx2].symbol) {
+        cards[idx1].matched = true;
+        cards[idx2].matched = true;
+        const pairsCount = matched.size + 1;
+        matched.add(idx1);
+        matched.add(idx2);
+        pairsEl.textContent = pairsCount;
+        
+        if (matched.size === cards.length) {
+          endGame();
+        }
+      } else {
+        cards[idx1].flipped = false;
+        cards[idx2].flipped = false;
+      }
+      
+      flipped = [];
+      renderBoard();
+    }
+    
+    function startTimer() {
+      timerInterval = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - startTime) / 1000);
+        const mins = Math.floor(elapsed / 60);
+        const secs = elapsed % 60;
+        timerEl.textContent = `${mins}:${String(secs).padStart(2, '0')}`;
+      }, 100);
+    }
+    
+    function endGame() {
+      gameRunning = false;
+      clearInterval(timerInterval);
+      
+      const elapsed = timerEl.textContent;
+      const bestTime = localStorage.getItem(`best_${difficulty}`) || '—';
+      const bestMoves = localStorage.getItem(`bestMoves_${difficulty}`) || '—';
+      
+      // Update best if applicable
+      const currentTime = parseInt(timerEl.textContent.replace(':', '')) || Infinity;
+      const prevBest = bestTime === '—' ? Infinity : parseInt(bestTime.replace(':', ''));
+      if (currentTime < prevBest) {
+        localStorage.setItem(`best_${difficulty}`, elapsed);
+      }
+      const prevBestMoves = bestMoves === '—' ? Infinity : parseInt(bestMoves);
+      if (moves < prevBestMoves) {
+        localStorage.setItem(`bestMoves_${difficulty}`, moves);
+      }
+      
+      winStatsEl.innerHTML = `<strong>Time:</strong> ${elapsed}<br><strong>Flips:</strong> ${moves}`;
+      gameOverModal.classList.add('show');
+      updateBestTime();
+    }
+    
+    function updateBestTime() {
+      const best = localStorage.getItem(`best_${difficulty}`) || '—';
+      bestEl.textContent = best;
+    }
+    
+    diffBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        diffBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        difficulty = btn.dataset.difficulty;
+        hintBtn.textContent = '💡 Hint (Show All)';
+        initGame();
+      });
+    });
+    
+    hintBtn.addEventListener('click', () => {
+      if (!gameRunning || hintUsed) return;
+      hintUsed = true;
+      hintBtn.textContent = '✓ Hint Used';
+      hintBtn.disabled = true;
+      
+      cards.forEach(c => c.flipped = true);
+      renderBoard();
+      
+      setTimeout(() => {
+        cards.forEach(c => {
+          if (!c.matched) c.flipped = false;
+        });
+        renderBoard();
+        hintBtn.disabled = false;
+      }, 3000);
+    });
+    
+    resetBtn.addEventListener('click', () => {
+      gameOverModal.classList.remove('show');
+      initGame();
+    });
+    
+    // Start
+    initGame();
+  </script>
+</body>
+</html>
