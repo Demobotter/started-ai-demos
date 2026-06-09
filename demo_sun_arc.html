@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Golden Hour — Live Sun Tracker</title>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; overflow: hidden; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, #0a0e27 0%, #1a0e2e 50%, #2d1b3d 100%);
+      color: #f5e6d3;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+
+    .container {
+      max-width: 900px;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+      animation: fadeInUp 0.8s ease-out;
+    }
+
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .hero {
+      text-align: center;
+      animation-delay: 0.1s;
+    }
+
+    .hero h1 {
+      font-family: 'Fraunces', serif;
+      font-size: clamp(2rem, 5vw, 3.5rem);
+      font-weight: 700;
+      color: #ffd89b;
+      margin-bottom: 0.5rem;
+      letter-spacing: -1px;
+    }
+
+    .hero p {
+      font-size: 1rem;
+      color: #d4a574;
+      font-weight: 400;
+    }
+
+    .search-box {
+      display: flex;
+      gap: 0.75rem;
+      margin-top: 1.5rem;
+      animation: fadeInUp 0.8s ease-out 0.2s both;
+    }
+
+    .search-box input {
+      flex: 1;
+      padding: 0.875rem 1rem;
+      border: 1px solid #5a4a3a;
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(10px);
+      border-radius: 8px;
+      color: #f5e6d3;
+      font-size: 0.95rem;
+      transition: all 0.3s ease;
+    }
+
+    .search-box input::placeholder {
+      color: #8b7a6b;
+    }
+
+    .search-box input:focus {
+      outline: none;
+      border-color: #ffd89b;
+      background: rgba(255, 255, 255, 0.08);
+      box-shadow: 0 0 20px rgba(255, 216, 155, 0.2);
+    }
+
+    .search-box button {
+      padding: 0.875rem 1.5rem;
+      background: linear-gradient(135deg, #ffd89b 0%, #ffb347 100%);
+      border: none;
+      border-radius: 8px;
+      color: #2d1b3d;
+      font-weight: 600;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 20px rgba(255, 216, 155, 0.25);
+    }
+
+    .search-box button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 30px rgba(255, 216, 155, 0.35);
+    }
+
+    .search-box button:active {
+      transform: translateY(0);
+    }
+
+    .main-display {
+      background: rgba(10, 14, 39, 0.6);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 216, 155, 0.15);
+      border-radius: 16px;
+      padding: 2rem;
+      animation: fadeInUp 0.8s ease-out 0.3s both;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+
+    .location-info {
+      text-align: center;
+      margin-bottom: 1.5rem;
+      opacity: 0;
+      animation: fadeIn 0.6s ease-out 0.5s forwards;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .location-info h2 {
+      font-family: 'Fraunces', serif;
+      font-size: 1.75rem;
+      color: #ffd89b;
+      margin-bottom: 0.25rem;
+    }
+
+    .location-info p {
+      font-size: 0.9rem;
+      color: #b8a89a;
+    }
+
+    .arc-container {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 2 / 1;
+      margin: 2rem 0;
+      opacity: 0;
+      animation: fadeIn 0.8s ease-out 0.6s forwards;
+    }
+
+    svg {
+      width: 100%;
+      height: 100%;
+    }
+
+    .times-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 1rem;
+      margin-top: 1.5rem;
+      opacity: 0;
+      animation: fadeIn 0.6s ease-out 0.7s forwards;
+    }
+
+    .time-card {
+      background: rgba(255, 216, 155, 0.08);
+      border: 1px solid rgba(255, 216, 155, 0.2);
+      border-radius: 10px;
+      padding: 1rem;
+      text-align: center;
+      transition: all 0.3s ease;
+    }
+
+    .time-card:hover {
+      background: rgba(255, 216, 155, 0.12);
+      border-color: rgba(255, 216, 155, 0.4);
+      transform: translateY(-2px);
+    }
+
+    .time-card .label {
+      font-size: 0.8rem;
+      color: #9b8b7b;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 0.4rem;
+    }
+
+    .time-card .value {
+      font-family: 'Inter', sans-serif;
+      font-size: 1.3rem;
+      font-weight: 600;
+      color: #ffd89b;
+    }
+
+    .error-msg {
+      background: rgba(255, 100, 100, 0.1);
+      border: 1px solid rgba(255, 100, 100, 0.3);
+      color: #ff9999;
+      padding: 1rem;
+      border-radius: 8px;
+      text-align: center;
+      display: none;
+    }
+
+    .error-msg.show {
+      display: block;
+      animation: fadeInUp 0.4s ease-out;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 3rem 1rem;
+      color: #8b7a6b;
+    }
+
+    .empty-state p {
+      font-size: 1rem;
+      margin-bottom: 0.5rem;
+    }
+
+    @media (max-width: 600px) {
+      .hero h1 {
+        font-size: 1.75rem;
+      }
+
+      .search-box {
+        flex-direction: column;
+      }
+
+      .times-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .main-display {
+        padding: 1.5rem;
+      }
+
+      .arc-container {
+        aspect-ratio: 1 / 0.75;
+      }
+    }
+
+    .loading {
+      text-align: center;
+      padding: 2rem;
+      color: #b8a89a;
+    }
+
+    .loading::after {
+      content: '';
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      margin-left: 0.5rem;
+      border: 2px solid rgba(255, 216, 155, 0.2);
+      border-top-color: #ffd89b;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      vertical-align: middle;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="hero" style="animation: fadeInUp 0.8s ease-out;">
+      <h1>Golden Hour</h1>
+      <p>Track the sun's arc across your sky, in real time.</p>
+    </div>
+
+    <div class="search-box">
+      <input type="text" id="cityInput" placeholder="Enter a city name…" autocomplete="off">
+      <button onclick="searchCity()">Go</button>
+    </div>
+
+    <div class="error-msg" id="errorMsg"></div>
+
+    <div class="main-display" id="mainDisplay" style="display: none;">
+      <div class="location-info">
+        <h2 id="locationName"></h2>
+        <p id="locationCoords"></p>
+      </div>
+
+      <div class="arc-container">
+        <svg id="sunArc" viewBox="0 0 800 400" preserveAspectRatio="xMidYMid meet">
+          <!-- Sky gradient definition -->
+          <defs>
+            <radialGradient id="skyGradient" cx="50%" cy="30%">
+              <stop offset="0%" id="skyGrad0" />
+              <stop offset="100%" id="skyGrad100" />
+            </radialGradient>
+            <filter id="sunGlow">
+              <feGaussianBlur stdDeviation="8" result="coloredBlur"/>
+              <feMerge>
+                <feMergeNode in="coloredBlur"/>
+                <feMergeNode in="SourceGraphic"/>
+              </feMerge>
+            </filter>
+          </defs>
+
+          <!-- Sky background -->
+          <rect width="800" height="400" fill="url(#skyGradient)" />
+
+          <!-- Horizon line -->
+          <line x1="0" y1="300" x2="800" y2="300" stroke="rgba(255, 216, 155, 0.3)" stroke-width="2" />
+
+          <!-- Sun arc path (invisible, for reference) -->
+          <path id="arcPath" d="" fill="none" stroke="none" />
+
+          <!-- Time markers (hour lines) -->
+          <g id="timeMarkers" opacity="0.4"></g>
+
+          <!-- Sun disc -->
+          <circle id="sunDisc" cx="400" cy="300" r="24" fill="#ffd89b" filter="url(#sunGlow)" opacity="0.95" />
+
+          <!-- Sun position marker -->
+          <circle id="sunPosition" cx="400" cy="300" r="32" fill="none" stroke="rgba(255, 216, 155, 0.4)" stroke-width="2" opacity="0.7" />
+        </svg>
+      </div>
+
+      <div class="times-grid" id="timesGrid"></div>
+    </div>
+
+    <div class="empty-state" id="emptyState">
+      <p>🌅 Enter a city to see the sun's path today.</p>
+    </div>
+  </div>
+
+  <script>
+    // Solar position algorithm (simplified NOAA equations)
+    function computeSolarPosition(lat, lon, date, timeOfDay) {
+      const D = date.getTime() / 86400000 - 10957.5; // Days since Jan 1, 2000
+      const T = D / 36525; // Centuries since J2000
+
+      // Mean solar time
+      const B = (360 / 365.25) * D;
+      const B_rad = (B % 360) * (Math.PI / 180);
+
+      // Equation of time (minutes)
+      const E = 229.18 * (0.000075 + 0.001868 * Math.cos(B_rad) - 0.032077 * Math.sin(B_rad)
+                          - 0.014615 * Math.cos(2 * B_rad) - 0.040849 * Math.sin(2 * B_rad));
+
+      // Solar declination (degrees)
+      const decl_rad = (0.006918 - 0.399912 * Math.cos(B_rad) + 0.070257 * Math.sin(B_rad)
+                        - 0.006758 * Math.cos(2 * B_rad) + 0.000907 * Math.sin(2 * B_rad)
+                        - 0.002697 * Math.cos(3 * B_rad) + 0.00111 * Math.sin(3 * B_rad));
+
+      // Get timezone offset for the given location (approx, in hours)
+      const tzOffset = lon / 15;
+      const localTime = new Date(date.getTime() + tzOffset * 3600000);
+      const H = (localTime.getHours() + localTime.getMinutes() / 60 + localTime.getSeconds() / 3600) - 12;
+      const omega = H * 15 * (Math.PI / 180); // Hour angle in radians
+
+      const lat_rad = lat * (Math.PI / 180);
+      const sin_alt = Math.sin(lat_rad) * Math.sin(decl_rad) + Math.cos(lat_rad) * Math.cos(decl_rad) * Math.cos(omega);
+      const altitude = Math.asin(sin_alt) * (180 / Math.PI);
+
+      const cos_azm = (Math.sin(decl_rad) * Math.cos(lat_rad) - Math.cos(decl_rad) * Math.sin(lat_rad) * Math.cos(omega)) / Math.cos(Math.asin(sin_alt));
+      const azimuth = Math.atan2(Math.sin(omega), cos_azm) * (180 / Math.PI) + 180;
+
+      return { altitude, azimuth, declination: decl_rad * (180 / Math.PI) };
+    }
+
+    // Compute sunrise/sunset (simplified)
+    function computeSunriseSunset(lat, lon, date) {
+      const results = {};
+      let sunrise, sunset, solarNoon, civilDawn, civilDusk, goldenHourStart, goldenHourEnd;
+
+      for (let h = 0; h < 24; h++) {
+        const testDate = new Date(date);
+        testDate.setHours(h, 0, 0, 0);
+        const pos = computeSolarPosition(lat, lon, testDate, true);
+
+        if (!sunrise && pos.altitude > 0) sunrise = h;
+        if (sunrise && !sunset && pos.altitude < 0) sunset = h;
+        if (!solarNoon && pos.altitude > (solarNoon ? 0 : -1)) solarNoon = h;
+        if (!civilDawn && pos.altitude > -6) civilDawn = h;
+        if (civilDawn && !civilDusk && pos.altitude < -6) civilDusk = h;
+        if (!goldenHourStart && pos.altitude > 0 && pos.altitude < 6) goldenHourStart = h;
+        if (!goldenHourEnd && pos.altitude > 0 && pos.altitude < 6 && h > 12) goldenHourEnd = h;
+      }
+
+      const formatTime = (h) => {
+        if (!h && h !== 0) return '—';
+        const hours = Math.floor(h);
+        const mins = Math.round((h - hours) * 60);
+        return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+      };
+
+      return {
+        sunrise: formatTime(sunrise),
+        sunset: formatTime(sunset),
+        solarNoon: formatTime(solarNoon),
+        civilDawn: formatTime(civilDawn),
+        civilDusk: formatTime(civilDusk),
+        goldenHourStart: formatTime(goldenHourStart),
+        goldenHourEnd: formatTime(goldenHourEnd)
+      };
+    }
+
+    // Geocode city name
+    async function geocodeCity(city) {
+      try {
+        const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=en&format=json`);
+        const data = await res.json();
+        if (!data.results || data.results.length === 0) throw new Error('City not found');
+        const r = data.results[0];
+        return {
+          name: `${r.name}${r.admin1 ? ', ' + r.admin1 : ''}${r.country ? ', ' + r.country : ''}`,
+          lat: r.latitude,
+          lon: r.longitude,
+          timezone: r.timezone || 'UTC'
+        };
+      } catch (e) {
+        throw new Error('Could not find city: ' + e.message);
+      }
+    }
+
+    // Render the sun arc
+    function renderArc(lat, lon, times) {
+      const svg = document.getElementById('sunArc');
+      const timesGrid = document.getElementById('timesGrid');
+      timesGrid.innerHTML = '';
+
+      const centerX = 400, centerY = 300;
+      const radiusX = 350, radiusY = 280;
+
+      // Clear old time markers
+      document.getElementById('timeMarkers').innerHTML = '';
+      const markers = document.getElementById('timeMarkers');
+
+      const now = new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const currentPos = computeSolarPosition(lat, lon, now, true);
+      const sunAlt = currentPos.altitude;
+
+      // Update sky gradient based on sun altitude
+      let color0, color100;
+      if (sunAlt < -18) {
+        color0 = '#0a0a1f'; // Deep night
+        color100 = '#1a0a2e';
+      } else if (sunAlt < -6) {
+        color0 = '#2a0a3e'; // Twilight
+        color100 = '#4a1a5e';
+      } else if (sunAlt < 0) {
+        color0 = '#6a3a7e'; // Civil twilight
+        color100 = '#8a5a9e';
+      } else if (sunAlt < 6) {
+        color0 = '#d97706'; // Golden hour
+        color100 = '#fbbf24';
+      } else if (sunAlt < 20) {
+        color0 = '#3b82f6'; // Morning/afternoon
+        color100 = '#60a5fa';
+      } else {
+        color0 = '#1e3a8a'; // High sun
+        color100 = '#3b82f6';
+      }
+
+      document.getElementById('skyGrad0').setAttribute('stop-color', color0);
+      document.getElementById('skyGrad100').setAttribute('stop-color', color100);
+
+      // Draw hourly arc points
+      for (let h = 0; h < 24; h++) {
+        const testTime = new Date(today);
+        testTime.setHours(h, 0, 0, 0);
+        const pos = computeSolarPosition(lat, lon, testTime, true);
+
+        if (pos.altitude > -90) {
+          const angle = (pos.azimuth - 90) * (Math.PI / 180);
+          const alt_norm = Math.max(-90, pos.altitude) / 90;
+          const r = radiusX * Math.sqrt(1 - alt_norm * alt_norm);
+          const x = centerX + r * Math.cos(angle);
+          const y = centerY + r * Math.sin(angle);
+
+          // Draw hour marker
+          const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+          circle.setAttribute('cx', x);
+          circle.setAttribute('cy', y);
+          circle.setAttribute('r', pos.altitude > 0 ? '4' : '2');
+          circle.setAttribute('fill', pos.altitude > 0 ? 'rgba(255, 216, 155, 0.6)' : 'rgba(255, 216, 155, 0.2)');
+          markers.appendChild(circle);
+
+          // Add hour labels for daytime
+          if (h % 3 === 0) {
+            const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            text.setAttribute('x', x);
+            text.setAttribute('y', y - 15);
+            text.setAttribute('text-anchor', 'middle');
+            text.setAttribute('font-size', '12');
+            text.setAttribute('fill', 'rgba(255, 216, 155, 0.5)');
+            text.setAttribute('font-family', 'Inter');
+            text.textContent = h + ':00';
+            markers.appendChild(text);
+          }
+        }
+      }
+
+      // Draw current sun position
+      if (currentPos.altitude > -90) {
+        const angle = (currentPos.azimuth - 90) * (Math.PI / 180);
+        const alt_norm = Math.max(-90, currentPos.altitude) / 90;
+        const r = radiusX * Math.sqrt(1 - alt_norm * alt_norm);
+        const sunX = centerX + r * Math.cos(angle);
+        const sunY = centerY + r * Math.sin(angle);
+
+        document.getElementById('sunDisc').setAttribute('cx', sunX);
+        document.getElementById('sunDisc').setAttribute('cy', sunY);
+        document.getElementById('sunPosition').setAttribute('cx', sunX);
+        document.getElementById('sunPosition').setAttribute('cy', sunY);
+      }
+
+      // Render times grid
+      const timeLabels = [
+        { label: 'Sunrise', value: times.sunrise },
+        { label: 'Solar Noon', value: times.solarNoon },
+        { label: 'Sunset', value: times.sunset },
+        { label: 'Golden Hour', value: times.goldenHourStart + ' – ' + times.goldenHourEnd },
+        { label: 'Civil Dawn', value: times.civilDawn },
+        { label: 'Civil Dusk', value: times.civilDusk }
+      ];
+
+      timeLabels.forEach(t => {
+        const card = document.createElement('div');
+        card.className = 'time-card';
+        card.innerHTML = `<div class="label">${t.label}</div><div class="value">${t.value}</div>`;
+        timesGrid.appendChild(card);
+      });
+    }
+
+    async function searchCity() {
+      const input = document.getElementById('cityInput');
+      const city = input.value.trim();
+      if (!city) return;
+
+      const errorMsg = document.getElementById('errorMsg');
+      errorMsg.classList.remove('show');
+
+      const mainDisplay = document.getElementById('mainDisplay');
+      const emptyState = document.getElementById('emptyState');
+      mainDisplay.style.display = 'none';
+      emptyState.innerHTML = '<div class="loading">Searching…</div>';
+      emptyState.style.display = 'block';
+
+      try {
+        const loc = await geocodeCity(city);
+        const times = computeSunriseSunset(loc.lat, loc.lon, new Date());
+
+        document.getElementById('locationName').textContent = loc.name;
+        document.getElementById('locationCoords').textContent = `${Math.abs(loc.lat).toFixed(2)}°${loc.lat > 0 ? 'N' : 'S'} / ${Math.abs(loc.lon).toFixed(2)}°${loc.lon > 0 ? 'E' : 'W'}`;
+
+        renderArc(loc.lat, loc.lon, times);
+
+        emptyState.style.display = 'none';
+        mainDisplay.style.display = 'block';
+      } catch (e) {
+        errorMsg.textContent = e.message;
+        errorMsg.classList.add('show');
+        emptyState.style.display = 'block';
+        emptyState.innerHTML = '<p>🌅 Enter a city to see the sun\'s path today.</p>';
+      }
+    }
+
+    // Allow Enter key to search
+    document.getElementById('cityInput').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') searchCity();
+    });
+
+    // Try default city on load
+    window.addEventListener('load', () => {
+      document.getElementById('cityInput').value = 'Tokyo';
+      setTimeout(searchCity, 300);
+    });
+  </script>
+</body>
+</html>
