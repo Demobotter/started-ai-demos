@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stalled Project Rescue — Diagnostic Quiz</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d1117; --card: rgba(30, 40, 58, 0.8); --line: rgba(255,255,255,.06);
+    --txt: #f0f2f5; --sub: #a8aebd; --accent: #40e0d0; --accent2: #ff6b9d;
+    --good: #6ee77e; --warn: #ffd166; --bad: #ff6b5b;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Poppins', sans-serif;
+    background: linear-gradient(135deg, var(--bg) 0%, #16253d 100%);
+    color: var(--txt);
+    min-height: 100vh;
+    padding: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  .container {
+    width: 100%;
+    max-width: 600px;
+    animation: fadeInUp .6s cubic-bezier(.16,1,.3,1);
+  }
+  @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes slideIn { from { opacity: 0; transform: translateX(-20px); } to { opacity: 1; transform: translateX(0); } }
+  @keyframes pulse-accent { 0%, 100% { text-shadow: 0 0 0 0 var(--accent); } 50% { text-shadow: 0 0 12px 6px rgba(64,224,208,.3); } }
+
+  .header {
+    text-align: center;
+    margin-bottom: 32px;
+  }
+  .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--accent2); margin-right: 8px; animation: pulse 1.8s infinite; }
+  @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(255,107,157,.6); } 70% { box-shadow: 0 0 0 12px rgba(255,107,157,0); } 100% { box-shadow: 0 0 0 0 rgba(255,107,157,0); } }
+  h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(32px, 5vw, 48px);
+    font-weight: 600;
+    margin-bottom: 8px;
+    letter-spacing: -1px;
+    animation: fadeInUp .6s .1s both;
+  }
+  .tagline {
+    font-size: 14px;
+    color: var(--sub);
+    animation: fadeInUp .6s .2s both;
+  }
+
+  /* Quiz */
+  .quiz-container { display: none; }
+  .quiz-container.active { display: block; }
+  .question-box {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 28px;
+    margin-bottom: 24px;
+    backdrop-filter: blur(10px);
+    animation: slideIn .4s cubic-bezier(.16,1,.3,1);
+  }
+  .question-num {
+    font-size: 12px;
+    color: var(--sub);
+    text-transform: uppercase;
+    letter-spacing: .8px;
+    margin-bottom: 8px;
+  }
+  .question-text {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 18px;
+    line-height: 1.4;
+  }
+  .options {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .option {
+    padding: 14px 16px;
+    background: rgba(64,224,208,.05);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all .2s;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .option:hover {
+    background: rgba(64,224,208,.12);
+    border-color: var(--accent);
+    transform: translateX(4px);
+  }
+  .option.selected {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #0d1117;
+    font-weight: 600;
+  }
+  .option-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); opacity: 0; transition: opacity .2s; }
+  .option.selected .option-dot { opacity: 1; }
+
+  .progress-bar {
+    height: 3px;
+    background: var(--line);
+    border-radius: 2px;
+    margin-bottom: 20px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    transition: width .3s cubic-bezier(.16,1,.3,1);
+  }
+
+  .button-group {
+    display: flex;
+    gap: 12px;
+    margin-top: 24px;
+  }
+  button {
+    flex: 1;
+    padding: 12px 20px;
+    border: 1px solid var(--line);
+    background: transparent;
+    color: var(--txt);
+    border-radius: 10px;
+    cursor: pointer;
+    font-family: 'Poppins', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all .2s;
+  }
+  button:hover {
+    background: rgba(64,224,208,.08);
+    border-color: var(--accent);
+  }
+  button.primary {
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-color: var(--accent);
+    color: #0d1117;
+  }
+  button.primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(64,224,208,.2);
+  }
+  button:disabled {
+    opacity: .4;
+    cursor: not-allowed;
+  }
+
+  /* Result */
+  .result-container { display: none; }
+  .result-container.active { display: block; animation: fadeInUp .5s; }
+  .result-card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 32px;
+    backdrop-filter: blur(10px);
+  }
+  .result-emoji { font-size: 48px; margin-bottom: 16px; display: block; }
+  .result-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 32px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    letter-spacing: -0.5px;
+  }
+  .result-reason {
+    font-size: 14px;
+    color: var(--sub);
+    margin-bottom: 24px;
+    line-height: 1.6;
+  }
+  .recovery-section {
+    background: rgba(64,224,208,.08);
+    border: 1px solid rgba(64,224,208,.2);
+    border-radius: 12px;
+    padding: 18px;
+    margin-bottom: 16px;
+  }
+  .recovery-label {
+    font-size: 12px;
+    color: var(--accent);
+    text-transform: uppercase;
+    font-weight: 600;
+    letter-spacing: .5px;
+    margin-bottom: 8px;
+  }
+  .recovery-text {
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--txt);
+  }
+  .recovery-list { list-style: none; margin: 10px 0 0 0; }
+  .recovery-list li { padding: 6px 0; padding-left: 20px; position: relative; font-size: 13px; }
+  .recovery-list li:before { content: "→"; position: absolute; left: 0; color: var(--accent); font-weight: 600; }
+
+  .retry-button {
+    width: 100%;
+    padding: 14px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border: none;
+    border-radius: 10px;
+    color: #0d1117;
+    font-family: 'Poppins', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 20px;
+    transition: all .2s;
+  }
+  .retry-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(64,224,208,.2);
+  }
+
+  @media (max-width: 480px) {
+    .container { max-width: 100%; }
+    .question-box, .result-card { padding: 20px; }
+    h1 { font-size: 28px; }
+    .result-title { font-size: 24px; }
+    .option { font-size: 13px; padding: 12px 14px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <h1><span class="dot"></span>Stalled Project Rescue</h1>
+    <div class="tagline">5-question diagnostic: Why is your project stuck? Get a rescue strategy.</div>
+  </div>
+
+  <div class="quiz-container active">
+    <div class="progress-bar">
+      <div class="progress-fill" id="progress" style="width: 0%"></div>
+    </div>
+
+    <div class="question-box">
+      <div class="question-num">Question <span id="q-num">1</span> / 5</div>
+      <div class="question-text" id="q-text"></div>
+      <div class="options" id="q-options"></div>
+      <div class="button-group">
+        <button id="prev-btn" onclick="prevQuestion()" style="display:none;">← Back</button>
+        <button id="next-btn" class="primary" onclick="nextQuestion()" disabled>Next →</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="result-container">
+    <div class="result-card">
+      <span class="result-emoji" id="result-emoji">🚀</span>
+      <div class="result-title" id="result-title">Your Diagnosis</div>
+      <div class="result-reason" id="result-reason"></div>
+
+      <div class="recovery-section">
+        <div class="recovery-label">Your Rescue Strategy</div>
+        <div class="recovery-text" id="result-action"></div>
+        <ul class="recovery-list" id="result-steps"></ul>
+      </div>
+
+      <button class="retry-button" onclick="restartQuiz()">Start Over</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const QUESTIONS = [
+  {
+    text: "What's the biggest barrier to your project right now?",
+    options: [
+      { label: "I don't know where to start or what to do next", factor: "clarity" },
+      { label: "I lack the skills, money, or tools I need", factor: "resources" },
+      { label: "I'm unsure if the idea is worth pursuing", factor: "conviction" },
+      { label: "I'm burned out, unmotivated, or lost interest", factor: "energy" }
+    ]
+  },
+  {
+    text: "How long has your project been stalled?",
+    options: [
+      { label: "Less than 1 week", factor: "duration-short" },
+      { label: "1–4 weeks", factor: "duration-medium" },
+      { label: "1–3 months", factor: "duration-long" },
+      { label: "More than 3 months", factor: "duration-very-long" }
+    ]
+  },
+  {
+    text: "Have you talked to anyone else about it?",
+    options: [
+      { label: "No, I'm keeping it private", factor: "isolation-yes" },
+      { label: "Yes, but they didn't help much", factor: "feedback-weak" },
+      { label: "Yes, and I got useful feedback", factor: "feedback-good" },
+      { label: "Yes, I'm collaborating with others", factor: "collaboration-yes" }
+    ]
+  },
+  {
+    text: "What would unstall it fastest?",
+    options: [
+      { label: "A clear step-by-step plan", factor: "need-plan" },
+      { label: "Finding someone to work on it with", factor: "need-partner" },
+      { label: "Proof that it's actually viable", factor: "need-validation" },
+      { label: "Permission to let it go and move on", factor: "need-release" }
+    ]
+  },
+  {
+    text: "If you fixed the biggest barrier, would you restart?",
+    options: [
+      { label: "Definitely yes — I'm still excited", factor: "intent-strong" },
+      { label: "Maybe — depends on what I learn", factor: "intent-conditional" },
+      { label: "Probably not — I've lost interest", factor: "intent-weak" },
+      { label: "Don't know yet", factor: "intent-unsure" }
+    ]
+  }
+];
+
+const DIAGNOSES = {
+  "clarity": { emoji: "🧭", title: "Lost Without a Map", reason: "You know what you want to build, but the path from here to done is invisible. Paralysis.", steps: ["Break the project into the 3 smallest possible wins", "Ship something tiny by Friday", "Get feedback on what you've done — not what you plan to do"] },
+  "resources": { emoji: "💰", title: "Waiting for Permission (or Budget)", reason: "You're blocked on money, skills, or tools. Feeling helpless.", steps: ["List what you CAN do right now with what you have", "Find free alternatives or DIY the bottleneck", "Spend 2 hours prototyping with constraints — often better than waiting"] },
+  "conviction": { emoji: "🤔", title: "Stuck in Doubt", reason: "You're unsure if the idea is good enough. Decision paralysis.", steps: ["Validate with 5 real potential users in the next week", "Build the smallest version to test one core assumption", "If it flops, pivot fast — the answer is in the attempt, not the thinking"] },
+  "energy": { emoji: "🔥", title: "Burnout Bridge", reason: "You're running on fumes. Motivation drained. The project feels like a chore.", steps: ["Take 3 days completely off — no thinking about it", "Do ONE fun-only session with it (no perfection, pure play)", "If it still feels joyless, give yourself permission to shelve it"] },
+  "duration-short": { emoji: "⏸️", title: "Early Pause", reason: "Fresh stall — usually just friction, not a fatal flaw. Easy fix.", steps: ["Identify the 1 thing you got stuck on", "Solve it or skip it today", "Momentum is on your side — act now before it dies"] },
+  "duration-long": { emoji: "⏳", title: "Momentum Faded", reason: "1–3 months stalled: you've lost context and energy.", steps: ["Re-read your original notes — remember why you cared", "Reframe: what's the ONE version you could ship in 2 weeks?", "Recruit someone else to re-energize the effort"] },
+  "duration-very-long": { emoji: "🕰️", title: "Cold Storage", reason: "3+ months: the project has been overtaken by life. Context is gone.", steps: ["Decide: resurrect, pivot, or retire it (all three are OK)", "If reviving: start fresh with a new scope, not the old baggage", "If retiring: celebrate what you learned, move on guilt-free"] },
+  "isolation-yes": { emoji: "🎧", title: "Solo Struggle", reason: "No sounding board, no external validation, no help. The burden is all on you.", steps: ["Share your idea with ONE person this week", "Expect that feedback will sting — but it unblocks thinking", "Join a community of builders in your space"] },
+  "feedback-weak": { emoji: "👂", title: "Feedback That Didn't Land", reason: "You asked, but didn't get useful input. Or it made things worse.", steps: ["Ask MORE specific questions next time ('Do you'd use this?' → 'Would you pay $10/mo?')", "Find 3 people from your actual target audience (not random friends)", "Listen to what they do, not just what they say"] },
+  "feedback-good": { emoji: "💬", title: "You Know What to Do — Ship It", reason: "You've got the insight. Your stall is just overthinking.", steps: ["Set a hard deadline: ship v1 in 1 week", "Use feedback to simplify, not to expand", "Go live even if it feels incomplete"] },
+  "collaboration-yes": { emoji: "🤝", title: "Team Momentum—Leverage It", reason: "Others are excited. Your jam is to coordinate and ship.", steps: ["Schedule a focused 2-hour work session with your collaborators", "Define 1 deliverable per person due at the end", "Celebrate the ship together"] },
+  "need-plan": { emoji: "🗂️", title: "You Need a Roadmap", reason: "Clear path → action. Build it immediately.", steps: ["Spend 1 hour writing: what's v1 vs v2 vs v3?", "v1 should be shippable in ≤1 week", "Work backwards from the launch date"] },
+  "need-partner": { emoji: "👥", title: "You Need a Co-Pilot", reason: "Solo feels heavy. Find someone.", steps: ["Identify 1–2 people who share your vision", "Pitch them the idea + ask for 2 weeks of exploration together", "Reduce scope if needed to make collaboration easy"] },
+  "need-validation": { emoji: "✓", title: "You Need Proof", reason: "Build something users can touch. Talking won't prove it.", steps: ["Make a clickable prototype by Friday", "Show 5 real people. Watch what they do.", "Iterate based on that, not your opinions"] },
+  "need-release": { emoji: "🪂", title: "Permission to Let Go", reason: "It's OK to stop. Some ideas have an expiration date.", steps: ["If you choose to retire it: celebrate what you built/learned", "Don't ghost — tell people the project is paused/done", "Channel that energy into what actually excites you"] },
+  "intent-strong": { emoji: "✨", title: "You're Still In — Remove the Blocker", reason: "Your energy is there. The barrier is external or specific. Fix it.", steps: ["ID the 1 thing blocking progress", "Allocate 2 focused hours to solve it TODAY", "Report back — you'll be unstalled before you know it"] },
+  "intent-conditional": { emoji: "🔄", title: "Contingent Commitment", reason: "You're still interested IF conditions improve. Test that hypothesis.", steps: ["Get the data or permission you need this week", "If you get it, commit fully to 2 weeks of rapid progress", "If you don't, it's OK to pivot or pause"] },
+  "intent-weak": { emoji: "🌅", title: "Time to Let It Go", reason: "Your gut says the project is no longer a priority. Trust that.", steps: ["Give yourself full permission to shelve it guilt-free", "Capture what you learned in a 10-min reflection", "Move your energy to what actually excites you now"] },
+  "intent-unsure": { emoji: "❓", title: "Decision Pending", reason: "You need more data before recommitting. That's wisdom.", steps: ["Spend 3 hours on market research: do people want this?", "Spend 2 hours on a quick prototype: is it buildable?", "Make the yes/no call based on what you learn"] }
+};
+
+let currentQuestion = 0;
+let answers = [];
+
+function init() {
+  renderQuestion();
+}
+
+function renderQuestion() {
+  const q = QUESTIONS[currentQuestion];
+  document.getElementById('q-num').textContent = currentQuestion + 1;
+  document.getElementById('q-text').textContent = q.text;
+  
+  const optionsEl = document.getElementById('q-options');
+  optionsEl.innerHTML = '';
+  q.options.forEach((opt, i) => {
+    const btn = document.createElement('div');
+    btn.className = 'option' + (answers[currentQuestion] === i ? ' selected' : '');
+    btn.innerHTML = `<span class="option-dot"></span>${opt.label}`;
+    btn.onclick = () => selectOption(i);
+    optionsEl.appendChild(btn);
+  });
+
+  document.getElementById('progress').style.width = ((currentQuestion + 1) / QUESTIONS.length * 100) + '%';
+  document.getElementById('next-btn').disabled = answers[currentQuestion] === undefined;
+  document.getElementById('prev-btn').style.display = currentQuestion === 0 ? 'none' : 'block';
+  document.getElementById('next-btn').textContent = currentQuestion === QUESTIONS.length - 1 ? 'See My Diagnosis →' : 'Next →';
+}
+
+function selectOption(idx) {
+  answers[currentQuestion] = idx;
+  document.getElementById('next-btn').disabled = false;
+  document.querySelectorAll('.option').forEach((el, i) => {
+    el.classList.toggle('selected', i === idx);
+  });
+}
+
+function nextQuestion() {
+  if (currentQuestion === QUESTIONS.length - 1) {
+    showResult();
+  } else {
+    currentQuestion++;
+    renderQuestion();
+  }
+}
+
+function prevQuestion() {
+  if (currentQuestion > 0) {
+    currentQuestion--;
+    renderQuestion();
+  }
+}
+
+function showResult() {
+  const factors = [];
+  answers.forEach((ansIdx, qIdx) => {
+    factors.push(QUESTIONS[qIdx].options[ansIdx].factor);
+  });
+  
+  // Score factors: majority wins, or first strong signal
+  const factorCount = {};
+  factors.forEach(f => factorCount[f] = (factorCount[f] || 0) + 1);
+  const topFactor = Object.keys(factorCount).sort((a, b) => factorCount[b] - factorCount[a])[0];
+  
+  const diag = DIAGNOSES[topFactor] || DIAGNOSES['clarity'];
+  
+  document.getElementById('result-emoji').textContent = diag.emoji;
+  document.getElementById('result-title').textContent = diag.title;
+  document.getElementById('result-reason').textContent = diag.reason;
+  document.getElementById('result-action').textContent = diag.steps[0];
+  
+  const stepsList = document.getElementById('result-steps');
+  stepsList.innerHTML = '';
+  diag.steps.slice(1).forEach(step => {
+    const li = document.createElement('li');
+    li.textContent = step;
+    stepsList.appendChild(li);
+  });
+
+  document.querySelector('.quiz-container').classList.remove('active');
+  document.querySelector('.result-container').classList.add('active');
+}
+
+function restartQuiz() {
+  currentQuestion = 0;
+  answers = [];
+  document.querySelector('.quiz-container').classList.add('active');
+  document.querySelector('.result-container').classList.remove('active');
+  renderQuestion();
+}
+
+init();
+</script>
+
+</body>
+</html>
