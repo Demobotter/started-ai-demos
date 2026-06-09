@@ -169,7 +169,7 @@ function render(){
   $('#phase').textContent=phaseName(cur.alt,rising)+(cur.alt>-0.83&&cur.alt<6?' ✨':'');
 
   // arc svg: x = azimuth-ish progress across sky via hour angle proxy; use time-of-day mapping
-  drawArc(lat,lon,baseUTC,now,cur);
+  drawArc(lat,lon,noon.t,now,cur);
 
   // rail
   const tf=d=>d?fmtTime(d,tz):'—';
@@ -183,19 +183,20 @@ function render(){
     <div class="cell gh"><div class="l">Golden hour ✨</div><div class="v">${tf(sunrise)} – ${tf(ghMorningEnd)}  &nbsp;·&nbsp;  ${tf(ghEveningStart)} – ${tf(sunset)}</div><div class="s">warm, soft light for photos (sun below 6°)</div></div>`;
 }
 
-function drawArc(lat,lon,baseUTC,now,cur){
-  const svg=$('#arc'); const W=600,H=300, hY=235, cx=300;
-  // sample altitude across the day, map time->x linearly (0..24h), alt->y
+function drawArc(lat,lon,noonT,now,cur){
+  const svg=$('#arc'); const W=600,H=300, hY=235;
+  // window centered on local solar noon so the daytime hump sits in the middle
+  const start=new Date(noonT.getTime()-12*3600000);
+  const span=24*3600000;
   let pts=[]; let maxAlt=-99;
-  for(let m=0;m<=1440;m+=8){const t=new Date(baseUTC.getTime()+m*60000);const al=sunPosition(t,lat,lon).alt;maxAlt=Math.max(maxAlt,al);pts.push([m/1440,al]);}
-  const top=Math.max(maxAlt,10);
+  for(let m=0;m<=1440;m+=6){const t=new Date(start.getTime()+m*60000);const al=sunPosition(t,lat,lon).alt;maxAlt=Math.max(maxAlt,al);pts.push([m/1440,al]);}
+  const top=Math.max(maxAlt,8);
+  const floor=-12; // clamp deep night so the curve stays readable
   const X=f=>40+f*(W-80);
-  const Y=al=>hY - (al/top)*(hY-30);
-  // path
+  const Y=al=>hY - (Math.max(al,floor)/top)*(hY-30);
   let d='';
   pts.forEach((p,i)=>{const x=X(p[0]),y=Y(p[1]);d+=(i?'L':'M')+x.toFixed(1)+' '+y.toFixed(1)+' ';});
-  // current sun x via fraction of day
-  const frac=((now-baseUTC)/86400000);
+  const frac=Math.min(1,Math.max(0,(now-start)/span));
   const sx=X(frac), sy=Y(cur.alt);
   const sunUp=cur.alt>-0.83;
   svg.innerHTML=`
@@ -211,9 +212,9 @@ function drawArc(lat,lon,baseUTC,now,cur){
     <path d="${d}" fill="none" stroke="url(#arcg)" stroke-width="3" stroke-linecap="round" opacity=".85"/>
     ${sunUp?`<line x1="${sx.toFixed(1)}" y1="${sy.toFixed(1)}" x2="${sx.toFixed(1)}" y2="${hY}" stroke="rgba(255,212,121,.4)" stroke-width="1" stroke-dasharray="3 4"/>`:''}
     <circle cx="${sx.toFixed(1)}" cy="${Math.min(sy,hY+18).toFixed(1)}" r="${sunUp?13:8}" fill="url(#sung)" filter="url(#glow)" opacity="${sunUp?1:.55}"/>
-    <text x="${X(0)}" y="${hY+22}" fill="rgba(255,255,255,.45)" font-size="11" font-family="Inter">12am</text>
-    <text x="${X(.5)-12}" y="${hY+22}" fill="rgba(255,255,255,.45)" font-size="11" font-family="Inter">12pm</text>
-    <text x="${X(1)-26}" y="${hY+22}" fill="rgba(255,255,255,.45)" font-size="11" font-family="Inter">12am</text>`;
+    <text x="${X(0)}" y="${hY+22}" fill="rgba(255,255,255,.45)" font-size="11" font-family="Inter">midnight</text>
+    <text x="${X(.5)-14}" y="${hY+22}" fill="rgba(255,255,255,.45)" font-size="11" font-family="Inter">noon</text>
+    <text x="${X(1)-44}" y="${hY+22}" fill="rgba(255,255,255,.45)" font-size="11" font-family="Inter">midnight</text>`;
 }
 
 async function track(city){
