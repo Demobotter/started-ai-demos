@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tremor Watch — Live Earthquake Map</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0c1018; --panel:rgba(20,26,38,.82); --line:rgba(255,255,255,.08);
+    --txt:#eef2f9; --mut:#8a94a6; --accent:#ff5c5c; --accent2:#ffb347;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--txt);overflow:hidden;height:100vh}
+  #map{position:absolute;inset:0;z-index:1;background:#0c1018}
+  .leaflet-container{background:#0c1018}
+  .panel{
+    position:absolute;z-index:1000;top:18px;left:18px;width:330px;max-width:calc(100vw - 36px);
+    background:var(--panel);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+    border:1px solid var(--line);border-radius:20px;padding:22px;box-shadow:0 24px 60px rgba(0,0,0,.5);
+  }
+  h1{font-family:'Space Grotesk',sans-serif;font-size:22px;letter-spacing:-.5px;display:flex;align-items:center;gap:8px}
+  .dot{width:10px;height:10px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 0 rgba(255,92,92,.6);animation:pulse 1.8s infinite}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(255,92,92,.55)}70%{box-shadow:0 0 0 14px rgba(255,92,92,0)}100%{box-shadow:0 0 0 0 rgba(255,92,92,0)}}
+  .sub{color:var(--mut);font-size:13px;margin:6px 0 16px;line-height:1.5}
+  .ctl{margin-bottom:14px}
+  .ctl label{display:flex;justify-content:space-between;font-size:12px;color:var(--mut);margin-bottom:7px;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+  .ctl label b{color:var(--accent2);font-family:'Space Grotesk',sans-serif}
+  input[type=range]{-webkit-appearance:none;width:100%;height:6px;border-radius:6px;background:linear-gradient(90deg,var(--accent2),var(--accent));outline:none}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:#fff;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.4)}
+  .seg{display:flex;gap:6px}
+  .seg button{flex:1;padding:8px 0;border:1px solid var(--line);background:transparent;color:var(--mut);border-radius:10px;cursor:pointer;font-size:12px;font-weight:600;font-family:'Inter',sans-serif;transition:.18s}
+  .seg button.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .stats{display:flex;gap:10px;margin-top:16px}
+  .stat{flex:1;background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:13px;padding:12px;text-align:center}
+  .stat .n{font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:700;color:#fff}
+  .stat .l{font-size:10px;color:var(--mut);text-transform:uppercase;letter-spacing:.5px;margin-top:3px}
+  .feed{margin-top:14px;max-height:30vh;overflow-y:auto}
+  .q{display:flex;align-items:center;gap:10px;padding:9px 4px;border-bottom:1px solid var(--line);cursor:pointer;border-radius:8px;transition:.15s}
+  .q:hover{background:rgba(255,255,255,.05)}
+  .mag{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:15px;min-width:42px;height:30px;display:flex;align-items:center;justify-content:center;border-radius:8px;color:#0c1018}
+  .q .place{font-size:12.5px;line-height:1.3;flex:1}
+  .q .time{font-size:10.5px;color:var(--mut)}
+  .credit{position:absolute;bottom:8px;right:10px;z-index:1000;font-size:10px;color:var(--mut);background:rgba(12,16,24,.7);padding:3px 8px;border-radius:6px}
+  .feed::-webkit-scrollbar{width:5px}.feed::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:5px}
+  .loading{color:var(--accent2);font-size:12px;margin-top:8px}
+</style>
+</head>
+<body>
+<div id="map"></div>
+<div class="panel">
+  <h1><span class="dot"></span>Tremor Watch</h1>
+  <div class="sub">Live earthquakes worldwide from the USGS feed — plotted in real time. Drag the map, filter by magnitude, click a quake to fly to it.</div>
+  <div class="ctl">
+    <label>Min magnitude <b id="magv">2.5</b></label>
+    <input type="range" id="mag" min="1" max="6" step="0.5" value="2.5">
+  </div>
+  <div class="ctl">
+    <label>Time window</label>
+    <div class="seg" id="seg">
+      <button data-w="hour">Past hour</button>
+      <button data-w="day" class="on">Past day</button>
+      <button data-w="week">Past week</button>
+    </div>
+  </div>
+  <div class="stats">
+    <div class="stat"><div class="n" id="count">—</div><div class="l">Quakes</div></div>
+    <div class="stat"><div class="n" id="biggest">—</div><div class="l">Strongest</div></div>
+    <div class="stat"><div class="n" id="deepest">—</div><div class="l">Deepest km</div></div>
+  </div>
+  <div class="loading" id="status">Loading live data…</div>
+  <div class="feed" id="feed"></div>
+</div>
+<div class="credit">Data: USGS Earthquake Hazards Program · live</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const map = L.map('map',{zoomControl:false,worldCopyJump:true}).setView([20,0],2);
+L.control.zoom({position:'bottomleft'}).addTo(map);
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{
+  attribution:'', subdomains:'abcd', maxZoom:19
+}).addTo(map);
+
+let layer = L.layerGroup().addTo(map);
+let minMag = 2.5, window_ = 'day', allFeatures = [];
+
+const magColor = m => m>=6?'#ff2d2d':m>=5?'#ff5c5c':m>=4?'#ff8c42':m>=3?'#ffb347':'#ffd86b';
+const radius = m => Math.max(4, (m*m)*1.3);
+
+function timeAgo(t){
+  const s=(Date.now()-t)/1000;
+  if(s<3600)return Math.floor(s/60)+'m ago';
+  if(s<86400)return Math.floor(s/3600)+'h ago';
+  return Math.floor(s/86400)+'d ago';
+}
+
+async function load(){
+  document.getElementById('status').textContent='Loading live data…';
+  const url=`https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_${window_}.geojson`;
+  try{
+    const r=await fetch(url);
+    const j=await r.json();
+    allFeatures=j.features||[];
+    render();
+    document.getElementById('status').textContent='';
+  }catch(e){
+    document.getElementById('status').textContent='Could not reach USGS feed — retrying…';
+    setTimeout(load,5000);
+  }
+}
+
+function render(){
+  layer.clearLayers();
+  const feats=allFeatures
+    .filter(f=>f.properties.mag>=minMag && f.geometry)
+    .sort((a,b)=>b.properties.time-a.properties.time);
+  let biggest=0, deepest=0;
+  feats.forEach(f=>{
+    const [lon,lat,depth]=f.geometry.coordinates;
+    const m=f.properties.mag;
+    biggest=Math.max(biggest,m); deepest=Math.max(deepest,depth||0);
+    const c=magColor(m);
+    L.circleMarker([lat,lon],{
+      radius:radius(m),color:c,weight:1.5,fillColor:c,fillOpacity:.45
+    }).bindPopup(`<b style="font-family:sans-serif">M${m.toFixed(1)}</b> — ${f.properties.place||'Unknown'}<br><small>${new Date(f.properties.time).toLocaleString()} · depth ${Math.round(depth)}km</small>`).addTo(layer);
+  });
+  document.getElementById('count').textContent=feats.length;
+  document.getElementById('biggest').textContent=biggest?('M'+biggest.toFixed(1)):'—';
+  document.getElementById('deepest').textContent=deepest?Math.round(deepest):'—';
+  // feed
+  const feed=document.getElementById('feed');
+  feed.innerHTML='';
+  feats.slice(0,30).forEach(f=>{
+    const [lon,lat]=f.geometry.coordinates, m=f.properties.mag;
+    const el=document.createElement('div');
+    el.className='q';
+    el.innerHTML=`<div class="mag" style="background:${magColor(m)}">${m.toFixed(1)}</div>
+      <div class="place">${f.properties.place||'Unknown location'}<div class="time">${timeAgo(f.properties.time)}</div></div>`;
+    el.onclick=()=>map.flyTo([lat,lon],6,{duration:1.2});
+    feed.appendChild(el);
+  });
+}
+
+document.getElementById('mag').oninput=e=>{minMag=+e.target.value;document.getElementById('magv').textContent=minMag.toFixed(1);render();};
+document.querySelectorAll('#seg button').forEach(b=>{
+  b.onclick=()=>{document.querySelectorAll('#seg button').forEach(x=>x.classList.remove('on'));b.classList.add('on');window_=b.dataset.w;load();};
+});
+
+load();
+setInterval(load, 60000); // refresh live every minute
+</script>
+</body>
+</html>
