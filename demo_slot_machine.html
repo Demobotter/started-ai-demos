@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lucky Spin — Slot Machine Simulator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  
+  body {
+    font-family: 'Space Mono', monospace;
+    background: linear-gradient(135deg, #1a0033 0%, #330066 50%, #0d1a2d 100%);
+    color: #e8d5ff;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+  }
+  
+  .container {
+    max-width: 500px;
+    width: 100%;
+  }
+  
+  .header {
+    text-align: center;
+    margin-bottom: 30px;
+    animation: fadeInDown 0.6s ease-out;
+  }
+  
+  .header h1 {
+    font-family: 'Unbounded', sans-serif;
+    font-size: 36px;
+    letter-spacing: -1px;
+    color: #ffd700;
+    text-shadow: 0 0 20px rgba(255, 215, 0, 0.6);
+    margin-bottom: 8px;
+  }
+  
+  .header .dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #ff00ff;
+    margin-right: 8px;
+    box-shadow: 0 0 15px rgba(255, 0, 255, 0.8);
+    animation: pulse 1.5s infinite;
+  }
+  
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 15px rgba(255, 0, 255, 0.8); }
+    50% { box-shadow: 0 0 30px rgba(255, 0, 255, 1); }
+  }
+  
+  .header p {
+    color: #b8a0ff;
+    font-size: 14px;
+    margin-bottom: 12px;
+  }
+  
+  .stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+  
+  .stat-box {
+    background: rgba(255, 0, 255, 0.1);
+    border: 1px solid rgba(255, 0, 255, 0.3);
+    border-radius: 12px;
+    padding: 12px;
+    text-align: center;
+    animation: fadeInUp 0.6s ease-out 0.1s both;
+  }
+  
+  .stat-box .label {
+    font-size: 10px;
+    color: #b8a0ff;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin-bottom: 4px;
+  }
+  
+  .stat-box .value {
+    font-family: 'Unbounded', sans-serif;
+    font-size: 24px;
+    font-weight: 700;
+    color: #ffd700;
+  }
+  
+  .balance.negative .value { color: #ff4444; }
+  
+  .machine {
+    background: linear-gradient(135deg, #4d0099 0%, #1a0033 100%);
+    border: 3px solid #ffd700;
+    border-radius: 20px;
+    padding: 24px;
+    margin-bottom: 24px;
+    box-shadow: 0 20px 60px rgba(255, 215, 0, 0.3), inset 0 -2px 10px rgba(0, 0, 0, 0.5);
+    animation: fadeIn 0.6s ease-out 0.2s both;
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  
+  @keyframes fadeInDown {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  
+  .reels {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  
+  .reel {
+    background: #0d0d1f;
+    border: 2px solid #00ffff;
+    border-radius: 12px;
+    padding: 16px;
+    height: 100px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Unbounded', sans-serif;
+    font-size: 48px;
+    font-weight: 700;
+    text-align: center;
+    color: #ffd700;
+    position: relative;
+    overflow: hidden;
+    box-shadow: inset 0 0 20px rgba(0, 255, 255, 0.2);
+  }
+  
+  .reel.spinning {
+    animation: spin 0.1s linear infinite;
+  }
+  
+  @keyframes spin {
+    0% { transform: rotateY(0deg); }
+    100% { transform: rotateY(360deg); }
+  }
+  
+  .reel.win {
+    background: linear-gradient(135deg, #00ff00, #00cc44);
+    color: #000;
+    box-shadow: 0 0 30px rgba(0, 255, 0, 0.8), inset 0 0 20px rgba(0, 255, 0, 0.3);
+  }
+  
+  .controls {
+    margin-bottom: 20px;
+  }
+  
+  .bet-controls {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  
+  .bet-controls label {
+    display: flex;
+    align-items: center;
+    font-size: 12px;
+    color: #b8a0ff;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  
+  .bet-controls input {
+    width: 100%;
+    padding: 8px;
+    background: #0d0d1f;
+    border: 1px solid #00ffff;
+    color: #ffd700;
+    border-radius: 8px;
+    font-family: 'Space Mono', monospace;
+    font-size: 14px;
+    text-align: right;
+  }
+  
+  .buttons {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  
+  button {
+    padding: 12px 20px;
+    font-family: 'Unbounded', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+  }
+  
+  .btn-spin {
+    background: linear-gradient(135deg, #ff00ff, #ff0099);
+    color: #fff;
+    grid-column: 1 / -1;
+    font-size: 16px;
+    padding: 14px;
+    box-shadow: 0 8px 20px rgba(255, 0, 159, 0.4);
+  }
+  
+  .btn-spin:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 30px rgba(255, 0, 159, 0.6);
+  }
+  
+  .btn-spin:active:not(:disabled) {
+    transform: translateY(0);
+  }
+  
+  .btn-spin:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  
+  .btn-reset {
+    background: #00ffff;
+    color: #0d0d1f;
+    font-weight: 700;
+  }
+  
+  .btn-reset:hover {
+    background: #00dddd;
+    transform: translateY(-2px);
+  }
+  
+  .btn-max {
+    background: #ffd700;
+    color: #0d0d1f;
+    font-weight: 700;
+  }
+  
+  .btn-max:hover {
+    background: #ffed4e;
+    transform: translateY(-2px);
+  }
+  
+  .result {
+    text-align: center;
+    font-size: 14px;
+    color: #b8a0ff;
+    min-height: 20px;
+    margin-top: 12px;
+  }
+  
+  .result.win {
+    color: #00ff00;
+    font-weight: 700;
+    animation: bounce 0.5s ease;
+  }
+  
+  .result.lose {
+    color: #ff4444;
+  }
+  
+  @keyframes bounce {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+  }
+  
+  @media (max-width: 600px) {
+    .header h1 { font-size: 28px; }
+    .reels { gap: 8px; }
+    .reel { font-size: 40px; height: 90px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1><span class="dot"></span>Lucky Spin</h1>
+    <p>Spin the reels, try your luck, manage your bankroll wisely.</p>
+  </div>
+  
+  <div class="stats">
+    <div class="stat-box balance" id="balanceBox">
+      <div class="label">Balance</div>
+      <div class="value" id="balance">$1,000</div>
+    </div>
+    <div class="stat-box">
+      <div class="label">Spins Played</div>
+      <div class="value" id="spins">0</div>
+    </div>
+  </div>
+  
+  <div class="machine">
+    <div class="reels">
+      <div class="reel" id="reel0">🍒</div>
+      <div class="reel" id="reel1">🍒</div>
+      <div class="reel" id="reel2">🍒</div>
+    </div>
+    
+    <div class="controls">
+      <div class="bet-controls">
+        <label>Bet Amount</label>
+        <input type="number" id="bet" min="10" max="500" step="10" value="50">
+      </div>
+      <div class="buttons">
+        <button class="btn-reset" id="reset">Reset</button>
+        <button class="btn-max" id="maxBet">Max Bet</button>
+      </div>
+      <button class="btn-spin" id="spin">SPIN ($<span id="betDisplay">50</span>)</button>
+    </div>
+    
+    <div class="result" id="result"></div>
+  </div>
+</div>
+
+<script>
+const symbols = ['🍒', '🍋', '🍊', '🍉', '🍓', '⭐', '💎', '🔔'];
+const payouts = {
+  '3match': 50,     // bet * 50
+  '2match': 5,      // bet * 5
+  'cherry3': 25,    // 3 cherries = bet * 25
+  'lucky7': 100     // 3 sevens = bet * 100 (only if we add this)
+};
+
+let balance = 1000;
+let spins = 0;
+
+const balanceEl = document.getElementById('balance');
+const balanceBox = document.getElementById('balanceBox');
+const spinCountEl = document.getElementById('spins');
+const betInput = document.getElementById('bet');
+const spinBtn = document.getElementById('spin');
+const resultEl = document.getElementById('result');
+const reels = [document.getElementById('reel0'), document.getElementById('reel1'), document.getElementById('reel2')];
+
+function updateDisplay() {
+  balance = Math.max(0, balance);
+  balanceEl.textContent = '$' + balance.toLocaleString();
+  spinCountEl.textContent = spins;
+  
+  if (balance < parseInt(betInput.value)) {
+    spinBtn.disabled = true;
+  } else {
+    spinBtn.disabled = false;
+  }
+  
+  balanceBox.classList.toggle('negative', balance < 0);
+  document.getElementById('betDisplay').textContent = betInput.value;
+}
+
+function getRandomSymbol() {
+  return symbols[Math.floor(Math.random() * symbols.length)];
+}
+
+function calculatePayout(result) {
+  const [a, b, c] = result;
+  const bet = parseInt(betInput.value);
+  
+  // 3 of a kind
+  if (a === b && b === c) {
+    return bet * payouts['3match'];
+  }
+  
+  // 2 of a kind
+  if (a === b || b === c || a === c) {
+    return bet * payouts['2match'];
+  }
+  
+  return 0;
+}
+
+function spin() {
+  if (balance <= 0 || spinBtn.disabled) return;
+  
+  const bet = parseInt(betInput.value);
+  if (balance < bet) return;
+  
+  balance -= bet;
+  spins++;
+  
+  // Disable spin during animation
+  spinBtn.disabled = true;
+  resultEl.textContent = 'Spinning...';
+  resultEl.className = 'result';
+  
+  // Spin animation
+  let spins_anim = 0;
+  const spinInterval = setInterval(() => {
+    reels.forEach(reel => reel.classList.add('spinning'));
+    reels.forEach(reel => reel.textContent = getRandomSymbol());
+    spins_anim++;
+    if (spins_anim >= 15) clearInterval(spinInterval);
+  }, 50);
+  
+  // Stop after 15 spins
+  setTimeout(() => {
+    reels.forEach(reel => reel.classList.remove('spinning'));
+    
+    const result = reels.map(() => getRandomSymbol());
+    reels.forEach((reel, i) => reel.textContent = result[i]);
+    
+    const payout = calculatePayout(result);
+    
+    if (payout > 0) {
+      balance += payout;
+      resultEl.textContent = `🎉 WIN! +$${payout}`;
+      resultEl.className = 'result win';
+      reels.forEach(reel => reel.classList.add('win'));
+      setTimeout(() => reels.forEach(reel => reel.classList.remove('win')), 800);
+    } else {
+      resultEl.textContent = 'No match';
+      resultEl.className = 'result lose';
+    }
+    
+    updateDisplay();
+    spinBtn.disabled = false;
+  }, 800);
+}
+
+document.getElementById('reset').addEventListener('click', () => {
+  balance = 1000;
+  spins = 0;
+  resultEl.textContent = '';
+  reels.forEach(reel => {
+    reel.textContent = '🍒';
+    reel.classList.remove('win', 'spinning');
+  });
+  updateDisplay();
+});
+
+document.getElementById('maxBet').addEventListener('click', () => {
+  betInput.value = Math.floor(balance * 0.5);
+  updateDisplay();
+});
+
+spinBtn.addEventListener('click', spin);
+
+betInput.addEventListener('change', updateDisplay);
+betInput.addEventListener('input', () => document.getElementById('betDisplay').textContent = betInput.value);
+
+// Keyboard shortcut
+document.addEventListener('keydown', (e) => {
+  if (e.code === 'Space' && !spinBtn.disabled) {
+    e.preventDefault();
+    spin();
+  }
+});
+
+updateDisplay();
+</script>
+</body>
+</html>
