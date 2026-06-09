@@ -5,791 +5,315 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Smart Shopping List — Auto-Organize & Share</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Karla:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Karla:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --bg: linear-gradient(135deg, #0f3d0f 0%, #1a4d2e 100%);
-    --txt: #f0f4f8;
-    --txt-muted: #a8c5a3;
-    --accent: #52b788;
-    --accent-light: #74d9a8;
-    --panel: rgba(20, 45, 25, 0.75);
-    --line: rgba(82, 183, 136, 0.15);
-    --danger: #ff6b6b;
+  :root{
+    --bg:#0f3d0f; --surface:#1a4d2e; --txt:#f1f5f1; --txt-dim:#c1d1c1; 
+    --accent:#52b788; --accent-dark:#2d6a4f; --accent-bright:#74d896;
+    --border:rgba(82,183,136,.15); --glass:rgba(30,77,50,.4);
   }
-
-  * {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%;font-family:Karla,sans-serif;background:linear-gradient(135deg,var(--bg),var(--surface));color:var(--txt);overflow-x:hidden}
+  .container{max-width:1000px;margin:0 auto;padding:24px 20px}
+  header{margin-bottom:40px;animation:fadeInDown .6s cubic-bezier(.16,1,.3,1)}
+  h1{font-size:clamp(32px,7vw,56px);font-weight:700;letter-spacing:-1px;margin-bottom:8px}
+  .tagline{font-size:16px;color:var(--txt-dim);line-height:1.5}
+  .hero-accent{display:inline-block;width:12px;height:12px;border-radius:50%;background:var(--accent-bright);margin-right:8px;animation:pulse 2s infinite}
+  @keyframes fadeInDown{from{opacity:0;transform:translateY(-20px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(82,183,136,.6)}70%{box-shadow:0 0 0 12px rgba(82,183,136,0)}100%{box-shadow:0 0 0 0 rgba(82,183,136,0)}}
+  
+  .input-section{background:var(--glass);backdrop-filter:blur(12px);border:1px solid var(--border);border-radius:16px;padding:24px;margin-bottom:32px;animation:fadeInUp .6s .1s cubic-bezier(.16,1,.3,1) both}
+  @keyframes fadeInUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+  
+  textarea{width:100%;min-height:120px;background:rgba(15,61,15,.5);border:1px solid var(--border);border-radius:12px;color:var(--txt);font-family:'JetBrains Mono',monospace;font-size:14px;padding:16px;resize:vertical;outline:none;transition:border-color .2s}
+  textarea:focus{border-color:var(--accent)}
+  
+  .btn-group{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
+  button{padding:10px 20px;border:1px solid var(--accent);background:transparent;color:var(--accent);border-radius:10px;cursor:pointer;font-family:Karla,sans-serif;font-weight:500;font-size:14px;transition:.18s}
+  button:hover{background:var(--accent);color:var(--bg)}
+  button:active{transform:scale(.98)}
+  button.primary{background:var(--accent);color:var(--bg)}
+  button.primary:hover{background:var(--accent-bright)}
+  
+  .stats{display:flex;gap:12px;margin-bottom:24px;flex-wrap:wrap}
+  .stat-card{background:var(--glass);border:1px solid var(--border);border-radius:12px;padding:12px 16px;font-size:13px;text-align:center;min-width:100px}
+  .stat-card .n{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:20px;color:var(--accent-bright);display:block;margin-bottom:4px}
+  
+  .categories{display:flex;flex-direction:column;gap:16px;animation:fadeInUp .6s .2s cubic-bezier(.16,1,.3,1) both}
+  .category{background:var(--glass);border:1px solid var(--border);border-radius:14px;overflow:hidden;transition:.2s}
+  .category-header{padding:16px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;user-select:none;transition:background .2s}
+  .category-header:hover{background:rgba(82,183,136,.05)}
+  .category-icon{font-size:20px;margin-right:12px}
+  .category-title{font-weight:600;font-size:15px;flex:1}
+  .category-count{font-size:12px;color:var(--txt-dim)}
+  .toggle{width:20px;height:20px;display:flex;align-items:center;justify-content:center;color:var(--accent);transition:transform .3s}
+  .toggle.collapsed{transform:rotate(-90deg)}
+  
+  .category-content{padding:0 16px 16px;display:flex;flex-direction:column;gap:8px;max-height:500px;overflow-y:auto;animation:slideDown .3s cubic-bezier(.16,1,.3,1)}
+  @keyframes slideDown{from{opacity:0;max-height:0}to{opacity:1;max-height:500px}}
+  .category.collapsed .category-content{display:none}
+  
+  .item{display:flex;align-items:center;justify-content:space-between;padding:10px;background:rgba(15,61,15,.5);border-radius:8px;border:1px solid rgba(82,183,136,.1);transition:.15s}
+  .item:hover{background:rgba(82,183,136,.08);border-color:var(--border)}
+  .item-name{font-size:14px;flex:1}
+  .item-remove{background:transparent;border:none;color:var(--txt-dim);cursor:pointer;padding:4px 8px;font-size:16px;transition:.15s}
+  .item-remove:hover{color:#ff6b6b}
+  
+  .add-item{background:var(--glass);border:1px solid var(--border);border-radius:14px;padding:20px;margin-top:24px;animation:fadeInUp .6s .3s cubic-bezier(.16,1,.3,1) both}
+  .add-item h3{font-size:14px;font-weight:600;margin-bottom:12px;color:var(--txt-dim);text-transform:uppercase;letter-spacing:.5px}
+  .add-form{display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+  .add-form input{flex:1;min-width:150px;padding:10px 12px;background:rgba(15,61,15,.5);border:1px solid var(--border);border-radius:8px;color:var(--txt);font-family:Karla,sans-serif;outline:none;transition:border-color .2s}
+  .add-form input:focus{border-color:var(--accent)}
+  .add-form select{padding:10px 12px;background:rgba(15,61,15,.5);border:1px solid var(--border);border-radius:8px;color:var(--txt);font-family:Karla,sans-serif;cursor:pointer;outline:none}
+  
+  .export-section{background:var(--glass);border:1px solid var(--border);border-radius:14px;padding:20px;margin-top:24px;animation:fadeInUp .6s .4s cubic-bezier(.16,1,.3,1) both}
+  .export-section h3{font-size:14px;font-weight:600;margin-bottom:12px;color:var(--txt-dim);text-transform:uppercase;letter-spacing:.5px}
+  .export-btns{display:flex;gap:10px;flex-wrap:wrap}
+  
+  .empty-state{text-align:center;padding:40px 20px;color:var(--txt-dim);font-size:14px}
+  .empty-state-icon{font-size:40px;margin-bottom:12px;opacity:.6}
+  
+  @media(max-width:640px){
+    .container{padding:16px 12px}
+    h1{font-size:28px}
+    .btn-group,.export-btns{flex-direction:column}
+    button{width:100%}
+    .stats{flex-direction:column}
   }
-
-  html, body {
-    width: 100%;
-    height: 100%;
-  }
-
-  body {
-    font-family: 'Karla', sans-serif;
-    background: var(--bg);
-    color: var(--txt);
-    overflow-x: hidden;
-    padding: 20px;
-  }
-
-  .container {
-    max-width: 720px;
-    margin: 0 auto;
-  }
-
-  header {
-    text-align: center;
-    margin-bottom: 32px;
-    animation: slideDown 0.6s cubic-bezier(0.16, 1, 0.3, 1);
-  }
-
-  @keyframes slideDown {
-    from {
-      opacity: 0;
-      transform: translateY(-20px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  h1 {
-    font-size: clamp(28px, 8vw, 44px);
-    font-weight: 700;
-    letter-spacing: -0.5px;
-    margin-bottom: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-  }
-
-  .dot {
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    background: var(--accent-light);
-    box-shadow: 0 0 0 0 rgba(82, 183, 136, 0.7);
-    animation: pulse 2s infinite;
-  }
-
-  @keyframes pulse {
-    0% {
-      box-shadow: 0 0 0 0 rgba(82, 183, 136, 0.7);
-    }
-    70% {
-      box-shadow: 0 0 0 20px rgba(82, 183, 136, 0);
-    }
-    100% {
-      box-shadow: 0 0 0 0 rgba(82, 183, 136, 0);
-    }
-  }
-
-  .subtitle {
-    color: var(--txt-muted);
-    font-size: 15px;
-    line-height: 1.6;
-  }
-
-  .input-section {
-    background: var(--panel);
-    border: 1px solid var(--line);
-    border-radius: 16px;
-    padding: 20px;
-    margin-bottom: 24px;
-    backdrop-filter: blur(12px);
-    animation: fadeInUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.1s both;
-  }
-
-  @keyframes fadeInUp {
-    from {
-      opacity: 0;
-      transform: translateY(20px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  .input-label {
-    display: block;
-    font-size: 13px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: var(--txt-muted);
-    margin-bottom: 10px;
-  }
-
-  textarea {
-    width: 100%;
-    height: 120px;
-    background: rgba(0, 0, 0, 0.2);
-    border: 1px solid var(--line);
-    border-radius: 12px;
-    padding: 14px;
-    color: var(--txt);
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 14px;
-    resize: vertical;
-    margin-bottom: 12px;
-    transition: 0.18s;
-  }
-
-  textarea:focus {
-    outline: none;
-    border-color: var(--accent);
-    background: rgba(0, 0, 0, 0.3);
-    box-shadow: 0 0 0 3px rgba(82, 183, 136, 0.1);
-  }
-
-  textarea::placeholder {
-    color: rgba(168, 197, 163, 0.4);
-  }
-
-  .button-row {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-  }
-
-  button {
-    flex: 1;
-    min-width: 120px;
-    padding: 12px 16px;
-    border: none;
-    border-radius: 10px;
-    font-family: 'Karla', sans-serif;
-    font-weight: 600;
-    font-size: 14px;
-    cursor: pointer;
-    transition: 0.18s;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-
-  .btn-primary {
-    background: var(--accent);
-    color: #0f3d0f;
-    flex: 1.2;
-  }
-
-  .btn-primary:hover {
-    background: var(--accent-light);
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(82, 183, 136, 0.3);
-  }
-
-  .btn-primary:active {
-    transform: translateY(0);
-  }
-
-  .btn-secondary {
-    background: rgba(82, 183, 136, 0.15);
-    color: var(--accent);
-    border: 1px solid var(--line);
-  }
-
-  .btn-secondary:hover {
-    background: rgba(82, 183, 136, 0.25);
-    transform: translateY(-2px);
-  }
-
-  .stats {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-    gap: 12px;
-    margin-bottom: 24px;
-  }
-
-  .stat {
-    background: var(--panel);
-    border: 1px solid var(--line);
-    border-radius: 12px;
-    padding: 14px;
-    text-align: center;
-    animation: fadeInUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.15s both;
-  }
-
-  .stat-num {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 28px;
-    font-weight: 600;
-    color: var(--accent);
-    margin-bottom: 4px;
-  }
-
-  .stat-label {
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: var(--txt-muted);
-  }
-
-  .categories {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-  }
-
-  .category {
-    background: var(--panel);
-    border: 1px solid var(--line);
-    border-radius: 14px;
-    overflow: hidden;
-    animation: fadeInUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.2s both;
-  }
-
-  .category-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 16px;
-    background: rgba(82, 183, 136, 0.08);
-    cursor: pointer;
-    user-select: none;
-    transition: 0.18s;
-    border-bottom: 1px solid var(--line);
-  }
-
-  .category-header:hover {
-    background: rgba(82, 183, 136, 0.12);
-  }
-
-  .category-header.collapsed ~ .category-items {
-    display: none;
-  }
-
-  .category-title {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-weight: 600;
-    font-size: 15px;
-  }
-
-  .category-icon {
-    font-size: 20px;
-  }
-
-  .category-count {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 12px;
-    background: rgba(82, 183, 136, 0.2);
-    color: var(--accent);
-    padding: 4px 8px;
-    border-radius: 6px;
-    font-weight: 600;
-  }
-
-  .toggle-icon {
-    width: 20px;
-    height: 20px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--accent);
-    transition: 0.2s;
-    font-weight: 600;
-  }
-
-  .category-header.collapsed .toggle-icon {
-    transform: rotate(180deg);
-  }
-
-  .category-items {
-    padding: 12px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-
-  .item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 10px 12px;
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 8px;
-    font-size: 14px;
-    transition: 0.15s;
-  }
-
-  .item:hover {
-    background: rgba(82, 183, 136, 0.1);
-  }
-
-  .item-name {
-    flex: 1;
-  }
-
-  .item-remove {
-    width: 28px;
-    height: 28px;
-    background: transparent;
-    border: none;
-    color: var(--danger);
-    cursor: pointer;
-    border-radius: 6px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 16px;
-    transition: 0.15s;
-  }
-
-  .item-remove:hover {
-    background: rgba(255, 107, 107, 0.15);
-    transform: scale(1.1);
-  }
-
-  .empty-state {
-    text-align: center;
-    padding: 40px 20px;
-    color: var(--txt-muted);
-  }
-
-  .empty-state-icon {
-    font-size: 48px;
-    margin-bottom: 12px;
-    opacity: 0.5;
-  }
-
-  .add-item-section {
-    background: var(--panel);
-    border: 1px solid var(--line);
-    border-radius: 14px;
-    padding: 16px;
-    margin-bottom: 24px;
-    animation: fadeInUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.25s both;
-  }
-
-  .add-item-row {
-    display: flex;
-    gap: 10px;
-  }
-
-  .add-item-input {
-    flex: 1;
-    background: rgba(0, 0, 0, 0.2);
-    border: 1px solid var(--line);
-    border-radius: 10px;
-    padding: 10px 12px;
-    color: var(--txt);
-    font-family: 'Karla', sans-serif;
-    font-size: 14px;
-    transition: 0.18s;
-  }
-
-  .add-item-input:focus {
-    outline: none;
-    border-color: var(--accent);
-    background: rgba(0, 0, 0, 0.3);
-    box-shadow: 0 0 0 3px rgba(82, 183, 136, 0.1);
-  }
-
-  .add-item-select {
-    background: rgba(0, 0, 0, 0.2);
-    border: 1px solid var(--line);
-    border-radius: 10px;
-    padding: 10px 12px;
-    color: var(--txt);
-    font-family: 'Karla', sans-serif;
-    font-size: 14px;
-    cursor: pointer;
-    transition: 0.18s;
-  }
-
-  .add-item-select:focus {
-    outline: none;
-    border-color: var(--accent);
-  }
-
-  .add-item-btn {
-    background: var(--accent);
-    color: #0f3d0f;
-    padding: 10px 16px;
-    min-width: auto;
-  }
-
-  .add-item-btn:hover {
-    background: var(--accent-light);
-  }
-
-  .export-section {
-    background: var(--panel);
-    border: 1px solid var(--line);
-    border-radius: 14px;
-    padding: 16px;
-    animation: fadeInUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.3s both;
-  }
-
-  .export-label {
-    display: block;
-    font-size: 12px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: var(--txt-muted);
-    margin-bottom: 12px;
-  }
-
-  .export-buttons {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-    gap: 10px;
-  }
-
-  @media (max-width: 600px) {
-    .button-row {
-      flex-direction: column;
-    }
-
-    button {
-      min-width: unset;
-      width: 100%;
-    }
-
-    header {
-      margin-bottom: 24px;
-    }
-
-    h1 {
-      font-size: 28px;
-    }
-
-    .export-buttons {
-      grid-template-columns: 1fr;
-    }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    * {
-      animation-duration: 0.01ms !important;
-      animation-iteration-count: 1 !important;
-      transition-duration: 0.01ms !important;
-    }
+  
+  @media(prefers-reduced-motion:reduce){
+    *{animation:none !important;transition:none !important}
   }
 </style>
 </head>
 <body>
 <div class="container">
   <header>
-    <h1><span class="dot"></span>Smart Shopping List</h1>
-    <p class="subtitle">Paste your items — we'll organize them by category automatically.</p>
+    <h1><span class="hero-accent"></span>Smart Shopping</h1>
+    <p class="tagline">Paste your list. We'll organize it by category. Add, remove, download, or share instantly.</p>
   </header>
 
   <div class="input-section">
-    <label class="input-label">Paste or type your items</label>
-    <textarea id="input" placeholder="Example:&#10;apples&#10;chicken breast&#10;milk&#10;rice&#10;frozen peas&#10;...or paste a full list!"></textarea>
-    <div class="button-row">
-      <button class="btn-primary" onclick="parseAndOrganize()">📦 Organize</button>
-      <button class="btn-secondary" onclick="clearAll()">Clear</button>
+    <label for="input" style="display:block;margin-bottom:8px;font-weight:500;font-size:14px">Paste or type your shopping items (one per line):</label>
+    <textarea id="input" placeholder="apples&#10;chicken breast&#10;milk&#10;pasta&#10;frozen peas&#10;olive oil"></textarea>
+    <div class="btn-group">
+      <button class="primary" onclick="organize()">📋 Organize</button>
+      <button onclick="document.getElementById('input').value=''">Clear</button>
     </div>
   </div>
 
-  <div class="stats">
-    <div class="stat">
-      <div class="stat-num" id="totalCount">0</div>
-      <div class="stat-label">Total Items</div>
+  <div id="stats" style="display:none" class="stats">
+    <div class="stat-card"><span class="n" id="stat-total">0</span>Items</div>
+    <div class="stat-card"><span class="n" id="stat-cats">0</span>Categories</div>
+  </div>
+
+  <div id="output" style="display:none">
+    <div id="categories-container" class="categories"></div>
+    
+    <div class="add-item">
+      <h3>+ Add Item</h3>
+      <div class="add-form">
+        <input type="text" id="new-item-name" placeholder="Item name" autocomplete="off">
+        <select id="new-item-cat">
+          <option value="">Select category</option>
+          <option value="Produce">Produce</option>
+          <option value="Dairy">Dairy</option>
+          <option value="Meat">Meat</option>
+          <option value="Frozen">Frozen</option>
+          <option value="Pantry">Pantry</option>
+          <option value="Snacks">Snacks</option>
+          <option value="Drinks">Drinks</option>
+          <option value="Other">Other</option>
+        </select>
+        <button style="flex:0;padding:10px 16px" onclick="addItem()">+ Add</button>
+      </div>
     </div>
-    <div class="stat">
-      <div class="stat-num" id="categoryCount">0</div>
-      <div class="stat-label">Categories</div>
+
+    <div class="export-section">
+      <h3>📤 Download or Copy</h3>
+      <div class="export-btns">
+        <button onclick="downloadText()">📝 .txt</button>
+        <button onclick="downloadMarkdown()">📑 .md</button>
+        <button onclick="downloadHTML()">🌐 .html</button>
+        <button onclick="copyClipboard()">📋 Copy All</button>
+      </div>
     </div>
   </div>
 
-  <div id="categoriesContainer"></div>
-
-  <div class="add-item-section" id="addItemSection" style="display: none;">
-    <div class="add-item-row">
-      <input class="add-item-input" type="text" id="newItemName" placeholder="Add new item...">
-      <select class="add-item-select" id="newItemCategory">
-        <option value="">Auto-detect</option>
-        <option value="Produce">🥬 Produce</option>
-        <option value="Dairy">🧀 Dairy</option>
-        <option value="Meat">🥩 Meat</option>
-        <option value="Frozen">❄️ Frozen</option>
-        <option value="Pantry">🥫 Pantry</option>
-        <option value="Snacks">🍿 Snacks</option>
-        <option value="Drinks">🥤 Drinks</option>
-        <option value="Other">📦 Other</option>
-      </select>
-      <button class="add-item-btn btn-primary" onclick="addNewItem()">+</button>
-    </div>
-  </div>
-
-  <div class="export-section" id="exportSection" style="display: none;">
-    <label class="export-label">Export</label>
-    <div class="export-buttons">
-      <button class="btn-secondary" onclick="exportTxt()">📄 .txt</button>
-      <button class="btn-secondary" onclick="exportMd()">📝 .md</button>
-      <button class="btn-secondary" onclick="exportHtml()">🌐 .html</button>
-      <button class="btn-secondary" onclick="copyToClipboard()">📋 Copy</button>
-    </div>
+  <div id="empty" class="empty-state">
+    <div class="empty-state-icon">🛒</div>
+    <p>Paste your shopping list above to get started</p>
   </div>
 </div>
 
 <script>
-  const categoryIcons = {
-    "Produce": "🥬",
-    "Dairy": "🧀",
-    "Meat": "🥩",
-    "Frozen": "❄️",
-    "Pantry": "🥫",
-    "Snacks": "🍿",
-    "Drinks": "🥤",
-    "Other": "📦"
-  };
+const CATEGORIES = {
+  Produce: ['apple','banana','carrot','lettuce','tomato','onion','potato','broccoli','spinach','kale','strawberry','orange','lemon','lime','grape','melon','peach','pear','celery','parsley','cilantro','basil','cucumber','zucchini','squash','pepper','bell pepper','eggplant','avocado','mushroom','blueberry','raspberry','blackberry'],
+  Dairy: ['milk','yogurt','cheese','butter','cream','eggs','egg','cheddar','mozzarella','feta','parmesan','ricotta','sour cream','whipped cream'],
+  Meat: ['chicken','beef','pork','fish','turkey','salmon','tuna','bacon','ham','ground meat','steak','ribs','lamb','sausage','hotdog','ground beef'],
+  Frozen: ['frozen peas','ice cream','frozen pizza','frozen berries','frozen vegetables','frozen fries','frozen chicken','freezer'],
+  Pantry: ['rice','pasta','flour','beans','canned','oil','vinegar','honey','sugar','salt','pepper','spice','nuts','almond','cashew','peanut','walnut','sesame','coconut','soy sauce','worcestershire','balsamic','olive oil','canola oil','vegetable oil','cornstarch','baking powder','yeast','bread','cereal','oats','granola','jam','peanut butter','jelly'],
+  Snacks: ['chips','crackers','granola','popcorn','cookies','candy','chocolate','pretzel','trail mix','protein bar','fruit bar','jerky','hummus','nuts mix','granola bar'],
+  Drinks: ['coffee','tea','juice','soda','cola','sprite','coke','milk','water','wine','beer','orange juice','apple juice','cranberry','lemonade','smoothie','coconut water','energy drink','gatorade','kombucha']
+};
 
-  const categoryKeywords = {
-    "Produce": ["apple", "banana", "carrot", "lettuce", "tomato", "onion", "potato", "broccoli", "spinach", "pepper", "cucumber", "asparagus", "pumpkin", "squash", "zucchini", "celery", "garlic", "basil", "kale", "arugula", "berry", "strawberry", "blueberry", "raspberry", "lemon", "lime", "orange", "grapes", "melon", "watermelon", "pineapple", "mango", "avocado", "coconut", "peach", "pear", "plum", "apricot", "papaya", "kiwi"],
-    "Dairy": ["milk", "yogurt", "cheese", "butter", "cream", "eggs", "egg", "sour cream", "whipped cream", "cottage cheese", "mozzarella", "cheddar", "feta", "ricotta", "parmesan", "brie", "goat cheese", "halloumi"],
-    "Meat": ["chicken", "beef", "pork", "fish", "turkey", "salmon", "tuna", "cod", "ham", "bacon", "sausage", "ground meat", "steak", "chop", "rib", "wing", "thigh", "breast", "lamb", "veal", "duck", "shrimp", "crab", "lobster", "squid", "clam", "mussel", "oyster"],
-    "Frozen": ["frozen peas", "ice cream", "frozen pizza", "frozen berries", "frozen vegetables", "frozen", "fries", "french fries", "frozen chicken", "frozen fish", "popsicle", "ice", "gelato"],
-    "Pantry": ["rice", "pasta", "flour", "beans", "canned", "oil", "vinegar", "salt", "pepper", "sugar", "honey", "jam", "peanut butter", "almond butter", "soy sauce", "teriyaki", "sriracha", "hot sauce", "ketchup", "mustard", "mayo", "mayonnaise", "olive oil", "coconut oil", "sesame oil", "balsamic", "garlic powder", "paprika", "cumin", "oregano", "thyme", "basil", "rosemary", "cinnamon", "vanilla", "cocoa", "chocolate", "coffee", "tea", "cereal", "oats", "granola", "nuts", "almonds", "walnuts", "cashews", "peanuts", "sunflower seeds"],
-    "Snacks": ["chips", "crackers", "granola", "nuts", "cookies", "popcorn", "pretzels", "granola bar", "protein bar", "candy", "chocolate", "caramel", "gummy", "trail mix", "mixed nuts", "almonds", "cashews", "peanuts", "walnuts"],
-    "Drinks": ["coffee", "tea", "juice", "soda", "wine", "beer", "water", "cola", "sprite", "fanta", "orange juice", "apple juice", "cranberry juice", "lemonade", "smoothie", "energy drink", "sports drink", "milk", "coconut water", "almond milk", "oat milk", "soy milk", "rum", "vodka", "gin", "whiskey", "tequila", "brandy", "champagne", "prosecco"],
-    "Other": []
-  };
+let items = [];
 
-  let items = {};
-
-  function categorizeItem(item) {
-    const lower = item.toLowerCase().trim();
-    for (const [cat, keywords] of Object.entries(categoryKeywords)) {
-      if (keywords.some(kw => lower.includes(kw))) {
-        return cat;
-      }
+function categorize(text) {
+  const lower = text.toLowerCase().trim();
+  for (const [cat, keywords] of Object.entries(CATEGORIES)) {
+    if (keywords.some(kw => lower.includes(kw))) {
+      return cat;
     }
-    return "Other";
   }
+  return 'Other';
+}
 
-  function parseAndOrganize() {
-    const text = document.getElementById("input").value;
-    if (!text.trim()) {
-      alert("Please enter some items!");
-      return;
-    }
-
-    items = {};
-    const lines = text.split(/[\n,]/);
-
-    lines.forEach(line => {
-      const item = line.trim();
-      if (item) {
-        const category = categorizeItem(item);
-        if (!items[category]) items[category] = [];
-        items[category].push(item);
-      }
-    });
-
-    Object.keys(items).forEach(cat => {
-      items[cat].sort();
-    });
-
-    render();
-    document.getElementById("addItemSection").style.display = "block";
-    document.getElementById("exportSection").style.display = "block";
+function organize() {
+  const text = document.getElementById('input').value;
+  if (!text.trim()) {
+    document.getElementById('output').style.display = 'none';
+    document.getElementById('empty').style.display = 'block';
+    document.getElementById('stats').style.display = 'none';
+    return;
   }
-
-  function render() {
-    const container = document.getElementById("categoriesContainer");
-    container.innerHTML = "";
-
-    if (Object.keys(items).length === 0) {
-      container.innerHTML = `<div class="empty-state"><div class="empty-state-icon">🛒</div><p>Your organized list will appear here</p></div>`;
-      document.getElementById("totalCount").textContent = "0";
-      document.getElementById("categoryCount").textContent = "0";
-      return;
-    }
-
-    const orderedCategories = ["Produce", "Dairy", "Meat", "Frozen", "Pantry", "Snacks", "Drinks", "Other"];
-    let totalItems = 0;
-
-    orderedCategories.forEach(cat => {
-      if (!items[cat]) return;
-
-      totalItems += items[cat].length;
-      const icon = categoryIcons[cat];
-      const catHtml = `
-        <div class="category">
-          <div class="category-header">
-            <div class="category-title">
-              <span class="category-icon">${icon}</span>
-              <span>${cat}</span>
-            </div>
-            <div style="display: flex; align-items: center; gap: 10px;">
-              <span class="category-count">${items[cat].length}</span>
-              <div class="toggle-icon">▼</div>
-            </div>
-          </div>
-          <div class="category-items">
-            ${items[cat].map((item, idx) => `
-              <div class="item">
-                <span class="item-name">${escapeHtml(item)}</span>
-                <button class="item-remove" onclick="removeItem('${cat}', ${idx})">×</button>
-              </div>
-            `).join("")}
-          </div>
-        </div>
-      `;
-      container.innerHTML += catHtml;
-    });
-
-    document.getElementById("totalCount").textContent = totalItems;
-    document.getElementById("categoryCount").textContent = Object.keys(items).length;
-
-    document.querySelectorAll(".category-header").forEach(header => {
-      header.addEventListener("click", function() {
-        this.classList.toggle("collapsed");
-      });
-    });
-  }
-
-  function removeItem(category, index) {
-    if (items[category]) {
-      items[category].splice(index, 1);
-      if (items[category].length === 0) delete items[category];
-    }
-    render();
-  }
-
-  function addNewItem() {
-    const name = document.getElementById("newItemName").value.trim();
-    if (!name) return;
-
-    let category = document.getElementById("newItemCategory").value;
-    if (!category) category = categorizeItem(name);
-
-    if (!items[category]) items[category] = [];
-    items[category].push(name);
-    items[category].sort();
-
-    document.getElementById("newItemName").value = "";
-    document.getElementById("newItemCategory").value = "";
-    render();
-  }
-
-  function exportTxt() {
-    const lines = [];
-    const orderedCategories = ["Produce", "Dairy", "Meat", "Frozen", "Pantry", "Snacks", "Drinks", "Other"];
-    orderedCategories.forEach(cat => {
-      if (items[cat]) {
-        lines.push(`## ${cat}`);
-        items[cat].forEach(item => lines.push(`- ${item}`));
-        lines.push("");
-      }
-    });
-    downloadFile(lines.join("\n"), "shopping-list.txt", "text/plain");
-  }
-
-  function exportMd() {
-    const lines = [];
-    const orderedCategories = ["Produce", "Dairy", "Meat", "Frozen", "Pantry", "Snacks", "Drinks", "Other"];
-    orderedCategories.forEach(cat => {
-      if (items[cat]) {
-        lines.push(`## ${cat}`);
-        items[cat].forEach(item => lines.push(`- [ ] ${item}`));
-        lines.push("");
-      }
-    });
-    downloadFile(lines.join("\n"), "shopping-list.md", "text/markdown");
-  }
-
-  function exportHtml() {
-    let html = `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Shopping List</title>
-  <style>
-    body { font-family: sans-serif; max-width: 600px; margin: 40px auto; padding: 20px; background: #f5f5f5; }
-    h1 { color: #333; }
-    .category { margin-bottom: 24px; background: white; padding: 16px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-    .category h2 { margin-top: 0; color: #52b788; }
-    .item { padding: 8px 0; border-bottom: 1px solid #eee; }
-    .item:last-child { border-bottom: none; }
-  </style>
-</head>
-<body>
-  <h1>Shopping List</h1>`;
-
-    const orderedCategories = ["Produce", "Dairy", "Meat", "Frozen", "Pantry", "Snacks", "Drinks", "Other"];
-    orderedCategories.forEach(cat => {
-      if (items[cat]) {
-        html += `<div class="category"><h2>${cat}</h2>`;
-        items[cat].forEach(item => {
-          html += `<div class="item">☐ ${escapeHtml(item)}</div>`;
-        });
-        html += `</div>`;
-      }
-    });
-
-    html += `</body></html>`;
-    downloadFile(html, "shopping-list.html", "text/html");
-  }
-
-  function copyToClipboard() {
-    const lines = [];
-    const orderedCategories = ["Produce", "Dairy", "Meat", "Frozen", "Pantry", "Snacks", "Drinks", "Other"];
-    orderedCategories.forEach(cat => {
-      if (items[cat]) {
-        lines.push(`${cat}:`);
-        items[cat].forEach(item => lines.push(`  ${item}`));
-      }
-    });
-
-    const text = lines.join("\n");
-    navigator.clipboard.writeText(text).then(() => {
-      alert("✅ Copied to clipboard!");
-    });
-  }
-
-  function downloadFile(content, filename, type) {
-    const blob = new Blob([content], { type });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  }
-
-  function clearAll() {
-    document.getElementById("input").value = "";
-    items = {};
-    render();
-    document.getElementById("addItemSection").style.display = "none";
-    document.getElementById("exportSection").style.display = "none";
-  }
-
-  function escapeHtml(text) {
-    const map = {
-      "&": "&amp;",
-      "<": "&lt;",
-      ">": "&gt;",
-      '"': "&quot;",
-      "'": "&#039;"
-    };
-    return text.replace(/[&<>"']/g, m => map[m]);
-  }
-
-  document.addEventListener("keypress", (e) => {
-    if (e.key === "Enter" && document.getElementById("newItemName") === document.activeElement) {
-      addNewItem();
-    }
+  
+  items = text.split('\n')
+    .map(line => line.trim())
+    .filter(line => line.length > 0)
+    .map(name => ({ name, cat: categorize(name), id: Math.random() }));
+  
+  items.sort((a, b) => {
+    if (a.cat !== b.cat) return a.cat.localeCompare(b.cat);
+    return a.name.localeCompare(b.name);
   });
+
+  render();
+}
+
+function render() {
+  const grouped = {};
+  items.forEach(item => {
+    if (!grouped[item.cat]) grouped[item.cat] = [];
+    grouped[item.cat].push(item);
+  });
+
+  const cats = Object.keys(grouped).sort();
+  const icons = { Produce: '🥬', Dairy: '🧀', Meat: '🥩', Frozen: '❄️', Pantry: '🥫', Snacks: '🍿', Drinks: '🥤', Other: '📦' };
+
+  let html = '';
+  cats.forEach(cat => {
+    const list = grouped[cat];
+    html += `
+      <div class="category" id="cat-${cat}">
+        <div class="category-header" onclick="toggleCat('${cat}')">
+          <span class="category-icon">${icons[cat] || '📦'}</span>
+          <span class="category-title">${cat}</span>
+          <span class="category-count">${list.length}</span>
+          <span class="toggle">▼</span>
+        </div>
+        <div class="category-content">
+          ${list.map(item => `
+            <div class="item">
+              <span class="item-name">${item.name}</span>
+              <button class="item-remove" onclick="removeItem('${item.id}')">×</button>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  });
+
+  document.getElementById('categories-container').innerHTML = html;
+  document.getElementById('stat-total').textContent = items.length;
+  document.getElementById('stat-cats').textContent = cats.length;
+  document.getElementById('output').style.display = 'block';
+  document.getElementById('empty').style.display = 'none';
+  document.getElementById('stats').style.display = 'flex';
+}
+
+function toggleCat(cat) {
+  document.getElementById(`cat-${cat}`).classList.toggle('collapsed');
+}
+
+function removeItem(id) {
+  items = items.filter(i => i.id !== parseFloat(id));
+  render();
+}
+
+function addItem() {
+  const name = document.getElementById('new-item-name').value;
+  const cat = document.getElementById('new-item-cat').value;
+  if (!name.trim()) return;
+  
+  const finalCat = cat || categorize(name);
+  items.push({ name, cat: finalCat, id: Math.random() });
+  items.sort((a, b) => {
+    if (a.cat !== b.cat) return a.cat.localeCompare(b.cat);
+    return a.name.localeCompare(b.name);
+  });
+  
+  document.getElementById('new-item-name').value = '';
+  document.getElementById('new-item-cat').value = '';
+  render();
+}
+
+function downloadText() {
+  let txt = items.map(i => `☐ ${i.name}`).join('\n');
+  const a = document.createElement('a');
+  a.href = 'data:text/plain,' + encodeURIComponent(txt);
+  a.download = 'shopping-list.txt';
+  a.click();
+}
+
+function downloadMarkdown() {
+  const grouped = {};
+  items.forEach(item => {
+    if (!grouped[item.cat]) grouped[item.cat] = [];
+    grouped[item.cat].push(item);
+  });
+
+  let md = '# Shopping List\n\n';
+  Object.keys(grouped).sort().forEach(cat => {
+    md += `## ${cat}\n${grouped[cat].map(i => `- [ ] ${i.name}`).join('\n')}\n\n`;
+  });
+
+  const a = document.createElement('a');
+  a.href = 'data:text/markdown,' + encodeURIComponent(md);
+  a.download = 'shopping-list.md';
+  a.click();
+}
+
+function downloadHTML() {
+  const grouped = {};
+  items.forEach(item => {
+    if (!grouped[item.cat]) grouped[item.cat] = [];
+    grouped[item.cat].push(item);
+  });
+
+  let html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Shopping List</title><style>body{font-family:sans-serif;max-width:600px;margin:40px auto;padding:20px}.cat{margin-bottom:24px}h2{color:#2d6a4f;margin-bottom:12px}label{display:block;margin:8px 0;font-size:14px}</style></head><body><h1>Shopping List</h1>`;
+  
+  Object.keys(grouped).sort().forEach(cat => {
+    html += `<div class="cat"><h2>${cat}</h2>${grouped[cat].map(i => `<label><input type="checkbox"> ${i.name}</label>`).join('')}</div>`;
+  });
+  
+  html += '</body></html>';
+  const a = document.createElement('a');
+  a.href = 'data:text/html,' + encodeURIComponent(html);
+  a.download = 'shopping-list.html';
+  a.click();
+}
+
+function copyClipboard() {
+  const txt = items.map(i => `☐ ${i.name}`).join('\n');
+  navigator.clipboard.writeText(txt).then(() => {
+    alert('Copied to clipboard!');
+  });
+}
+
+document.getElementById('new-item-name').addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') addItem();
+});
 </script>
 </body>
 </html>
