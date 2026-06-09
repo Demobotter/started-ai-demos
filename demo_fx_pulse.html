@@ -366,7 +366,7 @@
     <div class="container">
         <header>
             <h1>FX Pulse</h1>
-            <p class="subtitle">Live currency strength grid · Real ECB rates</p>
+            <p class="subtitle">Live currency strength grid · Real exchange rates</p>
         </header>
 
         <div class="controls-section">
@@ -431,15 +431,16 @@
 
         async function fetchRates(base) {
             try {
-                const response = await fetch(`https://api.frankfurter.app/latest?from=${base}`);
+                const response = await fetch(`https://open.er-api.com/v6/latest/${base}`);
                 if (!response.ok) throw new Error('API failed');
                 const data = await response.json();
+                if (data.result !== 'success') throw new Error('API error: ' + (data.error_type || 'unknown'));
                 rates = data.rates;
-                rateDate = data.date;
+                rateDate = (data.time_last_update_utc || new Date().toISOString()).split(' ')[0];
                 currentBase = base;
                 renderUI();
             } catch (err) {
-                currencyGrid.innerHTML = `<div class="error">⚠ Could not fetch rates. Refresh to retry.</div>`;
+                currencyGrid.innerHTML = `<div class="error">⚠ Could not fetch rates. Refresh to retry. (${err.message})</div>`;
                 console.error(err);
             }
         }
@@ -501,12 +502,12 @@
         }
 
         function updateHeader() {
-            gridHeader.textContent = `ECB Reference Rates • ${rateDate}`;
+            gridHeader.textContent = `Exchange Rates • ${rateDate}`;
         }
 
         function updateTimestamp() {
             const now = new Date();
-            timestamp.textContent = `Last updated: ${now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })} • Frankfurter.app`;
+            timestamp.textContent = `Last updated: ${now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })} • ExchangeRate-API`;
         }
 
         // Init
