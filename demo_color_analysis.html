@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Color Analysis Lab</title>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background: linear-gradient(135deg, #0a0a1a 0%, #1a0a2e 100%);
+            color: #e0e0ff;
+            min-height: 100vh;
+            padding: 2rem;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .hero {
+            text-align: center;
+            margin-bottom: 3rem;
+            animation: fadeInDown 0.8s ease-out;
+        }
+
+        .hero h1 {
+            font-size: clamp(2.5rem, 8vw, 4rem);
+            background: linear-gradient(135deg, #00d9ff, #7b2cbf);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+        }
+
+        .hero p {
+            font-size: 1rem;
+            color: #a8a8d8;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        @media (max-width: 768px) {
+            .main-grid { grid-template-columns: 1fr; }
+        }
+
+        .card {
+            background: rgba(20, 10, 50, 0.6);
+            border: 1px solid rgba(0, 217, 255, 0.2);
+            border-radius: 12px;
+            padding: 2rem;
+            backdrop-filter: blur(10px);
+            animation: fadeInUp 0.8s ease-out;
+            animation-delay: 0.1s;
+            animation-fill-mode: backwards;
+        }
+
+        .card:nth-child(2) { animation-delay: 0.2s; }
+        .card:nth-child(3) { animation-delay: 0.3s; }
+
+        .card h2 {
+            font-size: 1.1rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: #7b2cbf;
+            margin-bottom: 1.5rem;
+            font-weight: 600;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .input-group input {
+            flex: 1;
+            padding: 0.75rem;
+            background: rgba(0, 217, 255, 0.05);
+            border: 1px solid rgba(0, 217, 255, 0.3);
+            border-radius: 8px;
+            color: #e0e0ff;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.95rem;
+            transition: all 0.3s;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: #00d9ff;
+            background: rgba(0, 217, 255, 0.1);
+            box-shadow: 0 0 20px rgba(0, 217, 255, 0.3);
+        }
+
+        .color-preview {
+            width: 100%;
+            height: 120px;
+            border-radius: 8px;
+            border: 2px solid rgba(0, 217, 255, 0.5);
+            margin-bottom: 1.5rem;
+            transition: background 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .color-preview::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(255,255,255,0.1), transparent);
+            pointer-events: none;
+        }
+
+        .values-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .value-item {
+            background: rgba(0, 217, 255, 0.05);
+            border-left: 3px solid #00d9ff;
+            padding: 1rem;
+            border-radius: 4px;
+        }
+
+        .value-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: #a8a8d8;
+            margin-bottom: 0.3rem;
+        }
+
+        .value-display {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 1.1rem;
+            color: #00d9ff;
+            font-weight: 600;
+        }
+
+        .harmony-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 0.8rem;
+        }
+
+        @media (max-width: 600px) {
+            .harmony-grid { grid-template-columns: repeat(3, 1fr); }
+        }
+
+        .harmony-swatch {
+            aspect-ratio: 1;
+            border-radius: 8px;
+            border: 1px solid rgba(0, 217, 255, 0.3);
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            padding: 0.5rem;
+            font-size: 0.65rem;
+            font-family: 'IBM Plex Mono', monospace;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .harmony-swatch:hover {
+            transform: scale(1.1);
+            border-color: #00d9ff;
+            box-shadow: 0 0 15px rgba(0, 217, 255, 0.4);
+        }
+
+        .harmony-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #a8a8d8;
+            margin-bottom: 1rem;
+            font-weight: 600;
+        }
+
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            * { animation: none !important; transition: none !important; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="hero">
+            <h1>Color Analysis Lab</h1>
+            <p>Explore every dimension of your color</p>
+        </div>
+
+        <div class="main-grid">
+            <!-- Input & RGB -->
+            <div class="card">
+                <h2>Input & RGB Breakdown</h2>
+                
+                <div class="input-group">
+                    <input type="text" id="colorInput" placeholder="Enter hex color (e.g., #FF5733)" value="#3B82F6">
+                </div>
+
+                <div class="color-preview" id="preview"></div>
+
+                <div class="values-grid">
+                    <div class="value-item">
+                        <div class="value-label">Red</div>
+                        <div class="value-display" id="rVal">59</div>
+                    </div>
+                    <div class="value-item">
+                        <div class="value-label">Green</div>
+                        <div class="value-display" id="gVal">130</div>
+                    </div>
+                    <div class="value-item">
+                        <div class="value-label">Blue</div>
+                        <div class="value-display" id="bVal">246</div>
+                    </div>
+                    <div class="value-item">
+                        <div class="value-label">Hex</div>
+                        <div class="value-display" id="hexVal">#3B82F6</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- HSL & Metrics -->
+            <div class="card">
+                <h2>HSL & Metrics</h2>
+
+                <div class="values-grid">
+                    <div class="value-item">
+                        <div class="value-label">Hue</div>
+                        <div class="value-display" id="hVal">217°</div>
+                    </div>
+                    <div class="value-item">
+                        <div class="value-label">Saturation</div>
+                        <div class="value-display" id="sVal">98%</div>
+                    </div>
+                    <div class="value-item">
+                        <div class="value-label">Lightness</div>
+                        <div class="value-display" id="lVal">60%</div>
+                    </div>
+                    <div class="value-item">
+                        <div class="value-label">Brightness</div>
+                        <div class="value-display" id="brightness">96%</div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 1.5rem; padding: 1rem; background: rgba(0,217,255,0.08); border-radius: 8px;">
+                    <div class="value-label" style="margin-bottom: 0.5rem;">Luminance (WCAG)</div>
+                    <div class="value-display" id="luminance" style="font-size: 1.2rem;">0.46</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Harmony Palettes -->
+        <div class="card">
+            <h2>Harmony Palettes</h2>
+
+            <div style="margin-bottom: 2rem;">
+                <div class="harmony-label">Complementary (1 color opposite on wheel)</div>
+                <div class="harmony-grid" id="complementaryGrid"></div>
+            </div>
+
+            <div style="margin-bottom: 2rem;">
+                <div class="harmony-label">Triadic (3 colors evenly spaced)</div>
+                <div class="harmony-grid" id="triadicGrid"></div>
+            </div>
+
+            <div style="margin-bottom: 2rem;">
+                <div class="harmony-label">Analogous (adjacent on wheel)</div>
+                <div class="harmony-grid" id="analogousGrid"></div>
+            </div>
+
+            <div>
+                <div class="harmony-label">Monochromatic (light to dark)</div>
+                <div class="harmony-grid" id="monochromaticGrid"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function hexToRgb(hex) {
+            const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+            return result ? {
+                r: parseInt(result[1], 16),
+                g: parseInt(result[2], 16),
+                b: parseInt(result[3], 16)
+            } : null;
+        }
+
+        function rgbToHsl(r, g, b) {
+            r /= 255; g /= 255; b /= 255;
+            const max = Math.max(r, g, b), min = Math.min(r, g, b);
+            let h, s, l = (max + min) / 2;
+
+            if (max === min) {
+                h = s = 0;
+            } else {
+                const d = max - min;
+                s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+                switch(max) {
+                    case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+                    case g: h = (b - r) / d + 2; break;
+                    case b: h = (r - g) / d + 4; break;
+                }
+                h /= 6;
+            }
+            return { h: h * 360, s: s * 100, l: l * 100 };
+        }
+
+        function hslToRgb(h, s, l) {
+            h = h / 360; s = s / 100; l = l / 100;
+            let r, g, b;
+            if (s === 0) {
+                r = g = b = l;
+            } else {
+                const hue2rgb = (p, q, t) => {
+                    if (t < 0) t += 1;
+                    if (t > 1) t -= 1;
+                    if (t < 1/6) return p + (q - p) * 6 * t;
+                    if (t < 1/2) return q;
+                    if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+                    return p;
+                };
+                const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+                const p = 2 * l - q;
+                r = hue2rgb(p, q, h + 1/3);
+                g = hue2rgb(p, q, h);
+                b = hue2rgb(p, q, h - 1/3);
+            }
+            return { r: Math.round(r * 255), g: Math.round(g * 255), b: Math.round(b * 255) };
+        }
+
+        function rbgToHex(r, g, b) {
+            return "#" + [r, g, b].map(x => {
+                const hex = x.toString(16);
+                return hex.length === 1 ? "0" + hex : hex;
+            }).join("").toUpperCase();
+        }
+
+        function getLuminance(r, g, b) {
+            const [rs, gs, bs] = [r, g, b].map(c => {
+                c = c / 255;
+                return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+            });
+            return 0.2126 * rs + 0.7152 * gs + 0.0722 * bs;
+        }
+
+        function updateDisplay(hex) {
+            if (!/^#[0-9a-f]{6}$/i.test(hex)) return;
+            
+            const rgb = hexToRgb(hex);
+            if (!rgb) return;
+
+            const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
+            const brightness = (rgb.r * 299 + rgb.g * 587 + rgb.b * 114) / 1000;
+            const luminance = getLuminance(rgb.r, rgb.g, rgb.b);
+
+            // Update displays
+            document.getElementById('preview').style.background = hex;
+            document.getElementById('rVal').textContent = rgb.r;
+            document.getElementById('gVal').textContent = rgb.g;
+            document.getElementById('bVal').textContent = rgb.b;
+            document.getElementById('hexVal').textContent = hex;
+            document.getElementById('hVal').textContent = Math.round(hsl.h) + '°';
+            document.getElementById('sVal').textContent = Math.round(hsl.s) + '%';
+            document.getElementById('lVal').textContent = Math.round(hsl.l) + '%';
+            document.getElementById('brightness').textContent = Math.round(brightness) + '%';
+            document.getElementById('luminance').textContent = luminance.toFixed(2);
+
+            // Generate palettes
+            const base_h = hsl.h;
+            
+            // Complementary
+            const comp_h = (base_h + 180) % 360;
+            const compColor = hslToRgb(comp_h, hsl.s, hsl.l);
+            const compHex = rbgToHex(compColor.r, compColor.g, compColor.b);
+            renderHarmony([hex, compHex], 'complementaryGrid');
+
+            // Triadic
+            const tri_h2 = (base_h + 120) % 360;
+            const tri_h3 = (base_h + 240) % 360;
+            const tri2 = hslToRgb(tri_h2, hsl.s, hsl.l);
+            const tri3 = hslToRgb(tri_h3, hsl.s, hsl.l);
+            renderHarmony([hex, rbgToHex(tri2.r, tri2.g, tri2.b), rbgToHex(tri3.r, tri3.g, tri3.b)], 'triadicGrid');
+
+            // Analogous
+            const ana1_h = (base_h - 30 + 360) % 360;
+            const ana2_h = (base_h + 30) % 360;
+            const ana1 = hslToRgb(ana1_h, hsl.s, hsl.l);
+            const ana2 = hslToRgb(ana2_h, hsl.s, hsl.l);
+            renderHarmony([rbgToHex(ana1.r, ana1.g, ana1.b), hex, rbgToHex(ana2.r, ana2.g, ana2.b)], 'analogousGrid');
+
+            // Monochromatic
+            const mono1 = hslToRgb(base_h, hsl.s, 90);
+            const mono2 = hslToRgb(base_h, hsl.s, 75);
+            const mono3 = hslToRgb(base_h, hsl.s, 50);
+            const mono4 = hslToRgb(base_h, hsl.s, 25);
+            const mono5 = hslToRgb(base_h, hsl.s, 10);
+            renderHarmony([
+                rbgToHex(mono1.r, mono1.g, mono1.b),
+                rbgToHex(mono2.r, mono2.g, mono2.b),
+                hex,
+                rbgToHex(mono4.r, mono4.g, mono4.b),
+                rbgToHex(mono5.r, mono5.g, mono5.b)
+            ], 'monochromaticGrid');
+        }
+
+        function renderHarmony(colors, containerId) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = colors.map(color => 
+                `<div class="harmony-swatch" style="background: ${color};" title="${color}">${color}</div>`
+            ).join('');
+        }
+
+        const input = document.getElementById('colorInput');
+        input.addEventListener('input', (e) => {
+            updateDisplay(e.target.value.toUpperCase());
+        });
+        input.addEventListener('change', (e) => {
+            const hex = e.target.value.toUpperCase();
+            if (!/^#[0-9a-f]{6}$/i.test(hex)) {
+                e.target.value = '#3B82F6';
+                updateDisplay('#3B82F6');
+            }
+        });
+
+        // Initial load
+        updateDisplay('#3B82F6');
+    </script>
+</body>
+</html>
