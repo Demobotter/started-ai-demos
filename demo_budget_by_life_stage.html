@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Budget by Life Stage</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      font-family: 'Space Grotesk', sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      color: #e0e0e0;
+      min-height: 100vh;
+      padding: 2rem 1rem;
+      overflow-x: hidden;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .hero {
+      text-align: center;
+      margin-bottom: 3rem;
+      animation: fadeInDown 0.8s cubic-bezier(.16,1,.3,1);
+    }
+
+    .hero h1 {
+      font-size: clamp(2.5rem, 8vw, 4rem);
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      background: linear-gradient(90deg, #00d4ff, #00ff88);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: -0.02em;
+    }
+
+    .hero p {
+      font-size: 1.1rem;
+      color: #a0a0a0;
+      font-weight: 400;
+      letter-spacing: 0.5px;
+    }
+
+    .stage-selector {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      margin-bottom: 3rem;
+      justify-content: center;
+      animation: fadeInUp 0.8s cubic-bezier(.16,1,.3,1) 0.15s both;
+    }
+
+    .stage-btn {
+      padding: 0.75rem 1.5rem;
+      border: 2px solid #2a2a4e;
+      background: transparent;
+      color: #e0e0e0;
+      cursor: pointer;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 0.95rem;
+      font-weight: 600;
+      border-radius: 8px;
+      transition: all 0.3s cubic-bezier(.16,1,.3,1);
+    }
+
+    .stage-btn:hover {
+      border-color: #00ff88;
+      box-shadow: 0 0 16px rgba(0,255,136,0.3);
+      transform: translateY(-2px);
+    }
+
+    .stage-btn.active {
+      background: linear-gradient(135deg, #00d4ff, #00ff88);
+      color: #0f3460;
+      border-color: #00ff88;
+      font-weight: 700;
+      box-shadow: 0 8px 24px rgba(0,255,136,0.4);
+    }
+
+    .content {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+      margin-bottom: 2rem;
+      animation: fadeIn 0.8s cubic-bezier(.16,1,.3,1) 0.3s both;
+    }
+
+    @media (max-width: 900px) {
+      .content { grid-template-columns: 1fr; }
+    }
+
+    .chart-container, .insights {
+      background: rgba(255,255,255,0.05);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(0,255,136,0.2);
+      border-radius: 12px;
+      padding: 2rem;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    }
+
+    .chart-title, .insights-title {
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-bottom: 1.5rem;
+      color: #00ff88;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .bar-wrapper {
+      margin-bottom: 1.5rem;
+    }
+
+    .bar-label {
+      font-size: 0.9rem;
+      margin-bottom: 0.5rem;
+      color: #b0b0b0;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .bar-label-pct {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      color: #00ff88;
+    }
+
+    .bar-container {
+      height: 28px;
+      background: rgba(255,255,255,0.08);
+      border-radius: 4px;
+      overflow: hidden;
+      display: flex;
+    }
+
+    .bar-segment {
+      height: 100%;
+      transition: flex 0.6s cubic-bezier(.16,1,.3,1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: #0f3460;
+      opacity: 0;
+      animation: fadeIn 0.6s cubic-bezier(.16,1,.3,1) forwards;
+    }
+
+    .bar-segment.housing { background: linear-gradient(90deg, #ff6b6b, #ff8787); }
+    .bar-segment.food { background: linear-gradient(90deg, #ffa500, #ffc107); }
+    .bar-segment.transport { background: linear-gradient(90deg, #4ecdc4, #44af96); }
+    .bar-segment.savings { background: linear-gradient(90deg, #00d4ff, #00a8ff); }
+    .bar-segment.discretionary { background: linear-gradient(90deg, #a78bfa, #c084fc); }
+
+    .legend {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 1rem;
+      margin-top: 1.5rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid rgba(0,255,136,0.1);
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-size: 0.85rem;
+      color: #a0a0a0;
+      animation: fadeInUp 0.6s cubic-bezier(.16,1,.3,1) forwards;
+      opacity: 0;
+    }
+
+    .legend-color {
+      width: 12px;
+      height: 12px;
+      border-radius: 2px;
+    }
+
+    .legend-color.housing { background: #ff6b6b; }
+    .legend-color.food { background: #ffa500; }
+    .legend-color.transport { background: #4ecdc4; }
+    .legend-color.savings { background: #00d4ff; }
+    .legend-color.discretionary { background: #a78bfa; }
+
+    .insight-item {
+      margin-bottom: 1.5rem;
+      padding-bottom: 1.5rem;
+      border-bottom: 1px solid rgba(0,255,136,0.1);
+      animation: fadeInUp 0.6s cubic-bezier(.16,1,.3,1) forwards;
+      opacity: 0;
+    }
+
+    .insight-item:last-child {
+      border-bottom: none;
+      margin-bottom: 0;
+      padding-bottom: 0;
+    }
+
+    .insight-label {
+      font-size: 0.8rem;
+      color: #a0a0a0;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 0.5rem;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .insight-value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      background: linear-gradient(90deg, #00d4ff, #00ff88);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .insight-note {
+      font-size: 0.85rem;
+      color: #80a0a0;
+      margin-top: 0.5rem;
+      line-height: 1.4;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @keyframes fadeInDown {
+      from { opacity: 0; transform: translateY(-20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .legend-item:nth-child(1) { animation-delay: 0.4s; }
+    .legend-item:nth-child(2) { animation-delay: 0.5s; }
+    .legend-item:nth-child(3) { animation-delay: 0.6s; }
+    .legend-item:nth-child(4) { animation-delay: 0.7s; }
+    .legend-item:nth-child(5) { animation-delay: 0.8s; }
+
+    .insight-item:nth-child(1) { animation-delay: 0.4s; }
+    .insight-item:nth-child(2) { animation-delay: 0.5s; }
+    .insight-item:nth-child(3) { animation-delay: 0.6s; }
+    .insight-item:nth-child(4) { animation-delay: 0.7s; }
+
+    @media (prefers-reduced-motion: reduce) {
+      * { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+    }
+
+    footer {
+      text-align: center;
+      margin-top: 3rem;
+      padding-top: 2rem;
+      border-top: 1px solid rgba(0,255,136,0.1);
+      font-size: 0.8rem;
+      color: #606080;
+      animation: fadeIn 0.8s cubic-bezier(.16,1,.3,1) 0.5s both;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="hero">
+      <h1>Budget by Life Stage</h1>
+      <p>Pick your stage to see where your money goes</p>
+    </div>
+
+    <div class="stage-selector">
+      <button class="stage-btn active" data-stage="student">Student</button>
+      <button class="stage-btn" data-stage="early">Early Career</button>
+      <button class="stage-btn" data-stage="mid">Mid Career</button>
+      <button class="stage-btn" data-stage="parent">Parent</button>
+      <button class="stage-btn" data-stage="pre">Pre-Retire</button>
+    </div>
+
+    <div class="content">
+      <div class="chart-container">
+        <div class="chart-title">Your Budget Breakdown</div>
+        <div id="charts"></div>
+        <div class="legend">
+          <div class="legend-item"><div class="legend-color housing"></div> Housing</div>
+          <div class="legend-item"><div class="legend-color food"></div> Food</div>
+          <div class="legend-item"><div class="legend-color transport"></div> Transport</div>
+          <div class="legend-item"><div class="legend-color savings"></div> Savings</div>
+          <div class="legend-item"><div class="legend-color discretionary"></div> Discretionary</div>
+        </div>
+      </div>
+
+      <div class="insights">
+        <div class="insights-title">Key Insights</div>
+        <div id="insights"></div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    Real budgets · Australian averages · Compare your stage
+  </footer>
+
+  <script>
+    const budgetData = {
+      student: { housing: 25, food: 18, transport: 12, savings: 15, discretionary: 30 },
+      early: { housing: 30, food: 15, transport: 14, savings: 20, discretionary: 21 },
+      mid: { housing: 28, food: 12, transport: 10, savings: 28, discretionary: 22 },
+      parent: { housing: 32, food: 18, transport: 15, savings: 18, discretionary: 17 },
+      pre: { housing: 25, food: 14, transport: 8, savings: 35, discretionary: 18 }
+    };
+
+    const categories = [
+      { key: 'housing', label: 'Housing' },
+      { key: 'food', label: 'Food' },
+      { key: 'transport', label: 'Transport' },
+      { key: 'savings', label: 'Savings' },
+      { key: 'discretionary', label: 'Discretionary' }
+    ];
+
+    function renderCharts(stage) {
+      const data = budgetData[stage];
+      const chartsEl = document.getElementById('charts');
+      chartsEl.innerHTML = '';
+
+      categories.forEach((cat, idx) => {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'bar-wrapper';
+
+        const label = document.createElement('div');
+        label.className = 'bar-label';
+        label.innerHTML = `<span>${cat.label}</span><span class="bar-label-pct">${data[cat.key]}%</span>`;
+        wrapper.appendChild(label);
+
+        const container = document.createElement('div');
+        container.className = 'bar-container';
+
+        const segment = document.createElement('div');
+        segment.className = `bar-segment ${cat.key}`;
+        segment.textContent = `${data[cat.key]}%`;
+        segment.style.flex = data[cat.key];
+        segment.style.animationDelay = (0.15 + idx * 0.08) + 's';
+        container.appendChild(segment);
+
+        wrapper.appendChild(container);
+        chartsEl.appendChild(wrapper);
+      });
+    }
+
+    function renderInsights(stage) {
+      const data = budgetData[stage];
+      const insightsEl = document.getElementById('insights');
+      insightsEl.innerHTML = '';
+
+      const highest = categories.reduce((a, b) => data[a.key] > data[b.key] ? a : b);
+      const lowest = categories.reduce((a, b) => data[a.key] < data[b.key] ? a : b);
+
+      const notes = {
+        student: 'Limited income, minimal housing costs, modest savings. Focus on experiences.',
+        early: 'First full-time job. Housing costs rise. Building emergency fund.',
+        mid: 'Established income, higher savings rate. Investing heavily for future.',
+        parent: 'Family expenses dominate. Childcare & education costs. Retirement focus.',
+        pre: 'Peak earning years. Aggressive savings & superannuation.'
+      };
+
+      const items = [
+        { label: 'Highest Spending', value: highest.label, note: `${data[highest.key]}% of budget` },
+        { label: 'Lowest Spending', value: lowest.label, note: `${data[lowest.key]}% of budget` },
+        { label: 'Savings Rate', value: `${data.savings}%`, note: 'Of total income' },
+        { label: 'Stage Profile', value: 'See below', note: notes[stage] }
+      ];
+
+      items.forEach((item, idx) => {
+        const el = document.createElement('div');
+        el.className = 'insight-item';
+        el.style.animationDelay = (0.35 + idx * 0.1) + 's';
+        el.innerHTML = `
+          <div class="insight-label">${item.label}</div>
+          <div class="insight-value">${item.value}</div>
+          <div class="insight-note">${item.note}</div>
+        `;
+        insightsEl.appendChild(el);
+      });
+    }
+
+    function updateStage(stage) {
+      document.querySelectorAll('.stage-btn').forEach(btn => btn.classList.remove('active'));
+      document.querySelector(`[data-stage="${stage}"]`).classList.add('active');
+      renderCharts(stage);
+      renderInsights(stage);
+    }
+
+    document.querySelectorAll('.stage-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        updateStage(btn.dataset.stage);
+      });
+    });
+
+    updateStage('student');
+  </script>
+</body>
+</html>
