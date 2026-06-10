@@ -599,14 +599,57 @@
             updateNowLine();
         }
 
-        function getOverlapRange() {
-            const peopleArray = Object.values(people);
-            if (peopleArray.length === 0) return null;
-            
-            const ranges = peopleArray.map(p => {
-                const range = getWorkHourRange(p.tz);
-                return { start: range.start, end: range.end };
-            });
+        
+function getOverlapRange() {
+    const peopleArray = Object.values(people);
+    if (peopleArray.length === 0) return null;
+    
+    const ranges = peopleArray.map(p => {
+        const range = getWorkHourRange(p.tz);
+        return { start: range.start, end: range.end, wraps: range.end < range.start };
+    });
+    
+    // Handle simple case: all non-wrapping ranges
+    const hasWrap = ranges.some(r => r.wraps);
+    
+    if (!hasWrap) {
+        let overlapStart = Math.max(...ranges.map(r => r.start));
+        let overlapEnd = Math.min(...ranges.map(r => r.end));
+        if (overlapStart <= overlapEnd) {
+            return { start: overlapStart, end: overlapEnd };
+        }
+        return null;
+    }
+    
+    // With wrapping: check every hour 0-23 to see if ALL people are awake
+    for (let h = 0; h < 24; h++) {
+        const allAwake = ranges.every(r => {
+            if (r.wraps) {
+                return h >= r.start || h < r.end;
+            } else {
+                return h >= r.start && h < r.end;
+            }
+        });
+        if (allAwake) {
+            // Found start of overlap, find end
+            let end = h;
+            while (end < 24) {
+                const stillAwake = ranges.every(r => {
+                    if (r.wraps) {
+                        return end >= r.start || end < r.end;
+                    } else {
+                        return end >= r.start && end < r.end;
+                    }
+                });
+                if (!stillAwake) break;
+                end++;
+            }
+            return { start: h, end: end };
+        }
+    }
+    return null;
+}
+);
             
             let overlapStart = Math.max(...ranges.map(r => r.start));
             let overlapEnd = Math.min(...ranges.map(r => r.end));
