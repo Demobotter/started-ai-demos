@@ -333,26 +333,32 @@
             updateStatus('Fetching rates...', 'loading');
 
             try {
-                const url = `https://api.frankfurter.app/latest?amount=${amount}&from=${from}&to=${to}`;
+                // Use open.er-api.com instead of Frankfurter (which has CORS issues)
+                const url = `https://open.er-api.com/v6/latest?base=${from}`;
                 const resp = await fetch(url);
                 
                 if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
                 
                 const data = await resp.json();
-                lastRates = data.rates;
-                lastUpdate = new Date();
+                
+                if (!data.rates || !data.rates[to]) {
+                    throw new Error('Currency not found');
+                }
 
-                const converted = data.rates[to];
+                const rate = data.rates[to];
+                const converted = amount * rate;
                 
                 document.getElementById('resultAmount').textContent = formatNumber(converted);
-                document.getElementById('rate').textContent = (converted / amount).toFixed(4);
+                document.getElementById('rate').textContent = rate.toFixed(4);
                 document.getElementById('pair').textContent = `${from}/${to}`;
                 
+                lastUpdate = new Date();
                 const timeStr = lastUpdate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
                 document.getElementById('rateInfo').textContent = `Rates last updated: ${timeStr}`;
                 
                 updateStatus(`${amount} ${from} = ${formatNumber(converted)} ${to}`, 'success');
             } catch (err) {
+                console.error('Conversion error:', err);
                 document.getElementById('resultAmount').textContent = 'Error';
                 document.getElementById('rate').textContent = '—';
                 document.getElementById('pair').textContent = '—';
@@ -360,20 +366,9 @@
             }
         }
 
-        // Auto-fetch on load
-        document.addEventListener('DOMContentLoaded', () => {
-            convert();
-        });
-
-        // Re-convert on currency change
-        document.getElementById('from').addEventListener('change', convert);
-        document.getElementById('to').addEventListener('change', convert);
-        
-        // Live re-convert on amount change (debounced)
-        let amountTimeout;
-        document.getElementById('amount').addEventListener('input', () => {
-            clearTimeout(amountTimeout);
-            amountTimeout = setTimeout(convert, 300);
+        // Auto-convert on load
+        window.addEventListener('load', () => {
+            setTimeout(convert, 500);
         });
     </script>
 </body>
