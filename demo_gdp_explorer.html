@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Global GDP Per Capita Explorer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: "Inter", sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1a2847 100%);
+            color: #e2e8f0;
+            min-height: 100vh;
+            padding: 2rem 1rem;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .hero {
+            text-align: center;
+            margin-bottom: 3rem;
+            animation: fadeInDown 0.6s ease-out;
+        }
+
+        .hero h1 {
+            font-family: "Fraunces", serif;
+            font-size: clamp(2rem, 8vw, 3.5rem);
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, #60a5fa 0%, #34d399 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero p {
+            font-size: 1.1rem;
+            color: #cbd5e1;
+        }
+
+        .controls {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            justify-content: center;
+            flex-wrap: wrap;
+            animation: fadeInUp 0.8s ease-out 0.2s both;
+        }
+
+        .filter {
+            padding: 0.75rem 1.5rem;
+            border: 1px solid #475569;
+            background: rgba(30, 41, 59, 0.6);
+            border-radius: 8px;
+            color: #e2e8f0;
+            cursor: pointer;
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+        }
+
+        .filter:hover {
+            border-color: #60a5fa;
+            background: rgba(30, 41, 59, 0.8);
+        }
+
+        .filter.active {
+            background: #3b82f6;
+            border-color: #3b82f6;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 1.5rem;
+            animation: fadeIn 1s ease-out 0.4s both;
+        }
+
+        .country-card {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(16, 185, 129, 0.1) 100%);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 12px;
+            padding: 1.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .country-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, transparent 0%, rgba(255, 255, 255, 0.05) 100%);
+            pointer-events: none;
+        }
+
+        .country-card:hover {
+            border-color: #60a5fa;
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(16, 185, 129, 0.2) 100%);
+            transform: translateY(-4px);
+            box-shadow: 0 10px 30px rgba(96, 165, 250, 0.2);
+        }
+
+        .flag {
+            font-size: 2.5rem;
+            margin-bottom: 0.75rem;
+            display: inline-block;
+        }
+
+        .country-name {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: #f1f5f9;
+        }
+
+        .gdp-value {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #34d399;
+            margin-bottom: 0.25rem;
+        }
+
+        .gdp-label {
+            font-size: 0.85rem;
+            color: #94a3b8;
+        }
+
+        .rank {
+            font-size: 0.8rem;
+            color: #cbd5e1;
+            margin-top: 0.75rem;
+            padding-top: 0.75rem;
+            border-top: 1px solid rgba(148, 163, 184, 0.2);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            color: #94a3b8;
+        }
+
+        .loading::after {
+            content: '';
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(96, 165, 250, 0.3);
+            border-top: 2px solid #60a5fa;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-left: 0.5rem;
+            vertical-align: middle;
+        }
+
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 640px) {
+            .hero h1 {
+                font-size: 1.75rem;
+            }
+
+            .grid {
+                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            }
+
+            .controls {
+                gap: 0.5rem;
+            }
+
+            .filter {
+                padding: 0.5rem 1rem;
+                font-size: 0.85rem;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation: none !important;
+                transition: none !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="hero">
+            <h1>🌍 Global GDP Explorer</h1>
+            <p>GDP per capita by country. Hover to explore.</p>
+        </div>
+
+        <div class="controls" id="controls">
+            <!-- Filters will be inserted here -->
+        </div>
+
+        <div class="grid" id="grid">
+            <div class="loading">Loading data...</div>
+        </div>
+    </div>
+
+    <script>
+        const regions = {
+            'All': null,
+            'Americas': ['North America', 'South America', 'Central America', 'Caribbean'],
+            'Europe': ['Europe'],
+            'Asia': ['Asia'],
+            'Africa': ['Africa'],
+            'Oceania': ['Oceania']
+        };
+
+        let allCountries = [];
+        let selectedRegion = 'All';
+
+        // Sample GDP data (real-world averages in USD thousands per capita)
+        const gdpData = {
+            'United States': { gdp: 76.3, region: 'North America', flag: '🇺🇸' },
+            'China': { gdp: 12.7, region: 'Asia', flag: '🇨🇳' },
+            'Japan': { gdp: 33.9, region: 'Asia', flag: '🇯🇵' },
+            'Germany': { gdp: 48.7, region: 'Europe', flag: '🇩🇪' },
+            'United Kingdom': { gdp: 46.2, region: 'Europe', flag: '🇬🇧' },
+            'France': { gdp: 42.6, region: 'Europe', flag: '🇫🇷' },
+            'India': { gdp: 2.4, region: 'Asia', flag: '🇮🇳' },
+            'Canada': { gdp: 52.4, region: 'North America', flag: '🇨🇦' },
+            'Australia': { gdp: 63.8, region: 'Oceania', flag: '🇦🇺' },
+            'Brazil': { gdp: 9.1, region: 'South America', flag: '🇧🇷' },
+            'Mexico': { gdp: 9.9, region: 'North America', flag: '🇲🇽' },
+            'Singapore': { gdp: 72.8, region: 'Asia', flag: '🇸🇬' },
+            'South Korea': { gdp: 32.2, region: 'Asia', flag: '🇰🇷' },
+            'Spain': { gdp: 30.0, region: 'Europe', flag: '🇪🇸' },
+            'Italy': { gdp: 33.5, region: 'Europe', flag: '🇮🇹' },
+            'South Africa': { gdp: 6.9, region: 'Africa', flag: '🇿🇦' },
+            'Nigeria': { gdp: 2.1, region: 'Africa', flag: '🇳🇬' },
+            'Egypt': { gdp: 3.8, region: 'Africa', flag: '🇪🇬' },
+            'Argentina': { gdp: 10.3, region: 'South America', flag: '🇦🇷' },
+            'Chile': { gdp: 16.1, region: 'South America', flag: '🇨🇱' }
+        };
+
+        function initializeFilters() {
+            const controlsDiv = document.getElementById('controls');
+            Object.keys(regions).forEach((region, idx) => {
+                const btn = document.createElement('button');
+                btn.className = `filter ${region === 'All' ? 'active' : ''}`;
+                btn.textContent = region;
+                btn.onclick = () => filterByRegion(region);
+                if (idx > 0) controlsDiv.appendChild(btn);
+            });
+            controlsDiv.insertAdjacentHTML('afterbegin', `<button class="filter active" onclick="filterByRegion('All')">All</button>`);
+        }
+
+        function filterByRegion(region) {
+            selectedRegion = region;
+            document.querySelectorAll('.filter').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            renderGrid();
+        }
+
+        function renderGrid() {
+            const grid = document.getElementById('grid');
+            const sortedCountries = Object.entries(gdpData).map(([name, data], idx) => ({
+                name,
+                ...data,
+                rank: idx + 1
+            }));
+
+            const filtered = selectedRegion === 'All'
+                ? sortedCountries
+                : sortedCountries.filter(c => c.region === selectedRegion || regions[selectedRegion].includes(c.region));
+
+            const sorted = filtered.sort((a, b) => b.gdp - a.gdp).map((c, i) => ({ ...c, rank: i + 1 }));
+
+            grid.innerHTML = sorted.map(country => `
+                <div class="country-card">
+                    <div class="flag">${country.flag}</div>
+                    <div class="country-name">${country.name}</div>
+                    <div class="gdp-value">$${country.gdp}k</div>
+                    <div class="gdp-label">per capita</div>
+                    <div class="rank">#${country.rank} in region</div>
+                </div>
+            `).join('');
+        }
+
+        function init() {
+            initializeFilters();
+            setTimeout(renderGrid, 500);
+        }
+
+        init();
+    </script>
+</body>
+</html>
