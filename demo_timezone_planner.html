@@ -314,6 +314,29 @@
                 transition-duration: 0.01ms !important;
             }
         }
+
+        /* JS-driven timezone picker */
+        .tz-picker { position: relative; width: 100%; }
+        .tz-toggle {
+            width: 100%; text-align: left; background: #fff; color: #1a1a2e;
+            border: 1.5px solid #d4d8e0; border-radius: 10px; padding: 0.7rem 0.9rem;
+            font: inherit; cursor: pointer; margin: 0;
+        }
+        .tz-toggle:hover { border-color: #00bcd4; }
+        .tz-toggle.chosen { color: #1a1a2e; font-weight: 600; }
+        .tz-menu {
+            position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 50;
+            background: #fff; border: 1.5px solid #d4d8e0; border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15); max-height: 260px; overflow-y: auto;
+        }
+        .tz-menu.hidden { display: none; }
+        .tz-option {
+            padding: 0.6rem 0.9rem; cursor: pointer; font-size: 0.92rem; color: #1a1a2e;
+            border-bottom: 1px solid #f0f2f6;
+        }
+        .tz-option:last-child { border-bottom: none; }
+        .tz-option:hover { background: #e0f7fa; color: #007c91; }
+        .add-btn { width: 100%; }
     </style>
 </head>
 <body>
@@ -337,20 +360,12 @@
             <h3 style="margin-bottom: 1rem; color: #00bcd4;">Add People</h3>
             <div class="add-person">
                 <input type="text" id="personName" placeholder="Name (e.g. Alice)">
-                <select id="personTZ">
-                    <option value="">Select timezone...</option>
-                    <option value="America/New_York">America/New_York (UTC-5)</option>
-                    <option value="America/Los_Angeles">America/Los_Angeles (UTC-8)</option>
-                    <option value="Europe/London">Europe/London (UTC+0)</option>
-                    <option value="Europe/Paris">Europe/Paris (UTC+1)</option>
-                    <option value="Asia/Tokyo">Asia/Tokyo (UTC+9)</option>
-                    <option value="Asia/Singapore">Asia/Singapore (UTC+8)</option>
-                    <option value="Australia/Sydney">Australia/Sydney (UTC+10)</option>
-                    <option value="Asia/Dubai">Asia/Dubai (UTC+4)</option>
-                    <option value="America/Toronto">America/Toronto (UTC-5)</option>
-                    <option value="Asia/Hong_Kong">Asia/Hong_Kong (UTC+8)</option>
-                </select>
-                <button onclick="addPerson()">+ Add Person</button>
+                <div class="tz-picker">
+                    <button type="button" class="tz-toggle" id="tzToggle" onclick="toggleTzMenu()">Select timezone…</button>
+                    <div class="tz-menu hidden" id="tzMenu"></div>
+                </div>
+                <input type="hidden" id="personTZ" value="">
+                <button class="add-btn" onclick="addPerson()">+ Add Person</button>
             </div>
             
             <div class="people-list" id="peopleList">
@@ -386,6 +401,52 @@
         };
         
         let people = [];
+
+        const tzLabels = {
+            'America/New_York': 'America/New_York (UTC-5)',
+            'America/Los_Angeles': 'America/Los_Angeles (UTC-8)',
+            'Europe/London': 'Europe/London (UTC+0)',
+            'Europe/Paris': 'Europe/Paris (UTC+1)',
+            'Asia/Tokyo': 'Asia/Tokyo (UTC+9)',
+            'Asia/Singapore': 'Asia/Singapore (UTC+8)',
+            'Australia/Sydney': 'Australia/Sydney (UTC+10)',
+            'Asia/Dubai': 'Asia/Dubai (UTC+4)',
+            'America/Toronto': 'America/Toronto (UTC-5)',
+            'Asia/Hong_Kong': 'Asia/Hong_Kong (UTC+8)',
+        };
+
+        function buildTzMenu() {
+            const menu = document.getElementById('tzMenu');
+            menu.innerHTML = '';
+            Object.keys(tzLabels).forEach(tz => {
+                const opt = document.createElement('div');
+                opt.className = 'tz-option';
+                opt.textContent = tzLabels[tz];
+                opt.setAttribute('data-tz', tz);
+                opt.onclick = () => selectTz(tz);
+                menu.appendChild(opt);
+            });
+        }
+
+        function toggleTzMenu() {
+            document.getElementById('tzMenu').classList.toggle('hidden');
+        }
+
+        function selectTz(tz) {
+            document.getElementById('personTZ').value = tz;
+            const toggle = document.getElementById('tzToggle');
+            toggle.textContent = tzLabels[tz];
+            toggle.classList.add('chosen');
+            document.getElementById('tzMenu').classList.add('hidden');
+        }
+
+        // close menu when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.tz-picker')) {
+                const m = document.getElementById('tzMenu');
+                if (m) m.classList.add('hidden');
+            }
+        });
         
         function initTimeline() {
             const hours = document.getElementById('timelineHours');
@@ -428,6 +489,9 @@
             
             document.getElementById('personName').value = '';
             document.getElementById('personTZ').value = '';
+            const tg = document.getElementById('tzToggle');
+            tg.textContent = 'Select timezone…';
+            tg.classList.remove('chosen');
             
             renderPeople();
             updateTimeline();
@@ -537,6 +601,7 @@
         }
         
         // Init
+        buildTzMenu();
         initTimeline();
         updateNowLine();
         setInterval(updateNowLine, 60000);
