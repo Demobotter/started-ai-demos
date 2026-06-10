@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guess the Number — Retro Game</title>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Geist:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a0a2e 50%, #0d0019 100%);
+            color: #fff;
+            font-family: 'Geist', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        /* Animated background grid */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(0deg, rgba(255, 0, 127, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 255, 200, 0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+            max-width: 600px;
+            width: 100%;
+            background: rgba(20, 10, 30, 0.85);
+            border: 2px solid #ff007f;
+            border-radius: 8px;
+            padding: 50px 40px;
+            box-shadow: 0 0 40px rgba(255, 0, 127, 0.3), inset 0 0 40px rgba(0, 255, 200, 0.1);
+            backdrop-filter: blur(10px);
+            animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .hero {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .hero h1 {
+            font-family: 'Space Mono', monospace;
+            font-size: clamp(32px, 8vw, 56px);
+            font-weight: 700;
+            background: linear-gradient(90deg, #ff007f 0%, #00ffc8 50%, #ff007f 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+            animation: glow 3s ease-in-out infinite;
+        }
+
+        @keyframes glow {
+            0%, 100% { filter: drop-shadow(0 0 10px rgba(255, 0, 127, 0.5)); }
+            50% { filter: drop-shadow(0 0 20px rgba(0, 255, 200, 0.5)); }
+        }
+
+        .hero p {
+            font-family: 'Space Mono', monospace;
+            font-size: 14px;
+            color: #00ffc8;
+            letter-spacing: 1px;
+            margin-bottom: 5px;
+        }
+
+        .cursor {
+            display: inline-block;
+            width: 2px;
+            height: 20px;
+            background: #ff007f;
+            margin-left: 4px;
+            animation: blink 1s step-end infinite;
+        }
+
+        @keyframes blink {
+            0%, 49% { opacity: 1; }
+            50%, 100% { opacity: 0; }
+        }
+
+        .game-area {
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+
+        .stat-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .stat-card {
+            background: rgba(255, 0, 127, 0.1);
+            border: 1px solid #ff007f;
+            border-radius: 4px;
+            padding: 15px;
+            text-align: center;
+            animation: slideUp 0.6s 0.1s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+        }
+
+        .stat-card.alt {
+            background: rgba(0, 255, 200, 0.1);
+            border-color: #00ffc8;
+            animation-delay: 0.2s;
+        }
+
+        .stat-label {
+            font-family: 'Space Mono', monospace;
+            font-size: 11px;
+            color: #aaa;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+
+        .stat-value {
+            font-family: 'Space Mono', monospace;
+            font-size: 28px;
+            font-weight: 700;
+            background: linear-gradient(90deg, #ff007f, #00ffc8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            animation: slideUp 0.6s 0.3s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+        }
+
+        input[type="number"] {
+            flex: 1;
+            padding: 14px 16px;
+            font-family: 'Space Mono', monospace;
+            font-size: 16px;
+            background: rgba(255, 0, 127, 0.05);
+            border: 2px solid #ff007f;
+            border-radius: 4px;
+            color: #fff;
+            transition: all 0.3s ease;
+            outline: none;
+        }
+
+        input[type="number"]:focus {
+            background: rgba(255, 0, 127, 0.15);
+            box-shadow: 0 0 15px rgba(255, 0, 127, 0.4);
+        }
+
+        input[type="number"]::placeholder {
+            color: #666;
+        }
+
+        button {
+            padding: 14px 24px;
+            font-family: 'Space Mono', monospace;
+            font-size: 14px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            background: linear-gradient(90deg, #ff007f 0%, #ff0080 100%);
+            color: #000;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(255, 0, 127, 0.3);
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 0, 127, 0.5);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button.alt {
+            background: linear-gradient(90deg, #00ffc8 0%, #00ffdd 100%);
+            color: #000;
+        }
+
+        button.alt:hover {
+            box-shadow: 0 6px 20px rgba(0, 255, 200, 0.5);
+        }
+
+        .feedback {
+            text-align: center;
+            font-family: 'Space Mono', monospace;
+            font-size: 16px;
+            font-weight: 700;
+            color: #ff007f;
+            min-height: 30px;
+            animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .feedback.correct {
+            color: #00ffc8;
+            animation: pulse 0.6s ease-out;
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+                text-shadow: 0 0 20px rgba(0, 255, 200, 0.8);
+            }
+            50% {
+                transform: scale(1.1);
+            }
+            100% {
+                transform: scale(1);
+                text-shadow: 0 0 40px rgba(0, 255, 200, 0.4);
+            }
+        }
+
+        .range-hint {
+            font-family: 'Space Mono', monospace;
+            font-size: 12px;
+            color: #00ffc8;
+            text-align: center;
+            min-height: 20px;
+            animation: slideUp 0.6s 0.4s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-content {
+            background: rgba(20, 10, 30, 0.95);
+            border: 3px solid #ff007f;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            max-width: 400px;
+            animation: zoomIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            box-shadow: 0 0 50px rgba(255, 0, 127, 0.4);
+        }
+
+        @keyframes zoomIn {
+            from {
+                opacity: 0;
+                transform: scale(0.8);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .modal-content h2 {
+            font-family: 'Space Mono', monospace;
+            font-size: 36px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 15px;
+            background: linear-gradient(90deg, #ff007f 0%, #00ffc8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .modal-content p {
+            font-family: 'Space Mono', monospace;
+            font-size: 14px;
+            color: #aaa;
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+
+        .modal-content button {
+            width: 100%;
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 30px 20px;
+            }
+
+            .hero h1 {
+                font-size: 28px;
+            }
+
+            .stat-row {
+                grid-template-columns: 1fr;
+            }
+
+            .input-group {
+                flex-direction: column;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="hero">
+            <h1>GUESS<span class="cursor"></span></h1>
+            <p>Pick a number from 1 to 100</p>
+        </div>
+
+        <div class="game-area">
+            <div class="stat-row">
+                <div class="stat-card">
+                    <div class="stat-label">Guesses Left</div>
+                    <div class="stat-value" id="guessesLeft">7</div>
+                </div>
+                <div class="stat-card alt">
+                    <div class="stat-label">Total Guesses</div>
+                    <div class="stat-value" id="totalGuesses">0</div>
+                </div>
+            </div>
+
+            <div class="input-group">
+                <input type="number" id="guessInput" min="1" max="100" placeholder="Enter number..." autocomplete="off">
+                <button onclick="makeGuess()">Guess</button>
+            </div>
+
+            <div class="feedback" id="feedback"></div>
+            <div class="range-hint" id="rangeHint">Range: 1 — 100</div>
+        </div>
+    </div>
+
+    <div class="modal" id="modal">
+        <div class="modal-content">
+            <h2 id="modalTitle">WIN</h2>
+            <p id="modalMessage">You got it in <span id="modalGuesses">0</span> guesses!</p>
+            <button onclick="resetGame()" class="alt">Play Again</button>
+        </div>
+    </div>
+
+    <script>
+        let secretNumber = Math.floor(Math.random() * 100) + 1;
+        let guessCount = 0;
+        let guessesRemaining = 7;
+        let minRange = 1;
+        let maxRange = 100;
+        let gameOver = false;
+
+        function makeGuess() {
+            if (gameOver) return;
+
+            const input = document.getElementById('guessInput');
+            const guess = parseInt(input.value);
+
+            if (!input.value || isNaN(guess) || guess < 1 || guess > 100) {
+                showFeedback('Enter a valid number (1—100)', false);
+                return;
+            }
+
+            guessCount++;
+            guessesRemaining--;
+
+            const feedbackEl = document.getElementById('feedback');
+
+            if (guess === secretNumber) {
+                feedbackEl.textContent = '✓ CORRECT!';
+                feedbackEl.classList.add('correct');
+                gameOver = true;
+                endGame(true);
+            } else if (guess < secretNumber) {
+                showFeedback('↑ Too Low', false);
+                minRange = Math.max(minRange, guess + 1);
+            } else {
+                showFeedback('↓ Too High', false);
+                maxRange = Math.min(maxRange, guess - 1);
+            }
+
+            document.getElementById('totalGuesses').textContent = guessCount;
+            document.getElementById('guessesLeft').textContent = guessesRemaining;
+            document.getElementById('rangeHint').textContent = `Range: ${minRange} — ${maxRange}`;
+
+            input.value = '';
+            input.focus();
+
+            if (guessesRemaining === 0 && !gameOver) {
+                gameOver = true;
+                endGame(false);
+            }
+        }
+
+        function showFeedback(message, isCorrect) {
+            const feedbackEl = document.getElementById('feedback');
+            feedbackEl.textContent = message;
+            feedbackEl.classList.toggle('correct', isCorrect);
+        }
+
+        function endGame(won) {
+            const modal = document.getElementById('modal');
+            const title = document.getElementById('modalTitle');
+            const message = document.getElementById('modalMessage');
+            const guesses = document.getElementById('modalGuesses');
+
+            if (won) {
+                title.textContent = 'YOU WIN!';
+                title.style.color = '#00ffc8';
+                message.innerHTML = `You found it in <strong>${guessCount}</strong> guesses!`;
+            } else {
+                title.textContent = 'GAME OVER';
+                title.style.color = '#ff007f';
+                message.innerHTML = `The number was <strong>${secretNumber}</strong>. You had <strong>${guessCount}</strong> guesses.`;
+            }
+
+            modal.classList.add('active');
+            document.getElementById('guessInput').disabled = true;
+        }
+
+        function resetGame() {
+            secretNumber = Math.floor(Math.random() * 100) + 1;
+            guessCount = 0;
+            guessesRemaining = 7;
+            minRange = 1;
+            maxRange = 100;
+            gameOver = false;
+
+            document.getElementById('guessesLeft').textContent = '7';
+            document.getElementById('totalGuesses').textContent = '0';
+            document.getElementById('feedback').textContent = '';
+            document.getElementById('feedback').classList.remove('correct');
+            document.getElementById('rangeHint').textContent = 'Range: 1 — 100';
+            document.getElementById('guessInput').value = '';
+            document.getElementById('guessInput').disabled = false;
+            document.getElementById('guessInput').focus();
+            document.getElementById('modal').classList.remove('active');
+        }
+
+        document.getElementById('guessInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') makeGuess();
+        });
+
+        window.addEventListener('load', () => {
+            document.getElementById('guessInput').focus();
+        });
+    </script>
+</body>
+</html>
