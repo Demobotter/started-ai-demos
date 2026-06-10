@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Seismic Activity — Global Earthquake Heatmap</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:wght@400;600;700&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1a3e 50%, #0f1c2e 100%);
+            color: #e0e7ff;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 2rem;
+            animation: slideDown 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        h1 {
+            font-family: 'IBM Plex Serif', serif;
+            font-size: clamp(2rem, 8vw, 3.5rem);
+            font-weight: 700;
+            background: linear-gradient(135deg, #ff6b6b, #ff4757, #ff1744);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+            letter-spacing: -1px;
+        }
+
+        .subtitle {
+            font-size: 1rem;
+            color: #a0aec0;
+            font-weight: 400;
+            margin-bottom: 1rem;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+            animation: fadeIn 0.8s ease-out 0.2s both;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 1.5rem;
+            backdrop-filter: blur(10px);
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #ff6b6b, #ff1744);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: #a0aec0;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .map-container {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 16 / 9;
+            background: rgba(10, 14, 39, 0.8);
+            border: 2px solid rgba(255, 107, 107, 0.3);
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 0 40px rgba(255, 107, 107, 0.15);
+            animation: fadeIn 0.8s ease-out 0.4s both;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: none;
+            font-size: 1.2rem;
+            color: #ff6b6b;
+            z-index: 10;
+        }
+
+        .loading.active {
+            display: block;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        .legend {
+            margin-top: 2rem;
+            padding: 1.5rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+            animation: fadeIn 0.8s ease-out 0.6s both;
+        }
+
+        .legend-title {
+            font-weight: 700;
+            margin-bottom: 1rem;
+            font-size: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .legend-items {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 0.9rem;
+        }
+
+        .legend-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .mag-minor { background: #4ade80; }
+        .mag-light { background: #facc15; }
+        .mag-moderate { background: #fb923c; }
+        .mag-strong { background: #ef4444; }
+        .mag-major { background: #dc2626; }
+
+        .last-update {
+            margin-top: 1rem;
+            font-size: 0.85rem;
+            color: #a0aec0;
+            text-align: center;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+
+            h1 {
+                font-size: clamp(1.5rem, 7vw, 2.5rem);
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .stat-card {
+                padding: 1rem;
+            }
+
+            .stat-value {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🌍 Seismic Activity</h1>
+            <p class="subtitle">Live global earthquake heatmap • Real USGS data • Last 24 hours</p>
+        </header>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value" id="totalQuakes">—</div>
+                <div class="stat-label">Total Quakes</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="maxMagnitude">—</div>
+                <div class="stat-label">Max Magnitude</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="avgMagnitude">—</div>
+                <div class="stat-label">Avg Magnitude</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="strongCount">—</div>
+                <div class="stat-label">Magnitude ≥ 4.5</div>
+            </div>
+        </div>
+
+        <div class="map-container">
+            <canvas id="mapCanvas"></canvas>
+            <div class="loading active" id="loading">Fetching live earthquake data…</div>
+        </div>
+
+        <div class="legend">
+            <div class="legend-title">Magnitude Scale</div>
+            <div class="legend-items">
+                <div class="legend-item">
+                    <div class="legend-dot mag-minor"></div>
+                    <span>Minor (2.0–2.9)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-dot mag-light"></div>
+                    <span>Light (3.0–3.9)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-dot mag-moderate"></div>
+                    <span>Moderate (4.0–4.9)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-dot mag-strong"></div>
+                    <span>Strong (5.0–5.9)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-dot mag-major"></div>
+                    <span>Major (6.0+)</span>
+                </div>
+            </div>
+            <div class="last-update">Last updated: <span id="updateTime">—</span></div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('mapCanvas');
+        const ctx = canvas.getContext('2d');
+        const loading = document.getElementById('loading');
+
+        let earthquakes = [];
+        let lastUpdate = null;
+
+        function resizeCanvas() {
+            const rect = canvas.parentElement.getBoundingClientRect();
+            canvas.width = rect.width;
+            canvas.height = rect.height;
+        }
+
+        function getMagnitudeColor(mag) {
+            if (mag < 3.0) return '#4ade80'; // green
+            if (mag < 4.0) return '#facc15'; // yellow
+            if (mag < 5.0) return '#fb923c'; // orange
+            if (mag < 6.0) return '#ef4444'; // red
+            return '#dc2626'; // dark red
+        }
+
+        function getMagnitudeSize(mag) {
+            return Math.max(4, Math.min(20, (mag - 1.5) * 2.5));
+        }
+
+        function drawMap() {
+            const w = canvas.width;
+            const h = canvas.height;
+
+            // Clear canvas
+            ctx.fillStyle = 'rgba(10, 14, 39, 0.8)';
+            ctx.fillRect(0, 0, w, h);
+
+            // Draw grid
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+            ctx.lineWidth = 1;
+            for (let i = 0; i <= 10; i++) {
+                const x = (i / 10) * w;
+                const y = (i / 10) * h;
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, h);
+                ctx.stroke();
+
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(w, y);
+                ctx.stroke();
+            }
+
+            // Draw equator and prime meridian
+            ctx.strokeStyle = 'rgba(255, 107, 107, 0.2)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(0, h / 2);
+            ctx.lineTo(w, h / 2);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(w / 2, 0);
+            ctx.lineTo(w / 2, h);
+            ctx.stroke();
+
+            // Plot earthquakes
+            earthquakes.forEach((eq, index) => {
+                const x = ((eq.lon + 180) / 360) * w;
+                const y = ((90 - eq.lat) / 180) * h;
+
+                const mag = eq.mag;
+                const size = getMagnitudeSize(mag);
+                const color = getMagnitudeColor(mag);
+
+                // Glow effect
+                const gradient = ctx.createRadialGradient(x, y, 0, x, y, size * 2);
+                gradient.addColorStop(0, color + '40');
+                gradient.addColorStop(1, color + '00');
+
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(x, y, size * 2, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Main dot
+                ctx.fillStyle = color;
+                ctx.beginPath();
+                ctx.arc(x, y, size, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Border
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+            });
+        }
+
+        function updateStats() {
+            const total = earthquakes.length;
+            const mags = earthquakes.map(e => e.mag);
+            const maxMag = total > 0 ? Math.max(...mags).toFixed(1) : '—';
+            const avgMag = total > 0 ? (mags.reduce((a, b) => a + b, 0) / total).toFixed(1) : '—';
+            const strongCount = earthquakes.filter(e => e.mag >= 4.5).length;
+
+            document.getElementById('totalQuakes').textContent = total;
+            document.getElementById('maxMagnitude').textContent = maxMag;
+            document.getElementById('avgMagnitude').textContent = avgMag;
+            document.getElementById('strongCount').textContent = strongCount;
+
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('en-AU', { 
+                hour: '2-digit', 
+                minute: '2-digit',
+                timeZone: 'Australia/Melbourne'
+            });
+            document.getElementById('updateTime').textContent = timeStr;
+        }
+
+        async function fetchEarthquakes() {
+            try {
+                // Fetch earthquakes from last 24 hours
+                const url = 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson';
+                const response = await fetch(url);
+                const data = await response.json();
+
+                earthquakes = data.features.map(feature => ({
+                    lat: feature.geometry.coordinates[1],
+                    lon: feature.geometry.coordinates[0],
+                    mag: feature.properties.mag,
+                    place: feature.properties.place,
+                    time: feature.properties.time
+                }));
+
+                // Sort by magnitude descending
+                earthquakes.sort((a, b) => b.mag - a.mag);
+
+                lastUpdate = new Date();
+                loading.classList.remove('active');
+
+                updateStats();
+                drawMap();
+            } catch (error) {
+                console.error('Error fetching earthquakes:', error);
+                loading.textContent = 'Failed to load data. Retrying...';
+                setTimeout(fetchEarthquakes, 5000);
+            }
+        }
+
+        window.addEventListener('resize', () => {
+            resizeCanvas();
+            drawMap();
+        });
+
+        // Initial setup
+        resizeCanvas();
+        fetchEarthquakes();
+
+        // Refresh every 30 seconds
+        setInterval(fetchEarthquakes, 30000);
+    </script>
+</body>
+</html>
