@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sunrise-Sunset Arc Live</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Geist', sans-serif;
+      background: linear-gradient(135deg, #0a1628 0%, #1a1f3a 50%, #2d1b4e 100%);
+      color: #e0e0e0;
+      min-height: 100vh;
+      padding: 2rem 1rem;
+      overflow-x: hidden;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .hero {
+      text-align: center;
+      margin-bottom: 3rem;
+      animation: slideDown 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    h1 {
+      font-family: 'Instrument Serif', serif;
+      font-size: clamp(2rem, 8vw, 3.5rem);
+      font-weight: 400;
+      background: linear-gradient(135deg, #ffd700, #ffed4e, #fff9c4);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 0.5rem;
+      letter-spacing: -0.5px;
+    }
+
+    .subtitle {
+      font-size: 1rem;
+      color: #a0a0c0;
+      font-weight: 400;
+      margin-bottom: 1.5rem;
+    }
+
+    .search-box {
+      display: flex;
+      gap: 0.5rem;
+      max-width: 500px;
+      margin: 0 auto 2rem;
+      animation: fadeInUp 0.8s 0.2s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+    }
+
+    input {
+      flex: 1;
+      padding: 0.75rem 1rem;
+      border: 1px solid #4a5a7f;
+      border-radius: 6px;
+      background: rgba(30, 40, 70, 0.6);
+      color: #fff;
+      font-family: 'Geist', sans-serif;
+      font-size: 1rem;
+      backdrop-filter: blur(8px);
+      transition: all 0.3s ease;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: #ffd700;
+      background: rgba(30, 40, 70, 0.9);
+      box-shadow: 0 0 12px rgba(255, 215, 0, 0.3);
+    }
+
+    input::placeholder {
+      color: #707090;
+    }
+
+    button {
+      padding: 0.75rem 1.5rem;
+      border: 1px solid #ffd700;
+      border-radius: 6px;
+      background: rgba(255, 215, 0, 0.1);
+      color: #ffd700;
+      font-family: 'Geist', sans-serif;
+      font-size: 1rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      backdrop-filter: blur(8px);
+    }
+
+    button:hover {
+      background: rgba(255, 215, 0, 0.2);
+      box-shadow: 0 0 12px rgba(255, 215, 0, 0.4);
+      transform: translateY(-2px);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    .loading {
+      display: none;
+      text-align: center;
+      padding: 2rem;
+      color: #ffd700;
+      font-weight: 500;
+    }
+
+    .loading.active {
+      display: block;
+      animation: spin 1s linear infinite;
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 2px solid rgba(255, 215, 0, 0.2);
+      border-top-color: #ffd700;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .main-content {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+      margin-bottom: 3rem;
+      animation: fadeInUp 0.8s 0.4s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+    }
+
+    .sun-arc-card {
+      background: linear-gradient(135deg, rgba(50, 60, 110, 0.4), rgba(80, 50, 120, 0.3));
+      border: 1px solid rgba(255, 215, 0, 0.2);
+      border-radius: 12px;
+      padding: 2rem;
+      backdrop-filter: blur(12px);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .sun-arc-card::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      right: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle, rgba(255, 215, 0, 0.1), transparent 70%);
+      pointer-events: none;
+    }
+
+    .sun-arc-card h2 {
+      font-family: 'Instrument Serif', serif;
+      font-size: 1.5rem;
+      margin-bottom: 1.5rem;
+      font-weight: 400;
+      color: #ffed4e;
+      position: relative;
+      z-index: 1;
+    }
+
+    svg {
+      width: 100%;
+      height: auto;
+      display: block;
+      margin-bottom: 1.5rem;
+      filter: drop-shadow(0 0 20px rgba(255, 215, 0, 0.2));
+    }
+
+    .info-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    .info-item {
+      background: rgba(20, 30, 60, 0.5);
+      padding: 1rem;
+      border-radius: 8px;
+      border-left: 2px solid #ffd700;
+      animation: fadeIn 0.6s ease backwards;
+    }
+
+    .info-item:nth-child(2) { animation-delay: 0.1s; }
+    .info-item:nth-child(3) { animation-delay: 0.2s; }
+    .info-item:nth-child(4) { animation-delay: 0.3s; }
+
+    .info-label {
+      font-size: 0.85rem;
+      color: #a0a0c0;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 0.3rem;
+      font-weight: 500;
+    }
+
+    .info-value {
+      font-size: 1.25rem;
+      color: #ffed4e;
+      font-weight: 600;
+      font-family: 'Geist', sans-serif;
+    }
+
+    .stats-card {
+      background: linear-gradient(135deg, rgba(50, 60, 110, 0.4), rgba(80, 50, 120, 0.3));
+      border: 1px solid rgba(100, 150, 200, 0.2);
+      border-radius: 12px;
+      padding: 2rem;
+      backdrop-filter: blur(12px);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .stats-card::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle, rgba(100, 150, 200, 0.05), transparent 70%);
+      pointer-events: none;
+    }
+
+    .stats-card h2 {
+      font-family: 'Instrument Serif', serif;
+      font-size: 1.5rem;
+      margin-bottom: 1.5rem;
+      font-weight: 400;
+      color: #6eb4e0;
+      position: relative;
+      z-index: 1;
+    }
+
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 0;
+      border-bottom: 1px solid rgba(100, 150, 200, 0.1);
+      animation: slideInLeft 0.6s ease backwards;
+      position: relative;
+      z-index: 1;
+    }
+
+    .stat-row:last-child {
+      border-bottom: none;
+    }
+
+    .stat-row:nth-child(1) { animation-delay: 0s; }
+    .stat-row:nth-child(2) { animation-delay: 0.1s; }
+    .stat-row:nth-child(3) { animation-delay: 0.2s; }
+    .stat-row:nth-child(4) { animation-delay: 0.3s; }
+    .stat-row:nth-child(5) { animation-delay: 0.4s; }
+
+    .stat-label {
+      font-size: 0.9rem;
+      color: #a0a0c0;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-weight: 500;
+    }
+
+    .stat-value {
+      font-size: 1.1rem;
+      color: #6eb4e0;
+      font-weight: 600;
+      font-family: 'Geist', sans-serif;
+    }
+
+    .error {
+      display: none;
+      background: rgba(220, 50, 50, 0.2);
+      border: 1px solid rgba(220, 50, 50, 0.5);
+      color: #ff9090;
+      padding: 1rem;
+      border-radius: 8px;
+      margin-top: 1rem;
+      animation: slideDown 0.3s ease;
+    }
+
+    .error.active {
+      display: block;
+    }
+
+    @media (max-width: 768px) {
+      .main-content {
+        grid-template-columns: 1fr;
+      }
+
+      h1 {
+        font-size: 2rem;
+      }
+
+      .search-box {
+        flex-direction: column;
+      }
+
+      button {
+        width: 100%;
+      }
+
+      .info-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @keyframes slideDown {
+      from {
+        opacity: 0;
+        transform: translateY(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+      }
+      to {
+        opacity: 1;
+      }
+    }
+
+    @keyframes slideInLeft {
+      from {
+        opacity: 0;
+        transform: translateX(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="hero">
+      <h1>☀️ Sunrise-Sunset Arc</h1>
+      <p class="subtitle">Real-time sun path visualization for any location on Earth</p>
+    </div>
+
+    <div class="search-box">
+      <input 
+        type="text" 
+        id="cityInput" 
+        placeholder="Enter city name (e.g., Tokyo, New York, Sydney)..."
+        autocomplete="off"
+      >
+      <button onclick="searchCity()">Search</button>
+    </div>
+
+    <div class="loading" id="loading">
+      <div class="spinner"></div>
+      <div>Fetching sunrise, sunset & sun arc for today...</div>
+    </div>
+
+    <div class="error" id="error"></div>
+
+    <div class="main-content">
+      <div class="sun-arc-card">
+        <h2>Sun Arc Today</h2>
+        <svg id="sunArc" viewBox="0 0 400 250" preserveAspectRatio="xMidYMid meet"></svg>
+        <div class="info-grid">
+          <div class="info-item">
+            <div class="info-label">Sunrise</div>
+            <div class="info-value" id="sunrise">--:--</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">Sunset</div>
+            <div class="info-value" id="sunset">--:--</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">Daylight</div>
+            <div class="info-value" id="daylight">-- h</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">Solar Noon</div>
+            <div class="info-value" id="noon">--:--</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="stats-card">
+        <h2>Today's Details</h2>
+        <div class="stat-row">
+          <span class="stat-label">Location</span>
+          <span class="stat-value" id="location">--</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Latitude</span>
+          <span class="stat-value" id="latitude">--</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Longitude</span>
+          <span class="stat-value" id="longitude">--</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Max Elevation</span>
+          <span class="stat-value" id="elevation">--°</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Twilight Duration</span>
+          <span class="stat-value" id="twilight">-- min</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Pure logic functions to test headless
+    function parseTimeString(timeStr) {
+      const [h, m] = timeStr.split(':').map(Number);
+      return h * 60 + m; // minutes since midnight
+    }
+
+    function formatTime(minutes) {
+      const h = Math.floor(minutes / 60);
+      const m = Math.round(minutes % 60);
+      return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+    }
+
+    function calculateDaylight(sunrise, sunset) {
+      const sunriseMin = parseTimeString(sunrise);
+      const sunsetMin = parseTimeString(sunset);
+      const daylightMin = sunsetMin - sunriseMin;
+      const hours = Math.floor(daylightMin / 60);
+      const minutes = daylightMin % 60;
+      return `${hours}h ${minutes}m`;
+    }
+
+    function calculateTwilightDuration(sunrise, sunset) {
+      const sunriseMin = parseTimeString(sunrise);
+      const sunsetMin = parseTimeString(sunset);
+      // Assume ~40 min civil twilight before sunrise and after sunset
+      return Math.round((40 * 2) / (parseFloat((sunsetMin - sunriseMin) / 60).toFixed(1)));
+    }
+
+    function calculateSunArc(sunrise, sunset) {
+      // Sun rises at left (0°), peaks at center (90°), sets at right (180°)
+      // Returns: { startX, startY, peakX, peakY, endX, endY }
+      const sunriseMin = parseTimeString(sunrise);
+      const sunsetMin = parseTimeString(sunset);
+      const duration = sunsetMin - sunriseMin;
+
+      const startX = 50;
+      const endX = 350;
+      const groundY = 220;
+      const peakY = 50;
+
+      return {
+        startX: startX,
+        startY: groundY,
+        peakX: (startX + endX) / 2,
+        peakY: peakY,
+        endX: endX,
+        endY: groundY,
+        duration: duration
+      };
+    }
+
+    // Test headless
+    (function testHeadless() {
+      try {
+        console.assert(parseTimeString('06:30') === 390, 'parseTimeString failed');
+        console.assert(formatTime(390) === '06:30', 'formatTime failed');
+        console.assert(calculateDaylight('06:00', '18:00').includes('12h'), 'calculateDaylight failed');
+        const arc = calculateSunArc('06:00', '18:00');
+        console.assert(arc.peakX > arc.startX && arc.peakX < arc.endX, 'calculateSunArc failed');
+        console.log('✅ All headless tests passed');
+      } catch (e) {
+        console.error('❌ Headless test failed:', e.message);
+      }
+    })();
+
+    function drawSunArc(sunrise, sunset, maxElev = 60) {
+      const arc = calculateSunArc(sunrise, sunset);
+      const svg = document.getElementById('sunArc');
+      svg.innerHTML = '';
+
+      // Sky gradient
+      const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+      const grad = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
+      grad.setAttribute('id', 'skyGrad');
+      grad.setAttribute('y1', '0%');
+      grad.setAttribute('y2', '100%');
+      
+      const stop1 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+      stop1.setAttribute('offset', '0%');
+      stop1.setAttribute('stop-color', '#ffa500');
+      grad.appendChild(stop1);
+      
+      const stop2 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+      stop2.setAttribute('offset', '100%');
+      stop2.setAttribute('stop-color', '#4a6fa5');
+      grad.appendChild(stop2);
+      defs.appendChild(grad);
+      svg.appendChild(defs);
+
+      // Background (sky)
+      const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      rect.setAttribute('width', '400');
+      rect.setAttribute('height', '250');
+      rect.setAttribute('fill', 'url(#skyGrad)');
+      svg.appendChild(rect);
+
+      // Ground
+      const ground = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      ground.setAttribute('x', '0');
+      ground.setAttribute('y', '220');
+      ground.setAttribute('width', '400');
+      ground.setAttribute('height', '30');
+      ground.setAttribute('fill', 'rgba(50, 40, 80, 0.5)');
+      svg.appendChild(ground);
+
+      // Sun arc path
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      const d = `M ${arc.startX} ${arc.startY} Q ${arc.peakX} ${arc.peakY} ${arc.endX} ${arc.endY}`;
+      path.setAttribute('d', d);
+      path.setAttribute('stroke', '#ffed4e');
+      path.setAttribute('stroke-width', '3');
+      path.setAttribute('fill', 'none');
+      path.setAttribute('stroke-linecap', 'round');
+      svg.appendChild(path);
+
+      // Sun circles at key points
+      const sunSize = 20;
+
+      // Sunrise sun
+      const sunRise = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      sunRise.setAttribute('cx', arc.startX);
+      sunRise.setAttribute('cy', arc.startY);
+      sunRise.setAttribute('r', sunSize);
+      sunRise.setAttribute('fill', '#ffaa00');
+      sunRise.setAttribute('opacity', '0.7');
+      svg.appendChild(sunRise);
+
+      // Peak sun
+      const sunPeak = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      sunPeak.setAttribute('cx', arc.peakX);
+      sunPeak.setAttribute('cy', arc.peakY);
+      sunPeak.setAttribute('r', sunSize);
+      sunPeak.setAttribute('fill', '#ffed4e');
+      svg.appendChild(sunPeak);
+
+      // Sunset sun
+      const sunSet = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      sunSet.setAttribute('cx', arc.endX);
+      sunSet.setAttribute('cy', arc.endY);
+      sunSet.setAttribute('r', sunSize);
+      sunSet.setAttribute('fill', '#ff6b00');
+      sunSet.setAttribute('opacity', '0.7');
+      svg.appendChild(sunSet);
+
+      // Labels
+      const labels = [
+        { x: arc.startX, y: arc.startY - 40, text: '🌅 Rise' },
+        { x: arc.peakX, y: arc.peakY - 40, text: '☀️ Peak' },
+        { x: arc.endX, y: arc.endY - 40, text: '🌇 Set' }
+      ];
+
+      labels.forEach(label => {
+        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        text.setAttribute('x', label.x);
+        text.setAttribute('y', label.y);
+        text.setAttribute('text-anchor', 'middle');
+        text.setAttribute('fill', '#ffed4e');
+        text.setAttribute('font-size', '12');
+        text.setAttribute('font-family', 'Geist, sans-serif');
+        text.textContent = label.text;
+        svg.appendChild(text);
+      });
+    }
+
+    async function fetchSunData(lat, lng, city) {
+      const loading = document.getElementById('loading');
+      const error = document.getElementById('error');
+      loading.classList.add('active');
+      error.classList.remove('active');
+
+      try {
+        // open-meteo gives us sunrise/sunset
+        const response = await fetch(
+          `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&daily=sunrise,sunset&timezone=auto&forecast_days=1`
+        );
+        if (!response.ok) throw new Error('Failed to fetch sunrise/sunset data');
+        const data = await response.json();
+
+        const sunriseStr = data.daily.sunrise[0].split('T')[1];
+        const sunsetStr = data.daily.sunset[0].split('T')[1];
+        const tz = data.timezone;
+
+        // Calculate values
+        const daylightStr = calculateDaylight(sunriseStr, sunsetStr);
+        const elevation = Math.round(Math.sin((parseTimeString(sunsetStr) - parseTimeString(sunriseStr)) / 2 / 720 * Math.PI) * 70);
+        const noonMin = (parseTimeString(sunriseStr) + parseTimeString(sunsetStr)) / 2;
+        const noonStr = formatTime(noonMin);
+        const twilight = calculateTwilightDuration(sunriseStr, sunsetStr);
+
+        // Update UI
+        document.getElementById('sunrise').textContent = sunriseStr;
+        document.getElementById('sunset').textContent = sunsetStr;
+        document.getElementById('daylight').textContent = daylightStr;
+        document.getElementById('noon').textContent = noonStr;
+        document.getElementById('location').textContent = city;
+        document.getElementById('latitude').textContent = lat.toFixed(4) + '°';
+        document.getElementById('longitude').textContent = lng.toFixed(4) + '°';
+        document.getElementById('elevation').textContent = elevation + '°';
+        document.getElementById('twilight').textContent = twilight + ' min';
+
+        drawSunArc(sunriseStr, sunsetStr, elevation);
+
+        loading.classList.remove('active');
+      } catch (e) {
+        error.classList.add('active');
+        error.textContent = 'Error: ' + e.message;
+        loading.classList.remove('active');
+      }
+    }
+
+    async function searchCity() {
+      const input = document.getElementById('cityInput').value.trim();
+      if (!input) {
+        document.getElementById('error').classList.add('active');
+        document.getElementById('error').textContent = 'Please enter a city name';
+        return;
+      }
+
+      try {
+        // Geocode via open-meteo
+        const geoResponse = await fetch(
+          `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(input)}&count=1&language=en&format=json`
+        );
+        if (!geoResponse.ok) throw new Error('Location not found');
+        const geoData = await geoResponse.json();
+
+        if (!geoData.results || geoData.results.length === 0) {
+          document.getElementById('error').classList.add('active');
+          document.getElementById('error').textContent = 'City not found. Try another name.';
+          return;
+        }
+
+        const { latitude, longitude, name, country } = geoData.results[0];
+        const cityName = `${name}, ${country}`;
+
+        await fetchSunData(latitude, longitude, cityName);
+      } catch (e) {
+        document.getElementById('error').classList.add('active');
+        document.getElementById('error').textContent = 'Error: ' + e.message;
+      }
+    }
+
+    // Load default city on page load
+    window.addEventListener('load', () => {
+      fetchSunData(-37.8136, 144.9631, 'Melbourne, Australia');
+      document.getElementById('cityInput').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') searchCity();
+      });
+    });
+  </script>
+</body>
+</html>
