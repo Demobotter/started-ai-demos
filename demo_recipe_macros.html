@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Recipe Macros Explorer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { font-family: 'Sora', sans-serif; background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 100%); color: #fff; min-height: 100vh; }
+
+    body { padding: 20px; }
+    .container { max-width: 1000px; margin: 0 auto; }
+
+    /* Hero */
+    .hero { text-align: center; margin-bottom: 60px; animation: fadeInDown 0.8s ease-out; }
+    .hero h1 { font-size: clamp(32px, 8vw, 64px); font-weight: 700; background: linear-gradient(135deg, #ffd700, #ffed4e); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 12px; }
+    .hero p { font-size: 18px; color: #c0c9e0; max-width: 500px; margin: 0 auto; }
+
+    /* Input section */
+    .recipe-input { margin-bottom: 40px; animation: fadeInUp 0.8s ease-out 0.15s both; }
+    .recipe-input label { display: block; font-size: 14px; font-weight: 600; color: #ffd700; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
+    .recipe-input textarea { width: 100%; padding: 16px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 215, 0, 0.3); border-radius: 8px; color: #fff; font-family: 'IBM Plex Mono', monospace; font-size: 14px; resize: vertical; min-height: 120px; transition: all 0.3s ease; }
+    .recipe-input textarea:focus { outline: none; border-color: #ffd700; background: rgba(255, 255, 255, 0.08); box-shadow: 0 0 16px rgba(255, 215, 0, 0.2); }
+    .recipe-input button { margin-top: 12px; padding: 12px 32px; background: linear-gradient(135deg, #ffd700, #ffed4e); color: #0a0e27; border: none; border-radius: 6px; font-weight: 700; font-size: 14px; cursor: pointer; transition: all 0.3s ease; text-transform: uppercase; letter-spacing: 1px; }
+    .recipe-input button:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(255, 215, 0, 0.4); }
+    .recipe-input button:active { transform: translateY(0); }
+
+    /* Results section */
+    .results { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; animation: fadeInUp 0.8s ease-out 0.3s both; }
+    .results.hidden { display: none; }
+
+    /* Macro breakdown table */
+    .breakdown { background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 215, 0, 0.2); border-radius: 12px; padding: 24px; backdrop-filter: blur(8px); }
+    .breakdown h2 { font-size: 18px; font-weight: 700; margin-bottom: 20px; color: #ffd700; }
+    .macro-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid rgba(255, 215, 0, 0.1); }
+    .macro-row:last-child { margin-bottom: 0; padding-bottom: 0; border-bottom: none; }
+    .macro-name { font-weight: 600; color: #c0c9e0; }
+    .macro-value { font-family: 'IBM Plex Mono', monospace; font-size: 16px; font-weight: 600; color: #ffd700; }
+    .macro-bar { width: 60px; height: 6px; background: rgba(255, 255, 255, 0.1); border-radius: 3px; margin: 8px 0; overflow: hidden; }
+    .macro-bar-fill { height: 100%; background: linear-gradient(90deg, #ffd700, #ffed4e); border-radius: 3px; }
+
+    /* Pie chart */
+    .pie-container { display: flex; flex-direction: column; align-items: center; gap: 20px; }
+    .pie { width: 200px; height: 200px; }
+    .pie-legend { display: flex; flex-direction: column; gap: 12px; width: 100%; }
+    .legend-item { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+    .legend-color { width: 12px; height: 12px; border-radius: 2px; }
+    .legend-label { color: #c0c9e0; }
+    .legend-percent { color: #ffd700; font-weight: 600; margin-left: auto; }
+
+    /* Ingredient list */
+    .ingredients { margin-top: 32px; }
+    .ingredients h3 { font-size: 16px; font-weight: 700; color: #ffd700; margin-bottom: 12px; }
+    .ingredient-item { background: rgba(255, 255, 255, 0.03); padding: 12px; border-radius: 6px; margin-bottom: 8px; font-size: 13px; color: #c0c9e0; font-family: 'IBM Plex Mono', monospace; }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .results { grid-template-columns: 1fr; }
+      .hero h1 { font-size: clamp(24px, 6vw, 40px); }
+      .recipe-input textarea { min-height: 100px; }
+    }
+
+    /* Animations */
+    @keyframes fadeInDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+    @media (prefers-reduced-motion: reduce) {
+      * { animation: none !important; transition: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Hero -->
+    <div class="hero">
+      <h1>🍽️ Recipe Macros Explorer</h1>
+      <p>Paste your recipe ingredients with weights and instantly calculate total macros and calories.</p>
+    </div>
+
+    <!-- Input -->
+    <div class="recipe-input">
+      <label for="recipe">Enter Recipe Ingredients</label>
+      <textarea id="recipe" placeholder="Example format:&#10;1 chicken breast (150g)&#10;2 cups rice (150g)&#10;1 tbsp olive oil (14g)&#10;&#10;Add one ingredient per line with weight in grams."></textarea>
+      <button onclick="analyzeRecipe()">Analyze Recipe</button>
+    </div>
+
+    <!-- Results -->
+    <div class="results hidden" id="results">
+      <div>
+        <!-- Breakdown table -->
+        <div class="breakdown">
+          <h2>Macro Breakdown</h2>
+          <div id="breakdownTable"></div>
+        </div>
+        <div class="ingredients" id="ingredientList"></div>
+      </div>
+      <div class="pie-container">
+        <svg class="pie" id="pieSvg" viewBox="0 0 200 200"></svg>
+        <div class="pie-legend" id="pieLegend"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Ingredient database
+    const INGREDIENT_DB = {
+      "chicken breast": { protein: 31, carbs: 0, fat: 3.6, cal: 165 },
+      "rice": { protein: 2.7, carbs: 28, fat: 0.3, cal: 130 },
+      "olive oil": { protein: 0, carbs: 0, fat: 100, cal: 884 },
+      "egg": { protein: 13, carbs: 1.1, fat: 11, cal: 155 },
+      "bread": { protein: 8, carbs: 49, fat: 1, cal: 265 },
+      "salmon": { protein: 25, carbs: 0, fat: 13, cal: 208 },
+      "broccoli": { protein: 2.8, carbs: 7, fat: 0.4, cal: 34 },
+      "pasta": { protein: 12, carbs: 71, fat: 1.1, cal: 371 },
+      "butter": { protein: 0.7, carbs: 0.1, fat: 81, cal: 717 },
+      "milk": { protein: 3.2, carbs: 4.8, fat: 3.3, cal: 61 },
+      "potato": { protein: 2, carbs: 17, fat: 0.1, cal: 77 },
+      "carrot": { protein: 0.9, carbs: 10, fat: 0.2, cal: 41 },
+      "spinach": { protein: 2.7, carbs: 3.6, fat: 0.4, cal: 23 },
+      "beef": { protein: 26, carbs: 0, fat: 15, cal: 250 },
+      "pork": { protein: 27, carbs: 0, fat: 9, cal: 242 },
+      "tuna": { protein: 29, carbs: 0, fat: 1, cal: 132 },
+      "cheese": { protein: 25, carbs: 1.3, fat: 33, cal: 402 },
+      "yogurt": { protein: 3.5, carbs: 4.7, fat: 0.4, cal: 59 },
+      "oats": { protein: 17, carbs: 66, fat: 7, cal: 389 },
+      "banana": { protein: 1.1, carbs: 23, fat: 0.3, cal: 89 },
+    };
+
+    function parseIngredient(line) {
+      const trimmed = line.trim();
+      if (!trimmed) return null;
+      const gramsMatch = trimmed.match(/\((\d+(?:\.\d+)?)\s*g\)/i);
+      const grams = gramsMatch ? parseFloat(gramsMatch[1]) : null;
+      if (!grams) return null;
+      
+      const tokens = trimmed.split(/\s+/).filter(t => t.match(/[a-z]/i));
+      let best = null;
+      for (const token of tokens) {
+        const lc = token.toLowerCase();
+        if (INGREDIENT_DB[lc]) { best = lc; break; }
+        for (const key of Object.keys(INGREDIENT_DB)) {
+          if (key.includes(lc) || lc.includes(key.split(" ")[0])) { best = key; break; }
+        }
+        if (best) break;
+      }
+      if (!best) return null;
+      return { name: best, grams };
+    }
+
+    function calcMacros(name, grams) {
+      const data = INGREDIENT_DB[name];
+      if (!data) return null;
+      const scale = grams / 100;
+      return { protein: data.protein * scale, carbs: data.carbs * scale, fat: data.fat * scale, cal: data.cal * scale };
+    }
+
+    function analyzeRecipe() {
+      const text = document.getElementById('recipe').value;
+      const lines = text.split('\n');
+      const ingredients = [];
+      let totals = { protein: 0, carbs: 0, fat: 0, cal: 0 };
+
+      for (const line of lines) {
+        const parsed = parseIngredient(line);
+        if (!parsed) continue;
+        const macros = calcMacros(parsed.name, parsed.grams);
+        if (!macros) continue;
+        ingredients.push({ ...parsed, ...macros });
+        totals.protein += macros.protein;
+        totals.carbs += macros.carbs;
+        totals.fat += macros.fat;
+        totals.cal += macros.cal;
+      }
+
+      if (ingredients.length === 0) {
+        alert('No valid ingredients parsed. Check the format: "1 chicken breast (150g)"');
+        return;
+      }
+
+      // Calc percentages
+      const calsFromP = totals.protein * 4;
+      const calsFromC = totals.carbs * 4;
+      const calsFromF = totals.fat * 9;
+      const totalCals = calsFromP + calsFromC + calsFromF || 1;
+
+      const macroPercentages = {
+        protein: Math.round((calsFromP / totalCals) * 100),
+        carbs: Math.round((calsFromC / totalCals) * 100),
+        fat: Math.round((calsFromF / totalCals) * 100),
+      };
+
+      // Render breakdown
+      const bd = document.getElementById('breakdownTable');
+      bd.innerHTML = `
+        <div class="macro-row">
+          <div class="macro-name">Protein</div>
+          <div>
+            <div class="macro-value">${totals.protein.toFixed(1)} g</div>
+            <div class="macro-bar"><div class="macro-bar-fill" style="width: ${Math.min(100, (totals.protein / 100) * 100)}%"></div></div>
+          </div>
+        </div>
+        <div class="macro-row">
+          <div class="macro-name">Carbs</div>
+          <div>
+            <div class="macro-value">${totals.carbs.toFixed(1)} g</div>
+            <div class="macro-bar"><div class="macro-bar-fill" style="width: ${Math.min(100, (totals.carbs / 100) * 100)}%"></div></div>
+          </div>
+        </div>
+        <div class="macro-row">
+          <div class="macro-name">Fat</div>
+          <div>
+            <div class="macro-value">${totals.fat.toFixed(1)} g</div>
+            <div class="macro-bar"><div class="macro-bar-fill" style="width: ${Math.min(100, (totals.fat / 100) * 100)}%"></div></div>
+          </div>
+        </div>
+        <div class="macro-row">
+          <div class="macro-name"><strong>Total Calories</strong></div>
+          <div class="macro-value">${totals.cal.toFixed(0)} kcal</div>
+        </div>
+      `;
+
+      // Render pie
+      drawPie(macroPercentages);
+
+      // Render legend
+      const legend = document.getElementById('pieLegend');
+      legend.innerHTML = `
+        <div class="legend-item">
+          <div class="legend-color" style="background: #ff6b6b;"></div>
+          <span class="legend-label">Protein</span>
+          <span class="legend-percent">${macroPercentages.protein}%</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-color" style="background: #4ecdc4;"></div>
+          <span class="legend-label">Carbs</span>
+          <span class="legend-percent">${macroPercentages.carbs}%</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-color" style="background: #ffe66d;"></div>
+          <span class="legend-label">Fat</span>
+          <span class="legend-percent">${macroPercentages.fat}%</span>
+        </div>
+      `;
+
+      // Render ingredients list
+      const ingList = document.getElementById('ingredientList');
+      ingList.innerHTML = `<h3>Ingredients</h3>` + ingredients.map(ing => 
+        `<div class="ingredient-item">${ing.name} (${ing.grams}g) — ${ing.protein.toFixed(1)}g P, ${ing.carbs.toFixed(1)}g C, ${ing.fat.toFixed(1)}g F</div>`
+      ).join('');
+
+      document.getElementById('results').classList.remove('hidden');
+    }
+
+    function drawPie(percentages) {
+      const svg = document.getElementById('pieSvg');
+      svg.innerHTML = '';
+      const cx = 100, cy = 100, r = 80;
+      
+      const colors = { protein: '#ff6b6b', carbs: '#4ecdc4', fat: '#ffe66d' };
+      const keys = ['protein', 'carbs', 'fat'];
+      let angle = -90;
+
+      for (const key of keys) {
+        const pct = percentages[key];
+        const sliceAngle = (pct / 100) * 360;
+        const startAngle = angle * Math.PI / 180;
+        const endAngle = (angle + sliceAngle) * Math.PI / 180;
+
+        const x1 = cx + r * Math.cos(startAngle);
+        const y1 = cy + r * Math.sin(startAngle);
+        const x2 = cx + r * Math.cos(endAngle);
+        const y2 = cy + r * Math.sin(endAngle);
+
+        const largeArc = sliceAngle > 180 ? 1 : 0;
+        const path = `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2} Z`;
+
+        const elem = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        elem.setAttribute('d', path);
+        elem.setAttribute('fill', colors[key]);
+        elem.setAttribute('opacity', '0.8');
+        svg.appendChild(elem);
+
+        angle += sliceAngle;
+      }
+    }
+
+    // Placeholder example on load
+    document.getElementById('recipe').value = `1 chicken breast (150g)
+2 cups rice (150g)
+1 tbsp olive oil (14g)`;
+  </script>
+</body>
+</html>
