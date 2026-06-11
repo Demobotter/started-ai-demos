@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>City Showdown — Compare Global Cities</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fugaz+One&family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Work Sans', sans-serif;
+            background: linear-gradient(135deg, #1a1a3a 0%, #2d1b4e 50%, #1a1a3a 100%);
+            color: #f0f0f0;
+            min-height: 100vh;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .hero {
+            text-align: center;
+            margin-bottom: 60px;
+            animation: fadeInScale 0.8s ease-out;
+        }
+
+        .hero h1 {
+            font-family: 'Fugaz One', cursive;
+            font-size: clamp(48px, 8vw, 72px);
+            background: linear-gradient(135deg, #ffd700, #ffb700, #d4af37);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 12px;
+            text-shadow: 0 0 30px rgba(255, 215, 0, 0.2);
+            letter-spacing: -1px;
+        }
+
+        .hero p {
+            font-size: 16px;
+            color: #b0b0d0;
+            font-weight: 400;
+            margin-bottom: 6px;
+        }
+
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 40px;
+            animation: slideUp 0.6s ease-out 0.2s both;
+        }
+
+        .city-selector {
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(212, 175, 55, 0.3);
+            border-radius: 12px;
+            padding: 16px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(.16,1,.3,1);
+        }
+
+        .city-selector:hover {
+            background: rgba(255, 255, 255, 0.12);
+            border-color: rgba(212, 175, 55, 0.6);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(212, 175, 55, 0.15);
+        }
+
+        .city-selector label {
+            display: block;
+            font-size: 12px;
+            color: #b0b0d0;
+            margin-bottom: 8px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .city-selector select {
+            width: 100%;
+            background: rgba(30, 20, 60, 0.8);
+            border: 1px solid rgba(212, 175, 55, 0.2);
+            color: #ffd700;
+            padding: 10px 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: 'Work Sans', sans-serif;
+        }
+
+        .city-selector select:hover,
+        .city-selector select:focus {
+            border-color: rgba(212, 175, 55, 0.6);
+            outline: none;
+            box-shadow: 0 0 12px rgba(212, 175, 55, 0.2);
+        }
+
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-bottom: 40px;
+            animation: fadeIn 0.6s ease-out 0.4s both;
+        }
+
+        .city-card {
+            background: rgba(255, 255, 255, 0.06);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(212, 175, 55, 0.25);
+            border-radius: 16px;
+            padding: 28px;
+            transition: all 0.4s cubic-bezier(.16,1,.3,1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .city-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at top-right, rgba(212, 175, 55, 0.1), transparent);
+            pointer-events: none;
+        }
+
+        .city-card:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(212, 175, 55, 0.5);
+            transform: translateY(-4px);
+            box-shadow: 0 16px 40px rgba(212, 175, 55, 0.15);
+        }
+
+        .city-name {
+            font-family: 'Fugaz One', cursive;
+            font-size: 32px;
+            background: linear-gradient(135deg, #ffd700, #ffb700);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 24px;
+        }
+
+        .metric {
+            margin-bottom: 18px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            animation: slideIn 0.4s ease-out forwards;
+            opacity: 0;
+        }
+
+        .metric:nth-child(1) { animation-delay: 0.1s; }
+        .metric:nth-child(2) { animation-delay: 0.15s; }
+        .metric:nth-child(3) { animation-delay: 0.2s; }
+        .metric:nth-child(4) { animation-delay: 0.25s; }
+        .metric:nth-child(5) { animation-delay: 0.3s; }
+        .metric:nth-child(6) { animation-delay: 0.35s; }
+
+        .metric-label {
+            font-size: 13px;
+            color: #b0b0d0;
+            font-weight: 500;
+        }
+
+        .metric-value {
+            font-size: 15px;
+            color: #ffd700;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .badge {
+            background: rgba(212, 175, 55, 0.25);
+            border: 1px solid rgba(212, 175, 55, 0.4);
+            color: #ffd700;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        @media (max-width: 900px) {
+            .comparison-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .controls {
+                grid-template-columns: 1fr;
+            }
+
+            .hero h1 {
+                font-size: clamp(36px, 6vw, 56px);
+            }
+        }
+
+        @keyframes fadeInScale {
+            from {
+                opacity: 0;
+                transform: scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-8px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="hero">
+            <h1>🌍 City Showdown</h1>
+            <p>Compare major world cities side-by-side</p>
+        </div>
+
+        <div class="controls">
+            <div class="city-selector">
+                <label for="city1">City 1</label>
+                <select id="city1">
+                    <option value="nyc">New York City</option>
+                    <option value="tokyo">Tokyo</option>
+                    <option value="london">London</option>
+                    <option value="dubai">Dubai</option>
+                    <option value="singapore">Singapore</option>
+                    <option value="berlin">Berlin</option>
+                    <option value="sao-paulo">São Paulo</option>
+                    <option value="sydney">Sydney</option>
+                </select>
+            </div>
+            <div class="city-selector">
+                <label for="city2">City 2</label>
+                <select id="city2">
+                    <option value="nyc">New York City</option>
+                    <option value="tokyo" selected>Tokyo</option>
+                    <option value="london">London</option>
+                    <option value="dubai">Dubai</option>
+                    <option value="singapore">Singapore</option>
+                    <option value="berlin">Berlin</option>
+                    <option value="sao-paulo">São Paulo</option>
+                    <option value="sydney">Sydney</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="comparison-grid" id="grid">
+            <div class="city-card">
+                <div class="city-name" id="name1">New York City</div>
+                <div class="metric">
+                    <div class="metric-label">Population</div>
+                    <div class="metric-value" id="pop1">8.3M</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-label">Area</div>
+                    <div class="metric-value" id="area1">783 km²</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-label">Avg Temp</div>
+                    <div class="metric-value" id="temp1">12°C</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-label">Cost of Living</div>
+                    <div class="metric-value" id="col1">134</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-label">Median Salary</div>
+                    <div class="metric-value" id="sal1">$68K</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-label">Walkability</div>
+                    <div class="metric-value" id="walk1">94/100</div>
+                </div>
+            </div>
+
+            <div class="city-card">
+                <div class="city-name" id="name2">Tokyo</div>
+                <div class="metric">
+                    <div class="metric-label">Population</div>
+                    <div class="metric-value" id="pop2">13.9M</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-label">Area</div>
+                    <div class="metric-value" id="area2">2,194 km²</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-label">Avg Temp</div>
+                    <div class="metric-value" id="temp2">15°C</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-label">Cost of Living</div>
+                    <div class="metric-value" id="col2">127</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-label">Median Salary</div>
+                    <div class="metric-value" id="sal2">$55K</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-label">Walkability</div>
+                    <div class="metric-value" id="walk2">92/100</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // City data
+        const cities = {
+            nyc: {
+                name: 'New York City',
+                population: '8.3M',
+                area: '783 km²',
+                temp: '12°C',
+                col: '134',
+                sal: '$68K',
+                walk: '94/100'
+            },
+            tokyo: {
+                name: 'Tokyo',
+                population: '13.9M',
+                area: '2,194 km²',
+                temp: '15°C',
+                col: '127',
+                sal: '$55K',
+                walk: '92/100'
+            },
+            london: {
+                name: 'London',
+                population: '9.0M',
+                area: '1,572 km²',
+                temp: '10°C',
+                col: '128',
+                sal: '$62K',
+                walk: '89/100'
+            },
+            dubai: {
+                name: 'Dubai',
+                population: '3.6M',
+                area: '4,114 km²',
+                temp: '32°C',
+                col: '118',
+                sal: '$61K',
+                walk: '62/100'
+            },
+            singapore: {
+                name: 'Singapore',
+                population: '5.9M',
+                area: '728 km²',
+                temp: '27°C',
+                col: '124',
+                sal: '$58K',
+                walk: '88/100'
+            },
+            berlin: {
+                name: 'Berlin',
+                population: '3.6M',
+                area: '891 km²',
+                temp: '9°C',
+                col: '115',
+                sal: '$52K',
+                walk: '86/100'
+            },
+            'sao-paulo': {
+                name: 'São Paulo',
+                population: '12.3M',
+                area: '1,521 km²',
+                temp: '20°C',
+                col: '112',
+                sal: '$38K',
+                walk: '71/100'
+            },
+            sydney: {
+                name: 'Sydney',
+                population: '5.3M',
+                area: '12,368 km²',
+                temp: '18°C',
+                col: '116',
+                sal: '$59K',
+                walk: '83/100'
+            }
+        };
+
+        // Update function
+        function updateComparison() {
+            const city1Key = document.getElementById('city1').value;
+            const city2Key = document.getElementById('city2').value;
+            const city1 = cities[city1Key];
+            const city2 = cities[city2Key];
+
+            // Update card 1
+            document.getElementById('name1').textContent = city1.name;
+            document.getElementById('pop1').textContent = city1.population;
+            document.getElementById('area1').textContent = city1.area;
+            document.getElementById('temp1').textContent = city1.temp;
+            document.getElementById('col1').textContent = city1.col;
+            document.getElementById('sal1').textContent = city1.sal;
+            document.getElementById('walk1').textContent = city1.walk;
+
+            // Update card 2
+            document.getElementById('name2').textContent = city2.name;
+            document.getElementById('pop2').textContent = city2.population;
+            document.getElementById('area2').textContent = city2.area;
+            document.getElementById('temp2').textContent = city2.temp;
+            document.getElementById('col2').textContent = city2.col;
+            document.getElementById('sal2').textContent = city2.sal;
+            document.getElementById('walk2').textContent = city2.walk;
+        }
+
+        // Event listeners
+        document.getElementById('city1').addEventListener('change', updateComparison);
+        document.getElementById('city2').addEventListener('change', updateComparison);
+
+        // Initialize
+        updateComparison();
+    </script>
+</body>
+</html>
