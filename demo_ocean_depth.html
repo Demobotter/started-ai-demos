@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ocean Depth Explorer</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    html, body {
+      width: 100%;
+      height: 100%;
+      font-family: 'Space Grotesk', sans-serif;
+      background: linear-gradient(135deg, #001a4d 0%, #002d66 25%, #003d80 50%, #1a1a2e 100%);
+      color: #e0e0ff;
+      overflow-x: hidden;
+    }
+    
+    body {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      padding: 2rem;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+    }
+    
+    /* Hero Section */
+    .hero {
+      text-align: center;
+      margin-bottom: 1rem;
+      animation: fadeInDown 0.8s cubic-bezier(0.16,1,0.3,1) forwards;
+    }
+    
+    .hero h1 {
+      font-size: clamp(2.5rem, 8vw, 4.5rem);
+      font-weight: 700;
+      background: linear-gradient(135deg, #00d9ff, #00ff88, #00d9ff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 0.5rem;
+      letter-spacing: -1px;
+    }
+    
+    .hero p {
+      font-size: 1.1rem;
+      color: #b0b0e0;
+      font-weight: 400;
+      font-family: 'IBM Plex Mono', monospace;
+    }
+    
+    /* Main Layout */
+    .content {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+      align-items: start;
+    }
+    
+    /* Left: Depth Meter */
+    .depth-meter {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+      animation: fadeInLeft 0.8s cubic-bezier(0.16,1,0.3,1) 0.2s forwards;
+      opacity: 0;
+    }
+    
+    .depth-meter h2 {
+      font-size: 1.3rem;
+      font-weight: 600;
+      color: #00ffff;
+      margin-bottom: 0.5rem;
+    }
+    
+    .meter-visual {
+      position: relative;
+      height: 500px;
+      background: linear-gradient(to bottom, 
+        rgba(0, 217, 255, 0.15) 0%,
+        rgba(0, 150, 200, 0.15) 25%,
+        rgba(0, 100, 150, 0.15) 50%,
+        rgba(0, 50, 100, 0.15) 75%,
+        rgba(10, 10, 50, 0.3) 100%
+      );
+      border: 2px solid rgba(0, 217, 255, 0.3);
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: inset 0 0 40px rgba(0, 217, 255, 0.1);
+    }
+    
+    .depth-zone {
+      position: absolute;
+      width: 100%;
+      border-top: 1px dashed rgba(0, 217, 255, 0.2);
+      padding: 0.75rem 1rem;
+      font-size: 0.85rem;
+      font-family: 'IBM Plex Mono', monospace;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    
+    .depth-zone:hover {
+      background: rgba(0, 217, 255, 0.1);
+      border-top-color: rgba(0, 217, 255, 0.6);
+    }
+    
+    .depth-zone.active {
+      background: rgba(0, 217, 255, 0.25);
+      border-left: 4px solid #00ffff;
+      font-weight: 600;
+      color: #00ffff;
+    }
+    
+    .depth-zone-label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+    }
+    
+    .depth-zone-depth {
+      font-size: 0.75rem;
+      color: #88ddff;
+      opacity: 0.8;
+    }
+    
+    .depth-indicator {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 4px;
+      height: 20px;
+      background: linear-gradient(to bottom, #00ff88, #00d9ff);
+      box-shadow: 0 0 15px rgba(0, 217, 255, 0.6);
+      transition: top 0.6s cubic-bezier(0.16,1,0.3,1);
+      border-radius: 0 2px 2px 0;
+    }
+    
+    /* Right: Info Panel */
+    .info-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+      animation: fadeInRight 0.8s cubic-bezier(0.16,1,0.3,1) 0.3s forwards;
+      opacity: 0;
+    }
+    
+    .zone-info {
+      background: rgba(0, 217, 255, 0.08);
+      border: 1px solid rgba(0, 217, 255, 0.3);
+      border-radius: 12px;
+      padding: 1.5rem;
+      backdrop-filter: blur(10px);
+      min-height: 200px;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    
+    .zone-info h3 {
+      font-size: 1.5rem;
+      color: #00ffff;
+      margin-bottom: 0.5rem;
+    }
+    
+    .zone-info p {
+      color: #c0c0e0;
+      line-height: 1.6;
+      font-size: 0.95rem;
+    }
+    
+    .metrics {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+    
+    .metric {
+      background: rgba(0, 150, 200, 0.15);
+      border: 1px solid rgba(0, 150, 200, 0.3);
+      border-radius: 8px;
+      padding: 1rem;
+    }
+    
+    .metric-label {
+      font-size: 0.75rem;
+      color: #88ddff;
+      font-family: 'IBM Plex Mono', monospace;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.5rem;
+    }
+    
+    .metric-value {
+      font-size: 1.3rem;
+      font-weight: 600;
+      color: #00ff88;
+      font-family: 'IBM Plex Mono', monospace;
+    }
+    
+    .creatures {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    
+    .creature-card {
+      background: rgba(10, 100, 150, 0.2);
+      border: 1px solid rgba(0, 217, 255, 0.2);
+      border-radius: 8px;
+      padding: 1rem;
+      animation: slideUp 0.5s cubic-bezier(0.16,1,0.3,1) forwards;
+      opacity: 0;
+      transition: all 0.3s ease;
+    }
+    
+    .creature-card:hover {
+      background: rgba(10, 100, 150, 0.35);
+      border-color: rgba(0, 217, 255, 0.5);
+      transform: translateX(4px);
+    }
+    
+    .creature-name {
+      font-weight: 600;
+      color: #00ffaa;
+      font-size: 0.95rem;
+      margin-bottom: 0.25rem;
+    }
+    
+    .creature-fact {
+      font-size: 0.85rem;
+      color: #a0a0d0;
+      line-height: 1.4;
+    }
+    
+    /* Animations */
+    @keyframes fadeInDown {
+      from {
+        opacity: 0;
+        transform: translateY(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    @keyframes fadeInLeft {
+      from {
+        opacity: 0;
+        transform: translateX(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+    
+    @keyframes fadeInRight {
+      from {
+        opacity: 0;
+        transform: translateX(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+    
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    /* Mobile */
+    @media (max-width: 768px) {
+      body {
+        padding: 1rem;
+      }
+      
+      .content {
+        grid-template-columns: 1fr;
+      }
+      
+      .meter-visual {
+        height: 400px;
+      }
+      
+      .hero h1 {
+        font-size: clamp(1.8rem, 6vw, 2.8rem);
+      }
+      
+      .metrics {
+        grid-template-columns: 1fr;
+      }
+    }
+    
+    /* Reduced Motion */
+    @media (prefers-reduced-motion: reduce) {
+      * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="hero">
+      <h1>OCEAN DEPTH</h1>
+      <p>Explore the zones, creatures, and pressures of the deep sea</p>
+    </div>
+    
+    <div class="content">
+      <div class="depth-meter">
+        <h2>Depth Profile</h2>
+        <div class="meter-visual">
+          <div class="depth-zone" data-zone="0" style="top: 0%; height: 20%;">
+            <span class="depth-zone-label">Sunlight Zone</span>
+            <span class="depth-zone-depth">0–200m</span>
+          </div>
+          <div class="depth-zone" data-zone="1" style="top: 20%; height: 20%;">
+            <span class="depth-zone-label">Twilight Zone</span>
+            <span class="depth-zone-depth">200–1000m</span>
+          </div>
+          <div class="depth-zone" data-zone="2" style="top: 40%; height: 20%;">
+            <span class="depth-zone-label">Midnight Zone</span>
+            <span class="depth-zone-depth">1000–4000m</span>
+          </div>
+          <div class="depth-zone" data-zone="3" style="top: 60%; height: 20%;">
+            <span class="depth-zone-label">Abyssal Zone</span>
+            <span class="depth-zone-depth">4000–6000m</span>
+          </div>
+          <div class="depth-zone active" data-zone="4" style="top: 80%; height: 20%;">
+            <span class="depth-zone-label">Hadal Zone</span>
+            <span class="depth-zone-depth">6000m+</span>
+          </div>
+          <div class="depth-indicator" style="top: 85%;"></div>
+        </div>
+      </div>
+      
+      <div class="info-panel">
+        <div class="zone-info">
+          <h3 id="zone-name">Hadal Zone</h3>
+          <p id="zone-desc">The deepest parts of the ocean, found in ocean trenches. Extreme pressure and cold.</p>
+          
+          <div class="metrics">
+            <div class="metric">
+              <div class="metric-label">Depth</div>
+              <div class="metric-value" id="metric-depth">6000m+</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Pressure</div>
+              <div class="metric-value" id="metric-pressure">1000+ atm</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Temperature</div>
+              <div class="metric-value" id="metric-temp">1–4°C</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Light</div>
+              <div class="metric-value" id="metric-light">0%</div>
+            </div>
+          </div>
+        </div>
+        
+        <div>
+          <h3 style="color: #00ffaa; margin-bottom: 1rem;">Inhabitants</h3>
+          <div class="creatures" id="creatures-list"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    const zones = [
+      {
+        name: 'Sunlight Zone',
+        desc: 'Also called the euphotic zone. Abundant light penetration allows photosynthesis. Home to most ocean life.',
+        depth: '0–200m',
+        pressure: '1–20 atm',
+        temp: '20–25°C',
+        light: '100%',
+        creatures: [
+          { name: 'Blue Whale', fact: 'Largest animal ever to exist; feeds on krill in sunlit waters.' },
+          { name: 'Sea Turtle', fact: 'Migrates vast distances; basking in surface waters.' },
+          { name: 'Coral', fact: 'Building reefs in shallow sunlit zones with symbiotic algae.' }
+        ]
+      },
+      {
+        name: 'Twilight Zone',
+        desc: 'Called the mesopelagic zone. Dim light permits vision but not photosynthesis. Many bioluminescent creatures.',
+        depth: '200–1000m',
+        pressure: '20–100 atm',
+        temp: '4–20°C',
+        light: '1%',
+        creatures: [
+          { name: 'Lanternfish', fact: 'Small fish with bioluminescent photophores; daily vertical migrators.' },
+          { name: 'Vampire Squid', fact: 'Red body with blue bioluminescent lights; evasive escape cloud.' },
+          { name: 'Hatchetfish', fact: 'Flat silvery body with upward-facing eyes; hunts from below.' }
+        ]
+      },
+      {
+        name: 'Midnight Zone',
+        desc: 'Bathypelagic zone. No natural light reaches here. Relies on organic snow from upper layers.',
+        depth: '1000–4000m',
+        pressure: '100–400 atm',
+        temp: '1–4°C',
+        light: '0%',
+        creatures: [
+          { name: 'Giant Squid', fact: 'Can grow 12m long; large eyes adapted to faint bioluminescence.' },
+          { name: 'Anglerfish', fact: 'Females have bioluminescent lures; extreme sexual dimorphism.' },
+          { name: 'Viperfish', fact: 'Needle teeth; large hinged jaw; photophores along flanks.' }
+        ]
+      },
+      {
+        name: 'Abyssal Zone',
+        desc: 'Abyssal plains cover much of ocean floor. Cold, dark, nutrient-scarce. Sparse but unique fauna.',
+        depth: '4000–6000m',
+        pressure: '400–600 atm',
+        temp: '0–3°C',
+        light: '0%',
+        creatures: [
+          { name: 'Sea Pig', fact: 'Holothurian scavenger; crawls along seafloor eating detritus.' },
+          { name: 'Dumbo Octopus', fact: 'Lives deepest of all octopuses; ear-like fins; 3km depth.' },
+          { name: 'Tripod Fish', fact: 'Uses stilt-like fin rays to stand on seafloor; waits for prey.' }
+        ]
+      },
+      {
+        name: 'Hadal Zone',
+        desc: 'The deepest parts of the ocean, found in ocean trenches. Extreme pressure and cold temperatures.',
+        depth: '6000m+',
+        pressure: '1000+ atm',
+        temp: '1–4°C',
+        light: '0%',
+        creatures: [
+          { name: 'Mariana Snailfish', fact: 'Lives 8000m deep; extremophile adapted to crushing pressure.' },
+          { name: 'Hadal Amphipod', fact: 'Scavenger crustacean; thrives where few others can survive.' },
+          { name: 'Deep-sea Jellyfish', fact: 'Gelatinous drifter; minimal energy expenditure; rare sightings.' }
+        ]
+      }
+    ];
+    
+    const depthZones = document.querySelectorAll('.depth-zone');
+    const indicator = document.querySelector('.depth-indicator');
+    const infoPanel = document.querySelector('.info-panel');
+    let currentZone = 4; // Start at Hadal
+    
+    function updateZone(zoneIndex) {
+      currentZone = zoneIndex;
+      const zone = zones[zoneIndex];
+      
+      // Update active state
+      depthZones.forEach((el, i) => {
+        el.classList.toggle('active', i === zoneIndex);
+      });
+      
+      // Move indicator
+      const indicatorPos = 5 + (zoneIndex * 20);
+      indicator.style.top = indicatorPos + '%';
+      
+      // Update info
+      document.getElementById('zone-name').textContent = zone.name;
+      document.getElementById('zone-desc').textContent = zone.desc;
+      document.getElementById('metric-depth').textContent = zone.depth;
+      document.getElementById('metric-pressure').textContent = zone.pressure;
+      document.getElementById('metric-temp').textContent = zone.temp;
+      document.getElementById('metric-light').textContent = zone.light;
+      
+      // Animate creatures
+      const creaturesList = document.getElementById('creatures-list');
+      creaturesList.innerHTML = '';
+      zone.creatures.forEach((creature, i) => {
+        const card = document.createElement('div');
+        card.className = 'creature-card';
+        card.innerHTML = `
+          <div class="creature-name">${creature.name}</div>
+          <div class="creature-fact">${creature.fact}</div>
+        `;
+        card.style.animationDelay = (i * 0.1) + 's';
+        creaturesList.appendChild(card);
+      });
+    }
+    
+    // Click handlers
+    depthZones.forEach(zone => {
+      zone.addEventListener('click', (e) => {
+        const zoneIndex = parseInt(zone.getAttribute('data-zone'));
+        updateZone(zoneIndex);
+      });
+    });
+    
+    // Init
+    updateZone(4);
+  </script>
+</body>
+</html>
