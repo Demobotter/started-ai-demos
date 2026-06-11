@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Global Data Explorer — Live World Rankings</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0a0e1a; --bg2:#101630; --card:#141b33; --line:#222c4d;
+  --ink:#eef2ff; --muted:#8a96be; --accent:#5b8cff; --accent2:#22d3ee;
+  --r:18px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:'Inter',sans-serif;background:radial-gradient(1200px 600px at 50% -10%,#16204a 0%,var(--bg) 55%);
+  color:var(--ink);min-height:100vh;padding:40px 20px;
+}
+.wrap{max-width:860px;margin:0 auto}
+header{text-align:center;margin-bottom:28px;animation:fade .7s ease both}
+h1{font-family:'Sora',sans-serif;font-weight:800;font-size:clamp(28px,5vw,42px);
+  background:linear-gradient(100deg,#fff,#8fb4ff 55%,#22d3ee);-webkit-background-clip:text;background-clip:text;color:transparent;letter-spacing:-.02em}
+.sub{color:var(--muted);margin-top:8px;font-size:15px}
+.tabs{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:24px 0 8px;animation:fade .7s .1s ease both}
+.tab{background:var(--card);border:1px solid var(--line);color:var(--muted);
+  padding:10px 18px;border-radius:999px;font-weight:600;font-size:14px;cursor:pointer;transition:all .2s}
+.tab:hover{border-color:var(--accent);color:var(--ink);transform:translateY(-1px)}
+.tab.on{background:linear-gradient(100deg,var(--accent),var(--accent2));color:#04122e;border-color:transparent}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:var(--r);
+  padding:22px;margin-top:18px;box-shadow:0 20px 60px rgba(0,0,0,.35);animation:fade .7s .2s ease both}
+.meta{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px;margin-bottom:18px}
+.meta .ttl{font-family:'Sora',sans-serif;font-weight:700;font-size:18px}
+.meta .src{color:var(--muted);font-size:12.5px}
+.status{text-align:center;color:var(--muted);padding:36px 0;font-size:15px}
+.bars{display:flex;flex-direction:column;gap:10px}
+.row{display:grid;grid-template-columns:26px 150px 1fr auto;gap:12px;align-items:center;font-size:14px}
+.rank{color:var(--muted);font-variant-numeric:tabular-nums;text-align:right;font-weight:600}
+.cty{display:flex;align-items:center;gap:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cty .flag{font-size:18px}
+.cty .nm{overflow:hidden;text-overflow:ellipsis;font-weight:500}
+.track{background:#0c1224;border-radius:999px;height:22px;overflow:hidden;position:relative}
+.fill{height:100%;border-radius:999px;width:0;
+  background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width 1s cubic-bezier(.2,.8,.2,1)}
+.val{font-variant-numeric:tabular-nums;font-weight:600;text-align:right;min-width:92px;color:#cfe0ff}
+@media(max-width:620px){
+  .row{grid-template-columns:22px 1fr auto;gap:8px}
+  .track{display:none}
+  .val{min-width:auto}
+}
+.foot{text-align:center;color:var(--muted);font-size:12px;margin-top:22px}
+@keyframes fade{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Global Data Explorer</h1>
+    <div class="sub">Live World Bank rankings · top 20 countries · real 2023 data</div>
+  </header>
+
+  <div class="tabs" id="tabs"></div>
+
+  <div class="panel">
+    <div class="meta">
+      <div class="ttl" id="ttl">Population</div>
+      <div class="src">Source: World Bank Open Data (2023)</div>
+    </div>
+    <div id="status" class="status">Loading live data…</div>
+    <div class="bars" id="bars"></div>
+  </div>
+
+  <div class="foot">Keyless live data via api.worldbank.org · ranks recompute from real values on each tab</div>
+</div>
+
+<script>
+const INDICATORS=[
+  {key:'SP.POP.TOTL', label:'Population', unit:'people', fmt:'int'},
+  {key:'NY.GDP.MKTP.CD', label:'GDP (US$)', unit:'USD', fmt:'usd'},
+  {key:'SP.DYN.LE00.IN', label:'Life Expectancy', unit:'years', fmt:'yr'},
+  {key:'EN.GHG.CO2.MT.CE.AR5', label:'CO\u2082 Emissions', unit:'Mt', fmt:'mt'},
+];
+const FLAGS={USA:'\uD83C\uDDFA\uD83C\uDDF8',CHN:'\uD83C\uDDE8\uD83C\uDDF3',IND:'\uD83C\uDDEE\uD83C\uDDF3',JPN:'\uD83C\uDDEF\uD83C\uDDF5',DEU:'\uD83C\uDDE9\uD83C\uDDEA',GBR:'\uD83C\uDDEC\uD83C\uDDE7',FRA:'\uD83C\uDDEB\uD83C\uDDF7',BRA:'\uD83C\uDDE7\uD83C\uDDF7',ITA:'\uD83C\uDDEE\uD83C\uDDF9',CAN:'\uD83C\uDDE8\uD83C\uDDE6',RUS:'\uD83C\uDDF7\uD83C\uDDFA',KOR:'\uD83C\uDDF0\uD83C\uDDF7',AUS:'\uD83C\uDDE6\uD83C\uDDFA',ESP:'\uD83C\uDDEA\uD83C\uDDF8',MEX:'\uD83C\uDDF2\uD83C\uDDFD',IDN:'\uD83C\uDDEE\uD83C\uDDE9',NLD:'\uD83C\uDDF3\uD83C\uDDF1',SAU:'\uD83C\uDDF8\uD83C\uDDE6',TUR:'\uD83C\uDDF9\uD83C\uDDF7',CHE:'\uD83C\uDDE8\uD83C\uDDED',PAK:'\uD83C\uDDF5\uD83C\uDDF0',NGA:'\uD83C\uDDF3\uD83C\uDDEC',BGD:'\uD83C\uDDE7\uD83C\uDDE9',ETH:'\uD83C\uDDEA\uD83C\uDDF9',EGY:'\uD83C\uDDEA\uD83C\uDDEC',VNM:'\uD83C\uDDFB\uD83C\uDDF3',PHL:'\uD83C\uDDF5\uD83C\uDDED',IRN:'\uD83C\uDDEE\uD83C\uDDF7',COD:'\uD83C\uDDE8\uD83C\uDDE9',MCO:'\uD83C\uDDF2\uD83C\uDDE8',HKG:'\uD83C\uDDED\uD83C\uDDF0',SGP:'\uD83C\uDDF8\uD83C\uDDEC',JPN2:''};
+
+// ---- pure formatting logic (headless-testable) ----
+function fmtVal(v, fmt){
+  if(fmt==='yr') return v.toFixed(1)+' yrs';
+  if(fmt==='usd'){
+    if(v>=1e12) return '$'+(v/1e12).toFixed(2)+'T';
+    if(v>=1e9) return '$'+(v/1e9).toFixed(1)+'B';
+    return '$'+(v/1e6).toFixed(0)+'M';
+  }
+  if(fmt==='mt') return (v>=1000? (v/1000).toFixed(1)+'Gt' : v.toFixed(0)+' Mt');
+  // int (population)
+  if(v>=1e9) return (v/1e9).toFixed(2)+'B';
+  if(v>=1e6) return (v/1e6).toFixed(1)+'M';
+  if(v>=1e3) return (v/1e3).toFixed(0)+'K';
+  return String(Math.round(v));
+}
+function rankRows(raw, realSet){
+  // raw = array of {country:{value}, countryiso3code, value}
+  const rows = raw
+    .filter(r => r.value!=null && r.countryiso3code && r.countryiso3code.length===3 && realSet.has(r.countryiso3code))
+    .map(r => ({iso:r.countryiso3code, name:r.country.value, value:r.value}));
+  rows.sort((a,b)=>b.value-a.value);
+  return rows.slice(0,20);
+}
+
+let REAL=null;
+const $=id=>document.getElementById(id);
+
+async function loadRealSet(){
+  if(REAL) return REAL;
+  const r = await fetch('https://api.worldbank.org/v2/country?format=json&per_page=400');
+  const j = await r.json();
+  REAL = new Set(j[1].filter(c=>c.region.value!=='Aggregates').map(c=>c.id));
+  return REAL;
+}
+
+async function load(ind){
+  $('ttl').textContent = ind.label;
+  $('status').textContent = 'Loading live data…';
+  $('status').style.display='block';
+  $('bars').innerHTML='';
+  try{
+    const realSet = await loadRealSet();
+    const url='https://api.worldbank.org/v2/country/all/indicator/'+ind.key+'?format=json&date=2023&per_page=400';
+    const r = await fetch(url);
+    const j = await r.json();
+    if(!Array.isArray(j)||!j[1]) throw new Error('no data');
+    const rows = rankRows(j[1], realSet);
+    if(!rows.length) throw new Error('empty');
+    render(rows, ind);
+  }catch(e){
+    $('status').textContent='⚠️ Could not load data for this indicator. Try another tab.';
+  }
+}
+
+function render(rows, ind){
+  $('status').style.display='none';
+  const max = rows[0].value;
+  const bars = $('bars');
+  bars.innerHTML='';
+  rows.forEach((row,i)=>{
+    const pct = Math.max(2, (row.value/max)*100);
+    const flag = FLAGS[row.iso] || '\uD83C\uDFF3\uFE0F';
+    const el = document.createElement('div');
+    el.className='row';
+    el.innerHTML =
+      '<div class="rank">'+(i+1)+'</div>'+
+      '<div class="cty"><span class="flag">'+flag+'</span><span class="nm">'+row.name+'</span></div>'+
+      '<div class="track"><div class="fill" data-w="'+pct+'"></div></div>'+
+      '<div class="val">'+fmtVal(row.value, ind.fmt)+'</div>';
+    bars.appendChild(el);
+  });
+  // animate fills next frame
+  requestAnimationFrame(()=>{
+    document.querySelectorAll('.fill').forEach((f,idx)=>{
+      setTimeout(()=>{ f.style.width = f.dataset.w+'%'; }, idx*30);
+    });
+  });
+}
+
+function buildTabs(){
+  const t=$('tabs');
+  INDICATORS.forEach((ind,i)=>{
+    const b=document.createElement('button');
+    b.className='tab'+(i===0?' on':'');
+    b.textContent=ind.label;
+    b.onclick=()=>{
+      document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
+      b.classList.add('on');
+      load(ind);
+    };
+    t.appendChild(b);
+  });
+}
+
+buildTabs();
+load(INDICATORS[0]);
+</script>
+</body>
+</html>
