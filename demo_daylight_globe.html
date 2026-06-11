@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Daylight Globe — live sunrise/sunset tracker</title>
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: linear-gradient(135deg, #0a1628 0%, #1a2d4a 100%);
+      color: #e4f0ff;
+      font-family: 'IBM Plex Sans', sans-serif;
+      min-height: 100vh;
+      padding: 40px 20px;
+      overflow-x: hidden;
+    }
+
+    .container { max-width: 900px; margin: 0 auto; }
+
+    /* Hero */
+    .hero {
+      text-align: center;
+      margin-bottom: 60px;
+      animation: fadeInDown 0.8s ease-out;
+    }
+    .hero h1 {
+      font-family: 'Sora', sans-serif;
+      font-size: clamp(36px, 8vw, 64px);
+      font-weight: 700;
+      margin-bottom: 12px;
+      background: linear-gradient(135deg, #ffa500, #ffeb99);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero p {
+      font-size: 16px;
+      color: #a8c5dd;
+      margin-bottom: 32px;
+    }
+
+    /* Search box */
+    .search-box {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 40px;
+      animation: fadeInUp 0.8s ease-out 0.2s both;
+    }
+    input#cityInput {
+      flex: 1;
+      padding: 14px 18px;
+      border: 2px solid #3a5a7a;
+      background: rgba(255,255,255,0.08);
+      color: #e4f0ff;
+      border-radius: 10px;
+      font-family: 'IBM Plex Sans', sans-serif;
+      font-size: 15px;
+      transition: all 0.3s ease;
+    }
+    input#cityInput:focus {
+      outline: none;
+      border-color: #ffa500;
+      background: rgba(255,255,255,0.12);
+      box-shadow: 0 0 20px rgba(255,165,0,0.3);
+    }
+    button#searchBtn {
+      padding: 14px 32px;
+      background: linear-gradient(135deg, #ffa500, #ffb84d);
+      color: #0a1628;
+      border: none;
+      border-radius: 10px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-size: 15px;
+    }
+    button#searchBtn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 30px rgba(255,165,0,0.4);
+    }
+    button#searchBtn:active {
+      transform: translateY(0);
+    }
+
+    /* Status message */
+    #status {
+      text-align: center;
+      min-height: 24px;
+      font-size: 14px;
+      color: #ffa500;
+      margin-bottom: 24px;
+      animation: fadeIn 0.4s ease-out;
+    }
+    #status.error { color: #ff6b6b; }
+    #status.loading { color: #4da6ff; }
+    #status.success { color: #69ff69; }
+
+    /* Day-arc section */
+    .arc-section {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 40px;
+      animation: fadeInUp 0.8s ease-out 0.4s both;
+    }
+
+    .stat-card {
+      background: rgba(255,255,255,0.08);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,165,0,0.3);
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+      transition: all 0.3s ease;
+    }
+    .stat-card:hover {
+      border-color: rgba(255,165,0,0.6);
+      background: rgba(255,255,255,0.12);
+      transform: translateY(-4px);
+    }
+    .stat-label {
+      font-size: 12px;
+      color: #8ab4d5;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+    }
+    .stat-value {
+      font-family: 'Sora', sans-serif;
+      font-size: 24px;
+      font-weight: 700;
+      color: #ffa500;
+    }
+
+    /* SVG arc container */
+    .arc-display {
+      display: grid;
+      grid-column: 1 / -1;
+      place-items: center;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,165,0,0.2);
+      border-radius: 12px;
+      padding: 40px 20px;
+      margin-bottom: 20px;
+      animation: fadeInUp 0.8s ease-out 0.5s both;
+    }
+    svg#dayArc {
+      max-width: 100%;
+      height: auto;
+    }
+
+    /* Current status line */
+    .status-line {
+      text-align: center;
+      grid-column: 1 / -1;
+      font-size: 15px;
+      color: #a8c5dd;
+      padding: 16px;
+      background: rgba(255,165,0,0.1);
+      border-radius: 8px;
+      animation: fadeInUp 0.8s ease-out 0.6s both;
+    }
+    .status-line strong {
+      color: #ffb84d;
+    }
+
+    /* Loading spinner */
+    .spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255,165,0,0.3);
+      border-top: 2px solid #ffa500;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Animations */
+    @keyframes fadeInDown {
+      from { opacity: 0; transform: translateY(-20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    /* Reduced motion */
+    @media (prefers-reduced-motion: reduce) {
+      * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
+    /* Mobile */
+    @media (max-width: 640px) {
+      .arc-section {
+        grid-template-columns: 1fr;
+      }
+      .hero h1 {
+        font-size: 36px;
+      }
+      .search-box {
+        flex-direction: column;
+      }
+      button#searchBtn {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="hero">
+      <h1>☀️ Daylight Around the World</h1>
+      <p>Live sunrise & sunset tracker for any city</p>
+    </div>
+
+    <div class="search-box">
+      <input type="text" id="cityInput" placeholder="Enter city name (e.g., Melbourne, Tokyo, New York)..." value="Melbourne">
+      <button id="searchBtn">Search</button>
+    </div>
+
+    <div id="status"></div>
+
+    <div class="arc-section">
+      <div class="stat-card">
+        <div class="stat-label">Sunrise</div>
+        <div class="stat-value" id="sunriseTime">--:--</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Day Length</div>
+        <div class="stat-value" id="dayLength">--h --m</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Sunset</div>
+        <div class="stat-value" id="sunsetTime">--:--</div>
+      </div>
+
+      <div class="arc-display">
+        <svg id="dayArc" width="400" height="220" viewBox="0 0 400 220">
+          <!-- Background arc (full day) -->
+          <path d="M 40 180 A 160 160 0 0 1 360 180" stroke="rgba(255,255,255,0.1)" stroke-width="8" fill="none" stroke-linecap="round"/>
+          <!-- Day arc (sunrise to sunset) -->
+          <path id="dayArcPath" d="M 40 180 A 160 160 0 0 1 360 180" stroke="rgba(255,165,0,0.8)" stroke-width="8" fill="none" stroke-linecap="round"/>
+          <!-- Sun dot -->
+          <circle id="sunDot" cx="200" cy="180" cy="40" r="12" fill="#ffa500" filter="url(#glow)"/>
+          <!-- Glow filter -->
+          <defs>
+            <filter id="glow">
+              <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+              <feMerge>
+                <feMergeNode in="coloredBlur"/>
+                <feMergeNode in="SourceGraphic"/>
+              </feMerge>
+            </filter>
+          </defs>
+        </svg>
+      </div>
+
+      <div class="status-line">
+        <span id="currentStatus">Loading data...</span> · <span id="nextEvent">--</span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Pure logic functions (tested headless above)
+    function dayLengthMins(sunriseISO, sunsetISO) {
+      const sunrise = new Date(sunriseISO).getTime();
+      const sunset = new Date(sunsetISO).getTime();
+      return Math.round((sunset - sunrise) / 1000 / 60);
+    }
+
+    function arcProgress(nowISO, sunriseISO, sunsetISO) {
+      const now = new Date(nowISO).getTime();
+      const sunrise = new Date(sunriseISO).getTime();
+      const sunset = new Date(sunsetISO).getTime();
+      if (now < sunrise) return 0;
+      if (now > sunset) return 1;
+      return (now - sunrise) / (sunset - sunrise);
+    }
+
+    function fmtDuration(mins) {
+      const h = Math.floor(mins / 60);
+      const m = mins % 60;
+      return h > 0 ? `${h}h ${m}m` : `${m}m`;
+    }
+
+    function fmtTime(iso) {
+      return new Date(iso).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+    }
+
+    // Update UI
+    async function updateDaylight(city) {
+      const status = document.getElementById('status');
+      const sunriseEl = document.getElementById('sunriseTime');
+      const sunsetEl = document.getElementById('sunsetTime');
+      const dayLenEl = document.getElementById('dayLength');
+      const sunDot = document.getElementById('sunDot');
+      const dayArcPath = document.getElementById('dayArcPath');
+      const currentStatusEl = document.getElementById('currentStatus');
+      const nextEventEl = document.getElementById('nextEvent');
+
+      status.textContent = '';
+      status.className = 'loading';
+      status.innerHTML = '<span class="spinner"></span> Searching...';
+
+      try {
+        // Step 1: Geocode city
+        const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1`);
+        if (!geoRes.ok) throw new Error('Geocode failed');
+        const geoData = await geoRes.json();
+        if (!geoData.results || geoData.results.length === 0) {
+          throw new Error(`City "${city}" not found`);
+        }
+        const { latitude, longitude, name, country } = geoData.results[0];
+
+        // Step 2: Fetch sunrise/sunset from open-meteo
+        const sunRes = await fetch(
+          `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&daily=sunrise,sunset&timezone=auto&date=${new Date().toISOString().split('T')[0]}`
+        );
+        if (!sunRes.ok) throw new Error('Sunrise/sunset fetch failed');
+        const sunData = await sunRes.json();
+        const sunriseISO = sunData.daily.sunrise[0];
+        const sunsetISO = sunData.daily.sunset[0];
+
+        // Compute values
+        const dayLen = dayLengthMins(sunriseISO, sunsetISO);
+        const now = new Date().toISOString();
+        const progress = arcProgress(now, sunriseISO, sunsetISO);
+
+        // Update stat cards
+        sunriseEl.textContent = fmtTime(sunriseISO);
+        sunsetEl.textContent = fmtTime(sunsetISO);
+        dayLenEl.textContent = fmtDuration(dayLen);
+
+        // Update arc visualization
+        const arcLength = progress * 320; // arc spans 320px (360 - 40)
+        const arcAngle = progress * 180; // 0° to 180° for semicircle
+        const arcRad = (arcAngle * Math.PI) / 180;
+        const newX = 200 + 160 * Math.cos(Math.PI - arcRad);
+        const newY = 180 - 160 * Math.sin(arcRad);
+        sunDot.setAttribute('cx', newX);
+        sunDot.setAttribute('cy', newY);
+
+        // Trim the day arc path to current progress
+        const arcPath = `M 40 180 A 160 160 0 ${arcAngle > 180 ? 1 : 0} 1 ${newX} ${newY}`;
+        dayArcPath.setAttribute('d', arcPath);
+
+        // Update status
+        let statusText, nextMsg;
+        if (progress <= 0) {
+          statusText = 'Night time';
+          const minsUntilSunrise = Math.round((new Date(sunriseISO).getTime() - new Date().getTime()) / 1000 / 60);
+          nextMsg = `${minsUntilSunrise} min until sunrise`;
+        } else if (progress >= 1) {
+          statusText = 'Night time';
+          const minsUntilNextSunrise = Math.round((new Date(sunriseISO).getTime() + 86400000 - new Date().getTime()) / 1000 / 60);
+          nextMsg = `${minsUntilNextSunrise} min until sunrise`;
+        } else {
+          statusText = 'Daytime';
+          const minsUntilSunset = Math.round((new Date(sunsetISO).getTime() - new Date().getTime()) / 1000 / 60);
+          nextMsg = `${minsUntilSunset} min until sunset`;
+        }
+        currentStatusEl.textContent = statusText;
+        nextEventEl.textContent = nextMsg;
+
+        // Success feedback
+        status.className = 'success';
+        status.textContent = `✓ ${name}, ${country}`;
+      } catch (err) {
+        status.className = 'error';
+        status.textContent = `❌ ${err.message}`;
+        console.error(err);
+      }
+    }
+
+    // Event listeners
+    document.getElementById('searchBtn').addEventListener('click', () => {
+      const city = document.getElementById('cityInput').value.trim();
+      if (city) updateDaylight(city);
+    });
+    document.getElementById('cityInput').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') document.getElementById('searchBtn').click();
+    });
+
+    // Load default on start
+    window.addEventListener('load', () => updateDaylight('Melbourne'));
+  </script>
+</body>
+</html>
