@@ -48,6 +48,7 @@
   .cell .lbl{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.6px}
   .cell .val{font-family:'Sora',sans-serif;font-size:24px;font-weight:700;margin-top:6px}
   .cell .unit{font-size:13px;color:var(--muted);font-weight:500}
+  .cell .qual{font-size:11px;color:var(--teal);margin-top:4px;font-weight:600}
   .verdict{padding:16px 18px;text-align:center;font-size:15px;font-weight:600;border-top:1px solid var(--border)}
   @media(max-width:560px){.grid{grid-template-columns:repeat(2,1fr)}}
   @keyframes fade{from{opacity:0}to{opacity:1}}
@@ -73,7 +74,7 @@
     </div>
     <div class="grid">
       <div class="cell"><div class="lbl">Wave Height</div><div class="val" id="wh">—<span class="unit"> m</span></div></div>
-      <div class="cell"><div class="lbl">Swell Period</div><div class="val" id="wp">—<span class="unit"> s</span></div></div>
+      <div class="cell"><div class="lbl">Swell Period</div><div class="val" id="wp">—<span class="unit"> s</span></div><div class="qual" id="wq"></div></div>
       <div class="cell"><div class="lbl">Direction</div><div class="val" id="wd">—</div></div>
       <div class="cell"><div class="lbl">Sea Temp</div><div class="val" id="st">—<span class="unit"> °C</span></div></div>
     </div>
@@ -84,12 +85,23 @@
 const $=id=>document.getElementById(id);
 const DIRS=['N','NE','E','SE','S','SW','W','NW'];
 function dirName(deg){return DIRS[Math.round((deg%360)/45)%8]}
+function swellType(p){
+  // wave period tells you swell quality, not height
+  if(p==null)return{q:'—',note:''};
+  if(p<5)return{q:'Wind chop',note:'short-period · messy, wind-driven slop'};
+  if(p<8)return{q:'Mixed swell',note:'medium-period · rideable but not clean'};
+  if(p<11)return{q:'Groundswell',note:'long-period · clean, organised lines'};
+  return{q:'Pure groundswell',note:'very long-period · powerful, glassy sets'};
+}
 function verdict(h,p){
   if(h==null)return{t:'No marine data for this spot',c:'#7ba0ad'};
-  if(h<0.3)return{t:'🟦 Flat — glassy, barely rideable',c:'#38bdf8'};
-  if(h<0.8)return{t:'🟩 Small & clean — great for beginners',c:'#2dd4bf'};
-  if(h<1.6)return{t:'🟨 Fun size — solid waves, go surf',c:'#fbbf24'};
-  if(h<2.6)return{t:'🟧 Pumping — experienced surfers',c:'#fb923c'};
+  // quality score: height matters, but long-period swell adds real punch
+  const pf=p==null?1:Math.min(Math.max((p-3)/8,0.2),1.6); // period factor 0.2..1.6
+  const score=h*pf;
+  if(score<0.25)return{t:'🟦 Flat — glassy, barely rideable',c:'#38bdf8'};
+  if(score<0.7) return{t:'🟩 Small & clean — great for beginners',c:'#2dd4bf'};
+  if(score<1.5) return{t:'🟨 Fun size — solid, surfable waves',c:'#fbbf24'};
+  if(score<2.6) return{t:'🟧 Pumping — for experienced surfers',c:'#fb923c'};
   return{t:'🟥 Heavy — big-wave conditions, caution',c:'#f87171'};
 }
 // wave animation driven by real height
@@ -135,10 +147,13 @@ async function go(){
     $('pctry').textContent=[p.admin1,p.country].filter(Boolean).join(', ');
     $('wh').innerHTML=(wh!=null?wh.toFixed(1):'—')+'<span class="unit"> m</span>';
     $('wp').innerHTML=(c.wave_period!=null?c.wave_period.toFixed(0):'—')+'<span class="unit"> s</span>';
+    const st_=swellType(c.wave_period);$('wq').textContent=st_.q;
     $('wd').textContent=c.wave_direction!=null?dirName(c.wave_direction):'—';
     $('st').innerHTML=(c.sea_surface_temperature!=null?c.sea_surface_temperature.toFixed(1):'—')+'<span class="unit"> °C</span>';
     const v=verdict(wh,c.wave_period);
-    const vd=$('verdict');vd.textContent=v.t;vd.style.color=v.c;
+    const st2=swellType(c.wave_period);
+    const vd=$('verdict');vd.style.color=v.c;
+    vd.innerHTML=v.t+(st2.note?'<span style="display:block;color:var(--muted);font-weight:500;font-size:13px;margin-top:4px">'+st2.note+'</span>':'');
     amp=wh!=null?Math.max(2,Math.min(wh*20,48)):2; // flat sea (2px ripple) when no marine data
     $('panel').style.display='block';
     if(wh==null)setStatus('⚠️ Inland spot — no marine data. Try a coastal city.','err');
