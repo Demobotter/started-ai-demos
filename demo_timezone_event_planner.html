@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Global Event Scheduler</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700&family=Manrope:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            font-family: 'Manrope', sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: #e2e8f0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            width: 100%;
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(71, 85, 105, 0.3);
+            border-radius: 16px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        h1 {
+            font-family: 'Syne', sans-serif;
+            font-size: clamp(28px, 6vw, 48px);
+            font-weight: 700;
+            margin-bottom: 12px;
+            background: linear-gradient(120deg, #60a5fa, #34d399, #a78bfa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -0.02em;
+        }
+
+        .subtitle {
+            font-size: 14px;
+            color: #94a3b8;
+            margin-bottom: 30px;
+            font-weight: 400;
+        }
+
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+            animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.1s both;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .controls {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        label {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: #cbd5e1;
+        }
+
+        input[type="time"], select {
+            padding: 12px 14px;
+            background: rgba(15, 23, 42, 0.5);
+            border: 1px solid rgba(71, 85, 105, 0.4);
+            border-radius: 8px;
+            color: #e2e8f0;
+            font-family: 'Manrope', sans-serif;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        input[type="time"]:hover, select:hover {
+            border-color: rgba(71, 85, 105, 0.6);
+            background: rgba(15, 23, 42, 0.7);
+        }
+
+        input[type="time"]:focus, select:focus {
+            outline: none;
+            border-color: #60a5fa;
+            box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.1);
+        }
+
+        select {
+            cursor: pointer;
+        }
+
+        .results {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.2s both;
+        }
+
+        .city-card {
+            background: rgba(51, 65, 85, 0.4);
+            border: 1px solid rgba(71, 85, 105, 0.3);
+            border-radius: 12px;
+            padding: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .city-card:hover {
+            border-color: rgba(71, 85, 105, 0.5);
+            background: rgba(51, 65, 85, 0.6);
+        }
+
+        .city-name {
+            font-size: 16px;
+            font-weight: 600;
+            color: #e2e8f0;
+            margin-bottom: 8px;
+        }
+
+        .time-display {
+            font-size: 24px;
+            font-weight: 700;
+            color: #60a5fa;
+            font-variant-numeric: tabular-nums;
+            margin-bottom: 10px;
+        }
+
+        .time-period {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .time-period.night {
+            background: rgba(30, 58, 138, 0.6);
+            color: #93c5fd;
+        }
+
+        .time-period.day {
+            background: rgba(134, 89, 5, 0.6);
+            color: #fcd34d;
+        }
+
+        .time-period.evening {
+            background: rgba(120, 53, 15, 0.6);
+            color: #fed7aa;
+        }
+
+        .time-period.working {
+            background: rgba(16, 92, 16, 0.6);
+            color: #86efac;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #64748b;
+            animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.1s both;
+        }
+
+        .empty-state p {
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 24px;
+            }
+
+            h1 {
+                font-size: 28px;
+            }
+
+            .results {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation: none !important;
+                transition: none !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Global Event Scheduler</h1>
+        <p class="subtitle">Pick a time and cities to see when your event happens worldwide</p>
+
+        <div class="controls">
+            <div class="input-group">
+                <label for="eventTime">Event Time</label>
+                <input type="time" id="eventTime" value="14:00">
+            </div>
+            <div class="input-group">
+                <label for="baseCity">Your Timezone</label>
+                <select id="baseCity">
+                    <option value="America/New_York">New York (EDT)</option>
+                    <option value="America/Chicago">Chicago (CDT)</option>
+                    <option value="America/Denver">Denver (MDT)</option>
+                    <option value="America/Los_Angeles">Los Angeles (PDT)</option>
+                    <option value="Europe/London">London (BST)</option>
+                    <option value="Europe/Paris">Paris (CEST)</option>
+                    <option value="Europe/Berlin">Berlin (CEST)</option>
+                    <option value="Asia/Dubai">Dubai (GST)</option>
+                    <option value="Asia/Kolkata">India (IST)</option>
+                    <option value="Asia/Bangkok">Bangkok (ICT)</option>
+                    <option value="Asia/Singapore">Singapore (SGT)</option>
+                    <option value="Asia/Tokyo">Tokyo (JST)</option>
+                    <option value="Australia/Sydney">Sydney (AEST)</option>
+                    <option value="Australia/Melbourne">Melbourne (AEST)</option>
+                    <option value="Pacific/Auckland">Auckland (NZST)</option>
+                </select>
+            </div>
+        </div>
+
+        <div id="results" class="results">
+            <div class="empty-state">
+                <p>Select a time and your timezone to see event times across the world</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const cities = [
+            { name: 'New York', tz: 'America/New_York' },
+            { name: 'London', tz: 'Europe/London' },
+            { name: 'Paris', tz: 'Europe/Paris' },
+            { name: 'Dubai', tz: 'Asia/Dubai' },
+            { name: 'Tokyo', tz: 'Asia/Tokyo' },
+            { name: 'Sydney', tz: 'Australia/Sydney' },
+            { name: 'Singapore', tz: 'Asia/Singapore' },
+            { name: 'Mumbai', tz: 'Asia/Kolkata' },
+            { name: 'Bangkok', tz: 'Asia/Bangkok' },
+            { name: 'Mexico City', tz: 'America/Mexico_City' },
+            { name: 'São Paulo', tz: 'America/Sao_Paulo' },
+            { name: 'Toronto', tz: 'America/Toronto' }
+        ];
+
+        // Pure logic function for timezone conversion (testable in node)
+        function getEventTimeInCity(hour, minute, baseTimezone, targetTimezone) {
+            // Use current date so DST is correct
+            const now = new Date();
+            const refDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+            
+            const baseFormatter = new Intl.DateTimeFormat('en-US', {
+                timeZone: baseTimezone,
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+            });
+            
+            const baseParts = new Map(baseFormatter.formatToParts(refDate).map(p => [p.type, p.value]));
+            const baseHour = parseInt(baseParts.get('hour'));
+            const baseOffset = baseHour; // offset from UTC
+            
+            const targetFormatter = new Intl.DateTimeFormat('en-US', {
+                timeZone: targetTimezone,
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+            });
+            
+            const targetParts = new Map(targetFormatter.formatToParts(refDate).map(p => [p.type, p.value]));
+            const targetHour = parseInt(targetParts.get('hour'));
+            const targetOffset = targetHour;
+            
+            const offsetDiff = targetOffset - baseOffset;
+            let resultHour = (hour + offsetDiff) % 24;
+            if (resultHour < 0) resultHour += 24;
+            
+            return { hour: resultHour, minute };
+        }
+
+        // Determine time period for styling
+        function getTimePeriod(hour) {
+            if (hour >= 22 || hour < 6) return { label: 'Night', class: 'night' };
+            if (hour >= 6 && hour < 9) return { label: 'Morning', class: 'working' };
+            if (hour >= 9 && hour < 12) return { label: 'Morning', class: 'working' };
+            if (hour >= 12 && hour < 17) return { label: 'Afternoon', class: 'day' };
+            if (hour >= 17 && hour < 21) return { label: 'Evening', class: 'evening' };
+            return { label: 'Night', class: 'night' };
+        }
+
+        // Update results when time or timezone changes
+        function updateResults() {
+            const timeInput = document.getElementById('eventTime').value;
+            const baseTimezone = document.getElementById('baseCity').value;
+            const resultsDiv = document.getElementById('results');
+
+            if (!timeInput) {
+                resultsDiv.innerHTML = '<div class="empty-state"><p>Select a time to get started</p></div>';
+                return;
+            }
+
+            const [hour, minute] = timeInput.split(':').map(Number);
+
+            let html = '';
+            cities.forEach((city, idx) => {
+                const converted = getEventTimeInCity(hour, minute, baseTimezone, city.tz);
+                const period = getTimePeriod(converted.hour);
+                const displayHour = String(converted.hour).padStart(2, '0');
+                const displayMinute = String(converted.minute).padStart(2, '0');
+
+                html += `
+                    <div class="city-card" style="animation-delay: ${idx * 0.05}s">
+                        <div class="city-name">${city.name}</div>
+                        <div class="time-display">${displayHour}:${displayMinute}</div>
+                        <span class="time-period ${period.class}">${period.label}</span>
+                    </div>
+                `;
+            });
+
+            resultsDiv.innerHTML = html;
+        }
+
+        document.getElementById('eventTime').addEventListener('change', updateResults);
+        document.getElementById('baseCity').addEventListener('change', updateResults);
+
+        // Initial render
+        updateResults();
+    </script>
+</body>
+</html>
