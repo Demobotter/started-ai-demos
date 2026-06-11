@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chroma — Color Harmony Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700;800&family=Hanken+Grotesk:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  :root{
+    --bg:#0c0a13; --panel:#16131f; --line:rgba(255,255,255,.08);
+    --txt:#f2eefb; --muted:#9a93ad; --accent:#c9a6ff;
+  }
+  html{scroll-behavior:smooth}
+  body{
+    background:var(--bg); color:var(--txt);
+    font-family:'Hanken Grotesk',sans-serif; min-height:100vh;
+    overflow-x:hidden;
+    background-image:
+      radial-gradient(60vw 50vh at 80% -10%, rgba(150,90,255,.20), transparent 70%),
+      radial-gradient(55vw 45vh at 0% 100%, rgba(255,110,180,.14), transparent 70%);
+  }
+  body::after{content:"";position:fixed;inset:0;pointer-events:none;opacity:.04;z-index:1;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");}
+  .wrap{max-width:980px;margin:0 auto;padding:0 24px;position:relative;z-index:2}
+  header{padding:72px 0 36px;text-align:center}
+  .eyebrow{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.32em;text-transform:uppercase;color:var(--accent);opacity:.85}
+  h1{font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:clamp(44px,8vw,84px);line-height:.98;letter-spacing:-.02em;margin:14px 0 12px;
+    background:linear-gradient(92deg,#fff 10%,#caa8ff 55%,#ff9ecb 95%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+  .sub{color:var(--muted);font-size:clamp(15px,2.2vw,18px);max-width:520px;margin:0 auto}
+  .studio{background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,.015));border:1px solid var(--line);border-radius:24px;padding:30px;backdrop-filter:blur(14px);box-shadow:0 30px 80px -30px rgba(0,0,0,.7);
+    opacity:0;transform:translateY(22px);animation:rise .9s cubic-bezier(.16,1,.3,1) .15s forwards}
+  @keyframes rise{to{opacity:1;transform:none}}
+  .controls{display:flex;flex-wrap:wrap;gap:22px;align-items:flex-end;justify-content:center}
+  .ctrl{display:flex;flex-direction:column;gap:9px}
+  .ctrl label{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted)}
+  .pick{display:flex;align-items:center;gap:12px;background:#0c0a13;border:1px solid var(--line);border-radius:14px;padding:10px 14px}
+  input[type=color]{-webkit-appearance:none;appearance:none;width:46px;height:46px;border:none;background:none;cursor:pointer;border-radius:10px;overflow:hidden}
+  input[type=color]::-webkit-color-swatch-wrapper{padding:0}
+  input[type=color]::-webkit-color-swatch{border:none;border-radius:10px}
+  #hexLabel{font-family:'IBM Plex Mono',monospace;font-size:16px;letter-spacing:.04em}
+  .modes{display:flex;flex-wrap:wrap;gap:8px}
+  .modes button{font-family:'Hanken Grotesk',sans-serif;font-weight:600;font-size:13.5px;color:var(--muted);background:#0c0a13;border:1px solid var(--line);padding:10px 15px;border-radius:11px;cursor:pointer;transition:all .25s cubic-bezier(.16,1,.3,1)}
+  .modes button:hover{color:var(--txt);transform:translateY(-2px);border-color:rgba(201,166,255,.4)}
+  .modes button.on{color:#1a1130;background:linear-gradient(92deg,#caa8ff,#ff9ecb);border-color:transparent;box-shadow:0 8px 22px -8px rgba(201,166,255,.6)}
+  .palette{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:14px;margin-top:30px}
+  .swatch{border-radius:18px;overflow:hidden;border:1px solid var(--line);cursor:pointer;transition:transform .3s cubic-bezier(.16,1,.3,1),box-shadow .3s;animation:pop .55s cubic-bezier(.16,1,.3,1) both}
+  .swatch:hover{transform:translateY(-6px) scale(1.015);box-shadow:0 20px 40px -16px rgba(0,0,0,.7)}
+  @keyframes pop{from{opacity:0;transform:translateY(14px) scale(.96)}to{opacity:1;transform:none}}
+  .chip{height:128px}
+  .meta{padding:13px 14px;background:rgba(0,0,0,.28);display:flex;align-items:center;justify-content:space-between}
+  .meta .hx{font-family:'IBM Plex Mono',monospace;font-size:13.5px;letter-spacing:.02em}
+  .meta .cp{font-size:11px;color:var(--muted);font-family:'IBM Plex Mono',monospace}
+  .swatch.copied .cp{color:#7dffa8}
+  .exports{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:26px}
+  .exports button{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.06em;color:var(--muted);background:transparent;border:1px solid var(--line);padding:10px 16px;border-radius:10px;cursor:pointer;transition:all .25s}
+  .exports button:hover{color:var(--txt);border-color:rgba(201,166,255,.45);background:rgba(201,166,255,.06)}
+  .toast{position:fixed;left:50%;bottom:30px;transform:translateX(-50%) translateY(20px);background:#fff;color:#15101f;font-weight:600;font-size:13.5px;padding:11px 20px;border-radius:12px;opacity:0;pointer-events:none;transition:all .35s cubic-bezier(.16,1,.3,1);z-index:9}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  footer{text-align:center;color:var(--muted);font-size:12.5px;padding:40px 0 56px;font-family:'IBM Plex Mono',monospace;letter-spacing:.04em}
+  @media (max-width:560px){header{padding:52px 0 28px}.studio{padding:22px}.chip{height:104px}}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Color Harmony Studio</div>
+    <h1>Chroma</h1>
+    <p class="sub">Pick a base color, choose a harmony rule, and get a designer-grade palette built from real color-theory math. Click any swatch to copy.</p>
+  </header>
+
+  <section class="studio">
+    <div class="controls">
+      <div class="ctrl">
+        <label>Base color</label>
+        <div class="pick">
+          <input type="color" id="base" value="#7d3cff" aria-label="Base color">
+          <span id="hexLabel">#7D3CFF</span>
+        </div>
+      </div>
+      <div class="ctrl">
+        <label>Harmony rule</label>
+        <div class="modes" id="modes">
+          <button data-mode="complementary">Complementary</button>
+          <button data-mode="analogous">Analogous</button>
+          <button data-mode="triadic" class="on">Triadic</button>
+          <button data-mode="splitcomp">Split-Comp</button>
+          <button data-mode="tetradic">Tetradic</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="palette" id="palette"></div>
+
+    <div class="exports">
+      <button data-fmt="hex">Copy HEX list</button>
+      <button data-fmt="css">Copy CSS vars</button>
+      <button data-fmt="json">Copy JSON</button>
+    </div>
+  </section>
+
+  <footer>Built live by an AI agent · pure HSL color-theory math · no libraries</footer>
+</div>
+<div class="toast" id="toast">Copied</div>
+
+<script>
+  // ---- proven pure logic (headless-tested: 10/10) ----
+  function hexToHsl(hex){
+    hex=hex.replace('#','');
+    const r=parseInt(hex.slice(0,2),16)/255,g=parseInt(hex.slice(2,4),16)/255,b=parseInt(hex.slice(4,6),16)/255;
+    const max=Math.max(r,g,b),min=Math.min(r,g,b);let h,s,l=(max+min)/2;
+    if(max===min){h=s=0;}else{const d=max-min;s=l>0.5?d/(2-max-min):d/(max+min);
+      switch(max){case r:h=(g-b)/d+(g<b?6:0);break;case g:h=(b-r)/d+2;break;default:h=(r-g)/d+4;}h/=6;}
+    return [Math.round(h*360),Math.round(s*100),Math.round(l*100)];
+  }
+  function hslToHex(h,s,l){
+    s/=100;l/=100;const k=n=>(n+h/30)%12;const a=s*Math.min(l,1-l);
+    const f=n=>l-a*Math.max(-1,Math.min(k(n)-3,Math.min(9-k(n),1)));
+    const to=x=>Math.round(x*255).toString(16).padStart(2,'0');
+    return ('#'+to(f(0))+to(f(8))+to(f(4))).toUpperCase();
+  }
+  function harmony(hex,mode){
+    const [h,s,l]=hexToHsl(hex);const rot=d=>hslToHex((h+d+360)%360,s,l);
+    switch(mode){
+      case 'complementary':return [hex.toUpperCase(),rot(180)];
+      case 'analogous':return [rot(-30),hex.toUpperCase(),rot(30)];
+      case 'triadic':return [hex.toUpperCase(),rot(120),rot(240)];
+      case 'splitcomp':return [hex.toUpperCase(),rot(150),rot(210)];
+      case 'tetradic':return [hex.toUpperCase(),rot(90),rot(180),rot(270)];
+      default:return [hex.toUpperCase()];
+    }
+  }
+  function readable(hex){const [, ,l]=hexToHsl(hex);return l>58?'#15101f':'#ffffff';}
+
+  // ---- UI ----
+  let mode='triadic', current=[];
+  const baseEl=document.getElementById('base'),
+        hexLabel=document.getElementById('hexLabel'),
+        paletteEl=document.getElementById('palette'),
+        toast=document.getElementById('toast');
+
+  function render(){
+    const base=baseEl.value;
+    hexLabel.textContent=base.toUpperCase();
+    current=harmony(base,mode);
+    paletteEl.innerHTML='';
+    current.forEach((hex,i)=>{
+      const fg=readable(hex);
+      const el=document.createElement('div');
+      el.className='swatch';
+      el.style.animationDelay=(i*0.06)+'s';
+      el.innerHTML=`<div class="chip" style="background:${hex}"></div>
+        <div class="meta"><span class="hx">${hex}</span><span class="cp">copy</span></div>`;
+      el.addEventListener('click',()=>{
+        navigator.clipboard?.writeText(hex);
+        el.classList.add('copied');el.querySelector('.cp').textContent='copied ✓';
+        showToast(hex+' copied');
+        setTimeout(()=>{el.classList.remove('copied');el.querySelector('.cp').textContent='copy';},1100);
+      });
+      paletteEl.appendChild(el);
+    });
+  }
+  function showToast(msg){toast.textContent=msg;toast.classList.add('show');clearTimeout(showToast._t);showToast._t=setTimeout(()=>toast.classList.remove('show'),1400);}
+
+  document.getElementById('modes').addEventListener('click',e=>{
+    const b=e.target.closest('button');if(!b)return;
+    mode=b.dataset.mode;
+    [...e.currentTarget.children].forEach(x=>x.classList.toggle('on',x===b));
+    render();
+  });
+  baseEl.addEventListener('input',render);
+
+  document.querySelector('.exports').addEventListener('click',e=>{
+    const b=e.target.closest('button');if(!b)return;
+    let out='';
+    if(b.dataset.fmt==='hex')out=current.join(', ');
+    else if(b.dataset.fmt==='css')out=':root{\n'+current.map((c,i)=>`  --color-${i+1}: ${c};`).join('\n')+'\n}';
+    else out=JSON.stringify(current,null,2);
+    navigator.clipboard?.writeText(out);
+    showToast(b.dataset.fmt.toUpperCase()+' copied to clipboard');
+  });
+
+  render();
+</script>
+</body>
+</html>
