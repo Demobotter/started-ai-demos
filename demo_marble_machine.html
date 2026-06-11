@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Marble Machine Simulator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      width: 100%;
+      height: 100%;
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, #0a0e27 0%, #1a1a3e 100%);
+      color: #fff;
+      overflow-x: hidden;
+    }
+    body { display: flex; align-items: center; justify-content: center; padding: 20px; min-height: 100vh; }
+    .container { max-width: 700px; width: 100%; animation: fadeIn 0.6s cubic-bezier(.16,1,.3,1); }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    
+    .hero {
+      text-align: center;
+      margin-bottom: 2rem;
+      animation: slideDown 0.8s cubic-bezier(.16,1,.3,1);
+    }
+    @keyframes slideDown { from { opacity: 0; transform: translateY(-40px); } to { opacity: 1; transform: translateY(0); } }
+    
+    .hero h1 {
+      font-family: 'Fraunces', serif;
+      font-size: clamp(1.8rem, 5vw, 2.8rem);
+      font-weight: 700;
+      background: linear-gradient(120deg, #00d9ff, #ff00ff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: -1px;
+      margin-bottom: 0.5rem;
+    }
+    .hero p {
+      font-size: 0.95rem;
+      color: rgba(255,255,255,0.7);
+    }
+    
+    .canvas-frame {
+      background: rgba(255,255,255,0.02);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(0,217,255,0.3);
+      border-radius: 16px;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 0 40px rgba(0,217,255,0.1), inset 0 0 40px rgba(255,0,255,0.05);
+      animation: glowIn 0.8s cubic-bezier(.16,1,.3,1);
+    }
+    @keyframes glowIn { from { opacity: 0; } to { opacity: 1; } }
+    
+    canvas {
+      display: block;
+      width: 100%;
+      height: auto;
+      background: linear-gradient(180deg, #0f1f3f 0%, #1a2f4f 100%);
+      border-radius: 8px;
+    }
+    
+    .controls {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+      animation: slideUp 0.8s cubic-bezier(.16,1,.3,1) 0.1s both;
+    }
+    @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    
+    .control-label {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: rgba(255,255,255,0.8);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .slider-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    
+    input[type="range"] {
+      flex: 1;
+      height: 6px;
+      border-radius: 3px;
+      background: linear-gradient(90deg, rgba(0,217,255,0.3), rgba(255,0,255,0.3));
+      outline: none;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+    
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #00d9ff, #ff00ff);
+      cursor: pointer;
+      box-shadow: 0 0 10px rgba(0,217,255,0.5);
+      transition: box-shadow 0.2s;
+    }
+    input[type="range"]::-webkit-slider-thumb:hover { box-shadow: 0 0 16px rgba(0,217,255,0.8); }
+    
+    input[type="range"]::-moz-range-thumb {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #00d9ff, #ff00ff);
+      cursor: pointer;
+      border: none;
+      box-shadow: 0 0 10px rgba(0,217,255,0.5);
+      transition: box-shadow 0.2s;
+    }
+    input[type="range"]::-moz-range-thumb:hover { box-shadow: 0 0 16px rgba(0,217,255,0.8); }
+    
+    .value-display {
+      font-family: 'Fraunces', serif;
+      font-size: 1rem;
+      font-weight: 600;
+      color: #00d9ff;
+      min-width: 45px;
+      text-align: right;
+    }
+    
+    .launch-button {
+      grid-column: 1 / -1;
+      background: linear-gradient(135deg, rgba(0,217,255,0.3), rgba(255,0,255,0.3));
+      border: 1px solid rgba(0,217,255,0.5);
+      color: #fff;
+      padding: 1rem;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-family: 'Fraunces', serif;
+    }
+    .launch-button:hover {
+      background: linear-gradient(135deg, rgba(0,217,255,0.5), rgba(255,0,255,0.5));
+      box-shadow: 0 0 20px rgba(0,217,255,0.4);
+    }
+    .launch-button:active { transform: scale(0.98); }
+    
+    .info-row {
+      display: flex;
+      gap: 1rem;
+      margin-top: 1rem;
+      font-size: 0.8rem;
+      color: rgba(255,255,255,0.5);
+      text-align: center;
+    }
+    .info-row span { flex: 1; }
+    
+    @media (max-width: 600px) {
+      .controls { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="hero">
+      <h1>Marble Machine</h1>
+      <p>Adjust physics and watch the marble roll</p>
+    </div>
+
+    <div class="canvas-frame">
+      <canvas id="canvas" width="600" height="400"></canvas>
+    </div>
+
+    <div class="controls">
+      <div class="control-group">
+        <label class="control-label">Ramp Angle</label>
+        <div class="slider-wrapper">
+          <input type="range" id="angleSlider" min="5" max="85" value="35" step="1">
+          <span class="value-display" id="angleValue">35°</span>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <label class="control-label">Gravity</label>
+        <div class="slider-wrapper">
+          <input type="range" id="gravitySlider" min="0.2" max="2" value="1" step="0.1">
+          <span class="value-display" id="gravityValue">1.0x</span>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <label class="control-label">Friction</label>
+        <div class="slider-wrapper">
+          <input type="range" id="frictionSlider" min="0" max="0.3" value="0.1" step="0.01">
+          <span class="value-display" id="frictionValue">0.10</span>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <label class="control-label">Launch Speed</label>
+        <div class="slider-wrapper">
+          <input type="range" id="speedSlider" min="2" max="15" value="8" step="0.5">
+          <span class="value-display" id="speedValue">8.0</span>
+        </div>
+      </div>
+
+      <button class="launch-button" id="launchBtn">🚀 Launch Marble</button>
+    </div>
+
+    <div class="info-row">
+      <span>Click Launch to release the marble down the ramp</span>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    let params = {
+      angle: 35,
+      gravity: 1,
+      friction: 0.1,
+      speed: 8
+    };
+    
+    let marble = null;
+    let animId = null;
+
+    // Update displays
+    document.getElementById('angleSlider').addEventListener('input', (e) => {
+      params.angle = parseFloat(e.target.value);
+      document.getElementById('angleValue').textContent = params.angle + '°';
+    });
+    document.getElementById('gravitySlider').addEventListener('input', (e) => {
+      params.gravity = parseFloat(e.target.value);
+      document.getElementById('gravityValue').textContent = params.gravity.toFixed(1) + 'x';
+    });
+    document.getElementById('frictionSlider').addEventListener('input', (e) => {
+      params.friction = parseFloat(e.target.value);
+      document.getElementById('frictionValue').textContent = params.friction.toFixed(2);
+    });
+    document.getElementById('speedSlider').addEventListener('input', (e) => {
+      params.speed = parseFloat(e.target.value);
+      document.getElementById('speedValue').textContent = params.speed.toFixed(1);
+    });
+
+    document.getElementById('launchBtn').addEventListener('click', launchMarble);
+
+    function launchMarble() {
+      if (marble) return; // Already rolling
+      
+      const angle = params.angle * Math.PI / 180;
+      marble = {
+        x: 60,
+        y: 50,
+        vx: params.speed * Math.cos(angle),
+        vy: params.speed * Math.sin(angle),
+        radius: 8
+      };
+      
+      if (animId) cancelAnimationFrame(animId);
+      animate();
+    }
+
+    function animate() {
+      if (!marble) return;
+      
+      // Update velocity with gravity
+      const angle = params.angle * Math.PI / 180;
+      const gravityX = params.gravity * 0.3 * Math.cos(angle);
+      const gravityY = params.gravity * 0.3 * Math.sin(angle);
+      
+      marble.vx += gravityX;
+      marble.vy += gravityY;
+      
+      // Apply friction
+      const speed = Math.sqrt(marble.vx ** 2 + marble.vy ** 2);
+      if (speed > 0.1) {
+        const frictionFactor = 1 - params.friction * 0.05;
+        marble.vx *= frictionFactor;
+        marble.vy *= frictionFactor;
+      } else {
+        marble = null;
+        return;
+      }
+      
+      // Update position
+      marble.x += marble.vx;
+      marble.y += marble.vy;
+      
+      // Boundaries
+      if (marble.x > canvas.width + 20) {
+        marble = null;
+        return;
+      }
+      
+      draw();
+      animId = requestAnimationFrame(animate);
+    }
+
+    function draw() {
+      // Clear with gradient
+      const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+      grad.addColorStop(0, '#0f1f3f');
+      grad.addColorStop(1, '#1a2f4f');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // Draw ramp
+      const angle = params.angle * Math.PI / 180;
+      const rampLength = 500;
+      const rampX2 = 60 + rampLength * Math.cos(angle);
+      const rampY2 = 50 + rampLength * Math.sin(angle);
+      
+      ctx.strokeStyle = 'rgba(0, 217, 255, 0.6)';
+      ctx.lineWidth = 12;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(60, 50);
+      ctx.lineTo(rampX2, rampY2);
+      ctx.stroke();
+      
+      // Draw marble
+      if (marble) {
+        ctx.fillStyle = 'rgba(255, 0, 255, 0.9)';
+        ctx.beginPath();
+        ctx.arc(marble.x, marble.y, marble.radius, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Glow
+        ctx.fillStyle = 'rgba(255, 0, 255, 0.3)';
+        ctx.beginPath();
+        ctx.arc(marble.x, marble.y, marble.radius + 6, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      
+      // Start point
+      ctx.fillStyle = 'rgba(0, 217, 255, 0.8)';
+      ctx.beginPath();
+      ctx.arc(60, 50, 6, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Initial draw
+    draw();
+  </script>
+</body>
+</html>
