@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Crypto Strength Ranker</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Space Grotesk', sans-serif;
+      background: linear-gradient(135deg, #0a0e27 0%, #1a1f4d 50%, #0d0f2b 100%);
+      color: #e0e6ff;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      overflow-x: hidden;
+    }
+
+    .container {
+      max-width: 900px;
+      width: 100%;
+      animation: fadeInScale 0.6s cubic-bezier(.16,1,.3,1);
+    }
+
+    @keyframes fadeInScale {
+      from {
+        opacity: 0;
+        transform: scale(0.95);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+
+    .hero {
+      text-align: center;
+      margin-bottom: 40px;
+      animation: slideDown 0.8s cubic-bezier(.16,1,.3,1) 0.1s both;
+    }
+
+    @keyframes slideDown {
+      from {
+        opacity: 0;
+        transform: translateY(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    h1 {
+      font-size: clamp(36px, 8vw, 56px);
+      font-weight: 700;
+      letter-spacing: -1px;
+      background: linear-gradient(135deg, #ff6b9d 0%, #feca57 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 8px;
+    }
+
+    .subtitle {
+      font-size: 14px;
+      color: #9ba3c4;
+      font-family: 'IBM Plex Mono', monospace;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .controls {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 30px;
+      animation: slideUp 0.8s cubic-bezier(.16,1,.3,1) 0.2s both;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .sort-btn {
+      padding: 10px 16px;
+      border: 2px solid #feca57;
+      background: rgba(254, 202, 87, 0.05);
+      color: #feca57;
+      border-radius: 8px;
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(.16,1,.3,1);
+    }
+
+    .sort-btn:hover {
+      background: rgba(254, 202, 87, 0.15);
+      box-shadow: 0 0 20px rgba(254, 202, 87, 0.4);
+    }
+
+    .sort-btn.active {
+      background: rgba(254, 202, 87, 0.25);
+      box-shadow: 0 0 30px rgba(254, 202, 87, 0.6);
+    }
+
+    .refresh-btn {
+      padding: 10px 20px;
+      border: 2px solid #00ff88;
+      background: rgba(0, 255, 136, 0.05);
+      color: #00ff88;
+      border-radius: 8px;
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(.16,1,.3,1);
+    }
+
+    .refresh-btn:hover {
+      background: rgba(0, 255, 136, 0.15);
+      box-shadow: 0 0 20px rgba(0, 255, 136, 0.4);
+    }
+
+    .refresh-btn:active {
+      transform: scale(0.98);
+    }
+
+    .loading {
+      display: none;
+      text-align: center;
+      font-size: 14px;
+      color: #ff6b9d;
+      margin: 20px 0;
+    }
+
+    .loading.active::after {
+      content: '';
+      animation: dots 1.4s infinite;
+    }
+
+    @keyframes dots {
+      0%, 20% { content: '.'; }
+      40% { content: '..'; }
+      60%, 100% { content: '...'; }
+    }
+
+    .results {
+      display: grid;
+      gap: 12px;
+      animation: slideUp 0.8s cubic-bezier(.16,1,.3,1) 0.3s both;
+    }
+
+    .crypto-card {
+      background: linear-gradient(135deg, rgba(255, 107, 157, 0.08), rgba(254, 202, 87, 0.08));
+      border: 1px solid rgba(255, 107, 157, 0.3);
+      border-radius: 12px;
+      padding: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      backdrop-filter: blur(10px);
+      transition: all 0.3s cubic-bezier(.16,1,.3,1);
+      cursor: default;
+    }
+
+    .crypto-card:hover {
+      border-color: rgba(255, 107, 157, 0.6);
+      box-shadow: 0 8px 32px rgba(255, 107, 157, 0.15);
+      transform: translateX(4px);
+    }
+
+    .rank-badge {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      background: linear-gradient(135deg, #ff6b9d, #feca57);
+      border-radius: 50%;
+      font-weight: 700;
+      color: #0a0e27;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+
+    .card-info {
+      flex: 1;
+      margin-left: 16px;
+    }
+
+    .crypto-name {
+      font-weight: 700;
+      font-size: 18px;
+      color: #feca57;
+    }
+
+    .crypto-symbol {
+      font-size: 12px;
+      color: #9ba3c4;
+      font-family: 'IBM Plex Mono', monospace;
+      margin-top: 2px;
+    }
+
+    .card-stats {
+      display: flex;
+      gap: 20px;
+      align-items: center;
+    }
+
+    .stat {
+      text-align: right;
+    }
+
+    .stat-label {
+      font-size: 11px;
+      color: #9ba3c4;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-family: 'IBM Plex Mono', monospace;
+      margin-bottom: 4px;
+    }
+
+    .stat-value {
+      font-size: 14px;
+      font-weight: 600;
+      color: #e0e6ff;
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    .change {
+      margin-top: 4px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .change.positive {
+      color: #00ff88;
+    }
+
+    .change.negative {
+      color: #ff6b6b;
+    }
+
+    .strength-bar {
+      width: 80px;
+      height: 6px;
+      background: rgba(255, 107, 157, 0.2);
+      border-radius: 3px;
+      overflow: hidden;
+      margin-top: 4px;
+    }
+
+    .strength-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #ff6b9d, #feca57);
+      border-radius: 3px;
+      transition: width 0.6s cubic-bezier(.16,1,.3,1);
+    }
+
+    .error {
+      background: rgba(255, 64, 64, 0.1);
+      border: 1px solid rgba(255, 64, 64, 0.4);
+      color: #ff6b6b;
+      padding: 16px;
+      border-radius: 8px;
+      text-align: center;
+      display: none;
+      animation: slideUp 0.4s cubic-bezier(.16,1,.3,1);
+    }
+
+    .error.active {
+      display: block;
+    }
+
+    @media (max-width: 640px) {
+      h1 {
+        font-size: 32px;
+      }
+
+      .card-stats {
+        gap: 12px;
+        flex-direction: column;
+        align-items: flex-end;
+      }
+
+      .controls {
+        flex-direction: column;
+      }
+
+      .sort-btn,
+      .refresh-btn {
+        width: 100%;
+      }
+
+      .crypto-card {
+        flex-direction: column;
+        text-align: center;
+      }
+
+      .rank-badge {
+        margin-bottom: 12px;
+      }
+
+      .card-info {
+        margin-left: 0;
+        margin-bottom: 12px;
+      }
+
+      .card-stats {
+        width: 100%;
+        justify-content: center;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="hero">
+      <h1>Crypto Strength</h1>
+      <p class="subtitle">Live Market Cap Ranker</p>
+    </div>
+
+    <div class="controls">
+      <button class="sort-btn active" data-sort="market_cap">Market Cap</button>
+      <button class="sort-btn" data-sort="price">Price</button>
+      <button class="sort-btn" data-sort="24h_change">24h Change</button>
+      <button class="refresh-btn" id="refreshBtn">Refresh Data</button>
+    </div>
+
+    <div class="loading" id="loading">Loading live data</div>
+    <div class="error" id="error"></div>
+    <div class="results" id="results"></div>
+  </div>
+
+  <script>
+    const sortBtns = document.querySelectorAll('.sort-btn');
+    const refreshBtn = document.getElementById('refreshBtn');
+    const loading = document.getElementById('loading');
+    const error = document.getElementById('error');
+    const results = document.getElementById('results');
+
+    let currentData = [];
+    let currentSort = 'market_cap';
+
+    const cryptoInfo = {
+      bitcoin: { name: 'Bitcoin', symbol: 'BTC', color: '#f7931a' },
+      ethereum: { name: 'Ethereum', symbol: 'ETH', color: '#627eea' },
+      binancecoin: { name: 'Binance Coin', symbol: 'BNB', color: '#f3ba2f' },
+      ripple: { name: 'XRP', symbol: 'XRP', color: '#23292f' },
+      cardano: { name: 'Cardano', symbol: 'ADA', color: '#0033ad' },
+      solana: { name: 'Solana', symbol: 'SOL', color: '#14f195' },
+      polkadot: { name: 'Polkadot', symbol: 'DOT', color: '#e6007a' },
+      litecoin: { name: 'Litecoin', symbol: 'LTC', color: '#345d9d' }
+    };
+
+    async function fetchData() {
+      loading.classList.add('active');
+      error.classList.remove('active');
+
+      try {
+        const ids = Object.keys(cryptoInfo).join(',');
+        const response = await fetch(
+          `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&include_market_cap=true&include_24hr_change=true`
+        );
+        
+        if (!response.ok) throw new Error('Failed to fetch data');
+        const data = await response.json();
+
+        currentData = Object.entries(data).map(([id, prices]) => {
+          const info = cryptoInfo[id];
+          const marketCap = prices.usd_market_cap || 0;
+          const price = prices.usd;
+          const change24h = prices.usd_24h_change;
+
+          return {
+            id,
+            name: info.name,
+            symbol: info.symbol,
+            color: info.color,
+            price,
+            marketCap,
+            change24h,
+            strength: marketCap > 0 ? Math.log10(marketCap) : 0
+          };
+        });
+
+        loading.classList.remove('active');
+        renderResults();
+      } catch (err) {
+        loading.classList.remove('active');
+        error.classList.add('active');
+        error.textContent = 'Failed to fetch market data. Please try again.';
+        console.error(err);
+      }
+    }
+
+    function renderResults() {
+      const sorted = [...currentData].sort((a, b) => {
+        if (currentSort === 'market_cap') return b.marketCap - a.marketCap;
+        if (currentSort === 'price') return b.price - a.price;
+        if (currentSort === '24h_change') return b.change24h - a.change24h;
+      });
+
+      const maxValue = currentSort === 'market_cap' ? Math.max(...sorted.map(x => x.strength)) : 
+                       currentSort === 'price' ? Math.max(...sorted.map(x => Math.log10(x.price))) : 100;
+
+      results.innerHTML = sorted.map((item, index) => {
+        const displayValue = currentSort === 'market_cap' ? item.strength : 
+                            currentSort === 'price' ? Math.log10(item.price) : Math.abs(item.change24h);
+        const barWidth = (displayValue / maxValue) * 100;
+        const changeClass = item.change24h > 0 ? 'positive' : 'negative';
+        const changeSign = item.change24h > 0 ? '+' : '';
+
+        let statContent = '';
+        if (currentSort === 'market_cap') {
+          const cap = item.marketCap > 1e9 ? `$${(item.marketCap / 1e9).toFixed(1)}B` : `$${(item.marketCap / 1e6).toFixed(1)}M`;
+          statContent = `<div class="stat-value">${cap}</div>`;
+        } else if (currentSort === 'price') {
+          statContent = `<div class="stat-value">$${item.price.toFixed(2)}</div>`;
+        } else {
+          statContent = `<div class="stat-value">${changeSign}${item.change24h.toFixed(2)}%</div>`;
+        }
+
+        return `
+          <div class="crypto-card">
+            <div style="display: flex; align-items: center;">
+              <div class="rank-badge">${index + 1}</div>
+              <div class="card-info">
+                <div class="crypto-name">${item.name}</div>
+                <div class="crypto-symbol">${item.symbol}</div>
+              </div>
+            </div>
+            <div class="card-stats">
+              <div class="stat">
+                <div class="stat-label">${currentSort === 'market_cap' ? 'Market Cap' : currentSort === 'price' ? 'Price' : '24h Change'}</div>
+                ${statContent}
+                <div class="strength-bar">
+                  <div class="strength-fill" style="width: ${barWidth}%"></div>
+                </div>
+              </div>
+              <div class="stat">
+                <div class="stat-label">24h Change</div>
+                <div class="stat-value">$${item.price.toFixed(2)}</div>
+                <div class="change ${changeClass}">${changeSign}${item.change24h.toFixed(2)}%</div>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    sortBtns.forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        sortBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentSort = btn.dataset.sort;
+        renderResults();
+      });
+    });
+
+    refreshBtn.addEventListener('click', fetchData);
+
+    fetchData();
+  </script>
+</body>
+</html>
