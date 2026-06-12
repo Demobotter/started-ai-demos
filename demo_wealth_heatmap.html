@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wealth Heatmap Analyzer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Instrument+Serif&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Space Mono', monospace;
+      background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 100%);
+      color: #e0e0e0;
+      overflow-x: hidden;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 40px 20px;
+    }
+
+    header {
+      margin-bottom: 60px;
+      animation: slideDown 0.8s cubic-bezier(0.16,1,0.3,1) ease-out;
+    }
+
+    h1 {
+      font-family: 'Instrument Serif', serif;
+      font-size: clamp(36px, 8vw, 72px);
+      letter-spacing: -0.02em;
+      background: linear-gradient(120deg, #00d9ff 0%, #00a8ff 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 12px;
+      line-height: 1.1;
+    }
+
+    .subtitle {
+      font-size: 16px;
+      color: #8a8aaa;
+      font-weight: 400;
+      letter-spacing: 0.5px;
+    }
+
+    .heatmap-wrapper {
+      background: rgba(20, 25, 50, 0.7);
+      border: 1px solid rgba(0, 217, 255, 0.2);
+      border-radius: 16px;
+      padding: 40px;
+      backdrop-filter: blur(10px);
+      animation: fadeIn 1s ease-out 0.3s backwards;
+      margin-bottom: 40px;
+    }
+
+    .heatmap-section h2 {
+      font-family: 'Instrument Serif', serif;
+      font-size: 20px;
+      color: #00d9ff;
+      margin-bottom: 24px;
+      font-weight: 400;
+      letter-spacing: -0.01em;
+    }
+
+    .heatmap-container {
+      overflow-x: auto;
+      margin-bottom: 24px;
+    }
+
+    svg {
+      display: block;
+      max-width: 100%;
+      height: auto;
+    }
+
+    .cell-label {
+      font-size: 11px;
+      font-weight: 400;
+      fill: #e0e0e0;
+      text-anchor: middle;
+      dominant-baseline: middle;
+      pointer-events: none;
+    }
+
+    .axis-label {
+      font-size: 12px;
+      fill: #8a8aaa;
+      font-weight: 400;
+      text-anchor: middle;
+    }
+
+    .axis-y-label {
+      font-size: 12px;
+      fill: #8a8aaa;
+      font-weight: 400;
+      text-anchor: end;
+      dominant-baseline: middle;
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 24px;
+      margin-top: 32px;
+      padding-top: 32px;
+      border-top: 1px solid rgba(0, 217, 255, 0.1);
+    }
+
+    .control-group {
+      animation: fadeIn 1s ease-out 0.5s backwards;
+    }
+
+    label {
+      display: block;
+      font-size: 12px;
+      color: #8a8aaa;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-weight: 400;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      height: 6px;
+      border-radius: 3px;
+      background: linear-gradient(90deg, #00d9ff 0%, #0088ff 100%);
+      outline: none;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #00d9ff;
+      cursor: pointer;
+      box-shadow: 0 0 12px rgba(0, 217, 255, 0.5);
+      transition: all 0.2s;
+    }
+
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+      box-shadow: 0 0 20px rgba(0, 217, 255, 0.8);
+    }
+
+    input[type="range"]::-moz-range-thumb {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #00d9ff;
+      cursor: pointer;
+      border: none;
+      box-shadow: 0 0 12px rgba(0, 217, 255, 0.5);
+      transition: all 0.2s;
+    }
+
+    input[type="range"]::-moz-range-thumb:hover {
+      transform: scale(1.2);
+      box-shadow: 0 0 20px rgba(0, 217, 255, 0.8);
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px;
+      margin-top: 32px;
+      padding-top: 32px;
+      border-top: 1px solid rgba(0, 217, 255, 0.1);
+    }
+
+    .stat-card {
+      background: rgba(0, 217, 255, 0.05);
+      border: 1px solid rgba(0, 217, 255, 0.15);
+      border-radius: 12px;
+      padding: 16px;
+      animation: fadeIn 1s ease-out 0.6s backwards;
+    }
+
+    .stat-label {
+      font-size: 11px;
+      color: #8a8aaa;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+    }
+
+    .stat-value {
+      font-size: 18px;
+      color: #00d9ff;
+      font-weight: 700;
+      font-family: 'Space Mono', monospace;
+    }
+
+    @keyframes slideDown {
+      from {
+        opacity: 0;
+        transform: translateY(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+      }
+      to {
+        opacity: 1;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .container {
+        padding: 24px 16px;
+      }
+
+      h1 {
+        font-size: clamp(28px, 6vw, 48px);
+      }
+
+      .heatmap-wrapper {
+        padding: 24px;
+      }
+
+      .controls {
+        grid-template-columns: 1fr;
+      }
+
+      .stats {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Wealth Heatmap</h1>
+      <p class="subtitle">Visualize wealth distribution across income and age</p>
+    </header>
+
+    <div class="heatmap-wrapper">
+      <div class="heatmap-section">
+        <h2>Distribution Matrix</h2>
+        <div class="heatmap-container">
+          <svg id="heatmapSvg" width="600" height="300" viewBox="0 0 600 300" preserveAspectRatio="xMidYMid meet"></svg>
+        </div>
+      </div>
+
+      <div class="controls">
+        <div class="control-group">
+          <label for="incomeScale">Income Scale</label>
+          <input type="range" id="incomeScale" min="0.5" max="2" step="0.1" value="1">
+          <div style="font-size: 12px; color: #00d9ff; margin-top: 8px;" id="incomeScaleLabel">1.0x</div>
+        </div>
+
+        <div class="control-group">
+          <label for="ageEffect">Age Effect</label>
+          <input type="range" id="ageEffect" min="0.1" max="0.4" step="0.05" value="0.2">
+          <div style="font-size: 12px; color: #00d9ff; margin-top: 8px;" id="ageEffectLabel">0.2x</div>
+        </div>
+
+        <div class="control-group">
+          <label for="compounding">Compounding</label>
+          <input type="range" id="compounding" min="0" max="0.3" step="0.05" value="0.15">
+          <div style="font-size: 12px; color: #00d9ff; margin-top: 8px;" id="compoundingLabel">0.15x</div>
+        </div>
+      </div>
+
+      <div class="stats">
+        <div class="stat-card">
+          <div class="stat-label">Min Wealth</div>
+          <div class="stat-value" id="minWealth">$21k</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Max Wealth</div>
+          <div class="stat-value" id="maxWealth">$2.2M</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Avg Wealth</div>
+          <div class="stat-value" id="avgWealth">$379k</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Disparity Ratio</div>
+          <div class="stat-value" id="disparityRatio">105x</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const brackets = [25, 50, 75, 100, 150, 200, 300];
+    const ages = [25, 35, 45, 55, 65];
+    const cellSize = 50;
+    const padding = { top: 60, left: 80, right: 20, bottom: 60 };
+
+    function generateWealthMatrix(incomeScale, ageEffect, compounding) {
+      const matrix = [];
+      ages.forEach((age, ageIdx) => {
+        const row = brackets.map((income, incomeIdx) => {
+          let base = income * (age / 30) * incomeScale;
+          if (incomeIdx >= 3) {
+            base *= (1 + (incomeIdx * compounding));
+          }
+          base *= (1 + (ageIdx * ageEffect));
+          return Math.round(base);
+        });
+        matrix.push(row);
+      });
+      return matrix;
+    }
+
+    function normalizeMatrix(matrix) {
+      const flat = matrix.flat();
+      const max = Math.max(...flat);
+      const min = Math.min(...flat);
+      const range = max - min || 1;
+      return matrix.map(row =>
+        row.map(val => ((val - min) / range) * 100)
+      );
+    }
+
+    function valueToColor(normalized) {
+      // Cool to hot gradient: cyan → yellow → orange → red
+      let r, g, b;
+      if (normalized < 33) {
+        const t = normalized / 33;
+        r = Math.round(0 + t * 100);
+        g = Math.round(217 - t * 100);
+        b = Math.round(255);
+      } else if (normalized < 66) {
+        const t = (normalized - 33) / 33;
+        r = Math.round(100 + t * 155);
+        g = Math.round(117 + t * 138);
+        b = Math.round(155 - t * 155);
+      } else {
+        const t = (normalized - 66) / 34;
+        r = Math.round(255);
+        g = Math.round(255 - t * 155);
+        b = 0;
+      }
+      return `rgb(${r}, ${g}, ${b})`;
+    }
+
+    function renderHeatmap() {
+      const incomeScale = parseFloat(document.getElementById('incomeScale').value);
+      const ageEffect = parseFloat(document.getElementById('ageEffect').value);
+      const compounding = parseFloat(document.getElementById('compounding').value);
+
+      const wealthMatrix = generateWealthMatrix(incomeScale, ageEffect, compounding);
+      const normalizedMatrix = normalizeMatrix(wealthMatrix);
+      const flatWorth = wealthMatrix.flat();
+      const maxWorth = Math.max(...flatWorth);
+      const minWorth = Math.min(...flatWorth);
+      const avgWorth = flatWorth.reduce((a, b) => a + b, 0) / flatWorth.length;
+      const disparity = maxWorth / minWorth;
+
+      const svg = document.getElementById('heatmapSvg');
+      svg.innerHTML = '';
+
+      const svgWidth = padding.left + brackets.length * cellSize + padding.right;
+      const svgHeight = padding.top + ages.length * cellSize + padding.bottom;
+      svg.setAttribute('viewBox', `0 0 ${svgWidth} ${svgHeight}`);
+
+      // X axis labels (income brackets)
+      brackets.forEach((bracket, idx) => {
+        const x = padding.left + idx * cellSize + cellSize / 2;
+        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        text.setAttribute('x', x);
+        text.setAttribute('y', padding.top - 20);
+        text.setAttribute('class', 'axis-label');
+        text.textContent = `$${bracket}k`;
+        svg.appendChild(text);
+      });
+
+      // Y axis labels (ages)
+      ages.forEach((age, idx) => {
+        const y = padding.top + idx * cellSize + cellSize / 2;
+        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        text.setAttribute('x', padding.left - 20);
+        text.setAttribute('y', y);
+        text.setAttribute('class', 'axis-y-label');
+        text.textContent = `${age}y`;
+        svg.appendChild(text);
+      });
+
+      // Heatmap cells
+      wealthMatrix.forEach((row, ageIdx) => {
+        row.forEach((wealth, incomeIdx) => {
+          const normalized = normalizedMatrix[ageIdx][incomeIdx];
+          const x = padding.left + incomeIdx * cellSize;
+          const y = padding.top + ageIdx * cellSize;
+
+          const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+          rect.setAttribute('x', x);
+          rect.setAttribute('y', y);
+          rect.setAttribute('width', cellSize - 2);
+          rect.setAttribute('height', cellSize - 2);
+          rect.setAttribute('fill', valueToColor(normalized));
+          rect.setAttribute('opacity', '0.85');
+          rect.style.cursor = 'pointer';
+          rect.style.transition = 'opacity 0.2s';
+
+          rect.addEventListener('mouseover', () => {
+            rect.setAttribute('opacity', '1');
+          });
+          rect.addEventListener('mouseout', () => {
+            rect.setAttribute('opacity', '0.85');
+          });
+
+          svg.appendChild(rect);
+
+          // Value label
+          const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+          label.setAttribute('x', x + cellSize / 2);
+          label.setAttribute('y', y + cellSize / 2);
+          label.setAttribute('class', 'cell-label');
+          label.textContent = `$${Math.round(wealth / 100)}`;
+          svg.appendChild(label);
+        });
+      });
+
+      // Update stats
+      document.getElementById('minWealth').textContent = `$${minWorth}k`;
+      document.getElementById('maxWealth').textContent = maxWorth >= 1000 ? `$${(maxWorth / 1000).toFixed(1)}M` : `$${maxWorth}k`;
+      document.getElementById('avgWealth').textContent = avgWorth >= 1000 ? `$${(avgWorth / 1000).toFixed(1)}M` : `$${Math.round(avgWorth)}k`;
+      document.getElementById('disparityRatio').textContent = `${disparity.toFixed(0)}x`;
+
+      // Update slider labels
+      document.getElementById('incomeScaleLabel').textContent = incomeScale.toFixed(1) + 'x';
+      document.getElementById('ageEffectLabel').textContent = ageEffect.toFixed(2) + 'x';
+      document.getElementById('compoundingLabel').textContent = compounding.toFixed(2) + 'x';
+    }
+
+    document.getElementById('incomeScale').addEventListener('input', renderHeatmap);
+    document.getElementById('ageEffect').addEventListener('input', renderHeatmap);
+    document.getElementById('compounding').addEventListener('input', renderHeatmap);
+
+    renderHeatmap();
+  </script>
+</body>
+</html>
