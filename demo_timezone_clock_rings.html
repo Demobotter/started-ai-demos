@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Timezone Clock Rings</title>
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Sora', sans-serif;
+      background: radial-gradient(ellipse at top, #1a1a3a, #0d0d1b);
+      color: #e0e0e0;
+      min-height: 100vh;
+      padding: 20px;
+      overflow-x: hidden;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .hero {
+      text-align: center;
+      margin-bottom: 50px;
+      animation: heroFade 0.8s ease-out;
+    }
+
+    @keyframes heroFade {
+      from { opacity: 0; transform: translateY(-20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .hero h1 {
+      font-size: clamp(36px, 8vw, 72px);
+      font-weight: 700;
+      background: linear-gradient(135deg, #00d9ff, #7c3aed);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 10px;
+      letter-spacing: -1.5px;
+    }
+
+    .hero p {
+      font-size: 16px;
+      color: #9090a0;
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 24px;
+      margin-bottom: 40px;
+    }
+
+    @media (max-width: 768px) {
+      .grid {
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 16px;
+      }
+    }
+
+    .clock-card {
+      aspect-ratio: 1;
+      background: rgba(20, 20, 40, 0.6);
+      border: 1px solid rgba(124, 58, 237, 0.3);
+      border-radius: 16px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(10px);
+      animation: cardSlideUp 0.5s ease-out;
+      animation-fill-mode: both;
+      transition: border-color 0.3s ease, box-shadow 0.3s ease;
+      cursor: pointer;
+      position: relative;
+    }
+
+    .clock-card:hover {
+      border-color: rgba(124, 58, 237, 0.8);
+      box-shadow: 0 0 20px rgba(124, 58, 237, 0.2);
+    }
+
+    @keyframes cardSlideUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .clock-card:nth-child(1) { animation-delay: 0.05s; }
+    .clock-card:nth-child(2) { animation-delay: 0.1s; }
+    .clock-card:nth-child(3) { animation-delay: 0.15s; }
+    .clock-card:nth-child(4) { animation-delay: 0.2s; }
+    .clock-card:nth-child(5) { animation-delay: 0.25s; }
+    .clock-card:nth-child(6) { animation-delay: 0.3s; }
+    .clock-card:nth-child(7) { animation-delay: 0.35s; }
+    .clock-card:nth-child(8) { animation-delay: 0.4s; }
+    .clock-card:nth-child(9) { animation-delay: 0.45s; }
+    .clock-card:nth-child(10) { animation-delay: 0.5s; }
+    .clock-card:nth-child(11) { animation-delay: 0.55s; }
+    .clock-card:nth-child(12) { animation-delay: 0.6s; }
+
+    .clock-svg {
+      width: 140px;
+      height: 140px;
+      filter: drop-shadow(0 0 8px rgba(124, 58, 237, 0.3));
+    }
+
+    .city-name {
+      margin-top: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #00d9ff;
+      font-family: 'IBM Plex Mono', monospace;
+      letter-spacing: 0.5px;
+    }
+
+    .time-display {
+      font-size: 11px;
+      color: #7090b0;
+      margin-top: 4px;
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * {
+        animation: none !important;
+        transition: none !important;
+      }
+    }
+
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="hero">
+      <h1>Who's Awake Right Now?</h1>
+      <p>Live clocks for 12 cities across the globe</p>
+    </div>
+    <div class="grid" id="grid"></div>
+  </div>
+
+  <script>
+    const CITIES = [
+      { name: 'New York', iana: 'America/New_York', color: '#FF6B6B' },
+      { name: 'London', iana: 'Europe/London', color: '#4ECDC4' },
+      { name: 'Dubai', iana: 'Asia/Dubai', color: '#FFE66D' },
+      { name: 'Tokyo', iana: 'Asia/Tokyo', color: '#95E1D3' },
+      { name: 'Singapore', iana: 'Asia/Singapore', color: '#F38181' },
+      { name: 'Sydney', iana: 'Australia/Sydney', color: '#AA96DA' },
+      { name: 'Mumbai', iana: 'Asia/Kolkata', color: '#FCBAD3' },
+      { name: 'São Paulo', iana: 'America/Sao_Paulo', color: '#A8DADC' },
+      { name: 'Moscow', iana: 'Europe/Moscow', color: '#C9ADA7' },
+      { name: 'Lagos', iana: 'Africa/Lagos', color: '#FFB4A2' },
+      { name: 'Bangkok', iana: 'Asia/Bangkok', color: '#E0AAFF' },
+      { name: 'Toronto', iana: 'America/Toronto', color: '#CAFFBF' },
+    ];
+
+    function getLocalTime(iana) {
+      const f = new Intl.DateTimeFormat('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false,
+        timeZone: iana
+      });
+      const p = f.formatToParts(new Date());
+      const h = parseInt(p.find(x => x.type === 'hour').value, 10);
+      const m = parseInt(p.find(x => x.type === 'minute').value, 10);
+      const s = parseInt(p.find(x => x.type === 'second').value, 10);
+      return { h, m, s };
+    }
+
+    function getClockAngles(h, m, s) {
+      const hourDeg = ((h % 12) * 30 + m * 0.5 + s * 0.5 / 60) % 360;
+      const minDeg = (m * 6 + s * 0.1) % 360;
+      return { hourDeg, minDeg };
+    }
+
+    function createClockSvg(cityColor, hourDeg, minDeg) {
+      const svgNS = 'http://www.w3.org/2000/svg';
+      const svg = document.createElementNS(svgNS, 'svg');
+      svg.setAttribute('viewBox', '0 0 140 140');
+      svg.setAttribute('class', 'clock-svg');
+
+      // Background circle
+      const bgCircle = document.createElementNS(svgNS, 'circle');
+      bgCircle.setAttribute('cx', '70');
+      bgCircle.setAttribute('cy', '70');
+      bgCircle.setAttribute('r', '68');
+      bgCircle.setAttribute('fill', 'rgba(20,20,40,0.8)');
+      bgCircle.setAttribute('stroke', cityColor);
+      bgCircle.setAttribute('stroke-width', '1.5');
+      svg.appendChild(bgCircle);
+
+      // Outer rim
+      const rimCircle = document.createElementNS(svgNS, 'circle');
+      rimCircle.setAttribute('cx', '70');
+      rimCircle.setAttribute('cy', '70');
+      rimCircle.setAttribute('r', '66');
+      rimCircle.setAttribute('fill', 'none');
+      rimCircle.setAttribute('stroke', 'rgba(124,58,237,0.2)');
+      rimCircle.setAttribute('stroke-width', '1');
+      svg.appendChild(rimCircle);
+
+      // Hour markers
+      for (let i = 0; i < 12; i++) {
+        const angle = (i * 30 - 90) * Math.PI / 180;
+        const x1 = 70 + 60 * Math.cos(angle);
+        const y1 = 70 + 60 * Math.sin(angle);
+        const x2 = 70 + 65 * Math.cos(angle);
+        const y2 = 70 + 65 * Math.sin(angle);
+
+        const line = document.createElementNS(svgNS, 'line');
+        line.setAttribute('x1', x1);
+        line.setAttribute('y1', y1);
+        line.setAttribute('x2', x2);
+        line.setAttribute('y2', y2);
+        line.setAttribute('stroke', 'rgba(124,58,237,0.5)');
+        line.setAttribute('stroke-width', '1.5');
+        svg.appendChild(line);
+      }
+
+      // Minute markers (small)
+      for (let i = 0; i < 60; i++) {
+        if (i % 5 === 0) continue; // skip hour markers
+        const angle = (i * 6 - 90) * Math.PI / 180;
+        const x1 = 70 + 63 * Math.cos(angle);
+        const y1 = 70 + 63 * Math.sin(angle);
+        const x2 = 70 + 66 * Math.cos(angle);
+        const y2 = 70 + 66 * Math.sin(angle);
+
+        const line = document.createElementNS(svgNS, 'line');
+        line.setAttribute('x1', x1);
+        line.setAttribute('y1', y1);
+        line.setAttribute('x2', x2);
+        line.setAttribute('y2', y2);
+        line.setAttribute('stroke', 'rgba(124,58,237,0.25)');
+        line.setAttribute('stroke-width', '0.8');
+        svg.appendChild(line);
+      }
+
+      // Hour hand
+      const hourRad = (hourDeg - 90) * Math.PI / 180;
+      const hourX = 70 + 35 * Math.cos(hourRad);
+      const hourY = 70 + 35 * Math.sin(hourRad);
+      const hourHand = document.createElementNS(svgNS, 'line');
+      hourHand.setAttribute('x1', '70');
+      hourHand.setAttribute('y1', '70');
+      hourHand.setAttribute('x2', hourX);
+      hourHand.setAttribute('y2', hourY);
+      hourHand.setAttribute('stroke', cityColor);
+      hourHand.setAttribute('stroke-width', '3');
+      hourHand.setAttribute('stroke-linecap', 'round');
+      svg.appendChild(hourHand);
+
+      // Minute hand
+      const minRad = (minDeg - 90) * Math.PI / 180;
+      const minX = 70 + 50 * Math.cos(minRad);
+      const minY = 70 + 50 * Math.sin(minRad);
+      const minHand = document.createElementNS(svgNS, 'line');
+      minHand.setAttribute('x1', '70');
+      minHand.setAttribute('y1', '70');
+      minHand.setAttribute('x2', minX);
+      minHand.setAttribute('y2', minY);
+      minHand.setAttribute('stroke', cityColor);
+      minHand.setAttribute('stroke-width', '2');
+      minHand.setAttribute('stroke-linecap', 'round');
+      svg.appendChild(minHand);
+
+      // Center dot
+      const dot = document.createElementNS(svgNS, 'circle');
+      dot.setAttribute('cx', '70');
+      dot.setAttribute('cy', '70');
+      dot.setAttribute('r', '4');
+      dot.setAttribute('fill', cityColor);
+      svg.appendChild(dot);
+
+      return svg;
+    }
+
+    function renderClocks() {
+      const grid = document.getElementById('grid');
+      grid.innerHTML = '';
+
+      CITIES.forEach(city => {
+        const time = getLocalTime(city.iana);
+        const angles = getClockAngles(time.h, time.m, time.s);
+
+        const card = document.createElement('div');
+        card.className = 'clock-card';
+
+        const svg = createClockSvg(city.color, angles.hourDeg, angles.minDeg);
+        card.appendChild(svg);
+
+        const nameEl = document.createElement('div');
+        nameEl.className = 'city-name';
+        nameEl.textContent = city.name;
+        card.appendChild(nameEl);
+
+        const timeEl = document.createElement('div');
+        timeEl.className = 'time-display';
+        timeEl.textContent = `${String(time.h).padStart(2, '0')}:${String(time.m).padStart(2, '0')}`;
+        card.appendChild(timeEl);
+
+        grid.appendChild(card);
+      });
+    }
+
+    // Initial render
+    renderClocks();
+
+    // Update every second
+    setInterval(renderClocks, 1000);
+  </script>
+</body>
+</html>
