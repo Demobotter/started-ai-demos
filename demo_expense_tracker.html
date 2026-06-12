@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Expense Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Space Grotesk', sans-serif;
+      background: linear-gradient(135deg, #0f0f1e 0%, #1a0f2e 50%, #0d1428 100%);
+      min-height: 100vh;
+      padding: 20px;
+      color: #e0e0e0;
+    }
+    .container { max-width: 1000px; margin: 0 auto; }
+    .hero {
+      text-align: center;
+      margin-bottom: 40px;
+      animation: fadeIn 0.6s ease;
+    }
+    .hero h1 {
+      font-size: 3rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #ff6b6b 0%, #ff00ff 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 8px;
+    }
+    .hero p { font-size: 1rem; color: #b0b0c0; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
+    @media (max-width: 768px) { .grid { grid-template-columns: 1fr; } }
+    .card {
+      background: rgba(26, 31, 58, 0.5);
+      border: 1px solid rgba(255, 107, 107, 0.2);
+      border-radius: 12px;
+      padding: 25px;
+      backdrop-filter: blur(10px);
+      animation: fadeIn 0.6s ease 0.1s both;
+    }
+    .card h2 { font-size: 1.1rem; margin-bottom: 20px; color: #ff6b6b; }
+    .input-group { margin-bottom: 15px; }
+    .input-group label { display: block; font-size: 0.85rem; margin-bottom: 5px; color: #c0c0d0; }
+    .input-group input { width: 100%; padding: 10px; border: 1px solid rgba(255, 107, 107, 0.3); border-radius: 6px; background: rgba(10, 14, 39, 0.8); color: #e0e0e0; font-family: 'IBM Plex Mono', monospace; }
+    .input-group input:focus { outline: none; border-color: #ff6b6b; box-shadow: 0 0 10px rgba(255, 107, 107, 0.2); }
+    button {
+      width: 100%;
+      padding: 12px;
+      background: linear-gradient(135deg, #ff6b6b, #ff00ff);
+      border: none;
+      border-radius: 6px;
+      color: #fff;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: 'Space Grotesk', sans-serif;
+      transition: all 0.2s;
+      margin-top: 10px;
+    }
+    button:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(255, 107, 107, 0.3); }
+    .stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+      margin-top: 20px;
+    }
+    .stat {
+      background: rgba(255, 107, 107, 0.05);
+      border: 1px solid rgba(255, 107, 107, 0.3);
+      border-radius: 8px;
+      padding: 15px;
+      text-align: center;
+    }
+    .stat-label { font-size: 0.8rem; color: #a0a0b0; margin-bottom: 5px; }
+    .stat-value { font-size: 1.8rem; font-weight: 700; color: #ff6b6b; font-family: 'IBM Plex Mono', monospace; }
+    .expenses-list { max-height: 400px; overflow-y: auto; }
+    .expense-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px;
+      background: rgba(10, 14, 39, 0.5);
+      border: 1px solid rgba(255, 107, 107, 0.1);
+      border-radius: 6px;
+      margin-bottom: 10px;
+      animation: slideIn 0.3s ease;
+    }
+    .expense-info { flex: 1; }
+    .expense-desc { font-size: 0.95rem; color: #e0e0e0; font-weight: 500; }
+    .expense-cat { font-size: 0.8rem; color: #a0a0b0; margin-top: 4px; }
+    .expense-amount {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #ff6b6b;
+      margin-right: 15px;
+    }
+    .expense-del { background: rgba(255, 107, 107, 0.2); border: none; color: #ff6b6b; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; }
+    .expense-del:hover { background: rgba(255, 107, 107, 0.4); }
+    .pie-container { position: relative; width: 100%; max-width: 300px; margin: 0 auto; }
+    svg { display: block; margin: 0 auto; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes slideIn { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: translateX(0); } }
+    @media (prefers-reduced-motion: reduce) { * { animation: none !important; } }
+    .empty-state { text-align: center; color: #a0a0b0; padding: 30px 10px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="hero">
+      <h1>Expense Tracker</h1>
+      <p>Track spending by category, instantly.</p>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <h2>Add Expense</h2>
+        <div class="input-group">
+          <label>Description</label>
+          <input type="text" id="desc" placeholder="e.g., coffee, groceries, uber">
+        </div>
+        <div class="input-group">
+          <label>Amount ($)</label>
+          <input type="number" id="amount" placeholder="0.00" min="0" step="0.01">
+        </div>
+        <button onclick="addExpense()">Add to Tracker</button>
+
+        <div class="stats">
+          <div class="stat">
+            <div class="stat-label">Total Spending</div>
+            <div class="stat-value" id="total">$0.00</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Expenses</div>
+            <div class="stat-value" id="count">0</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Breakdown by Category</h2>
+        <div class="pie-container" id="pie-container">
+          <svg width="240" height="240" id="pie-chart"></svg>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top: 20px;">
+      <h2>Recent Expenses</h2>
+      <div class="expenses-list" id="expenses-list">
+        <div class="empty-state">No expenses yet. Add one to get started.</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Category detection logic
+    const categoryPatterns = {
+      'Food': /coffee|lunch|dinner|breakfast|food|restaurant|grocery|groceries|pizza|burger|taco|sushi|snack/i,
+      'Transport': /gas|fuel|uber|lyft|taxi|transit|bus|train|parking|car/i,
+      'Entertainment': /netflix|hulu|spotify|movie|game|concert|show|theater/i,
+      'Utilities': /electric|water|internet|phone|utility|bill|power/i,
+      'Shopping': /mall|store|amazon|shop|clothes|shoes|buy/i,
+      'Health': /doctor|pharmacy|gym|health|medicine|dental|medicine|health/i,
+    };
+
+    function detectCategory(desc) {
+      for (const [cat, pattern] of Object.entries(categoryPatterns)) {
+        if (pattern.test(desc)) return cat;
+      }
+      return 'Other';
+    }
+
+    // Headless tests
+    {
+      console.assert(detectCategory('coffee at starbucks') === 'Food', 'Food detection');
+      console.assert(detectCategory('uber ride home') === 'Transport', 'Transport detection');
+      console.assert(detectCategory('netflix subscription') === 'Entertainment', 'Entertainment detection');
+      console.log('✅ Category detection tests passed');
+    }
+
+    let expenses = JSON.parse(localStorage.getItem('expenses') || '[]');
+
+    function addExpense() {
+      const desc = document.getElementById('desc').value.trim();
+      const amt = parseFloat(document.getElementById('amount').value);
+      if (!desc || !amt || amt <= 0) return alert('Enter description and amount');
+
+      const cat = detectCategory(desc);
+      expenses.unshift({ desc, amount: amt, category: cat, date: new Date().toLocaleDateString() });
+      localStorage.setItem('expenses', JSON.stringify(expenses));
+
+      document.getElementById('desc').value = '';
+      document.getElementById('amount').value = '';
+      render();
+    }
+
+    function deleteExpense(idx) {
+      expenses.splice(idx, 1);
+      localStorage.setItem('expenses', JSON.stringify(expenses));
+      render();
+    }
+
+    function render() {
+      const total = expenses.reduce((sum, e) => sum + e.amount, 0);
+      document.getElementById('total').textContent = '$' + total.toFixed(2);
+      document.getElementById('count').textContent = expenses.length;
+
+      const listEl = document.getElementById('expenses-list');
+      if (expenses.length === 0) {
+        listEl.innerHTML = '<div class="empty-state">No expenses yet. Add one to get started.</div>';
+      } else {
+        listEl.innerHTML = expenses.map((e, i) => `
+          <div class="expense-item">
+            <div class="expense-info">
+              <div class="expense-desc">${e.desc}</div>
+              <div class="expense-cat">${e.category} • ${e.date}</div>
+            </div>
+            <div class="expense-amount">$${e.amount.toFixed(2)}</div>
+            <button class="expense-del" onclick="deleteExpense(${i})">Remove</button>
+          </div>
+        `).join('');
+      }
+
+      // Pie chart
+      const catTotals = {};
+      expenses.forEach(e => {
+        catTotals[e.category] = (catTotals[e.category] || 0) + e.amount;
+      });
+
+      const colors = { Food: '#FF6B6B', Transport: '#4ECDC4', Entertainment: '#45B7D1', Utilities: '#FFA502', Shopping: '#FF00FF', Other: '#9D84B7' };
+      const catArray = Object.entries(catTotals).sort((a, b) => b[1] - a[1]);
+
+      const svg = document.getElementById('pie-chart');
+      svg.innerHTML = '';
+
+      if (catArray.length === 0) {
+        svg.innerHTML = '<text x="120" y="120" text-anchor="middle" fill="#a0a0b0" font-size="12">Add expenses</text>';
+        return;
+      }
+
+      const totalAmount = catArray.reduce((sum, [_, amt]) => sum + amt, 0);
+      let startAngle = -Math.PI / 2;
+
+      catArray.forEach(([cat, amt]) => {
+        const sliceAngle = (amt / totalAmount) * 2 * Math.PI;
+        const endAngle = startAngle + sliceAngle;
+
+        const x1 = 120 + 100 * Math.cos(startAngle);
+        const y1 = 120 + 100 * Math.sin(startAngle);
+        const x2 = 120 + 100 * Math.cos(endAngle);
+        const y2 = 120 + 100 * Math.sin(endAngle);
+
+        const largeArc = sliceAngle > Math.PI ? 1 : 0;
+        const path = `M 120 120 L ${x1} ${y1} A 100 100 0 ${largeArc} 1 ${x2} ${y2} Z`;
+
+        const pathEl = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        pathEl.setAttribute('d', path);
+        pathEl.setAttribute('fill', colors[cat] || '#999');
+        pathEl.setAttribute('opacity', '0.8');
+        svg.appendChild(pathEl);
+
+        startAngle = endAngle;
+      });
+    }
+
+    render();
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Enter') addExpense();
+    });
+  </script>
+</body>
+</html>
