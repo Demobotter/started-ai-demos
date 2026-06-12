@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Memory Match — Flip & Find Pairs</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700&family=Manrope:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            font-family: 'Manrope', sans-serif;
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1a3e 50%, #0d0d1b 100%);
+            color: #fff;
+            overflow-x: hidden;
+        }
+
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+            animation: slideUp 0.8s cubic-bezier(0.16,1,0.3,1);
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(40px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .hero {
+            text-align: center;
+            margin-bottom: 40px;
+            animation: fadeIn 0.6s ease-out 0.1s both;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .hero h1 {
+            font-family: 'Syne', sans-serif;
+            font-size: clamp(36px, 8vw, 56px);
+            font-weight: 700;
+            margin-bottom: 12px;
+            background: linear-gradient(120deg, #00ffff, #ff00ff, #00ffff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -1px;
+        }
+
+        .hero p {
+            font-size: 16px;
+            color: #a0a8ff;
+            margin-bottom: 30px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            animation: fadeIn 0.6s ease-out 0.2s both;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: 2px solid #00ffff;
+            background: transparent;
+            color: #00ffff;
+            border-radius: 8px;
+            font-family: 'Manrope', sans-serif;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.16,1,0.3,1);
+            font-size: 14px;
+        }
+
+        .btn:hover {
+            background: rgba(0, 255, 255, 0.1);
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .btn.active {
+            background: #00ffff;
+            color: #0a0e27;
+            box-shadow: 0 0 30px rgba(0, 255, 255, 0.6);
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 12px;
+            margin-bottom: 30px;
+            animation: fadeIn 0.6s ease-out 0.3s both;
+        }
+
+        .stat-card {
+            background: rgba(0, 255, 255, 0.05);
+            border: 1px solid rgba(0, 255, 255, 0.2);
+            border-radius: 12px;
+            padding: 16px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            background: rgba(0, 255, 255, 0.1);
+            border-color: rgba(0, 255, 255, 0.4);
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.2);
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #a0a8ff;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+
+        .stat-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: #00ffff;
+        }
+
+        .game-board {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+            gap: 12px;
+            perspective: 1000px;
+            margin-bottom: 30px;
+            animation: fadeIn 0.6s ease-out 0.4s both;
+        }
+
+        .tile {
+            aspect-ratio: 1;
+            background: linear-gradient(135deg, #1a1a4e, #0d0d2e);
+            border: 2px solid rgba(0, 255, 255, 0.3);
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s cubic-bezier(0.16,1,0.3,1);
+            position: relative;
+            transform-style: preserve-3d;
+            transform: perspective(1000px) rotateY(0deg);
+        }
+
+        .tile:hover:not(.matched):not(.flipped) {
+            border-color: #00ffff;
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.3), inset 0 0 20px rgba(0, 255, 255, 0.05);
+            transform: translateY(-4px) perspective(1000px) rotateX(5deg);
+        }
+
+        .tile.flipped {
+            background: linear-gradient(135deg, #2a2a6e, #1a1a4e);
+            border-color: rgba(255, 0, 255, 0.5);
+            box-shadow: 0 0 20px rgba(255, 0, 255, 0.2), inset 0 0 20px rgba(255, 0, 255, 0.05);
+        }
+
+        .tile.matched {
+            background: linear-gradient(135deg, rgba(0, 255, 255, 0.1), rgba(255, 0, 255, 0.1));
+            border-color: rgba(0, 255, 255, 0.5);
+            box-shadow: 0 0 25px rgba(0, 255, 255, 0.4);
+            cursor: default;
+            opacity: 0.8;
+        }
+
+        .tile.matched::after {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, rgba(0, 255, 255, 0.3), transparent);
+            border-radius: 12px;
+            animation: pulse 0.6s ease-out;
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(0.8);
+                opacity: 1;
+            }
+            100% {
+                transform: scale(1.4);
+                opacity: 0;
+            }
+        }
+
+        .message {
+            text-align: center;
+            font-size: 18px;
+            color: #00ffff;
+            margin-top: 20px;
+            min-height: 24px;
+            animation: slideUp 0.4s ease-out;
+            font-weight: 600;
+        }
+
+        @media (max-width: 480px) {
+            .hero h1 {
+                font-size: 32px;
+            }
+
+            .game-board {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 10px;
+            }
+
+            .tile {
+                font-size: 24px;
+            }
+
+            .controls {
+                gap: 8px;
+            }
+
+            .btn {
+                padding: 8px 16px;
+                font-size: 12px;
+            }
+
+            .stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation: none !important;
+                transition: none !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="hero">
+            <h1>Memory Match</h1>
+            <p>Flip tiles to find matching pairs</p>
+        </div>
+
+        <div class="controls">
+            <button class="btn active" data-difficulty="6">Easy (6)</button>
+            <button class="btn" data-difficulty="12">Medium (12)</button>
+            <button class="btn" data-difficulty="20">Hard (20)</button>
+            <button class="btn" id="resetBtn">New Game</button>
+        </div>
+
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-label">Moves</div>
+                <div class="stat-value" id="moves">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Matches</div>
+                <div class="stat-value" id="matches">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Best</div>
+                <div class="stat-value" id="best">—</div>
+            </div>
+        </div>
+
+        <div class="game-board" id="gameBoard"></div>
+
+        <div class="message" id="message"></div>
+    </div>
+
+    <script>
+        // Game state
+        let gameState = {
+            difficulty: 6,
+            tiles: [],
+            flipped: [],
+            matched: [],
+            moves: 0,
+            matches: 0,
+            bestMoves: localStorage.getItem('memoryMatchBest') || null,
+            isLocked: false
+        };
+
+        const emojis = ['🎮', '🎨', '🎭', '🎪', '🎯', '🎲', '🎸', '🎤', '🎬', '⚡', '💫', '🌟', '✨', '🔥', '🎆', '🎇', '💎', '👑', '🚀', '🌈'];
+
+        function shuffle(arr) {
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
+        }
+
+        function initGame() {
+            gameState.tiles = [];
+            gameState.flipped = [];
+            gameState.matched = [];
+            gameState.moves = 0;
+            gameState.matches = 0;
+            gameState.isLocked = false;
+
+            const pairCount = gameState.difficulty / 2;
+            const selected = emojis.slice(0, pairCount);
+            const deck = [...selected, ...selected];
+            gameState.tiles = shuffle(deck);
+
+            render();
+            updateStats();
+        }
+
+        function render() {
+            const board = document.getElementById('gameBoard');
+            board.innerHTML = '';
+            board.style.gridTemplateColumns = `repeat(${Math.ceil(Math.sqrt(gameState.difficulty))}, 1fr)`;
+
+            gameState.tiles.forEach((emoji, idx) => {
+                const tile = document.createElement('div');
+                tile.className = 'tile';
+                if (gameState.flipped.includes(idx)) tile.classList.add('flipped');
+                if (gameState.matched.includes(idx)) tile.classList.add('matched');
+                tile.textContent = (gameState.flipped.includes(idx) || gameState.matched.includes(idx)) ? emoji : '?';
+                tile.addEventListener('click', () => flipTile(idx));
+                board.appendChild(tile);
+            });
+        }
+
+        function flipTile(idx) {
+            if (gameState.isLocked || gameState.flipped.includes(idx) || gameState.matched.includes(idx)) return;
+
+            gameState.flipped.push(idx);
+            render();
+
+            if (gameState.flipped.length === 2) {
+                gameState.moves++;
+                gameState.isLocked = true;
+
+                const [a, b] = gameState.flipped;
+                const match = gameState.tiles[a] === gameState.tiles[b];
+
+                setTimeout(() => {
+                    if (match) {
+                        gameState.matched.push(a, b);
+                        gameState.matches++;
+                        const msg = document.getElementById('message');
+                        msg.textContent = '✨ Match found!';
+                        setTimeout(() => msg.textContent = '', 1500);
+
+                        if (gameState.matches === gameState.difficulty / 2) {
+                            setTimeout(() => {
+                                const msg = document.getElementById('message');
+                                msg.textContent = `🎉 Completed in ${gameState.moves} moves!`;
+                                if (!gameState.bestMoves || gameState.moves < gameState.bestMoves) {
+                                    gameState.bestMoves = gameState.moves;
+                                    localStorage.setItem('memoryMatchBest', gameState.bestMoves);
+                                }
+                                updateStats();
+                            }, 300);
+                        }
+                    } else {
+                        const msg = document.getElementById('message');
+                        msg.textContent = '✗ No match, try again';
+                        setTimeout(() => msg.textContent = '', 1500);
+                    }
+                    gameState.flipped = [];
+                    gameState.isLocked = false;
+                    render();
+                }, 600);
+            }
+        }
+
+        function updateStats() {
+            document.getElementById('moves').textContent = gameState.moves;
+            document.getElementById('matches').textContent = gameState.matches;
+            document.getElementById('best').textContent = gameState.bestMoves || '—';
+        }
+
+        document.querySelectorAll('.btn[data-difficulty]').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                document.querySelectorAll('.btn[data-difficulty]').forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
+                gameState.difficulty = parseInt(e.target.dataset.difficulty);
+                initGame();
+            });
+        });
+
+        document.getElementById('resetBtn').addEventListener('click', initGame);
+
+        // Headless test (node --check only)
+        initGame();
+    </script>
+</body>
+</html>
