@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Timezone Business Hours Validator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html, body {
+      height: 100%;
+      font-family: "Sora", sans-serif;
+      background: linear-gradient(135deg, #0a1428 0%, #1a2647 100%);
+      color: #fff;
+      overflow-x: hidden;
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    /* Grain overlay */
+    body::before {
+      content: "";
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><filter id="noise"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="4" seed="2" /></filter><rect width="100%" height="100%" filter="url(%23noise)" opacity="0.03"/></svg>');
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    main {
+      position: relative;
+      z-index: 1;
+      flex: 1;
+      padding: 2rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .container {
+      max-width: 900px;
+      width: 100%;
+      animation: fadeIn 0.8s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    /* Hero Section */
+    .hero {
+      text-align: center;
+      margin-bottom: 3rem;
+      animation: slideDown 0.7s ease-out 0.1s backwards;
+    }
+
+    @keyframes slideDown {
+      from {
+        opacity: 0;
+        transform: translateY(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .hero h1 {
+      font-size: clamp(32px, 6vw, 56px);
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      background: linear-gradient(135deg, #00d9ff 0%, #00a8cc 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: -0.02em;
+    }
+
+    .hero p {
+      font-size: 16px;
+      color: #b0c4de;
+      font-weight: 400;
+    }
+
+    /* Main Layout */
+    .layout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+      margin-top: 2rem;
+    }
+
+    @media (max-width: 700px) {
+      .layout {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+      }
+    }
+
+    /* Input Panel */
+    .input-panel {
+      animation: slideRight 0.7s ease-out 0.2s backwards;
+    }
+
+    @keyframes slideRight {
+      from {
+        opacity: 0;
+        transform: translateX(-30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    .input-panel h2 {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      color: #00d9ff;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-size: 14px;
+    }
+
+    .input-group {
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(0, 217, 255, 0.2);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      transition: all 0.3s ease;
+    }
+
+    .input-group:focus-within {
+      border-color: rgba(0, 217, 255, 0.5);
+      background: rgba(255, 255, 255, 0.08);
+      box-shadow: 0 0 20px rgba(0, 217, 255, 0.1);
+    }
+
+    textarea {
+      width: 100%;
+      height: 140px;
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(0, 217, 255, 0.15);
+      border-radius: 8px;
+      padding: 12px;
+      color: #fff;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 14px;
+      resize: none;
+      transition: all 0.3s ease;
+    }
+
+    textarea:focus {
+      outline: none;
+      border-color: rgba(0, 217, 255, 0.4);
+      background: rgba(0, 0, 0, 0.5);
+    }
+
+    textarea::placeholder {
+      color: rgba(176, 196, 222, 0.5);
+    }
+
+    /* Slider Control */
+    .slider-group {
+      margin-top: 1.5rem;
+    }
+
+    .slider-group label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: #b0c4de;
+      margin-bottom: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .slider-wrapper {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+    }
+
+    input[type="range"] {
+      flex: 1;
+      height: 5px;
+      background: rgba(0, 217, 255, 0.15);
+      border-radius: 5px;
+      outline: none;
+      -webkit-appearance: none;
+      cursor: pointer;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #00d9ff 0%, #00a8cc 100%);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: 0 2px 8px rgba(0, 217, 255, 0.3);
+    }
+
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+      box-shadow: 0 4px 12px rgba(0, 217, 255, 0.5);
+    }
+
+    input[type="range"]::-moz-range-thumb {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #00d9ff 0%, #00a8cc 100%);
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s ease;
+      box-shadow: 0 2px 8px rgba(0, 217, 255, 0.3);
+    }
+
+    input[type="range"]::-moz-range-thumb:hover {
+      transform: scale(1.2);
+      box-shadow: 0 4px 12px rgba(0, 217, 255, 0.5);
+    }
+
+    .slider-display {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 16px;
+      font-weight: 600;
+      color: #00d9ff;
+      min-width: 60px;
+      text-align: center;
+    }
+
+    /* Button */
+    .btn {
+      width: 100%;
+      padding: 12px 20px;
+      margin-top: 1.5rem;
+      background: linear-gradient(135deg, #00d9ff 0%, #00a8cc 100%);
+      color: #0a1428;
+      border: none;
+      border-radius: 8px;
+      font-family: "Sora", sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 12px rgba(0, 217, 255, 0.2);
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0, 217, 255, 0.3);
+    }
+
+    .btn:active {
+      transform: translateY(0);
+    }
+
+    /* Status Panel */
+    .status-panel {
+      animation: slideLeft 0.7s ease-out 0.3s backwards;
+    }
+
+    @keyframes slideLeft {
+      from {
+        opacity: 0;
+        transform: translateX(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    .status-panel h2 {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      color: #00d9ff;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-size: 14px;
+    }
+
+    .status-list {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .status-item {
+      background: rgba(255, 255, 255, 0.04);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(0, 217, 255, 0.15);
+      border-radius: 10px;
+      padding: 1.2rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      transition: all 0.3s ease;
+      animation: itemSlide 0.6s ease-out backwards;
+    }
+
+    .status-item:nth-child(1) { animation-delay: 0.4s; }
+    .status-item:nth-child(2) { animation-delay: 0.5s; }
+    .status-item:nth-child(3) { animation-delay: 0.6s; }
+    .status-item:nth-child(4) { animation-delay: 0.7s; }
+    .status-item:nth-child(5) { animation-delay: 0.8s; }
+    .status-item:nth-child(6) { animation-delay: 0.9s; }
+
+    @keyframes itemSlide {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .status-item:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(0, 217, 255, 0.35);
+      box-shadow: 0 4px 16px rgba(0, 217, 255, 0.1);
+    }
+
+    .status-dot {
+      font-size: 28px;
+      flex-shrink: 0;
+    }
+
+    .status-content {
+      flex: 1;
+    }
+
+    .status-city {
+      font-size: 14px;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 0.3rem;
+    }
+
+    .status-time {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 16px;
+      font-weight: 600;
+      color: #00d9ff;
+    }
+
+    .status-label {
+      font-size: 11px;
+      color: #b0c4de;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-top: 0.4rem;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 2rem;
+      color: #b0c4de;
+      font-size: 14px;
+    }
+
+    .empty-state p {
+      margin-bottom: 0.5rem;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * {
+        animation: none !important;
+        transition: none !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="container">
+      <div class="hero">
+        <h1>When Are Your Teammates Actually Awake?</h1>
+        <p>Check business hours across time zones in real time</p>
+      </div>
+
+      <div class="layout">
+        <div class="input-panel">
+          <h2>Your Team</h2>
+          <div class="input-group">
+            <textarea id="citiesInput" placeholder="Enter city names, one per line.&#10;&#10;Example:&#10;New York&#10;London&#10;Tokyo&#10;Melbourne"></textarea>
+            <div class="slider-group">
+              <label for="businessHours">Business Hours</label>
+              <div class="slider-wrapper">
+                <span style="font-size: 13px; color: #b0c4de;">9 AM</span>
+                <input type="range" id="businessHours" min="6" max="20" value="18" step="1">
+                <span class="slider-display" id="hoursDisplay">6 PM</span>
+              </div>
+            </div>
+            <button class="btn" id="checkBtn">Check Status</button>
+          </div>
+        </div>
+
+        <div class="status-panel">
+          <h2>Status Board</h2>
+          <div class="status-list" id="statusList">
+            <div class="empty-state">
+              <p>📍 Enter cities to see their status</p>
+              <p style="font-size: 12px; color: #708090;">Supports major cities worldwide</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // Timezone lookup
+    const TIMEZONE_MAP = {
+      "New York": "America/New_York",
+      "Los Angeles": "America/Los_Angeles",
+      "London": "Europe/London",
+      "Paris": "Europe/Paris",
+      "Tokyo": "Asia/Tokyo",
+      "Sydney": "Australia/Sydney",
+      "Melbourne": "Australia/Melbourne",
+      "Hong Kong": "Asia/Hong_Kong",
+      "Singapore": "Asia/Singapore",
+      "Dubai": "Asia/Dubai",
+      "Berlin": "Europe/Berlin",
+      "Toronto": "America/Toronto",
+      "São Paulo": "America/Sao_Paulo",
+      "Mumbai": "Asia/Kolkata",
+      "Bangkok": "Asia/Bangkok",
+      "Moscow": "Europe/Moscow",
+      "São Paulo": "America/Sao_Paulo",
+      "Jakarta": "Asia/Jakarta",
+      "Manila": "Asia/Manila",
+      "Istanbul": "Europe/Istanbul",
+      "Delhi": "Asia/Kolkata",
+      "Shanghai": "Asia/Shanghai",
+      "Rio de Janeiro": "America/Sao_Paulo",
+      "Mexico City": "America/Mexico_City",
+      "Cairo": "Africa/Cairo",
+      "Lagos": "Africa/Lagos",
+      "Seoul": "Asia/Seoul",
+      "Bangkok": "Asia/Bangkok",
+      "Johannesburg": "Africa/Johannesburg",
+    };
+
+    function getTimeInTimezone(tzName) {
+      const now = new Date();
+      const formatter = new Intl.DateTimeFormat("en-US", {
+        timeZone: tzName,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+      });
+      const parts = formatter.formatToParts(now);
+      const result = {};
+      parts.forEach((part) => {
+        result[part.type] = part.value;
+      });
+      return {
+        hour: parseInt(result.hour, 10),
+        minute: parseInt(result.minute, 10),
+      };
+    }
+
+    function getBusinessStatus(hour, businessEnd) {
+      const businessStart = 9;
+      if (hour >= businessStart && hour < businessEnd) {
+        return "green";
+      }
+      if (
+        (hour >= businessStart - 3 && hour < businessStart) ||
+        (hour >= businessEnd && hour < businessEnd + 3)
+      ) {
+        return "yellow";
+      }
+      return "red";
+    }
+
+    function getCityStatus(cityName, businessEnd) {
+      const tz = TIMEZONE_MAP[cityName];
+      if (!tz) {
+        return null;
+      }
+
+      const time = getTimeInTimezone(tz);
+      const color = getBusinessStatus(time.hour, businessEnd);
+
+      return {
+        city: cityName,
+        hour: time.hour,
+        minute: time.minute,
+        status:
+          color === "green"
+            ? "IN HOURS"
+            : color === "yellow"
+              ? "EARLY/LATE"
+              : "OFF HOURS",
+        color,
+      };
+    }
+
+    const citiesInput = document.getElementById("citiesInput");
+    const checkBtn = document.getElementById("checkBtn");
+    const statusList = document.getElementById("statusList");
+    const businessHours = document.getElementById("businessHours");
+    const hoursDisplay = document.getElementById("hoursDisplay");
+
+    function updateHoursDisplay() {
+      const hour = parseInt(businessHours.value, 10);
+      const ampm = hour < 12 ? "AM" : "PM";
+      const displayHour = hour <= 12 ? hour : hour - 12;
+      hoursDisplay.textContent = `${displayHour} ${ampm}`;
+    }
+
+    function checkStatus() {
+      const cities = citiesInput.value
+        .split("\n")
+        .map((c) => c.trim())
+        .filter((c) => c.length > 0);
+
+      if (cities.length === 0) {
+        statusList.innerHTML =
+          '<div class="empty-state"><p>📍 Enter at least one city</p></div>';
+        return;
+      }
+
+      const businessEnd = parseInt(businessHours.value, 10);
+      const statuses = cities
+        .map((city) => getCityStatus(city, businessEnd))
+        .filter((s) => s !== null);
+
+      if (statuses.length === 0) {
+        statusList.innerHTML =
+          '<div class="empty-state"><p>❌ No valid cities found</p><p style="font-size: 12px; color: #708090;">Try: New York, London, Tokyo, Melbourne</p></div>';
+        return;
+      }
+
+      statusList.innerHTML = statuses
+        .map((s) => {
+          const emoji =
+            s.color === "green" ? "🟢" : s.color === "yellow" ? "🟡" : "🔴";
+          return `
+        <div class="status-item">
+          <div class="status-dot">${emoji}</div>
+          <div class="status-content">
+            <div class="status-city">${s.city}</div>
+            <div class="status-time">${String(s.hour).padStart(2, "0")}:${String(s.minute).padStart(2, "0")}</div>
+            <div class="status-label">${s.status}</div>
+          </div>
+        </div>
+      `;
+        })
+        .join("");
+    }
+
+    businessHours.addEventListener("input", updateHoursDisplay);
+    checkBtn.addEventListener("click", checkStatus);
+
+    // Load default on page load
+    updateHoursDisplay();
+    citiesInput.value =
+      "New York\nLondon\nTokyo\nMelbourne\nDubai\nSingapore";
+    setTimeout(() => checkStatus(), 200);
+  </script>
+</body>
+</html>
