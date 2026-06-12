@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Morse Code Translator — Encode & Decode</title>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 50%, #0d1828 100%);
+            color: #e8e9f0;
+            min-height: 100vh;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            animation: fadeIn 0.6s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .hero {
+            text-align: center;
+            margin-bottom: 40px;
+            animation: slideDown 0.8s cubic-bezier(.16,1,.3,1);
+        }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .hero h1 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: clamp(32px, 8vw, 56px);
+            font-weight: 700;
+            background: linear-gradient(135deg, #00d9ff 0%, #ff00ff 50%, #00d9ff 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -0.02em;
+            margin-bottom: 8px;
+        }
+
+        .hero p {
+            font-size: 16px;
+            color: #a8afc0;
+            letter-spacing: 0.05em;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 30px;
+            justify-content: center;
+            animation: staggerIn 0.8s ease-out 0.1s backwards;
+        }
+
+        @keyframes staggerIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .tab-btn {
+            padding: 12px 24px;
+            border: 2px solid #00d9ff;
+            background: transparent;
+            color: #e8e9f0;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.3s cubic-bezier(.16,1,.3,1);
+            letter-spacing: 0.05em;
+        }
+
+        .tab-btn:hover {
+            background: rgba(0, 217, 255, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .tab-btn.active {
+            background: #00d9ff;
+            color: #0a0e27;
+            box-shadow: 0 0 20px rgba(0, 217, 255, 0.4);
+        }
+
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.4s ease-out;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .panel {
+            background: rgba(26, 31, 58, 0.5);
+            border: 1px solid rgba(0, 217, 255, 0.2);
+            border-radius: 12px;
+            padding: 32px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .input-group {
+            margin-bottom: 24px;
+        }
+
+        .input-label {
+            display: block;
+            font-size: 12px;
+            letter-spacing: 0.1em;
+            color: #a8afc0;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
+
+        textarea,
+        input[type="text"] {
+            width: 100%;
+            padding: 14px 16px;
+            background: rgba(10, 14, 39, 0.8);
+            border: 1px solid rgba(0, 217, 255, 0.3);
+            border-radius: 8px;
+            color: #e8e9f0;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 14px;
+            resize: none;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+
+        textarea:focus,
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #00d9ff;
+            box-shadow: 0 0 12px rgba(0, 217, 255, 0.3);
+        }
+
+        textarea {
+            height: 100px;
+        }
+
+        .output-group {
+            background: rgba(0, 217, 255, 0.05);
+            border: 1px solid rgba(0, 217, 255, 0.2);
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 20px;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            word-break: break-all;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 14px;
+            color: #00d9ff;
+            animation: glow 2s ease-in-out infinite;
+        }
+
+        @keyframes glow {
+            0%, 100% { box-shadow: inset 0 0 12px rgba(0, 217, 255, 0.1); }
+            50% { box-shadow: inset 0 0 20px rgba(0, 217, 255, 0.2); }
+        }
+
+        .control-row {
+            display: flex;
+            gap: 12px;
+            align-items: flex-end;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .slider-group {
+            flex: 1;
+            min-width: 150px;
+        }
+
+        .slider-label {
+            display: block;
+            font-size: 11px;
+            letter-spacing: 0.1em;
+            color: #a8afc0;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            background: rgba(0, 217, 255, 0.2);
+            border-radius: 3px;
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #00d9ff;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(0, 217, 255, 0.6);
+            transition: transform 0.2s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #00d9ff;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 0 10px rgba(0, 217, 255, 0.6);
+            transition: transform 0.2s;
+        }
+
+        input[type="range"]::-moz-range-thumb:hover {
+            transform: scale(1.2);
+        }
+
+        .speed-display {
+            color: #00d9ff;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 12px;
+            min-width: 60px;
+            text-align: right;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 10px 16px;
+            background: linear-gradient(135deg, #00d9ff 0%, #00b8cc 100%);
+            color: #0a0e27;
+            border: none;
+            border-radius: 6px;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(.16,1,.3,1);
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(0, 217, 255, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .visual-morse {
+            display: flex;
+            gap: 4px;
+            flex-wrap: wrap;
+            margin-bottom: 16px;
+            min-height: 40px;
+            align-content: flex-start;
+        }
+
+        .morse-char {
+            display: flex;
+            gap: 2px;
+            align-items: center;
+        }
+
+        .dot, .dash {
+            width: 8px;
+            height: 8px;
+            border-radius: 1px;
+            background: rgba(0, 217, 255, 0.3);
+            transition: all 0.1s;
+        }
+
+        .dot.active, .dash.active {
+            background: #ff00ff;
+            box-shadow: 0 0 8px #ff00ff;
+        }
+
+        .dash {
+            width: 20px;
+        }
+
+        .morse-space {
+            width: 8px;
+        }
+
+        .info-note {
+            font-size: 11px;
+            color: #7a8299;
+            margin-top: 16px;
+            line-height: 1.5;
+            padding: 12px;
+            background: rgba(0, 217, 255, 0.05);
+            border-left: 2px solid #00d9ff;
+            border-radius: 4px;
+        }
+
+        .char-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(45px, 1fr));
+            gap: 6px;
+            margin: 20px 0;
+        }
+
+        .char-btn {
+            padding: 8px 0;
+            background: rgba(0, 217, 255, 0.1);
+            border: 1px solid rgba(0, 217, 255, 0.3);
+            color: #00d9ff;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+
+        .char-btn:hover {
+            background: rgba(0, 217, 255, 0.2);
+            border-color: #00d9ff;
+            transform: scale(1.05);
+        }
+
+        .char-btn:active {
+            background: #00d9ff;
+            color: #0a0e27;
+        }
+
+        @media (max-width: 600px) {
+            .panel {
+                padding: 20px;
+            }
+
+            .hero h1 {
+                font-size: clamp(24px, 6vw, 40px);
+            }
+
+            textarea {
+                height: 80px;
+            }
+
+            .control-row {
+                flex-direction: column;
+            }
+
+            .slider-group {
+                width: 100%;
+            }
+
+            .speed-display {
+                text-align: left;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+
+            button {
+                width: 100%;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation: none !important;
+                transition: none !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="hero">
+            <h1>MORSE CODE TRANSLATOR</h1>
+            <p>Encode text to Morse • Decode Morse to text • Play audio</p>
+        </div>
+
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="encode">⚡ ENCODE</button>
+            <button class="tab-btn" data-tab="decode">📡 DECODE</button>
+        </div>
+
+        <!-- ENCODE TAB -->
+        <div id="encode" class="tab-content active">
+            <div class="panel">
+                <div class="input-group">
+                    <label class="input-label">Enter English text (A-Z, 0-9, space)</label>
+                    <textarea id="encodeInput" placeholder="Type your message..."></textarea>
+                </div>
+
+                <div class="input-group">
+                    <label class="input-label">Morse Code Output</label>
+                    <div class="output-group" id="morseOutput">•—•</div>
+                </div>
+
+                <div class="input-group">
+                    <label class="input-label">Visual Sequence</label>
+                    <div class="visual-morse" id="visualMorse"></div>
+                </div>
+
+                <div class="control-row">
+                    <div class="slider-group">
+                        <label class="slider-label">Speed (WPM)</label>
+                        <input type="range" id="speedSlider" min="5" max="50" value="20" step="1">
+                    </div>
+                    <div class="speed-display" id="speedDisplay">20 WPM</div>
+                </div>
+
+                <div class="button-group">
+                    <button id="playBtn">▶ PLAY AUDIO</button>
+                    <button id="copyBtn">📋 COPY MORSE</button>
+                    <button id="clearBtn">🗑 CLEAR</button>
+                </div>
+
+                <div class="info-note">
+                    💡 <strong>Tip:</strong> Click any letter below to hear just that character in Morse.
+                </div>
+
+                <div class="char-grid" id="charGrid"></div>
+            </div>
+        </div>
+
+        <!-- DECODE TAB -->
+        <div id="decode" class="tab-content">
+            <div class="panel">
+                <div class="input-group">
+                    <label class="input-label">Enter Morse Code (dots • dashes —, space between letters)</label>
+                    <textarea id="decodeInput" placeholder="Example: •— —•—• —— •— —•—— — •— —•—• —•" spellcheck="false"></textarea>
+                </div>
+
+                <div class="input-group">
+                    <label class="input-label">Decoded Text</label>
+                    <div class="output-group" id="decodedOutput">HELLO</div>
+                </div>
+
+                <div class="button-group">
+                    <button id="copyDecodedBtn">📋 COPY TEXT</button>
+                    <button id="clearDecodedBtn">🗑 CLEAR</button>
+                </div>
+
+                <div class="info-note">
+                    💡 <strong>Format:</strong> Use spaces between letters (e.g., •— —•—•) and double-spaces or / between words.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============ MORSE CODE TABLES ============
+        const morseTable = {
+            'A': '•—', 'B': '—•••', 'C': '—•—•', 'D': '—••', 'E': '•',
+            'F': '••—•', 'G': '——•', 'H': '••••', 'I': '••', 'J': '•———',
+            'K': '—•—', 'L': '•—••', 'M': '——', 'N': '—•', 'O': '———',
+            'P': '•——•', 'Q': '——•—', 'R': '•—•', 'S': '•••', 'T': '—',
+            'U': '••—', 'V': '•••—', 'W': '•——', 'X': '—••—', 'Y': '—•——',
+            'Z': '——••', '0': '—————', '1': '•————', '2': '••———', '3': '•••——',
+            '4': '••••—', '5': '•••••', '6': '—••••', '7': '——•••', '8': '———••',
+            '9': '————•', '.': '•—•—•—', ',': '——••——', '?': '••——••', "'": '•————•',
+            '!': '—•—•——', '/': '—••—•', '(': '—•——•', ')': '—•——•—', '&': '•—•••',
+            ':': '———•••', ';': '—•—•—•', '=': '—•••—', '+': '•—•—•', '-': '—••••—',
+            '_': '••——•—', '"': '•—••—•', '$': '•••—••—', '@': '•——•—•'
+        };
+
+        const reverseMorse = Object.fromEntries(Object.entries(morseTable).map(([k, v]) => [v, k]));
+
+        // ============ ENCODE LOGIC ============
+        function encodeToMorse(text) {
+            return text.toUpperCase().split('').map(char => {
+                if (char === ' ') return '/';
+                return morseTable[char] || '?';
+            }).join(' ');
+        }
+
+        function updateMorseOutput() {
+            const text = document.getElementById('encodeInput').value;
+            const morse = encodeToMorse(text);
+            document.getElementById('morseOutput').textContent = morse;
+            updateVisualMorse(morse);
+        }
+
+        function updateVisualMorse(morse) {
+            const visual = document.getElementById('visualMorse');
+            visual.innerHTML = '';
+            const chars = morse.split(' ');
+            chars.forEach((char, idx) => {
+                if (char === '') return;
+                const div = document.createElement('div');
+                div.className = 'morse-char';
+                if (char === '/') {
+                    const space = document.createElement('div');
+                    space.className = 'morse-space';
+                    div.appendChild(space);
+                } else {
+                    char.split('').forEach(sym => {
+                        const el = document.createElement('div');
+                        el.className = sym === '•' ? 'dot' : 'dash';
+                        div.appendChild(el);
+                    });
+                }
+                visual.appendChild(div);
+            });
+        }
+
+        // ============ AUDIO SYNTHESIS ============
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playTone(duration) {
+            const now = audioContext.currentTime;
+            const osc = audioContext.createOscillator();
+            const gain = audioContext.createGain();
+            osc.connect(gain);
+            gain.connect(audioContext.destination);
+            osc.frequency.value = 600;
+            osc.type = 'sine';
+            gain.gain.setValueAtTime(0.3, now);
+            gain.gain.setValueAtTime(0, now + duration);
+            osc.start(now);
+            osc.stop(now + duration);
+            return now + duration;
+        }
+
+        function playMorse(morse, wpm) {
+            const dotDuration = 1.2 / wpm;
+            const dashDuration = dotDuration * 3;
+            const letterGap = dotDuration * 3;
+            const wordGap = dotDuration * 7;
+
+            let time = 0;
+            const chars = morse.split(' ');
+            
+            chars.forEach((char, idx) => {
+                if (char === '') return;
+                if (char === '/') {
+                    time += wordGap;
+                } else {
+                    char.split('').forEach((sym, symIdx) => {
+                        const duration = sym === '•' ? dotDuration : dashDuration;
+                        const dot = document.querySelector(`[data-morse-char="${idx}-${symIdx}"]`);
+                        scheduleFlash(time, duration, dot);
+                        time += duration + dotDuration;
+                    });
+                    time += letterGap - dotDuration;
+                }
+            });
+        }
+
+        function scheduleFlash(startTime, duration, element) {
+            setTimeout(() => {
+                if (element) element.classList.add('active');
+                setTimeout(() => {
+                    if (element) element.classList.remove('active');
+                }, duration * 1000);
+            }, startTime * 1000);
+        }
+
+        // ============ DECODE LOGIC ============
+        function decodeFromMorse(morse) {
+            const chars = morse.trim().split(/\s{2,}|\//).map(char => char.trim());
+            return chars.map(char => {
+                if (char === '') return '';
+                const letters = char.split(' ');
+                return letters.map(letter => reverseMorse[letter] || '?').join('');
+            }).join(' ');
+        }
+
+        function updateDecodedOutput() {
+            const morse = document.getElementById('decodeInput').value;
+            const text = decodeFromMorse(morse);
+            document.getElementById('decodedOutput').textContent = text;
+        }
+
+        // ============ SPEED DISPLAY ============
+        document.getElementById('speedSlider').addEventListener('input', (e) => {
+            document.getElementById('speedDisplay').textContent = e.target.value + ' WPM';
+            updateMorseOutput();
+        });
+
+        // ============ EVENT LISTENERS ============
+        document.getElementById('encodeInput').addEventListener('input', updateMorseOutput);
+        document.getElementById('decodeInput').addEventListener('input', updateDecodedOutput);
+
+        document.getElementById('playBtn').addEventListener('click', () => {
+            const morse = document.getElementById('morseOutput').textContent;
+            const wpm = parseInt(document.getElementById('speedSlider').value);
+            playMorse(morse, wpm);
+        });
+
+        document.getElementById('copyBtn').addEventListener('click', () => {
+            const morse = document.getElementById('morseOutput').textContent;
+            navigator.clipboard.writeText(morse).then(() => {
+                document.getElementById('copyBtn').textContent = '✓ COPIED!';
+                setTimeout(() => {
+                    document.getElementById('copyBtn').textContent = '📋 COPY MORSE';
+                }, 2000);
+            });
+        });
+
+        document.getElementById('copyDecodedBtn').addEventListener('click', () => {
+            const text = document.getElementById('decodedOutput').textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                document.getElementById('copyDecodedBtn').textContent = '✓ COPIED!';
+                setTimeout(() => {
+                    document.getElementById('copyDecodedBtn').textContent = '📋 COPY TEXT';
+                }, 2000);
+            });
+        });
+
+        document.getElementById('clearBtn').addEventListener('click', () => {
+            document.getElementById('encodeInput').value = '';
+            updateMorseOutput();
+        });
+
+        document.getElementById('clearDecodedBtn').addEventListener('click', () => {
+            document.getElementById('decodeInput').value = '';
+            updateDecodedOutput();
+        });
+
+        // ============ TAB SWITCHING ============
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                e.target.classList.add('active');
+                document.getElementById(e.target.dataset.tab).classList.add('active');
+            });
+        });
+
+        // ============ CHARACTER GRID (for quick morse playback) ============
+        function buildCharGrid() {
+            const grid = document.getElementById('charGrid');
+            Object.keys(morseTable).slice(0, 26).forEach(char => {
+                const btn = document.createElement('button');
+                btn.className = 'char-btn';
+                btn.textContent = char;
+                btn.addEventListener('click', () => {
+                    const wpm = parseInt(document.getElementById('speedSlider').value);
+                    playMorse(morseTable[char], wpm);
+                });
+                grid.appendChild(btn);
+            });
+        }
+
+        // ============ INIT ============
+        buildCharGrid();
+        updateMorseOutput();
+        updateDecodedOutput();
+    </script>
+</body>
+</html>
