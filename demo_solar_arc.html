@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Solar Arc — Live Sun Path Tracker</title>
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Sora', sans-serif;
+      background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 50%, #0f1425 100%);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      padding: 20px;
+      overflow-x: hidden;
+    }
+
+    .container {
+      max-width: 900px;
+      width: 100%;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 40px;
+      animation: fadeInDown 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .header h1 {
+      font-size: clamp(40px, 8vw, 72px);
+      font-weight: 700;
+      background: linear-gradient(135deg, #ffd700 0%, #ffaa00 50%, #ff8c00 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 8px;
+    }
+
+    .header p {
+      font-size: 16px;
+      color: #b0b8d4;
+      font-weight: 400;
+    }
+
+    .content {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 30px;
+      margin-bottom: 40px;
+    }
+
+    @media (max-width: 768px) {
+      .content {
+        grid-template-columns: 1fr;
+        gap: 20px;
+      }
+    }
+
+    .arc-container {
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 200, 0, 0.2);
+      border-radius: 16px;
+      padding: 24px;
+      animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.1s both;
+    }
+
+    svg {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    .control-panel {
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 200, 0, 0.2);
+      border-radius: 16px;
+      padding: 24px;
+      animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.2s both;
+    }
+
+    .search-group {
+      margin-bottom: 24px;
+    }
+
+    .search-group label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #ffaa00;
+      margin-bottom: 8px;
+    }
+
+    .search-group input {
+      width: 100%;
+      padding: 12px 16px;
+      border: 1px solid rgba(255, 200, 0, 0.3);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.08);
+      color: #fff;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 14px;
+      transition: all 0.3s ease;
+    }
+
+    .search-group input:focus {
+      outline: none;
+      border-color: #ffd700;
+      background: rgba(255, 255, 255, 0.12);
+      box-shadow: 0 0 12px rgba(255, 215, 0, 0.2);
+    }
+
+    .search-group input::placeholder {
+      color: rgba(255, 200, 0, 0.5);
+    }
+
+    .stats {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px;
+      background: rgba(255, 215, 0, 0.05);
+      border-left: 3px solid #ffaa00;
+      border-radius: 4px;
+      animation: slideInRight 0.5s ease 0.3s both;
+    }
+
+    .stat-label {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #b0b8d4;
+    }
+
+    .stat-value {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 16px;
+      font-weight: 600;
+      color: #ffd700;
+    }
+
+    .status {
+      margin-top: 20px;
+      padding: 16px;
+      background: rgba(100, 150, 255, 0.1);
+      border: 1px solid rgba(100, 150, 255, 0.3);
+      border-radius: 8px;
+      font-size: 14px;
+      text-align: center;
+      color: #a8d5ff;
+      animation: fadeIn 0.6s ease 0.4s both;
+    }
+
+    .error {
+      background: rgba(255, 100, 100, 0.1);
+      border-color: rgba(255, 100, 100, 0.3);
+      color: #ffaaaa;
+    }
+
+    @keyframes fadeInDown {
+      from { opacity: 0; transform: translateY(-20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes slideInRight {
+      from { opacity: 0; transform: translateX(-10px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * {
+        animation: none !important;
+        transition: none !important;
+      }
+    }
+
+    .loading {
+      text-align: center;
+      color: #ffaa00;
+      margin-top: 20px;
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255, 200, 0, 0.2);
+      border-top-color: #ffd700;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .spinner {
+        animation: none;
+        border-top-color: inherit;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Solar Arc</h1>
+      <p>Watch the sun's path across the sky, live for any city on Earth</p>
+    </div>
+
+    <div class="content">
+      <div class="arc-container">
+        <svg id="arcSVG" viewBox="0 0 400 280" preserveAspectRatio="xMidYMid meet">
+          <!-- Horizon and sky -->
+          <defs>
+            <linearGradient id="skyGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" style="stop-color:#000033;stop-opacity:1" />
+              <stop offset="50%" style="stop-color:#001a4d;stop-opacity:1" />
+              <stop offset="100%" style="stop-color:#ccaa00;stop-opacity:0.2" />
+            </linearGradient>
+            <filter id="sunGlow">
+              <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+              <feMerge>
+                <feMergeNode in="coloredBlur"/>
+                <feMergeNode in="SourceGraphic"/>
+              </feMerge>
+            </filter>
+          </defs>
+
+          <!-- Background -->
+          <rect width="400" height="280" fill="url(#skyGradient)"/>
+
+          <!-- Horizon line -->
+          <line x1="20" y1="200" x2="380" y2="200" stroke="rgba(255, 200, 0, 0.3)" stroke-width="2"/>
+
+          <!-- Direction labels -->
+          <text x="20" y="220" font-size="12" fill="rgba(255, 200, 0, 0.6)" font-family="IBM Plex Mono">WEST</text>
+          <text x="180" y="220" font-size="12" fill="rgba(255, 200, 0, 0.6)" font-family="IBM Plex Mono" text-anchor="middle">SOUTH</text>
+          <text x="380" y="220" font-size="12" fill="rgba(255, 200, 0, 0.6)" font-family="IBM Plex Mono" text-anchor="end">EAST</text>
+
+          <!-- Arc (sun's path) -->
+          <path id="arcPath" d="M 20 200 Q 200 50 380 200" stroke="rgba(255, 200, 0, 0.2)" stroke-width="1" fill="none" stroke-dasharray="4,4"/>
+
+          <!-- Altitude markers (every 15°) -->
+          <circle cx="200" cy="200" r="30" stroke="rgba(255, 200, 0, 0.15)" stroke-width="1" fill="none"/>
+          <circle cx="200" cy="200" r="60" stroke="rgba(255, 200, 0, 0.15)" stroke-width="1" fill="none"/>
+          <circle cx="200" cy="200" r="90" stroke="rgba(255, 200, 0, 0.15)" stroke-width="1" fill="none"/>
+
+          <!-- Sun circle (current position) -->
+          <circle id="sunCircle" cx="200" cy="200" r="12" fill="#ffd700" filter="url(#sunGlow)" opacity="0.9"/>
+          <circle id="sunGlowCircle" cx="200" cy="200" r="18" fill="none" stroke="#ffaa00" stroke-width="2" opacity="0.4"/>
+        </svg>
+      </div>
+
+      <div class="control-panel">
+        <div class="search-group">
+          <label for="cityInput">City Name</label>
+          <input type="text" id="cityInput" placeholder="e.g., Melbourne, London, Tokyo..." value="Melbourne">
+        </div>
+
+        <div class="stats" id="statsContainer">
+          <div class="stat-row">
+            <span class="stat-label">Sunrise</span>
+            <span class="stat-value" id="sunriseTime">—:—</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Sunset</span>
+            <span class="stat-value" id="sunsetTime">—:—</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Current Alt</span>
+            <span class="stat-value" id="currentAlt">—°</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Time Until</span>
+            <span class="stat-value" id="timeUntil">—</span>
+          </div>
+        </div>
+
+        <div class="status" id="status">
+          Load a city to begin. Tap the input above or press Enter.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Core logic: solar position calculation
+    function getSolarPosition(lat, lng, date) {
+      const J2000 = 2451545;
+      const jd = Math.floor((date.getTime() / 86400000) - 10957.5) + 2440588;
+      const T = (jd - J2000) / 36525;
+
+      const L0 = (280.46646 + 36000.76983 * T + 0.0003032 * T * T) % 360;
+      const e = 0.016708634 - 0.000042037 * T - 0.0000001267 * T * T;
+      const M = (357.52911 + 35999.05029 * T - 0.0001537 * T * T) % 360;
+      const MRad = M * Math.PI / 180;
+
+      const C = (1.914602 - 0.004817 * T - 0.000014 * T * T) * Math.sin(MRad) +
+                (0.019993 - 0.000101 * T) * Math.sin(2 * MRad) +
+                0.000029 * Math.sin(3 * MRad);
+      const lambda = (L0 + C) % 360;
+      const lrad = lambda * Math.PI / 180;
+
+      const epsilon = (23.439291 - 0.0130042 * T - 0.00000016 * T * T + 0.000000504 * T * T * T) * (Math.PI / 180);
+      const decl = Math.asin(Math.sin(epsilon) * Math.sin(lrad));
+
+      const UT = date.getUTCHours() + date.getUTCMinutes() / 60 + date.getUTCSeconds() / 3600;
+      const GST = (18.697374558 + 24.06570982441908 * (jd - 51545) + T * T * 0.000026) % 24;
+      const LST = (GST * 15 + lng) % 360;
+      const HA = (LST - lambda) * Math.PI / 180;
+
+      const latRad = lat * Math.PI / 180;
+      const alt = Math.asin(Math.sin(latRad) * Math.sin(decl) + Math.cos(latRad) * Math.cos(decl) * Math.cos(HA));
+      const az = Math.atan2(Math.sin(HA), Math.cos(HA) * Math.sin(latRad) - Math.tan(decl) * Math.cos(latRad));
+
+      return {
+        altitude: alt * 180 / Math.PI,
+        azimuth: ((az * 180 / Math.PI + 180) % 360)
+      };
+    }
+
+    // Sun rise/set times (simple estimate)
+    function getSunriseSunset(lat, lng, date) {
+      const dayOfYear = Math.floor((date - new Date(date.getFullYear(), 0, 0)) / 86400000);
+      const n = dayOfYear + (date.getHours() + date.getMinutes() / 60) / 24;
+      const J = n + 0.0172 + 0.2442 * Math.cos(0.017202 * n) - 2.3624 * Math.cos(0.016428 * n);
+
+      const declination = 0.3948 - 23.2559 * Math.cos(0.017202 * (J + 9.73));
+      const cosH = -Math.tan(lat * Math.PI / 180) * Math.tan(declination * Math.PI / 180);
+
+      if (Math.abs(cosH) > 1) {
+        return { sunrise: null, sunset: null };
+      }
+
+      const H = Math.acos(cosH) * 180 / Math.PI;
+      const offset = lng / 15;
+      const sunrise = 12 - H / 15 - offset;
+      const sunset = 12 + H / 15 - offset;
+
+      return { sunrise, sunset };
+    }
+
+    // Format time
+    function formatTime(hours) {
+      if (!hours) return "—:—";
+      let h = Math.floor(hours);
+      let m = Math.round((hours - h) * 60);
+      if (h < 0) h += 24;
+      if (h >= 24) h -= 24;
+      return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+    }
+
+    // Get city geocoding
+    async function geocodeCity(cityName) {
+      try {
+        const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cityName)}&count=1&language=en&format=json`);
+        const json = await res.json();
+        if (json.results && json.results.length > 0) {
+          const r = json.results[0];
+          return { lat: r.latitude, lng: r.longitude, city: r.name, tz: r.timezone };
+        }
+        return null;
+      } catch (err) {
+        console.error(err);
+        return null;
+      }
+    }
+
+    // Main update function
+    async function loadCity(cityName) {
+      const status = document.getElementById('status');
+      status.textContent = 'Searching...';
+      status.className = 'status';
+
+      const geo = await geocodeCity(cityName);
+      if (!geo) {
+        status.textContent = `❌ City "${cityName}" not found. Try another name.`;
+        status.className = 'status error';
+        return;
+      }
+
+      const now = new Date();
+      const { sunrise, sunset } = getSunriseSunset(geo.lat, geo.lng, now);
+      const { altitude, azimuth } = getSolarPosition(geo.lat, geo.lng, now);
+
+      document.getElementById('sunriseTime').textContent = formatTime(sunrise);
+      document.getElementById('sunsetTime').textContent = formatTime(sunset);
+      document.getElementById('currentAlt').textContent = altitude.toFixed(1) + '°';
+
+      // Determine time until sunrise or sunset
+      const currentHour = now.getHours() + now.getMinutes() / 60;
+      let timeUntilText = '—';
+      if (sunrise && sunrise > currentHour) {
+        const diff = sunrise - currentHour;
+        const h = Math.floor(diff);
+        const m = Math.round((diff - h) * 60);
+        timeUntilText = `Sunrise in ${h}h ${m}m`;
+      } else if (sunset && sunset > currentHour) {
+        const diff = sunset - currentHour;
+        const h = Math.floor(diff);
+        const m = Math.round((diff - h) * 60);
+        timeUntilText = `Sunset in ${h}h ${m}m`;
+      } else if (sunset) {
+        timeUntilText = 'Sunrise (tomorrow)';
+      }
+      document.getElementById('timeUntil').textContent = timeUntilText;
+
+      // Render sun position on arc
+      const altClamp = Math.max(0, Math.min(90, altitude));
+      const ratio = altClamp / 90;
+      const cx = 20 + (360 * (azimuth / 360));
+      const cy = 200 - (150 * ratio);
+
+      const sunCircle = document.getElementById('sunCircle');
+      const sunGlow = document.getElementById('sunGlowCircle');
+      sunCircle.setAttribute('cx', cx);
+      sunCircle.setAttribute('cy', cy);
+      sunGlow.setAttribute('cx', cx);
+      sunGlow.setAttribute('cy', cy);
+
+      // Color transition
+      let color = '#ffaa00';
+      if (altitude < 0) {
+        color = '#4488ff';
+      } else if (altitude < 30) {
+        color = '#ffaa00';
+      } else if (altitude < 60) {
+        color = '#ffd700';
+      } else {
+        color = '#ffff00';
+      }
+      sunCircle.setAttribute('fill', color);
+
+      status.textContent = `☀️ ${geo.city} — ${geo.tz}`;
+      status.className = 'status';
+    }
+
+    // Event listeners
+    document.getElementById('cityInput').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        loadCity(e.target.value);
+      }
+    });
+
+    // Load default city on page load
+    window.addEventListener('load', () => {
+      loadCity('Melbourne');
+
+      // Update every 30 seconds
+      setInterval(() => {
+        loadCity(document.getElementById('cityInput').value);
+      }, 30000);
+    });
+  </script>
+</body>
+</html>
