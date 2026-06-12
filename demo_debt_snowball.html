@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Debt Freedom Calculator — Snowball vs Avalanche</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --navy: #0f1419;
+      --purple: #2d1b4e;
+      --cyan: #00d9ff;
+      --lime: #b6ff00;
+      --red: #ff3333;
+      --gray: #e0e0e0;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, var(--navy) 0%, var(--purple) 100%);
+      color: var(--gray);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 40px 20px;
+    }
+
+    .hero {
+      text-align: center;
+      margin-bottom: 60px;
+      animation: fadeInDown 0.8s ease-out;
+    }
+
+    .hero h1 {
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(48px, 8vw, 72px);
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--cyan) 0%, var(--lime) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 16px;
+      letter-spacing: -1px;
+    }
+
+    .hero p {
+      font-size: 18px;
+      color: #a0a0a0;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .main {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 40px;
+      margin-bottom: 60px;
+    }
+
+    @media (max-width: 1024px) {
+      .main {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .panel {
+      background: rgba(45, 27, 78, 0.4);
+      border: 1px solid rgba(0, 217, 255, 0.3);
+      border-radius: 16px;
+      padding: 32px;
+      backdrop-filter: blur(10px);
+      animation: fadeInUp 0.8s ease-out 0.2s both;
+    }
+
+    .panel h2 {
+      font-family: 'Syne', sans-serif;
+      font-size: 24px;
+      margin-bottom: 24px;
+      color: var(--cyan);
+    }
+
+    .debt-list {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .debt-row {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr auto;
+      gap: 8px;
+      align-items: center;
+      animation: slideInLeft 0.6s ease-out both;
+    }
+
+    @media (max-width: 640px) {
+      .debt-row {
+        grid-template-columns: 1fr;
+        gap: 8px;
+      }
+    }
+
+    .debt-row input {
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(0, 217, 255, 0.5);
+      border-radius: 8px;
+      padding: 10px 12px;
+      color: var(--gray);
+      font-size: 14px;
+      transition: all 0.3s ease;
+    }
+
+    .debt-row input:focus {
+      outline: none;
+      border-color: var(--lime);
+      background: rgba(182, 255, 0, 0.05);
+    }
+
+    .btn-remove {
+      background: rgba(255, 51, 51, 0.2);
+      border: 1px solid var(--red);
+      border-radius: 6px;
+      color: var(--red);
+      cursor: pointer;
+      padding: 8px 12px;
+      font-size: 12px;
+      transition: all 0.3s ease;
+    }
+
+    .btn-remove:hover {
+      background: rgba(255, 51, 51, 0.4);
+      transform: scale(1.05);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--cyan), var(--lime));
+      color: var(--navy);
+      border: none;
+      border-radius: 8px;
+      padding: 12px 24px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-bottom: 24px;
+      transition: all 0.3s ease;
+      width: 100%;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(0, 217, 255, 0.3);
+    }
+
+    .strategy-group {
+      margin-bottom: 32px;
+      padding-bottom: 24px;
+      border-bottom: 1px solid rgba(0, 217, 255, 0.2);
+    }
+
+    .strategy-group label {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+      margin-bottom: 12px;
+      font-size: 14px;
+      transition: all 0.3s ease;
+    }
+
+    .strategy-group label:hover {
+      color: var(--lime);
+    }
+
+    .strategy-group input[type="radio"] {
+      cursor: pointer;
+      width: 18px;
+      height: 18px;
+      accent-color: var(--lime);
+    }
+
+    .right-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    @media (max-width: 640px) {
+      .metrics {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .metric-card {
+      background: rgba(0, 0, 0, 0.2);
+      border: 1px solid rgba(182, 255, 0, 0.3);
+      border-radius: 12px;
+      padding: 16px;
+      text-align: center;
+      transition: all 0.3s ease;
+      animation: fadeIn 0.6s ease-out both;
+    }
+
+    .metric-card:hover {
+      border-color: var(--lime);
+      background: rgba(182, 255, 0, 0.05);
+    }
+
+    .metric-card .label {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #808080;
+      margin-bottom: 8px;
+    }
+
+    .metric-card .value {
+      font-family: 'Syne', sans-serif;
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--lime);
+    }
+
+    .slider-group {
+      margin-bottom: 24px;
+    }
+
+    .slider-group label {
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--cyan);
+      display: block;
+      margin-bottom: 12px;
+      font-weight: 600;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      height: 8px;
+      border-radius: 4px;
+      background: linear-gradient(90deg, rgba(0, 217, 255, 0.2), rgba(182, 255, 0, 0.2));
+      outline: none;
+      -webkit-appearance: none;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--cyan), var(--lime));
+      cursor: pointer;
+      box-shadow: 0 0 10px rgba(0, 217, 255, 0.5);
+      transition: all 0.3s ease;
+    }
+
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+      box-shadow: 0 0 20px rgba(182, 255, 0, 0.6);
+    }
+
+    input[type="range"]::-moz-range-thumb {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--cyan), var(--lime));
+      cursor: pointer;
+      border: none;
+      box-shadow: 0 0 10px rgba(0, 217, 255, 0.5);
+      transition: all 0.3s ease;
+    }
+
+    input[type="range"]::-moz-range-thumb:hover {
+      transform: scale(1.2);
+      box-shadow: 0 0 20px rgba(182, 255, 0, 0.6);
+    }
+
+    .chart-container {
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(0, 217, 255, 0.2);
+      border-radius: 12px;
+      padding: 24px;
+      animation: fadeInUp 0.8s ease-out 0.4s both;
+    }
+
+    .chart-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 18px;
+      margin-bottom: 16px;
+      color: var(--cyan);
+    }
+
+    svg {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    .debt-item-legend {
+      display: flex;
+      gap: 16px;
+      margin-top: 16px;
+      flex-wrap: wrap;
+      font-size: 12px;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .legend-color {
+      width: 12px;
+      height: 12px;
+      border-radius: 2px;
+    }
+
+    @keyframes fadeInDown {
+      from {
+        opacity: 0;
+        transform: translateY(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes slideInLeft {
+      from {
+        opacity: 0;
+        transform: translateX(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * {
+        animation: none !important;
+        transition: none !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="hero">
+      <h1>Debt Freedom Calculator</h1>
+      <p>Visualize how different strategies get you out of debt faster. Compare Snowball vs Avalanche payoff.</p>
+    </div>
+
+    <div class="main">
+      <div class="panel">
+        <h2>Your Debts</h2>
+        <div class="debt-list" id="debtList"></div>
+        <button class="btn-primary" onclick="addDebt()">+ Add Debt</button>
+
+        <div class="strategy-group">
+          <div style="font-weight: 600; margin-bottom: 12px; color: var(--cyan);">Payoff Strategy</div>
+          <label>
+            <input type="radio" name="strategy" value="snowball" checked onchange="updateChart()">
+            <span><strong>Snowball</strong> — Pay smallest debts first (psychological wins)</span>
+          </label>
+          <label>
+            <input type="radio" name="strategy" value="avalanche" onchange="updateChart()">
+            <span><strong>Avalanche</strong> — Pay highest rates first (save interest)</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="right-panel">
+        <div class="panel">
+          <h2>Monthly Payment</h2>
+          <div class="slider-group">
+            <label>
+              Monthly Payment: <span style="color: var(--lime);" id="paymentValue">$500</span>
+            </label>
+            <input type="range" id="paymentSlider" min="100" max="5000" step="50" value="500" oninput="updatePayment(this.value)">
+          </div>
+
+          <div class="metrics" id="metrics"></div>
+        </div>
+
+        <div class="chart-container">
+          <div class="chart-title">Payoff Timeline</div>
+          <svg id="chart" width="100%" height="300" viewBox="0 0 600 300"></svg>
+          <div class="debt-item-legend" id="legend"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const colors = ['#ff3333', '#ffa500', '#ffff00', '#00ff00', '#00ccff', '#9900ff'];
+
+    let debts = [
+      { name: 'Credit Card', balance: 5000, rate: 18 },
+      { name: 'Student Loan', balance: 20000, rate: 4 },
+      { name: 'Car Loan', balance: 15000, rate: 6 },
+    ];
+
+    function addDebt() {
+      debts.push({ name: `Debt ${debts.length + 1}`, balance: 5000, rate: 6 });
+      renderDebts();
+      updateChart();
+    }
+
+    function removeDebt(idx) {
+      debts.splice(idx, 1);
+      renderDebts();
+      updateChart();
+    }
+
+    function renderDebts() {
+      const list = document.getElementById('debtList');
+      list.innerHTML = debts.map((d, i) => `
+        <div class="debt-row">
+          <input type="text" placeholder="Debt name" value="${d.name}" 
+            onchange="debts[${i}].name = this.value; updateChart()">
+          <input type="number" placeholder="Balance" value="${d.balance}" 
+            onchange="debts[${i}].balance = parseFloat(this.value); updateChart()">
+          <input type="number" placeholder="Rate %" value="${d.rate}" step="0.1"
+            onchange="debts[${i}].rate = parseFloat(this.value); updateChart()">
+          <button class="btn-remove" onclick="removeDebt(${i})">Remove</button>
+        </div>
+      `).join('');
+    }
+
+    function updatePayment(val) {
+      document.getElementById('paymentValue').textContent = '$' + val;
+      updateChart();
+    }
+
+    function calculatePayoffSchedule(debts, monthlyPayment, strategy) {
+      let active = debts.map(d => ({
+        name: d.name,
+        balance: d.balance,
+        rate: d.rate,
+        interestPaid: 0,
+      }));
+
+      if (strategy === 'snowball') {
+        active.sort((a, b) => a.balance - b.balance);
+      } else {
+        active.sort((a, b) => b.rate - a.rate);
+      }
+
+      const schedule = [];
+      let month = 0;
+      const maxMonths = 600;
+      let totalInterestPaid = 0;
+
+      while (active.length > 0 && month < maxMonths) {
+        month++;
+
+        active.forEach(debt => {
+          const monthlyRate = debt.rate / 100 / 12;
+          const interest = debt.balance * monthlyRate;
+          debt.balance += interest;
+          debt.interestPaid += interest;
+          totalInterestPaid += interest;
+        });
+
+        let remaining = monthlyPayment;
+        for (let i = 0; i < active.length && remaining > 0; i++) {
+          const debt = active[i];
+          const payment = Math.min(remaining, debt.balance);
+          debt.balance -= payment;
+          remaining -= payment;
+
+          if (debt.balance <= 0.01) {
+            active.splice(i, 1);
+            i--;
+          }
+        }
+
+        if (month % 2 === 0 || active.length === 0) {
+          schedule.push({
+            month,
+            debts: active.map(d => ({ name: d.name, balance: Math.max(0, d.balance) })),
+          });
+        }
+      }
+
+      return {
+        schedule,
+        totalInterest: totalInterestPaid,
+        monthsToPayoff: month,
+      };
+    }
+
+    function updateChart() {
+      const payment = parseFloat(document.getElementById('paymentSlider').value);
+      const strategy = document.querySelector('input[name="strategy"]:checked').value;
+      const result = calculatePayoffSchedule(debts, payment, strategy);
+
+      // Update metrics
+      const years = (result.monthsToPayoff / 12).toFixed(1);
+      const interest = result.totalInterest.toFixed(0);
+      const totalDebt = debts.reduce((sum, d) => sum + d.balance, 0);
+
+      document.getElementById('metrics').innerHTML = `
+        <div class="metric-card">
+          <div class="label">Payoff Time</div>
+          <div class="value">${years}y</div>
+        </div>
+        <div class="metric-card">
+          <div class="label">Interest Paid</div>
+          <div class="value">$${interest}</div>
+        </div>
+        <div class="metric-card">
+          <div class="label">Total Debt</div>
+          <div class="value">$${totalDebt.toLocaleString()}</div>
+        </div>
+        <div class="metric-card">
+          <div class="label">Total Cost</div>
+          <div class="value">$${(totalDebt + parseFloat(interest)).toLocaleString()}</div>
+        </div>
+      `;
+
+      // Draw chart
+      const svg = document.getElementById('chart');
+      svg.innerHTML = '';
+
+      const margin = { top: 20, right: 20, bottom: 30, left: 60 };
+      const w = 600 - margin.left - margin.right;
+      const h = 300 - margin.top - margin.bottom;
+
+      const maxMonth = Math.max(...result.schedule.map(s => s.month)) || 1;
+      const maxBalance = Math.max(...debts.map(d => d.balance)) || 1;
+
+      const scaleX = w / maxMonth;
+      const scaleY = h / maxBalance;
+
+      // Axes
+      const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      g.setAttribute('transform', `translate(${margin.left}, ${margin.top})`);
+
+      // Y axis
+      const yAxis = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      yAxis.setAttribute('x1', '0');
+      yAxis.setAttribute('y1', '0');
+      yAxis.setAttribute('x2', '0');
+      yAxis.setAttribute('y2', h);
+      yAxis.setAttribute('stroke', 'rgba(0, 217, 255, 0.3)');
+      g.appendChild(yAxis);
+
+      // X axis
+      const xAxis = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      xAxis.setAttribute('x1', '0');
+      xAxis.setAttribute('y1', h);
+      xAxis.setAttribute('x2', w);
+      xAxis.setAttribute('y2', h);
+      xAxis.setAttribute('stroke', 'rgba(0, 217, 255, 0.3)');
+      g.appendChild(xAxis);
+
+      // Draw lines for each debt
+      const debtNames = [...new Set(result.schedule.flatMap(s => s.debts.map(d => d.name)))];
+
+      debtNames.forEach((name, idx) => {
+        const color = colors[idx % colors.length];
+        const points = result.schedule
+          .map(s => {
+            const debt = s.debts.find(d => d.name === name);
+            const balance = debt ? debt.balance : 0;
+            const x = s.month * scaleX;
+            const y = h - balance * scaleY;
+            return `${x},${y}`;
+          })
+          .join(' ');
+
+        const polyline = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+        polyline.setAttribute('points', points);
+        polyline.setAttribute('fill', 'none');
+        polyline.setAttribute('stroke', color);
+        polyline.setAttribute('stroke-width', '2');
+        polyline.setAttribute('stroke-linecap', 'round');
+        polyline.setAttribute('stroke-linejoin', 'round');
+        polyline.setAttribute('opacity', '0.8');
+        g.appendChild(polyline);
+      });
+
+      svg.appendChild(g);
+
+      // Legend
+      const legend = document.getElementById('legend');
+      legend.innerHTML = debtNames.map((name, idx) => `
+        <div class="legend-item">
+          <div class="legend-color" style="background: ${colors[idx % colors.length]}"></div>
+          <span>${name}</span>
+        </div>
+      `).join('');
+    }
+
+    // Init
+    renderDebts();
+    updateChart();
+  </script>
+</body>
+</html>
