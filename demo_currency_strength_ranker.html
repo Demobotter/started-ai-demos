@@ -284,7 +284,7 @@
 
     async function fetchRates() {
       try {
-        const response = await fetch(`${API_URL}?from=USD&to=${CURRENCIES.join(',')}`);
+        const response = await fetch(`${API_URL}?from=USD&to=${CURRENCIES.slice(1).join(',')}`);
         if (!response.ok) throw new Error(`API error: ${response.status}`);
         
         const data = await response.json();
@@ -302,7 +302,6 @@
         const rate = rates[curr];
         if (!rate) continue;
         
-        // For JPY (rates > 100), invert to normalize
         let normalized = curr === 'JPY' ? 1 / rate : rate;
         strengths[curr] = normalized;
       }
@@ -333,7 +332,6 @@
         const rates = await fetchRates();
         const strengths = calculateStrength(rates);
 
-        // Rank by strength
         const ranked = Object.entries(strengths)
           .sort((a, b) => b[1] - a[1])
           .map((entry, i) => ({
@@ -343,7 +341,6 @@
             rate: rates[entry[0]]
           }));
 
-        // Render rank cards
         rankGrid.innerHTML = ranked.map(item => {
           const colorStop = (item.strength / 100) * 100;
           return `
@@ -367,12 +364,10 @@
           `;
         }).join('');
 
-        // Update stats
         document.querySelector('#strongest').textContent = ranked[0].currency;
         document.querySelector('#weakest').textContent = ranked[ranked.length - 1].currency;
         document.querySelector('#timestamp').textContent = formatTime(new Date());
 
-        // Show content, hide loading
         loading.classList.remove('show');
         error.classList.remove('show');
         content.style.display = 'block';
@@ -384,10 +379,7 @@
       }
     }
 
-    // Initial load
     updateRanks();
-    
-    // Refresh every 60 seconds
     setInterval(updateRanks, 60000);
   </script>
 </body>
