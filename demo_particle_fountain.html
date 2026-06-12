@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Particle Fountain</title>
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: Sora, sans-serif;
+      overflow: hidden;
+      background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 50%, #0d1828 100%);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 2rem 1rem;
+      color: #fff;
+    }
+    .hero {
+      text-align: center;
+      margin-bottom: 2rem;
+      animation: fadeInDown 0.8s cubic-bezier(0.16,1,0.3,1);
+    }
+    .hero h1 {
+      font-size: clamp(2.5rem, 8vw, 4rem);
+      font-weight: 700;
+      background: linear-gradient(90deg, #00d9ff, #ff00ff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 0.5rem;
+      letter-spacing: -1px;
+    }
+    .hero p {
+      font-size: 0.95rem;
+      color: #a0a0b8;
+      font-style: italic;
+    }
+    .container {
+      display: flex;
+      gap: 2rem;
+      width: 100%;
+      max-width: 1000px;
+      align-items: flex-start;
+      animation: fadeIn 1s cubic-bezier(0.16,1,0.3,1) 0.2s both;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    #canvas {
+      border: 1px solid rgba(0, 217, 255, 0.4);
+      background: #0f0f2e url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><defs><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="4" result="noise"/></defs><rect width="100" height="100" fill="%230f0f2e"/><rect width="100" height="100" fill="%23ffffff" opacity="0.02" style="mix-blend-mode:overlay"/></svg>');
+      border-radius: 12px;
+      box-shadow: 0 0 40px rgba(0, 217, 255, 0.2), inset 0 0 60px rgba(255, 0, 255, 0.05);
+      flex-shrink: 0;
+    }
+    .controls {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+      min-width: 200px;
+      animation: slideUp 0.8s cubic-bezier(0.16,1,0.3,1) 0.3s both;
+    }
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    .control-group label {
+      font-size: 0.85rem;
+      color: #00d9ff;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .control-group input[type="range"] {
+      width: 100%;
+      height: 6px;
+      border-radius: 3px;
+      background: linear-gradient(90deg, rgba(0,217,255,0.2), rgba(255,0,255,0.2));
+      outline: none;
+      -webkit-appearance: none;
+      appearance: none;
+      cursor: pointer;
+    }
+    .control-group input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #00d9ff, #ff00ff);
+      cursor: pointer;
+      box-shadow: 0 0 15px rgba(0, 217, 255, 0.6);
+      transition: box-shadow 0.2s;
+    }
+    .control-group input[type="range"]::-webkit-slider-thumb:hover {
+      box-shadow: 0 0 25px rgba(0, 217, 255, 0.8);
+    }
+    .control-group input[type="range"]::-moz-range-thumb {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #00d9ff, #ff00ff);
+      cursor: pointer;
+      border: none;
+      box-shadow: 0 0 15px rgba(0, 217, 255, 0.6);
+      transition: box-shadow 0.2s;
+    }
+    .value {
+      font-size: 0.9rem;
+      color: #ff00ff;
+      font-family: 'IBM Plex Mono', monospace;
+      font-weight: 600;
+    }
+    .stats {
+      background: rgba(26, 31, 58, 0.6);
+      border: 1px solid rgba(0, 217, 255, 0.3);
+      border-radius: 8px;
+      padding: 1rem;
+      backdrop-filter: blur(10px);
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.85rem;
+      color: #a0a0b8;
+      min-width: 200px;
+    }
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 0.5rem;
+    }
+    .stat-label {
+      color: #00d9ff;
+    }
+    .stat-value {
+      color: #ff00ff;
+      font-weight: 600;
+    }
+    @keyframes fadeInDown {
+      from { opacity: 0; transform: translateY(-20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @media (max-width: 768px) {
+      .hero h1 { font-size: 2.5rem; }
+      .container { flex-direction: column; gap: 1rem; }
+      #canvas { width: 100%; height: 400px; }
+      .controls { width: 100%; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      * { animation: none !important; transition: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="hero">
+    <h1>Particle Fountain</h1>
+    <p>Adjust gravity, emission, and bounce — watch physics in action</p>
+  </div>
+  
+  <div class="container">
+    <canvas id="canvas" width="500" height="500"></canvas>
+    
+    <div class="controls">
+      <div class="control-group">
+        <label for="gravity">Gravity</label>
+        <input type="range" id="gravity" min="0.1" max="1" step="0.05" value="0.4">
+        <span class="value" id="gravityVal">0.40</span>
+      </div>
+      
+      <div class="control-group">
+        <label for="emission">Emission Rate</label>
+        <input type="range" id="emission" min="1" max="8" step="0.5" value="4">
+        <span class="value" id="emissionVal">4</span>
+      </div>
+      
+      <div class="control-group">
+        <label for="friction">Bounce Friction</label>
+        <input type="range" id="friction" min="0.3" max="0.95" step="0.05" value="0.7">
+        <span class="value" id="frictionVal">0.70</span>
+      </div>
+      
+      <div class="stats">
+        <div class="stat-row">
+          <span class="stat-label">Active</span>
+          <span class="stat-value" id="active">0</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Emitted</span>
+          <span class="stat-value" id="emitted">0</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">FPS</span>
+          <span class="stat-value" id="fps">60</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    let gravity = 0.4;
+    let emissionRate = 4;
+    let friction = 0.7;
+    let particles = [];
+    let emittedCount = 0;
+    let frameCount = 0;
+    let lastFpsTime = Date.now();
+    let fps = 60;
+
+    // Particle class
+    class Particle {
+      constructor(x, y, vx, vy, friction) {
+        this.x = x;
+        this.y = y;
+        this.vx = vx;
+        this.vy = vy;
+        this.friction = friction;
+        this.age = 0;
+        this.life = 180;
+      }
+      
+      step(gravity) {
+        this.vy += gravity;
+        this.x += this.vx;
+        this.y += this.vy;
+        this.age++;
+        
+        // Floor bounce
+        if (this.y >= 480) {
+          this.y = 480;
+          this.vy *= -this.friction;
+          this.vx *= 0.98; // friction on x too
+        }
+        
+        return this.age < this.life;
+      }
+      
+      draw(ctx) {
+        const alpha = 1 - (this.age / this.life);
+        const size = 3 + alpha * 2;
+        
+        ctx.fillStyle = `rgba(0, 217, 255, ${alpha * 0.8})`;
+        ctx.fillRect(this.x - size/2, this.y - size/2, size, size);
+      }
+    }
+
+    // Emit particles
+    function emit() {
+      const toEmit = Math.floor(emissionRate);
+      for (let i = 0; i < toEmit; i++) {
+        const angle = (Math.PI / 2) + (Math.random() - 0.5) * 0.7;
+        const speed = 10 + Math.random() * 4;
+        particles.push(new Particle(
+          250,
+          480,
+          Math.cos(angle) * speed,
+          Math.sin(angle) * speed * -1,
+          friction
+        ));
+        emittedCount++;
+      }
+    }
+
+    // Animation loop
+    function animate() {
+      frameCount++;
+      
+      // Emit
+      emit();
+      
+      // Step particles
+      particles = particles.filter(p => p.step(gravity));
+      
+      // Draw
+      ctx.fillStyle = '#0f0f2e';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // Draw floor line
+      ctx.strokeStyle = 'rgba(255, 0, 255, 0.2)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(0, 480);
+      ctx.lineTo(500, 480);
+      ctx.stroke();
+      
+      // Draw emitter point
+      ctx.fillStyle = 'rgba(0, 217, 255, 0.6)';
+      ctx.fillRect(247, 477, 6, 6);
+      
+      // Draw particles
+      particles.forEach(p => p.draw(ctx));
+      
+      // Update stats
+      document.getElementById('active').textContent = particles.length;
+      document.getElementById('emitted').textContent = emittedCount;
+      
+      // FPS counter
+      if (frameCount % 10 === 0) {
+        const now = Date.now();
+        fps = Math.round(10000 / (now - lastFpsTime));
+        lastFpsTime = now;
+        document.getElementById('fps').textContent = fps;
+      }
+      
+      requestAnimationFrame(animate);
+    }
+
+    // Controls
+    document.getElementById('gravity').addEventListener('input', (e) => {
+      gravity = parseFloat(e.target.value);
+      document.getElementById('gravityVal').textContent = gravity.toFixed(2);
+    });
+
+    document.getElementById('emission').addEventListener('input', (e) => {
+      emissionRate = parseFloat(e.target.value);
+      document.getElementById('emissionVal').textContent = emissionRate.toFixed(1);
+    });
+
+    document.getElementById('friction').addEventListener('input', (e) => {
+      friction = parseFloat(e.target.value);
+      document.getElementById('frictionVal').textContent = friction.toFixed(2);
+    });
+
+    animate();
+  </script>
+</body>
+</html>
