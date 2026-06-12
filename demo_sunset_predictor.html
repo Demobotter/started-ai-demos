@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sunset Live Predictor</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background: linear-gradient(135deg, #0a1428 0%, #1f0d3e 50%, #2a0845 100%);
+            color: #e0e6ff;
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 50%, rgba(255, 107, 53, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(76, 133, 255, 0.08) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .container {
+            position: relative;
+            z-index: 2;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 60px 20px;
+            animation: fadeIn 0.6s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .hero {
+            text-align: center;
+            margin-bottom: 50px;
+            animation: slideDown 0.8s cubic-bezier(.16,1,.3,1);
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        h1 {
+            font-size: clamp(36px, 8vw, 64px);
+            font-weight: 700;
+            margin-bottom: 12px;
+            background: linear-gradient(135deg, #ff6b35 0%, #f7a642 50%, #ff9a4d 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -0.5px;
+        }
+
+        .tagline {
+            font-size: 16px;
+            font-weight: 400;
+            color: #9ca3af;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            opacity: 0.8;
+        }
+
+        .search-section {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 40px;
+            animation: slideUp 0.8s cubic-bezier(.16,1,.3,1) 0.1s both;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 14px 18px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            color: #e0e6ff;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(8px);
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 107, 53, 0.6);
+            box-shadow: 0 0 16px rgba(255, 107, 53, 0.2);
+        }
+
+        button {
+            padding: 14px 24px;
+            background: linear-gradient(135deg, #ff6b35 0%, #f7a642 100%);
+            border: none;
+            border-radius: 8px;
+            color: #0a1428;
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            letter-spacing: 0.5px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(255, 107, 53, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .results {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 24px;
+            animation: gridFadeIn 0.6s ease-out 0.2s both;
+        }
+
+        @keyframes gridFadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        .card {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 28px;
+            backdrop-filter: blur(16px);
+            transition: all 0.3s ease;
+            animation: cardSlideIn 0.6s cubic-bezier(.16,1,.3,1);
+        }
+
+        @keyframes cardSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .card:hover {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.04) 100%);
+            border-color: rgba(255, 107, 53, 0.4);
+            transform: translateY(-4px);
+            box-shadow: 0 12px 32px rgba(255, 107, 53, 0.15);
+        }
+
+        .card h2 {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: #ff6b35;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .card-content {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            font-size: 14px;
+        }
+
+        .info-row:last-child {
+            border-bottom: none;
+        }
+
+        .label {
+            color: #9ca3af;
+            font-weight: 400;
+        }
+
+        .value {
+            font-family: 'Courier Prime', monospace;
+            color: #ffd700;
+            font-weight: 600;
+        }
+
+        .time-live {
+            font-size: 28px;
+            font-weight: 700;
+            color: #ff6b35;
+            margin: 16px 0;
+            text-align: center;
+            font-family: 'Courier Prime', monospace;
+        }
+
+        .countdown {
+            background: rgba(255, 107, 53, 0.1);
+            border: 1px solid rgba(255, 107, 53, 0.3);
+            border-radius: 6px;
+            padding: 12px;
+            text-align: center;
+            margin-top: 12px;
+        }
+
+        .countdown-time {
+            font-size: 24px;
+            font-weight: 700;
+            color: #ff9a4d;
+            font-family: 'Courier Prime', monospace;
+        }
+
+        .countdown-label {
+            font-size: 12px;
+            color: #9ca3af;
+            margin-top: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px 20px;
+            color: #9ca3af;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+            border: 2px solid rgba(255, 107, 53, 0.2);
+            border-top-color: #ff6b35;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .error {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 8px;
+            padding: 16px;
+            color: #fca5a5;
+            text-align: center;
+            margin-top: 20px;
+            font-size: 14px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6b7280;
+        }
+
+        .empty-state p {
+            font-size: 16px;
+            opacity: 0.8;
+        }
+
+        @media (max-width: 640px) {
+            .container {
+                padding: 40px 16px;
+            }
+
+            h1 {
+                font-size: 32px;
+            }
+
+            .search-section {
+                flex-direction: column;
+            }
+
+            .results {
+                grid-template-columns: 1fr;
+            }
+
+            .card {
+                padding: 20px;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation: none !important;
+                transition: none !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="hero">
+            <h1>🌅 Sunset Live</h1>
+            <p class="tagline">Know when golden hour hits, anywhere on Earth</p>
+        </div>
+
+        <div class="search-section">
+            <input 
+                type="text" 
+                id="cityInput" 
+                placeholder="Enter a city name (e.g., Tokyo, New York, Sydney)" 
+                autocomplete="off"
+            >
+            <button id="searchBtn">Search</button>
+        </div>
+
+        <div id="resultsContainer"></div>
+    </div>
+
+    <script>
+        const cityInput = document.getElementById('cityInput');
+        const searchBtn = document.getElementById('searchBtn');
+        const resultsContainer = document.getElementById('resultsContainer');
+
+        // Event listeners
+        searchBtn.addEventListener('click', searchCity);
+        cityInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') searchCity();
+        });
+
+        // Default load: Melbourne
+        window.addEventListener('load', () => {
+            setTimeout(() => searchCity('Melbourne'), 300);
+        });
+
+        async function searchCity(city = null) {
+            const cityName = city || cityInput.value.trim();
+            if (!cityName) return;
+
+            resultsContainer.innerHTML = '<div class="loading"><div class="spinner"></div><p>Loading sunset data...</p></div>';
+            searchBtn.disabled = true;
+
+            try {
+                // Geocode city via Open-Meteo
+                const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cityName)}&count=1&language=en&format=json`);
+                const geoData = await geoRes.json();
+
+                if (!geoData.results || geoData.results.length === 0) {
+                    resultsContainer.innerHTML = '<div class="error">❌ City not found. Try another name.</div>';
+                    searchBtn.disabled = false;
+                    return;
+                }
+
+                const location = geoData.results[0];
+                const { name, country, latitude, longitude, timezone } = location;
+
+                // Fetch sunset/sunrise + weather data for the date
+                const weatherRes = await fetch(
+                    `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&daily=sunrise,sunset,temperature_2m_max&timezone=${timezone}&forecast_days=1`
+                );
+                const weatherData = await weatherRes.json();
+
+                const daily = weatherData.daily;
+                const sunrise = daily.sunrise[0];
+                const sunset = daily.sunset[0];
+                const maxTemp = daily.temperature_2m_max[0];
+
+                // Parse times
+                const sunriseDate = new Date(sunrise);
+                const sunsetDate = new Date(sunset);
+                const sunriseStr = sunriseDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+                const sunsetStr = sunsetDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+
+                // Determine sun direction (very rough approximation based on longitude)
+                const sunsetDirection = longitude < 0 ? 'West' : 'West';
+
+                // Build result HTML
+                const html = `
+                    <div class="results">
+                        <div class="card">
+                            <h2>📍 Location</h2>
+                            <div class="card-content">
+                                <div class="info-row">
+                                    <span class="label">City</span>
+                                    <span class="value">${name}, ${country}</span>
+                                </div>
+                                <div class="info-row">
+                                    <span class="label">Latitude</span>
+                                    <span class="value">${latitude.toFixed(2)}°</span>
+                                </div>
+                                <div class="info-row">
+                                    <span class="label">Longitude</span>
+                                    <span class="value">${longitude.toFixed(2)}°</span>
+                                </div>
+                                <div class="info-row">
+                                    <span class="label">Timezone</span>
+                                    <span class="value">${timezone}</span>
+                                </div>
+                                <div class="time-live" id="localTime"></div>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <h2>🌅 Today's Sun</h2>
+                            <div class="card-content">
+                                <div class="info-row">
+                                    <span class="label">Sunrise</span>
+                                    <span class="value">${sunriseStr}</span>
+                                </div>
+                                <div class="info-row">
+                                    <span class="label">Sunset</span>
+                                    <span class="value">${sunsetStr}</span>
+                                </div>
+                                <div class="info-row">
+                                    <span class="label">Direction</span>
+                                    <span class="value">${sunsetDirection}</span>
+                                </div>
+                                <div class="info-row">
+                                    <span class="label">Max Temp</span>
+                                    <span class="value">${maxTemp.toFixed(1)}°C</span>
+                                </div>
+                                <div class="countdown">
+                                    <div class="countdown-time" id="countdownTime">--:--</div>
+                                    <div class="countdown-label">Until Sunset</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                resultsContainer.innerHTML = html;
+
+                // Update live time and countdown
+                const updateLiveTime = () => {
+                    const now = new Date();
+                    const localTimeEl = document.getElementById('localTime');
+                    if (localTimeEl) {
+                        const formatter = new Intl.DateTimeFormat('en-US', {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            second: '2-digit',
+                            hour12: true,
+                            timeZone: timezone
+                        });
+                        localTimeEl.textContent = formatter.format(now);
+                    }
+
+                    const countdownEl = document.getElementById('countdownTime');
+                    if (countdownEl) {
+                        const diff = sunsetDate - now;
+                        if (diff > 0) {
+                            const hours = Math.floor(diff / 3600000);
+                            const mins = Math.floor((diff % 3600000) / 60000);
+                            countdownEl.textContent = `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
+                        } else {
+                            countdownEl.textContent = '00:00';
+                            countdownEl.style.color = '#9ca3af';
+                        }
+                    }
+                };
+
+                updateLiveTime();
+                const liveInterval = setInterval(updateLiveTime, 1000);
+
+                // Cleanup on next search
+                window._liveInterval = liveInterval;
+
+            } catch (err) {
+                resultsContainer.innerHTML = '<div class="error">❌ Error fetching data. Please try again.</div>';
+                console.error(err);
+            } finally {
+                searchBtn.disabled = false;
+            }
+        }
+
+        // Cleanup interval on new search
+        const originalSearch = searchCity;
+        searchCity = function(city) {
+            if (window._liveInterval) clearInterval(window._liveInterval);
+            return originalSearch.call(this, city);
+        };
+    </script>
+</body>
+</html>
