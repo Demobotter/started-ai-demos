@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Earthquake Pulse Globe</title>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: 'Geist', sans-serif;
+      background: linear-gradient(135deg, #0a0e27 0%, #1a1a4d 50%, #0d0d1f 100%);
+      color: #e0e0ff;
+      min-height: 100vh;
+      overflow-x: hidden;
+      padding: 20px;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .hero {
+      text-align: center;
+      padding: 60px 20px 40px;
+      animation: fadeInDown 0.8s cubic-bezier(.16,1,.3,1);
+    }
+    .hero h1 {
+      font-family: 'Instrument Serif', serif;
+      font-size: clamp(48px, 8vw, 72px);
+      font-weight: 700;
+      background: linear-gradient(135deg, #ff6b6b 0%, #ff8e72 50%, #ffa44d 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: -1px;
+      margin-bottom: 12px;
+      line-height: 1.2;
+    }
+    .hero p {
+      font-size: 16px;
+      color: #a0a0d0;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    .content-wrapper {
+      display: grid;
+      grid-template-columns: 1fr 320px;
+      gap: 24px;
+      margin-top: 40px;
+      animation: fadeIn 0.8s 0.2s cubic-bezier(.16,1,.3,1) both;
+    }
+    @media (max-width: 900px) {
+      .content-wrapper {
+        grid-template-columns: 1fr;
+      }
+    }
+    .map-container {
+      background: linear-gradient(135deg, rgba(30, 30, 60, 0.8), rgba(20, 20, 50, 0.9));
+      border: 1px solid rgba(100, 150, 255, 0.3);
+      border-radius: 16px;
+      backdrop-filter: blur(10px);
+      overflow: hidden;
+      aspect-ratio: 2;
+      position: relative;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+    .stats-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      animation: slideInRight 0.8s 0.3s cubic-bezier(.16,1,.3,1) both;
+    }
+    .stat-card {
+      background: linear-gradient(135deg, rgba(50, 50, 100, 0.5), rgba(30, 30, 60, 0.5));
+      border: 1px solid rgba(100, 150, 255, 0.4);
+      border-radius: 12px;
+      padding: 16px;
+      backdrop-filter: blur(8px);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    }
+    .stat-label {
+      font-size: 12px;
+      color: #7a7aaa;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: 6px;
+    }
+    .stat-value {
+      font-family: 'Geist', monospace;
+      font-size: 28px;
+      font-weight: 600;
+      color: #00d9ff;
+      text-shadow: 0 0 10px rgba(0, 217, 255, 0.4);
+    }
+    .stat-value.orange {
+      color: #ff8e72;
+      text-shadow: 0 0 10px rgba(255, 142, 114, 0.4);
+    }
+    .update-time {
+      font-size: 11px;
+      color: #6a6a9a;
+      margin-top: 8px;
+    }
+    .loading {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      z-index: 10;
+    }
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid rgba(0, 217, 255, 0.2);
+      border-top-color: #00d9ff;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    .legend {
+      margin-top: 24px;
+      padding: 16px;
+      background: linear-gradient(135deg, rgba(50, 50, 100, 0.4), rgba(30, 30, 60, 0.4));
+      border: 1px solid rgba(100, 150, 255, 0.3);
+      border-radius: 12px;
+      font-size: 12px;
+      color: #a0a0d0;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .legend-item:last-child {
+      margin-bottom: 0;
+    }
+    .legend-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+    }
+    .legend-dot.shallow { background: #ff6b6b; }
+    .legend-dot.medium { background: #ff9d5c; }
+    .legend-dot.deep { background: #4a90e2; }
+
+    @keyframes fadeInDown {
+      from {
+        opacity: 0;
+        transform: translateY(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    @keyframes slideInRight {
+      from {
+        opacity: 0;
+        transform: translateX(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+    @keyframes pulse-glow {
+      0%, 100% { filter: drop-shadow(0 0 6px rgba(255, 107, 107, 0.6)); }
+      50% { filter: drop-shadow(0 0 16px rgba(255, 107, 107, 1)); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="hero">
+      <h1>Earthquake Pulse</h1>
+      <p>Real-time seismic activity across the globe (past 7 days)</p>
+    </div>
+
+    <div class="content-wrapper">
+      <div class="map-container">
+        <div class="loading" id="loadingSpinner">
+          <div class="spinner"></div>
+        </div>
+        <canvas id="mapCanvas"></canvas>
+      </div>
+
+      <div class="stats-panel">
+        <div class="stat-card">
+          <div class="stat-label">Total Quakes</div>
+          <div class="stat-value" id="totalQuakes">0</div>
+          <div class="update-time" id="updateTime">Loading...</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Highest Magnitude</div>
+          <div class="stat-value orange" id="maxMagnitude">—</div>
+        </div>
+        <div class="legend">
+          <div class="stat-label" style="margin-bottom: 12px;">Depth Color</div>
+          <div class="legend-item">
+            <div class="legend-dot shallow"></div>
+            <span>Shallow (&lt;70 km)</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-dot medium"></div>
+            <span>Medium (70–300 km)</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-dot deep"></div>
+            <span>Deep (&gt;300 km)</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Pure logic functions (testable in node)
+    function getQuakeColor(depth) {
+      if (depth < 70) return { r: 255, g: 107, b: 107 }; // red
+      if (depth < 300) return { r: 255, g: 157, b: 92 }; // orange
+      return { r: 74, g: 144, b: 226 }; // blue
+    }
+    function rgbString(col) {
+      return `rgb(${col.r}, ${col.g}, ${col.b})`;
+    }
+    function equirectangularX(lng, width) {
+      return ((lng + 180) / 360) * width;
+    }
+    function equirectangularY(lat, height) {
+      return ((90 - lat) / 180) * height;
+    }
+    function magnitudeToRadius(mag) {
+      return Math.max(3, Math.min(16, 2 + mag * 1.2));
+    }
+
+    // State
+    const canvas = document.getElementById('mapCanvas');
+    const ctx = canvas.getContext('2d');
+    let earthquakes = [];
+    let lastUpdate = '';
+    let animationFrame = 0;
+    const pulseQuakes = {}; // { id: { frame, total } } for pulse animation
+
+    // Initialize canvas size
+    function resizeCanvas() {
+      const rect = canvas.parentElement.getBoundingClientRect();
+      canvas.width = rect.width;
+      canvas.height = rect.height;
+      drawMap();
+    }
+    window.addEventListener('resize', resizeCanvas);
+    setTimeout(resizeCanvas, 100);
+
+    // Fetch live earthquake data
+    async function fetchEarthquakes() {
+      try {
+        const response = await fetch('https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_week.geojson');
+        const data = await response.json();
+        earthquakes = data.features.map(f => ({
+          id: f.id,
+          lng: f.geometry.coordinates[0],
+          lat: f.geometry.coordinates[1],
+          depth: f.geometry.coordinates[2],
+          magnitude: f.properties.mag,
+          time: new Date(f.properties.time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+        })).filter(q => q.magnitude !== null && q.depth !== null);
+
+        // Update stats
+        document.getElementById('totalQuakes').textContent = earthquakes.length;
+        const maxMag = Math.max(...earthquakes.map(q => q.magnitude));
+        document.getElementById('maxMagnitude').textContent = maxMag.toFixed(1);
+        lastUpdate = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+        document.getElementById('updateTime').textContent = `Updated ${lastUpdate}`;
+        document.getElementById('loadingSpinner').style.display = 'none';
+
+        // Reset pulse anim for new quakes
+        earthquakes.forEach(q => {
+          if (!pulseQuakes[q.id]) {
+            pulseQuakes[q.id] = { frame: 0, total: 40 };
+          }
+        });
+
+        drawMap();
+      } catch (err) {
+        console.error('Fetch error:', err);
+        document.getElementById('loadingSpinner').innerHTML = '<p style="color:#ff6b6b;">Data unavailable</p>';
+      }
+    }
+
+    function drawMap() {
+      const w = canvas.width;
+      const h = canvas.height;
+
+      // Clear
+      ctx.fillStyle = 'rgba(10, 14, 39, 0.5)';
+      ctx.fillRect(0, 0, w, h);
+
+      // Grid
+      ctx.strokeStyle = 'rgba(100, 150, 255, 0.1)';
+      ctx.lineWidth = 1;
+      for (let lng = -180; lng <= 180; lng += 45) {
+        const x = equirectangularX(lng, w);
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, h);
+        ctx.stroke();
+      }
+      for (let lat = -90; lat <= 90; lat += 45) {
+        const y = equirectangularY(lat, h);
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(w, y);
+        ctx.stroke();
+      }
+
+      // Equator accent
+      const eqY = equirectangularY(0, h);
+      ctx.strokeStyle = 'rgba(0, 217, 255, 0.2)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(0, eqY);
+      ctx.lineTo(w, eqY);
+      ctx.stroke();
+
+      // Draw quakes
+      earthquakes.forEach(q => {
+        const x = equirectangularX(q.lng, w);
+        const y = equirectangularY(q.lat, h);
+        const radius = magnitudeToRadius(q.magnitude);
+        const color = getQuakeColor(q.depth);
+
+        // Glow halo
+        const haloGrad = ctx.createRadialGradient(x, y, 0, x, y, radius * 2.5);
+        haloGrad.addColorStop(0, `rgba(${color.r}, ${color.g}, ${color.b}, 0.3)`);
+        haloGrad.addColorStop(1, `rgba(${color.r}, ${color.g}, ${color.b}, 0)`);
+        ctx.fillStyle = haloGrad;
+        ctx.fillRect(x - radius * 2.5, y - radius * 2.5, radius * 5, radius * 5);
+
+        // Main dot
+        ctx.fillStyle = rgbString(color);
+        ctx.beginPath();
+        ctx.arc(x, y, radius, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Pulse ring for new quakes
+        if (pulseQuakes[q.id] && pulseQuakes[q.id].frame < pulseQuakes[q.id].total) {
+          const pf = pulseQuakes[q.id].frame;
+          const pt = pulseQuakes[q.id].total;
+          const ringRadius = radius + (pf / pt) * (radius * 3);
+          const ringOpacity = 1 - (pf / pt);
+          ctx.strokeStyle = `rgba(${color.r}, ${color.g}, ${color.b}, ${ringOpacity * 0.8})`;
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(x, y, ringRadius, 0, Math.PI * 2);
+          ctx.stroke();
+          pulseQuakes[q.id].frame++;
+        }
+      });
+    }
+
+    function animate() {
+      animationFrame++;
+      drawMap();
+      requestAnimationFrame(animate);
+    }
+
+    // Auto-refresh every 2 min
+    fetchEarthquakes();
+    animate();
+    setInterval(fetchEarthquakes, 120000);
+  </script>
+</body>
+</html>
