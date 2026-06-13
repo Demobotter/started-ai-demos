@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Timezone Overlap Finder</title>
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Sora', sans-serif;
+      background: linear-gradient(135deg, #0f172a 0%, #1a1f3a 50%, #0d1225 100%);
+      color: #e0e7ff;
+      min-height: 100vh;
+      overflow-x: hidden;
+      animation: bgPulse 8s ease-in-out infinite;
+    }
+
+    @keyframes bgPulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 1.02; }
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 40px 20px;
+    }
+
+    /* HERO */
+    .hero {
+      text-align: center;
+      margin-bottom: 50px;
+      animation: heroSlide 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      opacity: 0;
+      transform: translateY(-20px);
+    }
+
+    @keyframes heroSlide {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .hero h1 {
+      font-size: clamp(36px, 6vw, 64px);
+      font-weight: 700;
+      margin-bottom: 12px;
+      background: linear-gradient(135deg, #00d9ff, #0099ff, #6600ff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: -0.02em;
+    }
+
+    .hero p {
+      font-size: 14px;
+      color: #a5b4fc;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    /* MAIN GRID */
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 40px;
+      margin-bottom: 40px;
+    }
+
+    @media (max-width: 768px) {
+      .grid {
+        grid-template-columns: 1fr;
+        gap: 24px;
+      }
+    }
+
+    /* TIMEZONE PICKER CARD */
+    .card {
+      background: rgba(30, 41, 59, 0.6);
+      border: 1px solid rgba(0, 217, 255, 0.2);
+      border-radius: 12px;
+      padding: 24px;
+      backdrop-filter: blur(10px);
+      animation: cardFade 0.6s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+    }
+
+    .card:nth-child(1) { animation-delay: 0.1s; }
+    .card:nth-child(2) { animation-delay: 0.2s; }
+
+    @keyframes cardFade {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .card h2 {
+      font-size: 16px;
+      font-weight: 600;
+      color: #00d9ff;
+      margin-bottom: 16px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .card label {
+      display: block;
+      font-size: 12px;
+      color: #a5b4fc;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    select {
+      width: 100%;
+      padding: 12px 16px;
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid rgba(0, 217, 255, 0.3);
+      border-radius: 8px;
+      color: #e0e7ff;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      margin-bottom: 16px;
+    }
+
+    select:hover {
+      border-color: rgba(0, 217, 255, 0.6);
+      background: rgba(15, 23, 42, 0.95);
+    }
+
+    select:focus {
+      outline: none;
+      border-color: rgba(0, 217, 255, 0.8);
+      box-shadow: 0 0 0 3px rgba(0, 217, 255, 0.1);
+    }
+
+    .time-display {
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(102, 0, 255, 0.3);
+      border-radius: 8px;
+      padding: 16px;
+      font-family: 'IBM Plex Mono', monospace;
+      text-align: center;
+      font-size: 14px;
+      color: #a78bfa;
+      transition: all 0.3s ease;
+    }
+
+    /* VISUALIZATION */
+    .viz-container {
+      background: rgba(30, 41, 59, 0.6);
+      border: 1px solid rgba(0, 217, 255, 0.2);
+      border-radius: 12px;
+      padding: 24px;
+      backdrop-filter: blur(10px);
+      animation: cardFade 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.3s backwards;
+    }
+
+    .viz-container h2 {
+      font-size: 16px;
+      font-weight: 600;
+      color: #00d9ff;
+      margin-bottom: 20px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    svg {
+      width: 100%;
+      height: auto;
+    }
+
+    /* STATS */
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-top: 40px;
+      animation: cardFade 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.4s backwards;
+    }
+
+    .stat-box {
+      background: rgba(30, 41, 59, 0.6);
+      border: 1px solid rgba(102, 0, 255, 0.3);
+      border-radius: 8px;
+      padding: 16px;
+      backdrop-filter: blur(10px);
+      text-align: center;
+      transition: all 0.3s ease;
+    }
+
+    .stat-box:hover {
+      border-color: rgba(0, 217, 255, 0.5);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0, 217, 255, 0.1);
+    }
+
+    .stat-label {
+      font-size: 12px;
+      color: #a5b4fc;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 8px;
+    }
+
+    .stat-value {
+      font-size: 20px;
+      font-weight: 700;
+      color: #00d9ff;
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    /* ACCESSIBILITY */
+    @media (prefers-reduced-motion: reduce) {
+      * {
+        animation: none !important;
+        transition: none !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- HERO -->
+    <div class="hero">
+      <h1>Timezone Overlap</h1>
+      <p>Find the best meeting time across zones</p>
+    </div>
+
+    <!-- PICKERS + VIZ GRID -->
+    <div class="grid">
+      <!-- LEFT: TIMEZONE PICKERS -->
+      <div>
+        <div class="card">
+          <h2>Timezone 1</h2>
+          <label for="tz1">Select timezone</label>
+          <select id="tz1">
+            <option value="">-- Choose --</option>
+          </select>
+          <div class="time-display" id="time1">--:-- --</div>
+        </div>
+
+        <div class="card" style="margin-top: 24px;">
+          <h2>Timezone 2</h2>
+          <label for="tz2">Select timezone</label>
+          <select id="tz2">
+            <option value="">-- Choose --</option>
+          </select>
+          <div class="time-display" id="time2">--:-- --</div>
+        </div>
+      </div>
+
+      <!-- RIGHT: VISUALIZATION -->
+      <div>
+        <div class="viz-container">
+          <h2>24-Hour Overlap</h2>
+          <svg id="viz" viewBox="0 0 400 200" preserveAspectRatio="xMidYMid meet">
+            <!-- Bands will be drawn here -->
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- STATS -->
+    <div class="stats">
+      <div class="stat-box">
+        <div class="stat-label">Overlap Hours</div>
+        <div class="stat-value" id="overlapHours">0</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Best Meeting Window</div>
+        <div class="stat-value" id="bestWindow">--</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">UTC Offset (TZ1)</div>
+        <div class="stat-value" id="offset1">--</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">UTC Offset (TZ2)</div>
+        <div class="stat-value" id="offset2">--</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // === TIMEZONE DATA ===
+    const timezones = [
+      { name: 'UTC (London)', offset: 0, abbr: 'UTC' },
+      { name: 'GMT+1 (Berlin, Paris)', offset: 1, abbr: 'CET' },
+      { name: 'GMT+2 (Cairo, Athens)', offset: 2, abbr: 'EET' },
+      { name: 'GMT+3 (Moscow, Dubai)', offset: 3, abbr: 'MSK' },
+      { name: 'GMT+4 (Baku, Dubai)', offset: 4, abbr: 'AZT' },
+      { name: 'GMT+5 (Pakistan, Uzbekistan)', offset: 5, abbr: 'PKT' },
+      { name: 'GMT+5:30 (India)', offset: 5.5, abbr: 'IST' },
+      { name: 'GMT+6 (Bangladesh, Kazakhstan)', offset: 6, abbr: 'BDT' },
+      { name: 'GMT+7 (Bangkok, Jakarta, Ho Chi Minh)', offset: 7, abbr: 'ICT' },
+      { name: 'GMT+8 (Singapore, Beijing, Hong Kong)', offset: 8, abbr: 'CST' },
+      { name: 'GMT+9 (Tokyo, Seoul, Osaka)', offset: 9, abbr: 'JST' },
+      { name: 'GMT+10 (Sydney, Melbourne)', offset: 10, abbr: 'AEDT' },
+      { name: 'GMT+11 (Solomon Islands)', offset: 11, abbr: 'SBT' },
+      { name: 'GMT+12 (New Zealand, Fiji)', offset: 12, abbr: 'NZDT' },
+      { name: 'GMT-1 (Cape Verde)', offset: -1, abbr: 'CVT' },
+      { name: 'GMT-2 (Mid-Atlantic)', offset: -2, abbr: 'GST' },
+      { name: 'GMT-3 (Brazil, Buenos Aires)', offset: -3, abbr: 'ART' },
+      { name: 'GMT-4 (New York, Toronto)', offset: -4, abbr: 'EDT' },
+      { name: 'GMT-5 (Chicago, Mexico City)', offset: -5, abbr: 'CDT' },
+      { name: 'GMT-6 (Denver, Mountain)', offset: -6, abbr: 'MDT' },
+      { name: 'GMT-7 (Los Angeles, Vancouver)', offset: -7, abbr: 'PDT' },
+      { name: 'GMT-8 (Hawaii, Anchorage)', offset: -8, abbr: 'HST' },
+    ];
+
+    // Populate selects
+    const tz1Select = document.getElementById('tz1');
+    const tz2Select = document.getElementById('tz2');
+    timezones.forEach((tz, i) => {
+      const opt1 = document.createElement('option');
+      opt1.value = i;
+      opt1.textContent = tz.name;
+      tz1Select.appendChild(opt1);
+
+      const opt2 = document.createElement('option');
+      opt2.value = i;
+      opt2.textContent = tz.name;
+      tz2Select.appendChild(opt2);
+    });
+
+    // Set defaults
+    tz1Select.value = 9;  // Singapore
+    tz2Select.value = 17; // New York
+    tz1Select.dispatchEvent(new Event('change'));
+
+    // === CORE LOGIC ===
+    function getCurrentHour() {
+      return new Date().getHours() + new Date().getMinutes() / 60;
+    }
+
+    function getHourInTimezone(utcHour, offset) {
+      let tzHour = (utcHour + offset) % 24;
+      if (tzHour < 0) tzHour += 24;
+      return tzHour;
+    }
+
+    function formatTime(hour) {
+      const h = Math.floor(hour);
+      const m = Math.round((hour - h) * 60);
+      const ampm = h >= 12 ? 'PM' : 'AM';
+      const displayH = h % 12 || 12;
+      return `${String(displayH).padStart(2, '0')}:${String(m).padStart(2, '0')} ${ampm}`;
+    }
+
+    function isBusinessHours(hour) {
+      return hour >= 9 && hour < 17;
+    }
+
+    function calculateOverlap(offset1, offset2) {
+      // Find hours where BOTH are in business hours
+      let overlapCount = 0;
+      let bestStart = null;
+      let bestDuration = 0;
+      let currentStart = null;
+
+      for (let utcHour = 0; utcHour < 24; utcHour += 0.5) {
+        const tz1Hour = getHourInTimezone(utcHour, offset1);
+        const tz2Hour = getHourInTimezone(utcHour, offset2);
+
+        if (isBusinessHours(tz1Hour) && isBusinessHours(tz2Hour)) {
+          overlapCount++;
+          if (currentStart === null) {
+            currentStart = utcHour;
+          }
+        } else {
+          if (currentStart !== null) {
+            const duration = utcHour - currentStart;
+            if (duration > bestDuration) {
+              bestDuration = duration;
+              bestStart = currentStart;
+            }
+            currentStart = null;
+          }
+        }
+      }
+
+      if (currentStart !== null) {
+        const duration = 24 - currentStart;
+        if (duration > bestDuration) {
+          bestDuration = duration;
+          bestStart = currentStart;
+        }
+      }
+
+      return {
+        hours: overlapCount * 0.5,
+        bestStart: bestStart,
+        bestDuration: bestDuration,
+      };
+    }
+
+    function formatOffsetString(offset) {
+      const sign = offset >= 0 ? '+' : '';
+      const absOffset = Math.abs(offset);
+      const hours = Math.floor(absOffset);
+      const mins = (absOffset % 1) * 60;
+      return mins > 0 ? `${sign}${hours}:${String(mins).padStart(2, '0')}` : `${sign}${hours}`;
+    }
+
+    function drawVisualization(offset1, offset2) {
+      const svg = document.getElementById('viz');
+      svg.innerHTML = '';
+
+      const width = 400;
+      const height = 200;
+      const bandHeight = 60;
+      const topMargin = 30;
+
+      // Helper: draw 24-hour band
+      function drawBand(yOffset, offset, label) {
+        // Background
+        const bg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        bg.setAttribute('x', '0');
+        bg.setAttribute('y', yOffset);
+        bg.setAttribute('width', width);
+        bg.setAttribute('height', bandHeight);
+        bg.setAttribute('fill', 'rgba(0, 0, 0, 0.3)');
+        bg.setAttribute('stroke', 'rgba(0, 217, 255, 0.2)');
+        bg.setAttribute('stroke-width', '1');
+        svg.appendChild(bg);
+
+        // Hours 0–24
+        for (let utcHour = 0; utcHour < 24; utcHour++) {
+          const xPos = (utcHour / 24) * width;
+          const tzHour = getHourInTimezone(utcHour, offset);
+          const isBiz = isBusinessHours(tzHour);
+
+          // Hour block
+          const blockWidth = (1 / 24) * width;
+          const block = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+          block.setAttribute('x', xPos);
+          block.setAttribute('y', yOffset);
+          block.setAttribute('width', blockWidth);
+          block.setAttribute('height', bandHeight);
+          block.setAttribute('fill', isBiz ? 'rgba(0, 217, 255, 0.3)' : 'rgba(102, 0, 255, 0.15)');
+          block.setAttribute('stroke', isBiz ? 'rgba(0, 217, 255, 0.5)' : 'rgba(102, 0, 255, 0.3)');
+          block.setAttribute('stroke-width', '0.5');
+          svg.appendChild(block);
+
+          // Hour label (every 4 hours)
+          if (utcHour % 4 === 0) {
+            const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            text.setAttribute('x', xPos + blockWidth / 2);
+            text.setAttribute('y', yOffset + bandHeight + 14);
+            text.setAttribute('text-anchor', 'middle');
+            text.setAttribute('font-size', '11');
+            text.setAttribute('fill', '#a5b4fc');
+            text.setAttribute('font-family', "'IBM Plex Mono', monospace");
+            text.textContent = `${String(utcHour).padStart(2, '0')}:00`;
+            svg.appendChild(text);
+          }
+        }
+
+        // Label
+        const labelText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        labelText.setAttribute('x', '8');
+        labelText.setAttribute('y', yOffset + bandHeight / 2 + 5);
+        labelText.setAttribute('font-size', '12');
+        labelText.setAttribute('fill', '#00d9ff');
+        labelText.setAttribute('font-weight', '600');
+        labelText.setAttribute('font-family', "'Sora', sans-serif");
+        labelText.textContent = label;
+        svg.appendChild(labelText);
+      }
+
+      drawBand(topMargin, offset1, 'TZ 1');
+      drawBand(topMargin + bandHeight + 20, offset2, 'TZ 2');
+
+      // Legend
+      const legBiz = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      legBiz.setAttribute('x', '8');
+      legBiz.setAttribute('y', height - 20);
+      legBiz.setAttribute('width', '12');
+      legBiz.setAttribute('height', '12');
+      legBiz.setAttribute('fill', 'rgba(0, 217, 255, 0.3)');
+      svg.appendChild(legBiz);
+
+      const legBizText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      legBizText.setAttribute('x', '24');
+      legBizText.setAttribute('y', height - 10);
+      legBizText.setAttribute('font-size', '11');
+      legBizText.setAttribute('fill', '#a5b4fc');
+      legBizText.setAttribute('font-family', "'IBM Plex Mono', monospace");
+      legBizText.textContent = 'Business Hours (9am–5pm)';
+      svg.appendChild(legBizText);
+    }
+
+    function update() {
+      const idx1 = parseInt(tz1Select.value);
+      const idx2 = parseInt(tz2Select.value);
+
+      if (idx1 === '' || idx2 === '') return;
+
+      const tz1 = timezones[idx1];
+      const tz2 = timezones[idx2];
+
+      // Current UTC hour
+      const utcDate = new Date();
+      const utcHour = utcDate.getUTCHours() + utcDate.getUTCMinutes() / 60;
+
+      // Timezone-adjusted times
+      const tz1Hour = getHourInTimezone(utcHour, tz1.offset);
+      const tz2Hour = getHourInTimezone(utcHour, tz2.offset);
+
+      // Update time displays
+      document.getElementById('time1').textContent = formatTime(tz1Hour);
+      document.getElementById('time2').textContent = formatTime(tz2Hour);
+
+      // Offsets
+      document.getElementById('offset1').textContent = formatOffsetString(tz1.offset);
+      document.getElementById('offset2').textContent = formatOffsetString(tz2.offset);
+
+      // Overlap calculation
+      const overlap = calculateOverlap(tz1.offset, tz2.offset);
+      document.getElementById('overlapHours').textContent = Math.round(overlap.hours * 10) / 10;
+
+      if (overlap.bestStart !== null) {
+        const tzStart = getHourInTimezone(overlap.bestStart, tz1.offset);
+        const bestWindow = `${formatTime(tzStart)} (TZ1)`;
+        document.getElementById('bestWindow').textContent = bestWindow;
+      } else {
+        document.getElementById('bestWindow').textContent = 'None';
+      }
+
+      // Visualization
+      drawVisualization(tz1.offset, tz2.offset);
+    }
+
+    // Event listeners
+    tz1Select.addEventListener('change', update);
+    tz2Select.addEventListener('change', update);
+
+    // Initial update
+    update();
+    setInterval(update, 10000); // Refresh every 10 seconds for live time
+  </script>
+</body>
+</html>
