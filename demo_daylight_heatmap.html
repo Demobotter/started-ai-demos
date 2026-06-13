@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daylight Heatmap — Global Sun Positions</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 50%, #0f1428 100%);
+            color: #e8ebf0;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        header {
+            padding: 2.5rem 1.5rem;
+            text-align: center;
+            animation: fadeInDown 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        h1 {
+            font-size: clamp(2.5rem, 8vw, 4.5rem);
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, #00d9ff 0%, #7f39fb 50%, #ff006e 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            font-size: 1rem;
+            color: #a8adb8;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            opacity: 0.8;
+        }
+
+        main {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 1.5rem 2rem;
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 320px;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        @media (max-width: 1000px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+            .sidebar {
+                order: -1;
+            }
+        }
+
+        .heatmap-wrapper {
+            border-radius: 16px;
+            overflow: hidden;
+            background: rgba(15, 20, 40, 0.7);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(0, 217, 255, 0.2);
+            box-shadow: 0 8px 32px rgba(0, 217, 255, 0.1);
+            animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.2s both;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: auto;
+            background: linear-gradient(180deg, rgba(10, 14, 39, 0.9) 0%, rgba(20, 25, 50, 0.9) 100%);
+        }
+
+        .sidebar {
+            animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.3s both;
+        }
+
+        .stat-card {
+            background: rgba(15, 20, 40, 0.8);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(0, 217, 255, 0.15);
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .stat-card:hover {
+            border-color: rgba(0, 217, 255, 0.4);
+            background: rgba(15, 20, 40, 0.95);
+            box-shadow: 0 4px 16px rgba(0, 217, 255, 0.1);
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #7f8fa3;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-value {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: #00d9ff;
+            font-family: 'JetBrains Mono', monospace;
+            word-break: break-word;
+        }
+
+        .stat-detail {
+            font-size: 0.85rem;
+            color: #a8adb8;
+            margin-top: 0.5rem;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .controls {
+            background: rgba(15, 20, 40, 0.8);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(0, 217, 255, 0.15);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-top: auto;
+            animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.4s both;
+        }
+
+        .control-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #7f8fa3;
+            margin-bottom: 0.75rem;
+            display: block;
+        }
+
+        .latitude-slider {
+            width: 100%;
+            height: 4px;
+            border-radius: 2px;
+            background: linear-gradient(90deg, rgba(0, 217, 255, 0.1), rgba(127, 57, 251, 0.1), rgba(255, 0, 110, 0.1));
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .latitude-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #00d9ff, #7f39fb);
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 0 12px rgba(0, 217, 255, 0.4);
+        }
+
+        .latitude-slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #00d9ff, #7f39fb);
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+            box-shadow: 0 0 12px rgba(0, 217, 255, 0.4);
+        }
+
+        .latitude-value {
+            font-size: 0.9rem;
+            color: #00d9ff;
+            font-weight: 600;
+            margin-top: 0.5rem;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .location-name {
+            font-size: 0.85rem;
+            color: #a8adb8;
+            margin-top: 0.25rem;
+        }
+
+        .hero-section {
+            position: relative;
+            padding: 3rem 1.5rem;
+            text-align: center;
+            animation: fadeInDown 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .hero-desc {
+            font-size: 1.1rem;
+            color: #a8adb8;
+            max-width: 600px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #00d9ff;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.4; transform: scale(1.2); }
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+
+        footer {
+            text-align: center;
+            padding: 2rem 1.5rem;
+            color: #7f8fa3;
+            font-size: 0.85rem;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Daylight Heatmap</h1>
+        <div class="subtitle">Live global sun position & daylight hours</div>
+    </header>
+
+    <main>
+        <div class="hero-section">
+            <p class="hero-desc">Real-time visualization of daylight across every latitude. Explore sunrise/sunset times and daylight percentages worldwide.</p>
+        </div>
+
+        <div class="container">
+            <div class="heatmap-wrapper">
+                <canvas id="heatmapCanvas"></canvas>
+            </div>
+
+            <div class="sidebar">
+                <div class="stat-card">
+                    <div class="stat-label">Current Latitude</div>
+                    <div class="latitude-value" id="latValue">0.0°</div>
+                    <div class="location-name" id="locName">Equator</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-label">Sunrise (UTC)</div>
+                    <div class="stat-value" id="sunriseTime">—:—</div>
+                    <div class="stat-detail" id="sunriseDetail"></div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-label">Sunset (UTC)</div>
+                    <div class="stat-value" id="sunsetTime">—:—</div>
+                    <div class="stat-detail" id="sunsetDetail"></div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-label">Daylight Hours</div>
+                    <div class="stat-value" id="daylightHours">—</div>
+                    <div class="stat-detail" id="daylightPercent"></div>
+                </div>
+
+                <div class="controls">
+                    <label class="control-label">Explore Latitude</label>
+                    <input type="range" class="latitude-slider" id="latSlider" min="-90" max="90" value="0" step="1">
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        Data from open-meteo.com · Real-time sunrise/sunset calculations
+    </footer>
+
+    <script>
+        // Pure logic: daylight calculation
+        function calculateDaylight(lat, date = new Date()) {
+            const dayOfYear = Math.floor((date - new Date(date.getFullYear(), 0, 0)) / 86400000);
+            const lambda = (Math.PI / 180) * lat;
+            const delta = (Math.PI / 180) * (23.44 * Math.sin((2 * Math.PI / 365) * (dayOfYear - 81)));
+
+            const cosH = -Math.tan(lambda) * Math.tan(delta);
+            let H;
+
+            if (cosH > 1) H = 0; // polar night
+            else if (cosH < -1) H = Math.PI; // polar day
+            else H = Math.acos(cosH);
+
+            const daylight = (24 * H) / Math.PI;
+            return Math.max(0, Math.min(24, daylight));
+        }
+
+        function getLocationName(lat) {
+            const absLat = Math.abs(lat);
+            if (absLat < 10) return 'Tropical';
+            if (absLat < 35) return 'Subtropical';
+            if (absLat < 55) return 'Temperate';
+            return 'Polar';
+        }
+
+        const canvas = document.getElementById('heatmapCanvas');
+        const ctx = canvas.getContext('2d');
+        const latSlider = document.getElementById('latSlider');
+        const latValue = document.getElementById('latValue');
+        const locName = document.getElementById('locName');
+
+        function resizeCanvas() {
+            const rect = canvas.getBoundingClientRect();
+            canvas.width = Math.floor(rect.width);
+            canvas.height = Math.floor(rect.height);
+        }
+
+        window.addEventListener('load', resizeCanvas);
+        window.addEventListener('resize', () => {
+            resizeCanvas();
+            drawHeatmap();
+        });
+
+        function drawHeatmap() {
+            const w = canvas.width;
+            const h = canvas.height;
+            if (w === 0 || h === 0) return;
+
+            // Clear canvas
+            ctx.fillStyle = '#0a0e27';
+            ctx.fillRect(0, 0, w, h);
+
+            // Draw daylight heatmap
+            const pixelData = ctx.createImageData(w, h);
+            const data = pixelData.data;
+
+            for (let y = 0; y < h; y++) {
+                const lat = 90 - (y / h) * 180;
+                const daylight = calculateDaylight(lat);
+                const normalized = daylight / 24;
+
+                // Color: blue (night) → cyan (day)
+                let r, g, b;
+                if (normalized < 0.5) {
+                    // Night to twilight: deep blue to cyan
+                    const t = normalized * 2;
+                    r = Math.floor(10 + t * 100);
+                    g = Math.floor(20 + t * 150);
+                    b = Math.floor(80 + t * 100);
+                } else {
+                    // Twilight to day: cyan to yellow
+                    const t = (normalized - 0.5) * 2;
+                    r = Math.floor(110 + t * 145);
+                    g = Math.floor(170 + t * 85);
+                    b = Math.floor(180 - t * 130);
+                }
+
+                for (let x = 0; x < w; x++) {
+                    const idx = (y * w + x) * 4;
+                    data[idx] = r;
+                    data[idx + 1] = g;
+                    data[idx + 2] = b;
+                    data[idx + 3] = 255;
+                }
+            }
+
+            ctx.putImageData(pixelData, 0, 0);
+
+            // Draw latitude grid lines
+            ctx.strokeStyle = 'rgba(0, 217, 255, 0.2)';
+            ctx.lineWidth = 1;
+            const latitudes = [-90, -60, -30, 0, 30, 60, 90];
+            for (const lat of latitudes) {
+                const y = ((90 - lat) / 180) * h;
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(w, y);
+                ctx.stroke();
+            }
+
+            // Draw equator brighter
+            const equatorY = h / 2;
+            ctx.strokeStyle = 'rgba(0, 217, 255, 0.6)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(0, equatorY);
+            ctx.lineTo(w, equatorY);
+            ctx.stroke();
+
+            // Draw selected latitude indicator
+            const selectedLat = parseFloat(latSlider.value);
+            const selectedY = ((90 - selectedLat) / 180) * h;
+            ctx.strokeStyle = '#ff006e';
+            ctx.lineWidth = 3;
+            ctx.setLineDash([5, 5]);
+            ctx.beginPath();
+            ctx.moveTo(0, selectedY);
+            ctx.lineTo(w, selectedY);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Draw labels
+            ctx.fillStyle = 'rgba(168, 173, 184, 0.6)';
+            ctx.font = '11px JetBrains Mono';
+            ctx.textAlign = 'right';
+            ctx.textBaseline = 'middle';
+            for (const lat of latitudes) {
+                const y = ((90 - lat) / 180) * h;
+                const label = lat > 0 ? `${lat}°N` : lat < 0 ? `${-lat}°S` : 'EQ';
+                ctx.fillText(label, w - 8, y);
+            }
+
+            // Draw legend
+            ctx.font = 'bold 12px Space Grotesk';
+            ctx.fillStyle = '#a8adb8';
+            ctx.textAlign = 'left';
+            ctx.fillText('Night', 8, 20);
+            ctx.fillStyle = '#00d9ff';
+            ctx.fillText('Day', 8, 45);
+        }
+
+        async function fetchSunriseSunset(lat) {
+            try {
+                const today = new Date().toISOString().split('T')[0];
+                const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=0&start_date=${today}&end_date=${today}&timezone=UTC&daily=sunrise,sunset`;
+                const response = await fetch(url);
+                if (!response.ok) throw new Error('API error');
+                const data = await response.json();
+
+                if (data.daily && data.daily.sunrise && data.daily.sunset) {
+                    const sunrise = data.daily.sunrise[0];
+                    const sunset = data.daily.sunset[0];
+                    return { sunrise, sunset };
+                }
+                return null;
+            } catch (err) {
+                console.warn('Sunrise/sunset fetch failed:', err);
+                return null;
+            }
+        }
+
+        function updateStats(lat) {
+            latValue.textContent = lat.toFixed(1) + '°';
+            locName.textContent = getLocationName(lat);
+
+            const daylight = calculateDaylight(lat);
+            const hours = Math.floor(daylight);
+            const minutes = Math.round((daylight - hours) * 60);
+            document.getElementById('daylightHours').textContent = `${hours}h ${minutes}m`;
+            document.getElementById('daylightPercent').textContent = `${(daylight / 24 * 100).toFixed(1)}% of day`;
+
+            // Fetch real sunrise/sunset
+            fetchSunriseSunset(lat).then(times => {
+                if (times) {
+                    const sunriseH = parseInt(times.sunrise.split('T')[1].split(':')[0]);
+                    const sunriseM = parseInt(times.sunrise.split('T')[1].split(':')[1]);
+                    const sunsetH = parseInt(times.sunset.split('T')[1].split(':')[0]);
+                    const sunsetM = parseInt(times.sunset.split('T')[1].split(':')[1]);
+
+                    document.getElementById('sunriseTime').textContent = `${sunriseH.toString().padStart(2, '0')}:${sunriseM.toString().padStart(2, '0')}`;
+                    document.getElementById('sunsetTime').textContent = `${sunsetH.toString().padStart(2, '0')}:${sunsetM.toString().padStart(2, '0')}`;
+                    document.getElementById('sunriseDetail').textContent = `UTC`;
+                    document.getElementById('sunsetDetail').textContent = `UTC`;
+                }
+            });
+        }
+
+        latSlider.addEventListener('input', (e) => {
+            const lat = parseFloat(e.target.value);
+            updateStats(lat);
+            drawHeatmap();
+        });
+
+        // Initial draw and stats
+        resizeCanvas();
+        drawHeatmap();
+        updateStats(0);
+    </script>
+</body>
+</html>
