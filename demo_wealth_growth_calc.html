@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wealth Growth Calculator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow-x: hidden;
+        }
+
+        body {
+            font-family: 'Geist', -apple-system, sans-serif;
+            background: linear-gradient(135deg, #0f1419 0%, #1a2234 50%, #0d0f18 100%);
+            min-height: 100vh;
+            color: #e0e0e0;
+            padding: 24px 16px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        /* ===== HERO ===== */
+        .hero {
+            text-align: center;
+            margin-bottom: 48px;
+            animation: fadeInDown 0.8s cubic-bezier(.16,1,.3,1);
+        }
+
+        .hero h1 {
+            font-family: 'Instrument Serif', serif;
+            font-size: clamp(36px, 6vw, 64px);
+            font-weight: 400;
+            margin-bottom: 12px;
+            background: linear-gradient(135deg, #ffd700 0%, #ffed4e 50%, #ffb700 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -0.5px;
+        }
+
+        .hero p {
+            font-size: 16px;
+            color: #a0a8b8;
+            font-weight: 400;
+        }
+
+        /* ===== LAYOUT: 2-col on desktop, stack on mobile ===== */
+        .content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 32px;
+            align-items: start;
+        }
+
+        @media (max-width: 768px) {
+            .content {
+                grid-template-columns: 1fr;
+                gap: 24px;
+            }
+        }
+
+        /* ===== CONTROLS PANEL ===== */
+        .controls {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 215, 0, 0.15);
+            border-radius: 16px;
+            padding: 28px;
+            backdrop-filter: blur(10px);
+            animation: fadeInLeft 0.8s cubic-bezier(.16,1,.3,1) 0.1s both;
+        }
+
+        .control-group {
+            margin-bottom: 28px;
+        }
+
+        .control-group:last-child {
+            margin-bottom: 0;
+        }
+
+        .control-label {
+            font-family: 'Instrument Serif', serif;
+            font-size: 14px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: #ffd700;
+            margin-bottom: 12px;
+            display: block;
+        }
+
+        .control-value {
+            font-family: 'Geist', -apple-system, sans-serif;
+            font-size: 24px;
+            font-weight: 700;
+            color: #ffed4e;
+            margin-bottom: 8px;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: linear-gradient(90deg, rgba(255, 215, 0, 0.3), rgba(255, 215, 0, 0.1));
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+            cursor: pointer;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #ffd700, #ffed4e);
+            cursor: pointer;
+            box-shadow: 0 0 12px rgba(255, 215, 0, 0.4);
+            transition: all 0.2s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.6);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #ffd700, #ffed4e);
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 0 12px rgba(255, 215, 0, 0.4);
+            transition: all 0.2s;
+        }
+
+        input[type="range"]::-moz-range-thumb:hover {
+            transform: scale(1.2);
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.6);
+        }
+
+        .control-hint {
+            font-size: 12px;
+            color: #7a8293;
+            margin-top: 6px;
+        }
+
+        /* ===== CHART ===== */
+        .chart-container {
+            animation: fadeInRight 0.8s cubic-bezier(.16,1,.3,1) 0.2s both;
+        }
+
+        .chart-title {
+            font-family: 'Instrument Serif', serif;
+            font-size: 16px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: #ffd700;
+            margin-bottom: 20px;
+        }
+
+        canvas {
+            width: 100%;
+            height: auto;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 215, 0, 0.1);
+            display: block;
+        }
+
+        /* ===== FINAL SUMMARY ===== */
+        .summary {
+            margin-top: 24px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .summary-card {
+            background: rgba(255, 215, 0, 0.08);
+            border: 1px solid rgba(255, 215, 0, 0.2);
+            border-radius: 12px;
+            padding: 16px;
+            text-align: center;
+            animation: fadeInUp 0.8s cubic-bezier(.16,1,.3,1) 0.3s both;
+        }
+
+        .summary-card-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            color: #a0a8b8;
+            margin-bottom: 6px;
+        }
+
+        .summary-card-value {
+            font-family: 'Geist', -apple-system, sans-serif;
+            font-size: 20px;
+            font-weight: 700;
+            color: #ffed4e;
+        }
+
+        /* ===== ANIMATIONS ===== */
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInLeft {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes fadeInRight {
+            from {
+                opacity: 0;
+                transform: translateX(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* ===== REDUCED MOTION ===== */
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+            input[type="range"]::-webkit-slider-thumb:hover,
+            input[type="range"]::-moz-range-thumb:hover {
+                transform: none;
+            }
+        }
+
+        /* ===== MOBILE ===== */
+        @media (max-width: 480px) {
+            body {
+                padding: 16px 12px;
+            }
+
+            .hero h1 {
+                font-size: clamp(28px, 5vw, 40px);
+            }
+
+            .controls {
+                padding: 20px;
+            }
+
+            .control-label {
+                font-size: 12px;
+            }
+
+            .control-value {
+                font-size: 20px;
+            }
+
+            .summary {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="hero">
+            <h1>Wealth Growth</h1>
+            <p>Visualize your compound growth over time</p>
+        </div>
+
+        <div class="content">
+            <!-- CONTROLS -->
+            <div class="controls">
+                <div class="control-group">
+                    <label class="control-label">Starting Amount</label>
+                    <div class="control-value" id="startVal">$10,000</div>
+                    <input type="range" id="startSlider" min="0" max="100000" step="1000" value="10000">
+                    <div class="control-hint">$0 – $100,000</div>
+                </div>
+
+                <div class="control-group">
+                    <label class="control-label">Monthly Contribution</label>
+                    <div class="control-value" id="monthlyVal">$500</div>
+                    <input type="range" id="monthlySlider" min="0" max="5000" step="100" value="500">
+                    <div class="control-hint">$0 – $5,000/mo</div>
+                </div>
+
+                <div class="control-group">
+                    <label class="control-label">Annual Return</label>
+                    <div class="control-value" id="returnVal">7.0%</div>
+                    <input type="range" id="returnSlider" min="0" max="15" step="0.5" value="7">
+                    <div class="control-hint">0% – 15%</div>
+                </div>
+
+                <div class="control-group">
+                    <label class="control-label">Time Horizon</label>
+                    <div class="control-value" id="yearsVal">10 years</div>
+                    <input type="range" id="yearsSlider" min="1" max="50" step="1" value="10">
+                    <div class="control-hint">1 – 50 years</div>
+                </div>
+
+                <div class="summary">
+                    <div class="summary-card">
+                        <div class="summary-card-label">Total Contributed</div>
+                        <div class="summary-card-value" id="totalContributed">$70,000</div>
+                    </div>
+                    <div class="summary-card">
+                        <div class="summary-card-label">Final Balance</div>
+                        <div class="summary-card-value" id="finalBalance">$152,450</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CHART -->
+            <div class="chart-container">
+                <div class="chart-title">Balance Over Time</div>
+                <canvas id="chart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ===== CORE MATH (headless-testable) =====
+        function calculateWealth(startAmount, monthlyContribution, annualReturn, years) {
+            const monthlyRate = annualReturn / 100 / 12;
+            const months = years * 12;
+            const timeline = [];
+
+            let balance = startAmount;
+            for (let m = 0; m <= months; m++) {
+                timeline.push(balance);
+                if (m < months) {
+                    // Apply interest to current balance
+                    balance = balance * (1 + monthlyRate);
+                    // Add monthly contribution
+                    balance += monthlyContribution;
+                }
+            }
+
+            return timeline;
+        }
+
+        function formatCurrency(value) {
+            return new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD',
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0
+            }).format(value);
+        }
+
+        // ===== DOM & CANVAS =====
+        const canvas = document.getElementById('chart');
+        const ctx = canvas.getContext('2d');
+
+        const startSlider = document.getElementById('startSlider');
+        const monthlySlider = document.getElementById('monthlySlider');
+        const returnSlider = document.getElementById('returnSlider');
+        const yearsSlider = document.getElementById('yearsSlider');
+
+        const startVal = document.getElementById('startVal');
+        const monthlyVal = document.getElementById('monthlyVal');
+        const returnVal = document.getElementById('returnVal');
+        const yearsVal = document.getElementById('yearsVal');
+
+        const totalContributedEl = document.getElementById('totalContributed');
+        const finalBalanceEl = document.getElementById('finalBalance');
+
+        function setCanvasSize() {
+            const rect = canvas.getBoundingClientRect();
+            canvas.width = rect.width;
+            canvas.height = 300;
+        }
+
+        function drawChart(timeline, years) {
+            setCanvasSize();
+            const width = canvas.width;
+            const height = canvas.height;
+            const padding = 40;
+
+            // Clear
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.02)';
+            ctx.fillRect(0, 0, width, height);
+
+            const maxValue = Math.max(...timeline);
+            const minValue = 0;
+
+            // Grid lines + labels
+            ctx.strokeStyle = 'rgba(255, 215, 0, 0.1)';
+            ctx.fillStyle = 'rgba(160, 168, 184, 0.6)';
+            ctx.font = '12px Geist';
+            ctx.textAlign = 'center';
+
+            for (let i = 0; i <= 5; i++) {
+                const y = padding + (height - padding * 1.5) * (i / 5);
+                ctx.beginPath();
+                ctx.moveTo(padding, y);
+                ctx.lineTo(width - padding, y);
+                ctx.stroke();
+
+                const val = maxValue * ((5 - i) / 5);
+                ctx.fillText(formatCurrency(val), padding - 30, y + 4);
+            }
+
+            // X-axis labels
+            ctx.textAlign = 'center';
+            for (let i = 0; i <= Math.min(years, 10); i++) {
+                const x = padding + (width - padding * 2) * (i / Math.max(years, 10));
+                ctx.fillStyle = 'rgba(160, 168, 184, 0.6)';
+                ctx.font = '12px Geist';
+                ctx.fillText(i.toString(), x, height - 8);
+
+                ctx.strokeStyle = 'rgba(255, 215, 0, 0.08)';
+                ctx.beginPath();
+                ctx.moveTo(x, padding);
+                ctx.lineTo(x, height - padding);
+                ctx.stroke();
+            }
+
+            // Draw area + line
+            ctx.beginPath();
+            for (let i = 0; i < timeline.length; i++) {
+                const x = padding + (width - padding * 2) * (i / (timeline.length - 1 || 1));
+                const y = height - padding - (timeline[i] / maxValue) * (height - padding * 1.5);
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+
+            // Area fill
+            ctx.lineTo(width - padding, height - padding);
+            ctx.lineTo(padding, height - padding);
+            ctx.closePath();
+            ctx.fillStyle = 'rgba(255, 215, 0, 0.12)';
+            ctx.fill();
+
+            // Line stroke
+            ctx.beginPath();
+            for (let i = 0; i < timeline.length; i++) {
+                const x = padding + (width - padding * 2) * (i / (timeline.length - 1 || 1));
+                const y = height - padding - (timeline[i] / maxValue) * (height - padding * 1.5);
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.strokeStyle = '#ffd700';
+            ctx.lineWidth = 2.5;
+            ctx.stroke();
+
+            // Current value dot
+            const lastX = padding + (width - padding * 2);
+            const lastY = height - padding - (timeline[timeline.length - 1] / maxValue) * (height - padding * 1.5);
+            ctx.fillStyle = '#ffed4e';
+            ctx.beginPath();
+            ctx.arc(lastX, lastY, 5, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        function update() {
+            const start = parseFloat(startSlider.value);
+            const monthly = parseFloat(monthlySlider.value);
+            const rate = parseFloat(returnSlider.value);
+            const years = parseFloat(yearsSlider.value);
+
+            // Update labels
+            startVal.textContent = formatCurrency(start);
+            monthlyVal.textContent = formatCurrency(monthly);
+            returnVal.textContent = rate.toFixed(1) + '%';
+            yearsVal.textContent = years === 1 ? '1 year' : years + ' years';
+
+            // Calculate
+            const timeline = calculateWealth(start, monthly, rate, years);
+            const finalBalance = timeline[timeline.length - 1];
+            const totalContributed = start + (monthly * 12 * years);
+
+            // Update summary
+            totalContributedEl.textContent = formatCurrency(totalContributed);
+            finalBalanceEl.textContent = formatCurrency(finalBalance);
+
+            // Draw chart
+            drawChart(timeline, years);
+        }
+
+        // Event listeners
+        startSlider.addEventListener('input', update);
+        monthlySlider.addEventListener('input', update);
+        returnSlider.addEventListener('input', update);
+        yearsSlider.addEventListener('input', update);
+
+        // Initial draw
+        window.addEventListener('load', () => {
+            setCanvasSize();
+            update();
+        });
+
+        window.addEventListener('resize', () => {
+            update();
+        });
+    </script>
+</body>
+</html>
