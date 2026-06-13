@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pixel Shrine — Paint & Share</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Space Mono', monospace;
+      background: linear-gradient(135deg, #0d0221 0%, #1a0033 50%, #0d0221 100%);
+      color: #fff;
+      min-height: 100vh;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    /* Subtle noise/texture */
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: url("data:image/svg+xml,%3Csvg width='100' height='100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' /%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    main {
+      position: relative;
+      z-index: 1;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 40px 20px;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 60px;
+      animation: fadeInDown 0.8s ease-out;
+    }
+
+    h1 {
+      font-family: 'Orbitron', sans-serif;
+      font-size: clamp(32px, 8vw, 72px);
+      font-weight: 900;
+      background: linear-gradient(90deg, #ff00ff, #00ffff, #ff00ff);
+      background-size: 300% 100%;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 12px;
+      letter-spacing: 2px;
+      animation: slideUp 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .subtitle {
+      font-size: 14px;
+      color: #00ffff;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      opacity: 0.8;
+      animation: fadeIn 1s ease-out 0.2s backwards;
+    }
+
+    .container {
+      display: grid;
+      grid-template-columns: 1fr 300px;
+      gap: 40px;
+      margin-bottom: 40px;
+    }
+
+    .canvas-wrapper {
+      animation: fadeInLeft 0.8s ease-out 0.2s backwards;
+    }
+
+    .grid-container {
+      background: rgba(20, 0, 40, 0.6);
+      backdrop-filter: blur(8px);
+      border: 2px solid #ff00ff;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 0 40px rgba(255, 0, 255, 0.2), inset 0 0 20px rgba(0, 255, 255, 0.05);
+      max-width: 500px;
+    }
+
+    svg.pixel-grid {
+      display: block;
+      width: 100%;
+      aspect-ratio: 1;
+      background: #050010;
+      border-radius: 8px;
+      cursor: crosshair;
+      animation: scaleIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.3s backwards;
+    }
+
+    .grid-label {
+      font-size: 11px;
+      color: #00ffff;
+      margin-top: 8px;
+      text-align: center;
+      letter-spacing: 1px;
+      opacity: 0.7;
+    }
+
+    .controls {
+      animation: fadeInRight 0.8s ease-out 0.4s backwards;
+    }
+
+    .control-panel {
+      background: rgba(20, 0, 40, 0.6);
+      backdrop-filter: blur(8px);
+      border: 2px solid #00ffff;
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 0 40px rgba(0, 255, 255, 0.15), inset 0 0 20px rgba(255, 0, 255, 0.03);
+    }
+
+    .control-group {
+      margin-bottom: 24px;
+    }
+
+    .control-label {
+      display: block;
+      font-size: 11px;
+      color: #ff00ff;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 10px;
+      font-weight: 700;
+    }
+
+    input[type="color"] {
+      width: 100%;
+      height: 50px;
+      border: 2px solid #00ffff;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    input[type="color"]:hover {
+      box-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+      transform: scale(1.05);
+    }
+
+    button {
+      width: 100%;
+      padding: 12px 16px;
+      margin-bottom: 8px;
+      background: linear-gradient(135deg, #ff00ff, #00ffff);
+      border: none;
+      color: #000;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    button:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 20px rgba(255, 0, 255, 0.4);
+    }
+
+    button:active {
+      transform: translateY(-1px);
+    }
+
+    button.secondary {
+      background: rgba(0, 255, 255, 0.1);
+      color: #00ffff;
+      border: 2px solid #00ffff;
+    }
+
+    button.secondary:hover {
+      background: rgba(0, 255, 255, 0.2);
+      box-shadow: 0 0 20px rgba(0, 255, 255, 0.4);
+    }
+
+    .stats {
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 1px solid rgba(0, 255, 255, 0.2);
+      font-size: 12px;
+      color: #00ffff;
+    }
+
+    .stat-line {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+
+    @media (max-width: 768px) {
+      .container {
+        grid-template-columns: 1fr;
+        gap: 30px;
+      }
+      h1 {
+        font-size: 48px;
+      }
+    }
+
+    @keyframes fadeInDown {
+      from {
+        opacity: 0;
+        transform: translateY(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @keyframes fadeInLeft {
+      from {
+        opacity: 0;
+        transform: translateX(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    @keyframes fadeInRight {
+      from {
+        opacity: 0;
+        transform: translateX(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    @keyframes scaleIn {
+      from {
+        opacity: 0;
+        transform: scale(0.95);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>PIXEL SHRINE</h1>
+      <p class="subtitle">✦ Paint your pixel dream ✦</p>
+    </header>
+
+    <div class="container">
+      <div class="canvas-wrapper">
+        <div class="grid-container">
+          <svg class="pixel-grid" id="pixelGrid" viewBox="0 0 320 320"></svg>
+          <div class="grid-label">16 × 16 grid · click to paint</div>
+        </div>
+      </div>
+
+      <div class="controls">
+        <div class="control-panel">
+          <div class="control-group">
+            <label class="control-label">Brush Color</label>
+            <input type="color" id="colorPicker" value="#ff00ff">
+          </div>
+
+          <button id="clearBtn">Clear Canvas</button>
+          <button id="randomBtn" class="secondary">Random Palette</button>
+
+          <div class="stats">
+            <div class="stat-line">
+              <span>Pixels Painted:</span>
+              <span id="pixelCount">0</span>
+            </div>
+            <div class="stat-line">
+              <span>Grid Size:</span>
+              <span>16 × 16</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // ====== CORE LOGIC (testable in node) ======
+    const GRID_SIZE = 16;
+    const CELL_SIZE = 20; // SVG units
+    const EMPTY_COLOR = '#050010';
+
+    // Pure grid state
+    let grid = Array(GRID_SIZE * GRID_SIZE).fill(EMPTY_COLOR);
+
+    function getGridIndex(row, col) {
+      return row * GRID_SIZE + col;
+    }
+
+    function paintCell(row, col, color) {
+      grid[getGridIndex(row, col)] = color;
+    }
+
+    function getCell(row, col) {
+      return grid[getGridIndex(row, col)];
+    }
+
+    function clearGrid() {
+      grid = Array(GRID_SIZE * GRID_SIZE).fill(EMPTY_COLOR);
+    }
+
+    function getPixelCount() {
+      return grid.filter(c => c !== EMPTY_COLOR).length;
+    }
+
+    function randomPalette() {
+      const palettes = [
+        ['#ff00ff', '#00ffff', '#ffff00'],
+        ['#ff0080', '#0080ff', '#80ff00'],
+        ['#ff6600', '#00ff99', '#9900ff'],
+        ['#00ffff', '#ff0099', '#99ff00'],
+      ];
+      return palettes[Math.floor(Math.random() * palettes.length)];
+    }
+
+    // ====== DOM RENDERING ======
+    const svgGrid = document.getElementById('pixelGrid');
+    const colorPicker = document.getElementById('colorPicker');
+    const clearBtn = document.getElementById('clearBtn');
+    const randomBtn = document.getElementById('randomBtn');
+    const pixelCountEl = document.getElementById('pixelCount');
+
+    function renderGrid() {
+      svgGrid.innerHTML = '';
+      for (let row = 0; row < GRID_SIZE; row++) {
+        for (let col = 0; col < GRID_SIZE; col++) {
+          const color = getCell(row, col);
+          const x = col * CELL_SIZE;
+          const y = row * CELL_SIZE;
+
+          const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+          rect.setAttribute('x', x);
+          rect.setAttribute('y', y);
+          rect.setAttribute('width', CELL_SIZE - 1);
+          rect.setAttribute('height', CELL_SIZE - 1);
+          rect.setAttribute('fill', color);
+          rect.setAttribute('stroke', 'rgba(255, 0, 255, 0.1)');
+          rect.setAttribute('stroke-width', '0.5');
+          rect.setAttribute('data-row', row);
+          rect.setAttribute('data-col', col);
+          rect.style.cursor = 'crosshair';
+          rect.style.transition = 'fill 0.15s ease';
+
+          rect.addEventListener('click', (e) => {
+            paintCell(row, col, colorPicker.value);
+            renderGrid();
+            updateStats();
+          });
+
+          rect.addEventListener('mouseenter', (e) => {
+            if (e.buttons === 1) { // Left mouse held
+              paintCell(row, col, colorPicker.value);
+              renderGrid();
+              updateStats();
+            }
+          });
+
+          svgGrid.appendChild(rect);
+        }
+      }
+    }
+
+    function updateStats() {
+      pixelCountEl.textContent = getPixelCount();
+    }
+
+    clearBtn.addEventListener('click', () => {
+      clearGrid();
+      renderGrid();
+      updateStats();
+    });
+
+    randomBtn.addEventListener('click', () => {
+      const palette = randomPalette();
+      const randomColor = palette[Math.floor(Math.random() * palette.length)];
+      colorPicker.value = randomColor;
+    });
+
+    // ====== INIT ======
+    renderGrid();
+    updateStats();
+  </script>
+</body>
+</html>
