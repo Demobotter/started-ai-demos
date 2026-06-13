@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Earthquake Live — Real-Time Seismic Activity</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Sora', sans-serif;
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 50%, #0f1428 100%);
+            color: #e0e6ff;
+            min-height: 100vh;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            animation: fadeInDown 0.8s ease-out;
+        }
+
+        .header h1 {
+            font-size: clamp(36px, 8vw, 72px);
+            font-weight: 700;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, #00d9ff, #ff006e);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -1px;
+        }
+
+        .header p {
+            font-size: 16px;
+            color: #a0aed8;
+            font-family: 'IBM Plex Mono', monospace;
+            letter-spacing: 0.5px;
+        }
+
+        .layout {
+            display: grid;
+            grid-template-columns: 1fr 280px;
+            gap: 24px;
+            margin-bottom: 30px;
+        }
+
+        .map-container {
+            background: linear-gradient(135deg, rgba(10, 14, 39, 0.8), rgba(26, 31, 58, 0.8));
+            border: 1px solid rgba(0, 217, 255, 0.2);
+            border-radius: 16px;
+            padding: 12px;
+            backdrop-filter: blur(8px);
+            box-shadow: 0 8px 32px rgba(0, 217, 255, 0.1);
+            animation: fadeInUp 0.8s ease-out 0.1s both;
+        }
+
+        #earthquakeMap {
+            display: block;
+            width: 100%;
+            height: 500px;
+            background: #050710;
+            border-radius: 12px;
+        }
+
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            animation: fadeInUp 0.8s ease-out 0.2s both;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, rgba(0, 217, 255, 0.05), rgba(255, 0, 110, 0.05));
+            border: 1px solid rgba(0, 217, 255, 0.15);
+            border-radius: 12px;
+            padding: 16px;
+            backdrop-filter: blur(8px);
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            border-color: rgba(0, 217, 255, 0.4);
+            background: linear-gradient(135deg, rgba(0, 217, 255, 0.1), rgba(255, 0, 110, 0.1));
+            box-shadow: 0 4px 16px rgba(0, 217, 255, 0.15);
+            transform: translateY(-2px);
+        }
+
+        .stat-label {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 11px;
+            color: #7a8ac8;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 6px;
+            display: block;
+        }
+
+        .stat-value {
+            font-size: 20px;
+            font-weight: 700;
+            color: #00d9ff;
+            font-family: 'IBM Plex Mono', monospace;
+        }
+
+        .refresh-info {
+            background: rgba(255, 0, 110, 0.05);
+            border: 1px solid rgba(255, 0, 110, 0.2);
+            border-radius: 8px;
+            padding: 12px;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 12px;
+            color: #ff8ab8;
+            text-align: center;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .legend {
+            background: linear-gradient(135deg, rgba(0, 217, 255, 0.05), rgba(255, 0, 110, 0.05));
+            border: 1px solid rgba(0, 217, 255, 0.15);
+            border-radius: 12px;
+            padding: 16px;
+            backdrop-filter: blur(8px);
+            animation: fadeInUp 0.8s ease-out 0.3s both;
+        }
+
+        .legend-title {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 11px;
+            color: #7a8ac8;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 12px;
+            display: block;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+            font-size: 12px;
+            color: #c0c8e6;
+        }
+
+        .legend-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .legend-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .magnitude-1 { background: #4ba3e3; }
+        .magnitude-2 { background: #00ff88; }
+        .magnitude-3 { background: #ffff00; }
+        .magnitude-4 { background: #ff8800; }
+        .magnitude-5 { background: #ff0000; }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .layout {
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar {
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 12px;
+            }
+
+            #earthquakeMap {
+                height: 400px;
+            }
+
+            .header h1 {
+                font-size: 32px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .sidebar {
+                grid-template-columns: 1fr;
+            }
+
+            #earthquakeMap {
+                height: 300px;
+            }
+
+            .stat-card {
+                padding: 12px;
+            }
+
+            .stat-value {
+                font-size: 16px;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation: none !important;
+                transition: none !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Earthquake Live</h1>
+            <p>Real-time seismic activity from USGS • Updates every 10s</p>
+        </div>
+
+        <div class="layout">
+            <div class="map-container">
+                <canvas id="earthquakeMap"></canvas>
+            </div>
+
+            <div class="sidebar">
+                <div class="stat-card">
+                    <span class="stat-label">Last 24h</span>
+                    <span class="stat-value" id="count24">—</span>
+                </div>
+
+                <div class="stat-card">
+                    <span class="stat-label">Now (M4.5+)</span>
+                    <span class="stat-value" id="countMajor">—</span>
+                </div>
+
+                <div class="stat-card">
+                    <span class="stat-label">Latest</span>
+                    <span class="stat-value" id="latestMag">—</span>
+                </div>
+
+                <div class="stat-card">
+                    <span class="stat-label">Lat/Lng</span>
+                    <span class="stat-value" id="latestLoc" style="font-size: 12px; color: #a0d9ff;">—</span>
+                </div>
+
+                <div class="refresh-info">
+                    🌍 Live USGS<br/>Last: <span id="lastUpdate">—</span>
+                </div>
+
+                <div class="legend">
+                    <span class="legend-title">Magnitude</span>
+                    <div class="legend-item">
+                        <div class="legend-dot magnitude-1"></div>
+                        <span>&lt;3</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot magnitude-2"></div>
+                        <span>3–4</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot magnitude-3"></div>
+                        <span>4–5</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot magnitude-4"></div>
+                        <span>5–6</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot magnitude-5"></div>
+                        <span>6+</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Canvas setup
+        const canvas = document.getElementById('earthquakeMap');
+        const ctx = canvas.getContext('2d');
+        
+        function resizeCanvas() {
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        // State
+        let earthquakes = [];
+        let lastUpdateTime = null;
+
+        // Color by magnitude
+        function getMagnitudeColor(mag) {
+            if (mag < 3) return '#4ba3e3';      // blue
+            if (mag < 4) return '#00ff88';      // green
+            if (mag < 5) return '#ffff00';      // yellow
+            if (mag < 6) return '#ff8800';      // orange
+            return '#ff0000';                   // red
+        }
+
+        // Equirectangular projection: (lng, lat) → (x, y)
+        function project(lng, lat) {
+            const x = ((lng + 180) / 360) * canvas.width;
+            const y = ((90 - lat) / 180) * canvas.height;
+            return { x, y };
+        }
+
+        // Draw map grid + earthquakes
+        function draw() {
+            ctx.fillStyle = '#050710';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw grid
+            ctx.strokeStyle = 'rgba(0, 217, 255, 0.1)';
+            ctx.lineWidth = 1;
+
+            // Meridians (longitude)
+            for (let lng = -180; lng <= 180; lng += 30) {
+                const x = ((lng + 180) / 360) * canvas.width;
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvas.height);
+                ctx.stroke();
+            }
+
+            // Parallels (latitude)
+            for (let lat = -90; lat <= 90; lat += 30) {
+                const y = ((90 - lat) / 180) * canvas.height;
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvas.width, y);
+                ctx.stroke();
+            }
+
+            // Draw equator + prime meridian (brighter)
+            ctx.strokeStyle = 'rgba(0, 217, 255, 0.25)';
+            ctx.lineWidth = 1.5;
+            const eqY = (canvas.height / 2);
+            ctx.beginPath();
+            ctx.moveTo(0, eqY);
+            ctx.lineTo(canvas.width, eqY);
+            ctx.stroke();
+
+            const pmX = (canvas.width / 2);
+            ctx.beginPath();
+            ctx.moveTo(pmX, 0);
+            ctx.lineTo(pmX, canvas.height);
+            ctx.stroke();
+
+            // Draw earthquakes
+            for (const eq of earthquakes) {
+                const pos = project(eq.longitude, eq.latitude);
+                const color = getMagnitudeColor(eq.magnitude);
+                const radius = 2 + (eq.magnitude - 1) * 2;
+
+                // Glow
+                const gradient = ctx.createRadialGradient(pos.x, pos.y, 0, pos.x, pos.y, radius * 3);
+                gradient.addColorStop(0, color + '66');
+                gradient.addColorStop(1, color + '00');
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(pos.x, pos.y, radius * 3, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Dot
+                ctx.fillStyle = color;
+                ctx.beginPath();
+                ctx.arc(pos.x, pos.y, radius, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Border
+                ctx.strokeStyle = color + '88';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.arc(pos.x, pos.y, radius, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+        }
+
+        // Format time
+        function formatTime(dateStr) {
+            const d = new Date(dateStr);
+            const now = new Date();
+            const diff = Math.floor((now - d) / 1000);
+            if (diff < 60) return diff + 's ago';
+            if (diff < 3600) return Math.floor(diff / 60) + 'm ago';
+            if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
+            return Math.floor(diff / 86400) + 'd ago';
+        }
+
+        // Fetch USGS earthquakes
+        async function fetchEarthquakes() {
+            try {
+                const response = await fetch(
+                    'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson'
+                );
+                const data = await response.json();
+
+                earthquakes = data.features.map(f => ({
+                    magnitude: f.properties.mag,
+                    latitude: f.geometry.coordinates[1],
+                    longitude: f.geometry.coordinates[0],
+                    place: f.properties.place,
+                    time: f.properties.time,
+                    depth: f.geometry.coordinates[2]
+                })).filter(eq => eq.magnitude >= 0);
+
+                // Update stats
+                document.getElementById('count24').textContent = earthquakes.length;
+                const major = earthquakes.filter(eq => eq.magnitude >= 4.5).length;
+                document.getElementById('countMajor').textContent = major;
+
+                if (earthquakes.length > 0) {
+                    const latest = earthquakes.sort((a, b) => b.time - a.time)[0];
+                    document.getElementById('latestMag').textContent = latest.magnitude.toFixed(1);
+                    document.getElementById('latestLoc').textContent = 
+                        `${latest.latitude.toFixed(2)}°\n${latest.longitude.toFixed(2)}°`;
+                    document.getElementById('lastUpdate').textContent = formatTime(new Date(latest.time));
+                }
+
+                lastUpdateTime = new Date();
+                draw();
+            } catch (err) {
+                console.error('Fetch error:', err);
+            }
+        }
+
+        // Initial fetch and auto-update every 10s
+        fetchEarthquakes();
+        setInterval(fetchEarthquakes, 10000);
+    </script>
+</body>
+</html>
