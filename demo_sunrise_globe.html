@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Sunrise/Sunset Globe</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Source+Sans+3:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #0a0d1b 0%, #1a1a2e 50%, #0f0f1e 100%);
+            color: #e0e0e0;
+            font-family: 'Source Sans 3', sans-serif;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 40px;
+            min-height: 100vh;
+        }
+
+        /* HERO */
+        .hero {
+            text-align: center;
+            animation: fadeDown 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @keyframes fadeDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .hero h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: clamp(36px, 8vw, 60px);
+            font-weight: 600;
+            margin-bottom: 12px;
+            background: linear-gradient(135deg, #ffa500 0%, #ffb84d 50%, #ff8c00 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -1px;
+        }
+
+        .hero p {
+            font-size: 15px;
+            color: #a8a8a8;
+            margin-bottom: 20px;
+            font-weight: 300;
+        }
+
+        /* LAYOUT: GLOBE + SIDEBAR */
+        .content {
+            display: grid;
+            grid-template-columns: 1fr 280px;
+            gap: 30px;
+            animation: fadeUp 0.8s 0.2s cubic-bezier(0.16, 1, 0.3, 1) both;
+        }
+
+        @keyframes fadeUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* GLOBE SVG */
+        .globe-container {
+            background: rgba(15, 25, 45, 0.6);
+            border: 1px solid rgba(255, 165, 0, 0.2);
+            border-radius: 12px;
+            padding: 30px;
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 500px;
+            position: relative;
+        }
+
+        .globe-svg {
+            width: 100%;
+            max-width: 500px;
+            aspect-ratio: 1;
+        }
+
+        /* SIDEBAR */
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .info-card {
+            background: rgba(30, 30, 50, 0.7);
+            border: 1px solid rgba(255, 165, 0, 0.25);
+            border-radius: 8px;
+            padding: 16px;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+
+        .info-card:hover {
+            border-color: rgba(255, 165, 0, 0.5);
+            background: rgba(30, 30, 50, 0.9);
+        }
+
+        .info-label {
+            font-size: 11px;
+            color: #7a7a7a;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-bottom: 6px;
+        }
+
+        .info-value {
+            font-size: 18px;
+            font-weight: 600;
+            color: #ffa500;
+            line-height: 1.3;
+        }
+
+        .info-detail {
+            font-size: 12px;
+            color: #9a9a9a;
+            margin-top: 6px;
+        }
+
+        /* LOCATION SEARCH */
+        .search-section {
+            animation: fadeUp 0.8s 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+        }
+
+        .search-box {
+            width: 100%;
+            padding: 12px 16px;
+            background: rgba(30, 30, 50, 0.8);
+            border: 1px solid rgba(255, 165, 0, 0.3);
+            border-radius: 6px;
+            color: #e0e0e0;
+            font-family: 'Source Sans 3', sans-serif;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .search-box:focus {
+            outline: none;
+            border-color: rgba(255, 165, 0, 0.6);
+            background: rgba(30, 30, 50, 0.95);
+            box-shadow: 0 0 12px rgba(255, 165, 0, 0.1);
+        }
+
+        .search-box::placeholder {
+            color: #6a6a6a;
+        }
+
+        /* LEGEND */
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            justify-content: center;
+            margin-top: 30px;
+            animation: fadeUp 0.8s 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: #9a9a9a;
+        }
+
+        .legend-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        /* RESPONSIVE */
+        @media (max-width: 900px) {
+            .content {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+
+            .sidebar {
+                flex-direction: row;
+                flex-wrap: wrap;
+            }
+
+            .info-card {
+                flex: 1;
+                min-width: 120px;
+            }
+
+            .globe-container {
+                min-height: 400px;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .hero h1 {
+                font-size: 28px;
+            }
+
+            .globe-container {
+                padding: 20px;
+                min-height: 320px;
+            }
+
+            .info-card {
+                padding: 12px;
+            }
+
+            .info-value {
+                font-size: 14px;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation: none !important;
+                transition: none !important;
+            }
+        }
+
+        .loading {
+            text-align: center;
+            color: #6a6a6a;
+            font-size: 13px;
+        }
+
+        .pulse {
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="hero">
+            <h1>Sunrise/Sunset Globe</h1>
+            <p>Real-time solar position and daylight visualization</p>
+        </div>
+
+        <div class="content">
+            <div class="globe-container" id="globeContainer">
+                <div class="loading pulse">Loading globe…</div>
+            </div>
+
+            <div class="sidebar">
+                <div>
+                    <input type="text" id="citySearch" class="search-box" placeholder="Search city…" />
+                </div>
+
+                <div class="info-card">
+                    <div class="info-label">City</div>
+                    <div class="info-value" id="cityName">—</div>
+                    <div class="info-detail" id="cityCoords">Lat/Lng loading…</div>
+                </div>
+
+                <div class="info-card">
+                    <div class="info-label">Sunrise</div>
+                    <div class="info-value" id="sunriseTime">—</div>
+                </div>
+
+                <div class="info-card">
+                    <div class="info-label">Sunset</div>
+                    <div class="info-value" id="sunsetTime">—</div>
+                </div>
+
+                <div class="info-card">
+                    <div class="info-label">Solar Noon</div>
+                    <div class="info-value" id="solarNoon">—</div>
+                </div>
+
+                <div class="info-card">
+                    <div class="info-label">Day Length</div>
+                    <div class="info-value" id="dayLength">—</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="legend search-section">
+            <div class="legend-item">
+                <div class="legend-dot" style="background: linear-gradient(135deg, #1a4d7e 0%, #2d5a8c 100%);"></div>
+                <span>Night</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-dot" style="background: linear-gradient(135deg, #4da6ff 0%, #66b3ff 100%);"></div>
+                <span>Twilight</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-dot" style="background: linear-gradient(135deg, #ffb366 0%, #ffc299 100%);"></div>
+                <span>Daylight</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-dot" style="background: #ffa500;"></div>
+                <span>Sun</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ===== CORE LOGIC (headless-testable) =====
+
+        // Calculate sun position (altitude, azimuth) at a given time
+        // Simplified: uses day angle for altitude approximation
+        function calcSunPosition(lat, lng, date) {
+            const dayOfYear = Math.floor((date - new Date(date.getFullYear(), 0, 0)) / 86400000);
+            const dayAngle = (2 * Math.PI * (dayOfYear - 1)) / 365.25;
+            
+            // Simplified solar declination
+            const declination = 0.40928 * Math.sin(dayAngle);
+            
+            // Hour angle (0 = solar noon)
+            const utcHours = date.getUTCHours() + date.getUTCMinutes() / 60;
+            const localLng = lng;
+            const solarTime = utcHours + localLng / 15;
+            const hourAngle = (solarTime - 12) * 15 * (Math.PI / 180);
+            
+            // Altitude (radians)
+            const latRad = lat * (Math.PI / 180);
+            const sinAlt = Math.sin(latRad) * Math.sin(declination) +
+                          Math.cos(latRad) * Math.cos(declination) * Math.cos(hourAngle);
+            const altitude = Math.asin(sinAlt);
+            
+            // Azimuth (radians, 0 = North, π/2 = East)
+            const y = Math.sin(hourAngle);
+            const x = Math.cos(hourAngle) * Math.sin(latRad) - Math.tan(declination) * Math.cos(latRad);
+            const azimuth = Math.atan2(y, x);
+            
+            return {
+                altitude: altitude * (180 / Math.PI),
+                azimuth: azimuth * (180 / Math.PI),
+                lat: lat,
+                lng: lng
+            };
+        }
+
+        // Calculate day length in hours
+        function calcDayLength(lat, date) {
+            const dayOfYear = Math.floor((date - new Date(date.getFullYear(), 0, 0)) / 86400000);
+            const dayAngle = (2 * Math.PI * (dayOfYear - 1)) / 365.25;
+            const declination = 0.40928 * Math.sin(dayAngle);
+            const latRad = lat * (Math.PI / 180);
+            
+            const cosH = -Math.tan(latRad) * Math.tan(declination);
+            let h = 0;
+            if (cosH > 1) h = 0; // Polar night
+            else if (cosH < -1) h = Math.PI; // Polar day
+            else h = Math.acos(cosH);
+            
+            const hours = (2 * h * (180 / Math.PI)) / 15;
+            return Math.max(0, Math.min(24, hours));
+        }
+
+        // ===== END HEADLESS LOGIC =====
+
+        let currentLat = -37.8136; // Melbourne default
+        let currentLng = 144.9631;
+
+        async function geocodeCity(cityName) {
+            try {
+                const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cityName)}&count=1&language=en&format=json`;
+                const res = await fetch(url);
+                const json = await res.json();
+                if (json.results && json.results.length > 0) {
+                    const r = json.results[0];
+                    currentLat = r.latitude;
+                    currentLng = r.longitude;
+                    return { lat: currentLat, lng: currentLng, name: `${r.name}, ${r.country}` };
+                }
+                return null;
+            } catch (e) {
+                console.error('Geocoding failed:', e);
+                return null;
+            }
+        }
+
+        async function fetchSunriseSunset(lat, lng) {
+            try {
+                const date = new Date();
+                const dateStr = date.toISOString().split('T')[0];
+                const url = `https://api.sunrise-sunset.org/json?lat=${lat}&lng=${lng}&date=${dateStr}&formatted=0`;
+                const res = await fetch(url);
+                const json = await res.json();
+                if (json.status === 'OK') {
+                    return json.results;
+                }
+                return null;
+            } catch (e) {
+                console.error('Sunrise/Sunset fetch failed:', e);
+                return null;
+            }
+        }
+
+        function drawGlobe(lat, lng) {
+            const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            svg.setAttribute('viewBox', '0 0 500 500');
+            svg.classList.add('globe-svg');
+            
+            const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+            
+            // Define gradients for day/night
+            const nightGrad = document.createElementNS('http://www.w3.org/2000/svg', 'radialGradient');
+            nightGrad.setAttribute('id', 'nightGradient');
+            nightGrad.setAttribute('cx', '30%');
+            nightGrad.setAttribute('cy', '30%');
+            const stop1 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+            stop1.setAttribute('offset', '0%');
+            stop1.setAttribute('stop-color', '#1a3a5e');
+            const stop2 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+            stop2.setAttribute('offset', '100%');
+            stop2.setAttribute('stop-color', '#0a1428');
+            nightGrad.appendChild(stop1);
+            nightGrad.appendChild(stop2);
+            defs.appendChild(nightGrad);
+            
+            const dayGrad = document.createElementNS('http://www.w3.org/2000/svg', 'radialGradient');
+            dayGrad.setAttribute('id', 'dayGradient');
+            dayGrad.setAttribute('cx', '30%');
+            dayGrad.setAttribute('cy', '30%');
+            const stop3 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+            stop3.setAttribute('offset', '0%');
+            stop3.setAttribute('stop-color', '#ffcc99');
+            const stop4 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+            stop4.setAttribute('offset', '100%');
+            stop4.setAttribute('stop-color', '#ffb366');
+            dayGrad.appendChild(stop3);
+            dayGrad.appendChild(stop4);
+            defs.appendChild(dayGrad);
+            
+            svg.appendChild(defs);
+            
+            // Background (space)
+            const bg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+            bg.setAttribute('width', '500');
+            bg.setAttribute('height', '500');
+            bg.setAttribute('fill', '#0a0d1b');
+            svg.appendChild(bg);
+            
+            // Globe circle (terminator day/night)
+            const sunPos = calcSunPosition(lat, lng, new Date());
+            const isDay = sunPos.altitude > -6; // Civil twilight
+            
+            const globe = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            globe.setAttribute('cx', '250');
+            globe.setAttribute('cy', '250');
+            globe.setAttribute('r', '180');
+            globe.setAttribute('fill', isDay ? 'url(#dayGradient)' : 'url(#nightGradient)');
+            globe.setAttribute('opacity', '0.85');
+            svg.appendChild(globe);
+            
+            // Grid lines (latitude/longitude)
+            const gridColor = 'rgba(255, 165, 0, 0.15)';
+            for (let i = 0; i <= 360; i += 30) {
+                const meridian = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                const rad = i * (Math.PI / 180);
+                meridian.setAttribute('x1', 250 + 180 * Math.cos(rad));
+                meridian.setAttribute('y1', 250 + 180 * Math.sin(rad));
+                meridian.setAttribute('x2', 250);
+                meridian.setAttribute('y2', 250);
+                meridian.setAttribute('stroke', '#4a4a6a');
+                meridian.setAttribute('stroke-width', '0.5');
+                meridian.setAttribute('opacity', '0.3');
+                svg.appendChild(meridian);
+            }
+            
+            // Equator
+            const equator = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            equator.setAttribute('cx', '250');
+            equator.setAttribute('cy', '250');
+            equator.setAttribute('r', '180');
+            equator.setAttribute('fill', 'none');
+            equator.setAttribute('stroke', '#ffa500');
+            equator.setAttribute('stroke-width', '2');
+            equator.setAttribute('stroke-dasharray', '5,5');
+            equator.setAttribute('opacity', '0.4');
+            svg.appendChild(equator);
+            
+            // Sun position marker
+            const sunX = 250 + 150 * Math.cos(sunPos.azimuth * Math.PI / 180) * Math.cos((90 - sunPos.altitude) * Math.PI / 180);
+            const sunY = 250 + 150 * Math.sin(sunPos.azimuth * Math.PI / 180) * Math.cos((90 - sunPos.altitude) * Math.PI / 180);
+            
+            const sunGlow = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            sunGlow.setAttribute('cx', sunX);
+            sunGlow.setAttribute('cy', sunY);
+            sunGlow.setAttribute('r', '20');
+            sunGlow.setAttribute('fill', '#ffa500');
+            sunGlow.setAttribute('opacity', '0.2');
+            svg.appendChild(sunGlow);
+            
+            const sun = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            sun.setAttribute('cx', sunX);
+            sun.setAttribute('cy', sunY);
+            sun.setAttribute('r', '12');
+            sun.setAttribute('fill', '#ffa500');
+            svg.appendChild(sun);
+            
+            // City marker
+            const cityX = 250 + 170 * Math.cos(lng * Math.PI / 180) * Math.cos(lat * Math.PI / 180);
+            const cityY = 250 - 170 * Math.sin(lat * Math.PI / 180);
+            
+            const cityMarker = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            cityMarker.setAttribute('cx', cityX);
+            cityMarker.setAttribute('cy', cityY);
+            cityMarker.setAttribute('r', '6');
+            cityMarker.setAttribute('fill', '#00d9ff');
+            cityMarker.setAttribute('stroke', 'white');
+            cityMarker.setAttribute('stroke-width', '2');
+            svg.appendChild(cityMarker);
+            
+            document.getElementById('globeContainer').innerHTML = '';
+            document.getElementById('globeContainer').appendChild(svg);
+        }
+
+        async function updateGlobe(lat, lng, cityLabel = '') {
+            drawGlobe(lat, lng);
+            
+            const sunData = await fetchSunriseSunset(lat, lng);
+            if (!sunData) {
+                document.getElementById('globeContainer').innerHTML += '<div class="loading" style="position:absolute;bottom:10px;">API error loading sun data</div>';
+                return;
+            }
+
+            // Parse sunrise/sunset times
+            const sunriseStr = new Date(sunData.sunrise).toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit' });
+            const sunsetStr = new Date(sunData.sunset).toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit' });
+            const noonStr = new Date(sunData.solar_noon).toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit' });
+
+            const dayLen = calcDayLength(lat, new Date());
+            const hours = Math.floor(dayLen);
+            const minutes = Math.round((dayLen - hours) * 60);
+
+            document.getElementById('cityName').textContent = cityLabel || '—';
+            document.getElementById('cityCoords').textContent = `${lat.toFixed(2)}°, ${lng.toFixed(2)}°`;
+            document.getElementById('sunriseTime').textContent = sunriseStr;
+            document.getElementById('sunsetTime').textContent = sunsetStr;
+            document.getElementById('solarNoon').textContent = noonStr;
+            document.getElementById('dayLength').textContent = `${hours}h ${minutes}m`;
+        }
+
+        // Event: search city
+        document.getElementById('citySearch').addEventListener('keypress', async (e) => {
+            if (e.key === 'Enter') {
+                const cityName = e.target.value.trim();
+                if (cityName) {
+                    const result = await geocodeCity(cityName);
+                    if (result) {
+                        await updateGlobe(result.lat, result.lng, result.name);
+                    } else {
+                        alert('City not found');
+                    }
+                }
+            }
+        });
+
+        // Initial load (Melbourne)
+        updateGlobe(currentLat, currentLng, 'Melbourne, Australia');
+    </script>
+</body>
+</html>
