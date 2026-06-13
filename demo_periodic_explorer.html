@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Periodic Table Explorer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Geist', sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1a2a4f 50%, #0d1829 100%);
+            color: #e0e0e0;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .hero {
+            margin-bottom: 3rem;
+            animation: fadeDown 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .hero h1 {
+            font-family: 'Instrument Serif', serif;
+            font-size: clamp(48px, 8vw, 88px);
+            font-weight: 600;
+            line-height: 1.1;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(90deg, #00d9ff, #ff006e);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -0.02em;
+        }
+
+        .hero p {
+            font-size: 1.1rem;
+            color: #a0a0a0;
+            max-width: 500px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+            animation: fadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.1s both;
+        }
+
+        .search-box {
+            flex: 1;
+            min-width: 200px;
+            padding: 0.75rem 1rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(0, 217, 255, 0.3);
+            border-radius: 8px;
+            color: #e0e0e0;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            font-family: 'Geist', sans-serif;
+        }
+
+        .search-box:focus {
+            outline: none;
+            border-color: #00d9ff;
+            background: rgba(0, 217, 255, 0.1);
+            box-shadow: 0 0 20px rgba(0, 217, 255, 0.2);
+        }
+
+        .category-filter {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            padding: 0.6rem 1rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(160, 160, 160, 0.3);
+            border-radius: 6px;
+            color: #a0a0a0;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Geist', sans-serif;
+            font-weight: 500;
+        }
+
+        .filter-btn:hover {
+            border-color: rgba(0, 217, 255, 0.6);
+            color: #00d9ff;
+        }
+
+        .filter-btn.active {
+            background: rgba(0, 217, 255, 0.2);
+            border-color: #00d9ff;
+            color: #00d9ff;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 0.75rem;
+            margin-bottom: 2rem;
+            animation: fadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.2s both;
+        }
+
+        @media (max-width: 600px) {
+            .grid {
+                grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
+                gap: 0.5rem;
+            }
+        }
+
+        .element {
+            aspect-ratio: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 0.5rem;
+            border: 2px solid;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            font-weight: 600;
+            position: relative;
+            overflow: hidden;
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .element::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.1), transparent);
+            pointer-events: none;
+        }
+
+        .element:hover {
+            transform: scale(1.08) translateY(-4px);
+            box-shadow: 0 12px 32px rgba(0, 217, 255, 0.3);
+        }
+
+        .element.hidden {
+            display: none;
+        }
+
+        .element-number {
+            font-size: 0.7rem;
+            color: rgba(255, 255, 255, 0.5);
+            position: absolute;
+            top: 4px;
+            left: 4px;
+        }
+
+        .element-symbol {
+            font-size: 1.8rem;
+            margin: 0.2rem 0;
+        }
+
+        .element-name {
+            font-size: 0.65rem;
+            color: rgba(255, 255, 255, 0.6);
+            text-align: center;
+            line-height: 1;
+        }
+
+        .element-mass {
+            font-size: 0.6rem;
+            color: rgba(255, 255, 255, 0.4);
+            margin-top: 0.15rem;
+        }
+
+        /* Category colors */
+        .alkali-metal { border-color: #ff6b6b; }
+        .alkaline-earth { border-color: #ffd43b; }
+        .transition-metal { border-color: #a78bfa; }
+        .lanthanide { border-color: #51cf66; }
+        .actinide { border-color: #ff922b; }
+        .post-transition { border-color: #74c0fc; }
+        .nonmetal { border-color: #69db7c; }
+        .halogen { border-color: #ff8787; }
+        .noble-gas { border-color: #b197fc; }
+
+        .element.alkali-metal { background: rgba(255, 107, 107, 0.1); }
+        .element.alkaline-earth { background: rgba(255, 212, 59, 0.1); }
+        .element.transition-metal { background: rgba(167, 139, 250, 0.1); }
+        .element.lanthanide { background: rgba(81, 207, 102, 0.1); }
+        .element.actinide { background: rgba(255, 146, 43, 0.1); }
+        .element.post-transition { background: rgba(116, 192, 252, 0.1); }
+        .element.nonmetal { background: rgba(105, 219, 124, 0.1); }
+        .element.halogen { background: rgba(255, 135, 135, 0.1); }
+        .element.noble-gas { background: rgba(177, 151, 252, 0.1); }
+
+        .detail-panel {
+            position: fixed;
+            top: 0;
+            right: 0;
+            width: 350px;
+            height: 100vh;
+            background: linear-gradient(180deg, rgba(15, 23, 42, 0.95) 0%, rgba(26, 42, 79, 0.95) 100%);
+            border-left: 1px solid rgba(0, 217, 255, 0.2);
+            backdrop-filter: blur(10px);
+            display: none;
+            flex-direction: column;
+            z-index: 1000;
+            animation: slideInRight 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .detail-panel.open {
+            display: flex;
+        }
+
+        @media (max-width: 1024px) {
+            .detail-panel {
+                width: 100%;
+                height: auto;
+                max-height: 60vh;
+                bottom: 0;
+                top: auto;
+                border-left: none;
+                border-top: 1px solid rgba(0, 217, 255, 0.2);
+                animation: slideInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            }
+        }
+
+        .detail-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid rgba(0, 217, 255, 0.2);
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .detail-header h2 {
+            font-family: 'Instrument Serif', serif;
+            font-size: 2.5rem;
+            color: #00d9ff;
+            margin-bottom: 0.25rem;
+        }
+
+        .detail-header .close {
+            background: none;
+            border: none;
+            color: #a0a0a0;
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: color 0.3s;
+            padding: 0;
+        }
+
+        .detail-header .close:hover {
+            color: #00d9ff;
+        }
+
+        .detail-content {
+            padding: 1.5rem;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .detail-row {
+            margin-bottom: 1rem;
+            animation: fadeUp 0.5s ease both;
+        }
+
+        .detail-row:nth-child(2) { animation-delay: 0.05s; }
+        .detail-row:nth-child(3) { animation-delay: 0.1s; }
+        .detail-row:nth-child(4) { animation-delay: 0.15s; }
+        .detail-row:nth-child(5) { animation-delay: 0.2s; }
+        .detail-row:nth-child(6) { animation-delay: 0.25s; }
+        .detail-row:nth-child(7) { animation-delay: 0.3s; }
+
+        .detail-label {
+            font-size: 0.85rem;
+            color: #808080;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.3rem;
+            font-weight: 600;
+        }
+
+        .detail-value {
+            font-size: 1.2rem;
+            color: #e0e0e0;
+            font-weight: 500;
+        }
+
+        .legend {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-top: 3rem;
+            padding: 2rem;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(0, 217, 255, 0.1);
+            border-radius: 12px;
+            animation: fadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.3s both;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .legend-dot {
+            width: 16px;
+            height: 16px;
+            border-radius: 4px;
+            border: 2px solid;
+            flex-shrink: 0;
+        }
+
+        .legend-text {
+            font-size: 0.9rem;
+            color: #a0a0a0;
+        }
+
+        @keyframes fadeDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(100%);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes slideInUp {
+            from {
+                opacity: 0;
+                transform: translateY(100%);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="hero">
+            <h1>Periodic Table</h1>
+            <p>Click any element to explore its properties</p>
+        </div>
+
+        <div class="controls">
+            <input type="text" class="search-box" id="searchBox" placeholder="Search by name or symbol…">
+            <div class="category-filter">
+                <button class="filter-btn active" data-category="all">All</button>
+                <button class="filter-btn" data-category="alkali-metal">Alkali Metals</button>
+                <button class="filter-btn" data-category="noble-gas">Noble Gases</button>
+                <button class="filter-btn" data-category="nonmetal">Nonmetals</button>
+                <button class="filter-btn" data-category="halogen">Halogens</button>
+            </div>
+        </div>
+
+        <div class="grid" id="grid"></div>
+
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-dot" style="border-color: #ff6b6b;"></div>
+                <span class="legend-text">Alkali Metals</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-dot" style="border-color: #ffd43b;"></div>
+                <span class="legend-text">Alkaline Earth</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-dot" style="border-color: #a78bfa;"></div>
+                <span class="legend-text">Transition Metals</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-dot" style="border-color: #51cf66;"></div>
+                <span class="legend-text">Lanthanides</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-dot" style="border-color: #ff922b;"></div>
+                <span class="legend-text">Actinides</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-dot" style="border-color: #74c0fc;"></div>
+                <span class="legend-text">Post-Transition</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-dot" style="border-color: #69db7c;"></div>
+                <span class="legend-text">Nonmetals</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-dot" style="border-color: #ff8787;"></div>
+                <span class="legend-text">Halogens</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-dot" style="border-color: #b197fc;"></div>
+                <span class="legend-text">Noble Gases</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="detail-panel" id="detailPanel">
+        <div class="detail-header">
+            <div>
+                <h2 id="detailSymbol"></h2>
+                <div class="detail-label" id="detailName"></div>
+            </div>
+            <button class="close" onclick="closeDetail()">✕</button>
+        </div>
+        <div class="detail-content" id="detailContent"></div>
+    </div>
+
+    <script>
+        // Periodic table data (subset of 118 elements with real values)
+        const elements = [
+            { num: 1, symbol: 'H', name: 'Hydrogen', mass: 1.008, category: 'nonmetal', meltingPoint: -259.16, boilingPoint: -252.87, density: 0.071, electronAffinity: 0.754, electronegativity: 2.20 },
+            { num: 2, symbol: 'He', name: 'Helium', mass: 4.003, category: 'noble-gas', meltingPoint: -272.2, boilingPoint: -268.93, density: 0.1785, electronAffinity: 0, electronegativity: 0 },
+            { num: 3, symbol: 'Li', name: 'Lithium', mass: 6.941, category: 'alkali-metal', meltingPoint: 180.54, boilingPoint: 1342, density: 0.534, electronAffinity: 0.618, electronegativity: 0.98 },
+            { num: 4, symbol: 'Be', name: 'Beryllium', mass: 9.012, category: 'alkaline-earth', meltingPoint: 1287, boilingPoint: 2471, density: 1.848, electronAffinity: 0, electronegativity: 1.57 },
+            { num: 5, symbol: 'B', name: 'Boron', mass: 10.811, category: 'nonmetal', meltingPoint: 2076, boilingPoint: 3927, density: 2.34, electronAffinity: 0.277, electronegativity: 2.04 },
+            { num: 6, symbol: 'C', name: 'Carbon', mass: 12.011, category: 'nonmetal', meltingPoint: 3823, boilingPoint: 4827, density: 2.62, electronAffinity: 1.263, electronegativity: 2.55 },
+            { num: 7, symbol: 'N', name: 'Nitrogen', mass: 14.007, category: 'nonmetal', meltingPoint: -210.0, boilingPoint: -195.8, density: 0.808, electronAffinity: -0.07, electronegativity: 3.04 },
+            { num: 8, symbol: 'O', name: 'Oxygen', mass: 15.999, category: 'nonmetal', meltingPoint: -218.3, boilingPoint: -183.0, density: 1.14, electronAffinity: 1.461, electronegativity: 3.44 },
+            { num: 9, symbol: 'F', name: 'Fluorine', mass: 18.998, category: 'halogen', meltingPoint: -219.6, boilingPoint: -188.1, density: 1.696, electronAffinity: 3.399, electronegativity: 3.98 },
+            { num: 10, symbol: 'Ne', name: 'Neon', mass: 20.180, category: 'noble-gas', meltingPoint: -248.6, boilingPoint: -246.1, density: 0.9002, electronAffinity: 0, electronegativity: 0 },
+            { num: 11, symbol: 'Na', name: 'Sodium', mass: 22.990, category: 'alkali-metal', meltingPoint: 97.72, boilingPoint: 883, density: 0.971, electronAffinity: 0.548, electronegativity: 0.93 },
+            { num: 12, symbol: 'Mg', name: 'Magnesium', mass: 24.305, category: 'alkaline-earth', meltingPoint: 650, boilingPoint: 1107, density: 1.738, electronAffinity: 0, electronegativity: 1.31 },
+            { num: 13, symbol: 'Al', name: 'Aluminum', mass: 26.982, category: 'post-transition', meltingPoint: 660.3, boilingPoint: 2519, density: 2.70, electronAffinity: 0.441, electronegativity: 1.61 },
+            { num: 14, symbol: 'Si', name: 'Silicon', mass: 28.086, category: 'nonmetal', meltingPoint: 1414, boilingPoint: 3265, density: 2.33, electronAffinity: 1.389, electronegativity: 1.90 },
+            { num: 15, symbol: 'P', name: 'Phosphorus', mass: 30.974, category: 'nonmetal', meltingPoint: 44.2, boilingPoint: 280.5, density: 1.823, electronAffinity: 0.747, electronegativity: 2.19 },
+            { num: 16, symbol: 'S', name: 'Sulfur', mass: 32.065, category: 'nonmetal', meltingPoint: 115.2, boilingPoint: 445, density: 2.07, electronAffinity: 2.077, electronegativity: 2.58 },
+            { num: 17, symbol: 'Cl', name: 'Chlorine', mass: 35.453, category: 'halogen', meltingPoint: -101.5, boilingPoint: -34.04, density: 1.56, electronAffinity: 3.613, electronegativity: 3.16 },
+            { num: 18, symbol: 'Ar', name: 'Argon', mass: 39.948, category: 'noble-gas', meltingPoint: -189.3, boilingPoint: -185.8, density: 1.40, electronAffinity: 0, electronegativity: 0 },
+            { num: 19, symbol: 'K', name: 'Potassium', mass: 39.098, category: 'alkali-metal', meltingPoint: 63.3, boilingPoint: 759, density: 0.862, electronAffinity: 0.502, electronegativity: 0.82 },
+            { num: 20, symbol: 'Ca', name: 'Calcium', mass: 40.078, category: 'alkaline-earth', meltingPoint: 842, boilingPoint: 1484, density: 1.55, electronAffinity: 0, electronegativity: 1.00 },
+            { num: 25, symbol: 'Mn', name: 'Manganese', mass: 54.938, category: 'transition-metal', meltingPoint: 1246, boilingPoint: 2061, density: 7.44, electronAffinity: 0, electronegativity: 1.55 },
+            { num: 26, symbol: 'Fe', name: 'Iron', mass: 55.845, category: 'transition-metal', meltingPoint: 1538, boilingPoint: 2862, density: 7.874, electronAffinity: 0, electronegativity: 1.83 },
+            { num: 29, symbol: 'Cu', name: 'Copper', mass: 63.546, category: 'transition-metal', meltingPoint: 1084.6, boilingPoint: 2562, density: 8.96, electronAffinity: 1.228, electronegativity: 1.90 },
+            { num: 79, symbol: 'Au', name: 'Gold', mass: 196.967, category: 'transition-metal', meltingPoint: 1064.2, boilingPoint: 2856, density: 19.3, electronAffinity: 2.309, electronegativity: 2.54 },
+            { num: 82, symbol: 'Pb', name: 'Lead', mass: 207.200, category: 'post-transition', meltingPoint: 327.5, boilingPoint: 1749, density: 11.34, electronAffinity: 0.364, electronegativity: 2.33 },
+        ];
+
+        // Core logic test (run via node before deploy)
+        function testLogic() {
+            const H = elements[0];
+            const filtered = elements.filter(e => e.category === 'alkali-metal');
+            console.assert(H.symbol === 'H', 'H symbol check');
+            console.assert(filtered.length === 5, 'alkali-metal filter check');
+            console.assert(H.electronegativity === 2.20, 'electronegativity value check');
+            return true;
+        }
+
+        // Render grid
+        function renderGrid(filteredElements = elements) {
+            const grid = document.getElementById('grid');
+            grid.innerHTML = '';
+            filteredElements.forEach(el => {
+                const div = document.createElement('div');
+                div.className = `element ${el.category}`;
+                div.innerHTML = `
+                    <div class="element-number">${el.num}</div>
+                    <div class="element-symbol">${el.symbol}</div>
+                    <div class="element-name">${el.name}</div>
+                    <div class="element-mass">${el.mass}</div>
+                `;
+                div.onclick = () => showDetail(el);
+                grid.appendChild(div);
+            });
+        }
+
+        // Show detail panel
+        function showDetail(el) {
+            const panel = document.getElementById('detailPanel');
+            document.getElementById('detailSymbol').textContent = el.symbol;
+            document.getElementById('detailName').textContent = el.name;
+            
+            const content = `
+                <div class="detail-row">
+                    <div class="detail-label">Atomic Number</div>
+                    <div class="detail-value">${el.num}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">Atomic Mass</div>
+                    <div class="detail-value">${el.mass} u</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">Category</div>
+                    <div class="detail-value">${el.category.replace('-', ' ').split(' ').map(w => w[0].toUpperCase() + w.slice(1)).join(' ')}</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">Melting Point</div>
+                    <div class="detail-value">${el.meltingPoint}°C</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">Boiling Point</div>
+                    <div class="detail-value">${el.boilingPoint}°C</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">Density</div>
+                    <div class="detail-value">${el.density} g/cm³</div>
+                </div>
+                <div class="detail-row">
+                    <div class="detail-label">Electronegativity</div>
+                    <div class="detail-value">${el.electronegativity || 'N/A'}</div>
+                </div>
+            `;
+            
+            document.getElementById('detailContent').innerHTML = content;
+            panel.classList.add('open');
+        }
+
+        function closeDetail() {
+            document.getElementById('detailPanel').classList.remove('open');
+        }
+
+        // Search + filter
+        document.getElementById('searchBox').addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase();
+            const filtered = elements.filter(el => 
+                el.name.toLowerCase().includes(query) || 
+                el.symbol.toLowerCase().includes(query)
+            );
+            renderGrid(filtered);
+        });
+
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                const category = btn.dataset.category;
+                const filtered = category === 'all' ? elements : elements.filter(el => el.category === category);
+                renderGrid(filtered);
+            });
+        });
+
+        // Close detail on outside click
+        document.addEventListener('click', (e) => {
+            const panel = document.getElementById('detailPanel');
+            if (!panel.contains(e.target) && !e.target.closest('.element')) {
+                closeDetail();
+            }
+        });
+
+        // Initial render
+        renderGrid();
+    </script>
+</body>
+</html>
