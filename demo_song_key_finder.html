@@ -441,31 +441,35 @@
             { title: "Electric Feel", artist: "MGMT", key: "Am", quality: "Minor", confidence: 95 },
         ];
 
-        // Pure key-finding logic (node-testable)
+        // Pure key-finding logic
         function findSongKey(query) {
             query = query.toLowerCase().replace(/ by /g, ' ').trim();
             if (!query) return null;
 
-            // Fuzzy match: look for exact or close matches
             let bestMatch = null;
             let bestScore = 0;
 
             SONG_DB.forEach(song => {
                 const titleLower = song.title.toLowerCase();
                 const artistLower = song.artist.toLowerCase();
-                const titleMatch = titleLower.includes(query) || query.includes(titleLower) ? 2 : 0;
-                const artistMatch = artistLower.includes(query) || query.includes(artistLower) ? 1 : 0;
+                
+                // Check if title matches query (or any word of title is in query)
+                const titleMatch = titleLower === query || 
+                                  titleLower.split(' ').some(t => query.includes(t)) ||
+                                  query.includes(titleLower) ? 2 : 0;
+                
+                // Check if artist matches
+                const artistMatch = artistLower.split(' ').some(a => query.includes(a)) ||
+                                   query.includes(artistLower) ? 1 : 0;
 
                 const score = titleMatch + artistMatch;
-
                 if (score > bestScore) {
                     bestScore = score;
                     bestMatch = song;
                 }
             });
 
-            if (bestMatch && bestScore >= 2) {
-                // Found in database
+            if (bestMatch && bestScore >= 1) {
                 return {
                     ...bestMatch,
                     source: "Database match",
@@ -479,7 +483,6 @@
                 };
             }
 
-            // Heuristic: if no match, apply genre logic
             return {
                 key: "G",
                 quality: "Major",
@@ -521,7 +524,6 @@
             return ranges[key] || "Varied vocal range";
         }
 
-        // UI logic
         const input = document.getElementById("songInput");
         const suggestionsEl = document.getElementById("suggestions");
         const resultsEl = document.getElementById("results");
@@ -611,7 +613,6 @@
             }, 400);
         }
 
-        // Event listeners
         input.addEventListener("input", (e) => {
             const val = e.target.value.trim();
             if (val.length > 1) showSuggestions(val);
@@ -635,7 +636,6 @@
             }
         });
 
-        // Close suggestions when clicking outside
         document.addEventListener("click", (e) => {
             if (!e.target.closest(".search-box")) {
                 suggestionsEl.classList.remove("show");
