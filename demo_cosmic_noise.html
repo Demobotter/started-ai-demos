@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cosmic Noise Visualizer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: radial-gradient(circle at 30% 50%, #0f0a1a 0%, #050207 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #e0e6ff;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Background stars */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image:
+                radial-gradient(circle at 20% 50%, rgba(255, 200, 100, 0.03) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(100, 150, 255, 0.03) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            max-width: 1200px;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2rem;
+        }
+
+        header {
+            text-align: center;
+            animation: fadeInDown 0.8s ease-out;
+        }
+
+        h1 {
+            font-family: 'Syne', sans-serif;
+            font-size: clamp(32px, 8vw, 56px);
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, #ff6b9d, #c44569, #f8b500);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -0.02em;
+        }
+
+        .subtitle {
+            font-size: 0.95rem;
+            color: #b0b8d4;
+            font-weight: 400;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        .canvas-wrapper {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 16 / 9;
+            max-width: 900px;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 0 60px rgba(255, 107, 157, 0.2), 0 0 120px rgba(100, 150, 255, 0.15);
+            border: 1px solid rgba(255, 107, 157, 0.3);
+            animation: fadeInUp 0.8s ease-out 0.2s both;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            width: 100%;
+            max-width: 900px;
+            padding: 1.5rem;
+            background: rgba(30, 20, 50, 0.6);
+            border: 1px solid rgba(255, 107, 157, 0.2);
+            border-radius: 12px;
+            backdrop-filter: blur(8px);
+            animation: fadeInUp 0.8s ease-out 0.4s both;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .control-label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #ff6b9d;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: linear-gradient(to right, #ff6b9d, #c44569, #f8b500);
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #ffffff;
+            cursor: pointer;
+            box-shadow: 0 0 12px rgba(255, 107, 157, 0.6);
+            transition: all 0.2s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.3);
+            box-shadow: 0 0 24px rgba(255, 107, 157, 1);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #ffffff;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 0 12px rgba(255, 107, 157, 0.6);
+            transition: all 0.2s;
+        }
+
+        input[type="range"]::-moz-range-thumb:hover {
+            transform: scale(1.3);
+            box-shadow: 0 0 24px rgba(255, 107, 157, 1);
+        }
+
+        .value-display {
+            font-size: 0.8rem;
+            color: #a0a8c4;
+            font-weight: 500;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            width: 100%;
+            animation: fadeInUp 0.8s ease-out 0.6s both;
+        }
+
+        button {
+            padding: 0.75rem 1.5rem;
+            font-family: 'Syne', sans-serif;
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #050207;
+            background: linear-gradient(135deg, #ff6b9d, #f8b500);
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            box-shadow: 0 8px 24px rgba(255, 107, 157, 0.3);
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 32px rgba(255, 107, 157, 0.5);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .info {
+            font-size: 0.85rem;
+            color: #808aaa;
+            text-align: center;
+            animation: fadeIn 0.8s ease-out 0.8s both;
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+
+            .controls {
+                grid-template-columns: 1fr;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+
+            button {
+                width: 100%;
+            }
+
+            h1 {
+                font-size: clamp(28px, 6vw, 42px);
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Cosmic Noise</h1>
+            <p class="subtitle">Procedural Generative Fields</p>
+        </header>
+
+        <div class="canvas-wrapper">
+            <canvas id="noiseCanvas"></canvas>
+        </div>
+
+        <div class="controls">
+            <div class="control-group">
+                <label class="control-label">Speed</label>
+                <input type="range" id="speedSlider" min="0.1" max="2" step="0.1" value="0.8">
+                <span class="value-display" id="speedValue">0.8x</span>
+            </div>
+            <div class="control-group">
+                <label class="control-label">Scale</label>
+                <input type="range" id="scaleSlider" min="20" max="200" step="10" value="80">
+                <span class="value-display" id="scaleValue">80</span>
+            </div>
+            <div class="control-group">
+                <label class="control-label">Complexity</label>
+                <input type="range" id="complexitySlider" min="1" max="5" step="1" value="3">
+                <span class="value-display" id="complexityValue">3 layers</span>
+            </div>
+        </div>
+
+        <div class="button-group">
+            <button id="resetBtn">Reset</button>
+            <button id="randomBtn">Randomize</button>
+        </div>
+
+        <p class="info">Watch the organic flow of procedural noise. Adjust parameters to morph the pattern.</p>
+    </div>
+
+    <script>
+        // === SIMPLEX NOISE APPROXIMATION ===
+        // Fast, headless-testable noise generator
+        class SimplexNoise {
+            constructor(seed = 0) {
+                this.seed = seed;
+                this.perm = [];
+                this.permMod12 = [];
+                this.initPermutation();
+            }
+
+            initPermutation() {
+                const p = [];
+                for (let i = 0; i < 256; i++) {
+                    p[i] = Math.floor(((Math.sin(i + this.seed) * 10000) % 1) * 256);
+                }
+                this.perm = p.concat(p);
+                this.permMod12 = this.perm.map(x => x % 12);
+            }
+
+            fade(t) {
+                return t * t * t * (t * (t * 6 - 15) + 10);
+            }
+
+            lerp(t, a, b) {
+                return a + t * (b - a);
+            }
+
+            grad(hash, x, y) {
+                const h = hash & 15;
+                const u = h < 8 ? x : y;
+                const v = h < 8 ? y : x;
+                return ((h & 1) === 0 ? u : -u) + ((h & 2) === 0 ? v : -v);
+            }
+
+            noise(x, y) {
+                const X = Math.floor(x) & 255;
+                const Y = Math.floor(y) & 255;
+                const xf = x - Math.floor(x);
+                const yf = y - Math.floor(y);
+                const u = this.fade(xf);
+                const v = this.fade(yf);
+
+                const a = this.perm[X] + Y;
+                const aa = this.perm[a];
+                const ab = this.perm[a + 1];
+                const b = this.perm[X + 1] + Y;
+                const ba = this.perm[b];
+                const bb = this.perm[b + 1];
+
+                const g00 = this.grad(this.permMod12[aa], xf, yf);
+                const g10 = this.grad(this.permMod12[ba], xf - 1, yf);
+                const g01 = this.grad(this.permMod12[ab], xf, yf - 1);
+                const g11 = this.grad(this.permMod12[bb], xf - 1, yf - 1);
+
+                const nx0 = this.lerp(u, g00, g10);
+                const nx1 = this.lerp(u, g01, g11);
+                return this.lerp(v, nx0, nx1);
+            }
+        }
+
+        // === CANVAS SETUP ===
+        const canvas = document.getElementById('noiseCanvas');
+        const ctx = canvas.getContext('2d');
+        let animationId = null;
+
+        // Resize canvas to fill container
+        function resizeCanvas() {
+            const rect = canvas.getBoundingClientRect();
+            canvas.width = Math.floor(rect.width * devicePixelRatio);
+            canvas.height = Math.floor(rect.height * devicePixelRatio);
+            ctx.scale(devicePixelRatio, devicePixelRatio);
+        }
+
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        // === STATE ===
+        let state = {
+            time: 0,
+            speed: 0.8,
+            scale: 80,
+            complexity: 3,
+        };
+
+        // === NOISE GENERATOR INSTANCE ===
+        const noise = new SimplexNoise(42);
+
+        // === RENDER LOOP ===
+        function render() {
+            const w = canvas.width / devicePixelRatio;
+            const h = canvas.height / devicePixelRatio;
+
+            // Clear with semi-transparent dark
+            ctx.fillStyle = 'rgba(5, 2, 7, 0.1)';
+            ctx.fillRect(0, 0, w, h);
+
+            // Draw particles/pixels from noise field
+            const pixelSize = Math.max(2, Math.floor(4 - state.complexity / 2));
+            const layers = state.complexity;
+
+            for (let y = 0; y < h; y += pixelSize) {
+                for (let x = 0; x < w; x += pixelSize) {
+                    let value = 0;
+
+                    // Multi-octave Perlin-like noise
+                    for (let i = 0; i < layers; i++) {
+                        const freq = Math.pow(2, i);
+                        const amp = 1 / freq;
+                        const sampleX = (x / state.scale) * freq + state.time * state.speed * 0.1;
+                        const sampleY = (y / state.scale) * freq + state.time * state.speed * 0.05;
+                        value += noise.noise(sampleX, sampleY) * amp;
+                    }
+
+                    value /= layers;
+                    value = (value + 1) / 2; // Normalize to [0, 1]
+
+                    // Color based on noise value
+                    const hue = (value * 360 + state.time * 0.2) % 360;
+                    const saturation = 70 + value * 20;
+                    const lightness = 30 + value * 35;
+
+                    ctx.fillStyle = `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+                    ctx.fillRect(x, y, pixelSize + 1, pixelSize + 1);
+                }
+            }
+
+            state.time += 1;
+            animationId = requestAnimationFrame(render);
+        }
+
+        // === CONTROLS ===
+        const speedSlider = document.getElementById('speedSlider');
+        const scaleSlider = document.getElementById('scaleSlider');
+        const complexitySlider = document.getElementById('complexitySlider');
+        const speedValue = document.getElementById('speedValue');
+        const scaleValue = document.getElementById('scaleValue');
+        const complexityValue = document.getElementById('complexityValue');
+        const resetBtn = document.getElementById('resetBtn');
+        const randomBtn = document.getElementById('randomBtn');
+
+        speedSlider.addEventListener('input', (e) => {
+            state.speed = parseFloat(e.target.value);
+            speedValue.textContent = state.speed.toFixed(1) + 'x';
+        });
+
+        scaleSlider.addEventListener('input', (e) => {
+            state.scale = parseFloat(e.target.value);
+            scaleValue.textContent = Math.floor(state.scale);
+        });
+
+        complexitySlider.addEventListener('input', (e) => {
+            state.complexity = parseInt(e.target.value);
+            complexityValue.textContent = state.complexity + ' layers';
+        });
+
+        resetBtn.addEventListener('click', () => {
+            state = { time: 0, speed: 0.8, scale: 80, complexity: 3 };
+            speedSlider.value = 0.8;
+            scaleSlider.value = 80;
+            complexitySlider.value = 3;
+            speedValue.textContent = '0.8x';
+            scaleValue.textContent = '80';
+            complexityValue.textContent = '3 layers';
+        });
+
+        randomBtn.addEventListener('click', () => {
+            const newSpeed = (Math.random() * 1.9 + 0.1).toFixed(1);
+            const newScale = Math.floor(Math.random() * 180 + 20);
+            const newComplexity = Math.floor(Math.random() * 5 + 1);
+
+            state.speed = parseFloat(newSpeed);
+            state.scale = newScale;
+            state.complexity = newComplexity;
+
+            speedSlider.value = newSpeed;
+            scaleSlider.value = newScale;
+            complexitySlider.value = newComplexity;
+
+            speedValue.textContent = newSpeed + 'x';
+            scaleValue.textContent = newScale;
+            complexityValue.textContent = newComplexity + ' layers';
+        });
+
+        // Start animation
+        render();
+
+        // === HEADLESS TEST EXPORT (for node --check) ===
+        if (typeof module !== 'undefined' && module.exports) {
+            module.exports = { SimplexNoise };
+        }
+    </script>
+</body>
+</html>
