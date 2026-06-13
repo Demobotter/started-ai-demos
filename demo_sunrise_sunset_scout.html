@@ -26,7 +26,6 @@
             margin: 0 auto;
         }
 
-        /* HERO */
         .hero {
             text-align: center;
             margin-bottom: 50px;
@@ -62,7 +61,6 @@
             margin: 0 auto;
         }
 
-        /* INPUT SECTION */
         .input-section {
             display: grid;
             grid-template-columns: 1fr 1fr auto;
@@ -123,7 +121,6 @@
             transform: translateY(0);
         }
 
-        /* MAIN GRID */
         .main-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -131,7 +128,6 @@
             margin-bottom: 30px;
         }
 
-        /* VIZ CARD */
         .viz-card {
             padding: 30px;
             background: rgba(255, 255, 255, 0.04);
@@ -150,7 +146,6 @@
             margin-bottom: 20px;
         }
 
-        /* CIRCULAR VIZ */
         .circle-viz {
             position: relative;
             width: 200px;
@@ -170,27 +165,28 @@
             font-weight: 600;
             color: #00d9ff;
             font-family: "IBM Plex Mono", monospace;
+            white-space: nowrap;
         }
 
         .circle-label.sunrise {
             top: 50%;
-            left: 0;
-            transform: translate(-50%, -50%);
+            left: -40px;
+            transform: translateY(-50%);
         }
 
         .circle-label.sunset {
             top: 50%;
-            right: 0;
-            transform: translate(50%, -50%);
+            right: -40px;
+            transform: translateY(-50%);
         }
 
         .circle-label.noon {
-            bottom: -5px;
+            bottom: -25px;
             left: 50%;
             transform: translateX(-50%);
+            font-size: 11px;
         }
 
-        /* STATS CARDS */
         .stats-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -239,7 +235,6 @@
             margin-top: 4px;
         }
 
-        /* INFO CARD */
         .info-card {
             grid-column: 1 / -1;
             padding: 20px;
@@ -264,7 +259,6 @@
             line-height: 1.6;
         }
 
-        /* LOADING STATE */
         .loading {
             display: none;
             text-align: center;
@@ -294,7 +288,6 @@
             to { transform: rotate(360deg); }
         }
 
-        /* ERROR STATE */
         .error {
             padding: 16px;
             background: rgba(255, 100, 100, 0.1);
@@ -310,7 +303,6 @@
             display: block;
         }
 
-        /* MOBILE */
         @media (max-width: 768px) {
             .main-grid {
                 grid-template-columns: 1fr;
@@ -337,9 +329,16 @@
             .stat-value {
                 font-size: 18px;
             }
+
+            .circle-label.sunrise {
+                left: -30px;
+            }
+
+            .circle-label.sunset {
+                right: -30px;
+            }
         }
 
-        /* REDUCE MOTION */
         @media (prefers-reduced-motion: reduce) {
             * {
                 animation-duration: 0.01ms !important;
@@ -367,18 +366,12 @@
                 <h2>Daylight Arc</h2>
                 <div class="circle-viz">
                     <svg viewBox="0 0 200 200" style="margin: 0 auto;">
-                        <!-- Background circle -->
                         <circle cx="100" cy="100" r="90" fill="none" stroke="rgba(0,217,255,0.15)" stroke-width="1"/>
-                        <!-- Hour marks -->
                         <g id="hourMarks" opacity="0.3"></g>
-                        <!-- Daylight arc -->
                         <path id="daylightArc" stroke="url(#sunGradient)" stroke-width="20" fill="none" stroke-linecap="round"/>
-                        <!-- Sunrise/Sunset lines -->
                         <line id="sunriseLine" stroke="rgba(0, 217, 255, 0.5)" stroke-width="2" stroke-dasharray="4,4"/>
                         <line id="sunsetLine" stroke="rgba(255, 165, 0, 0.5)" stroke-width="2" stroke-dasharray="4,4"/>
-                        <!-- Center -->
                         <circle cx="100" cy="100" r="8" fill="rgba(0,217,255,0.3)"/>
-                        <!-- Gradient defs -->
                         <defs>
                             <linearGradient id="sunGradient" x1="0%" y1="0%" x2="100%" y2="100%">
                                 <stop offset="0%" style="stop-color:#00d9ff;stop-opacity:0.3"/>
@@ -389,9 +382,9 @@
                     </svg>
                     <div class="circle-label sunrise" id="sunriseLabel">5:30 AM</div>
                     <div class="circle-label sunset" id="sunsetLabel">8:20 PM</div>
-                    <div class="circle-label noon" id="noonLabel">Solar Noon</div>
+                    <div class="circle-label noon" id="noonLabel">Noon</div>
                 </div>
-                <p style="text-align: center; font-size: 12px; color: #a0a0c0; margin-top: 15px;">24-hour clock face • Daylight arc colored sunrise→peak→sunset</p>
+                <p style="text-align: center; font-size: 12px; color: #a0a0c0; margin-top: 15px;">24-hour clock • Daylight arc colored sunrise→peak→sunset</p>
             </div>
 
             <div class="viz-card">
@@ -435,13 +428,11 @@
     </div>
 
     <script>
-        // CORE LOGIC TEST (headless-verified)
         function timeToMinutes(hh, mm) {
             return hh * 60 + mm;
         }
 
         function minutesToDegrees(minutes) {
-            // 24h = 360°, so 1 min = 0.25°
             return (minutes / 1440) * 360;
         }
 
@@ -456,31 +447,28 @@
             return `M ${x1} ${y1} A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2}`;
         }
 
-        function formatTime(date) {
-            let h = date.getHours();
-            const m = date.getMinutes().toString().padStart(2, '0');
+        function formatTime(timeStr) {
+            const [h, m] = timeStr.split(':').map(Number);
             const period = h >= 12 ? 'PM' : 'AM';
-            h = h % 12 || 12;
-            return `${h}:${m} ${period}`;
+            const hour = h % 12 || 12;
+            return `${hour}:${m.toString().padStart(2, '0')} ${period}`;
         }
 
         function calculateDaylightChange(current, previous) {
             const diff = current - previous;
             const absDiff = Math.abs(diff);
-            const sign = diff > 0 ? '+' : '';
+            const sign = diff >= 0 ? '+' : '-';
             const mins = absDiff % 60;
             const hours = Math.floor(absDiff / 60);
             if (hours === 0) return `${sign}${mins}m`;
             return `${sign}${hours}h ${mins}m`;
         }
 
-        // DATE SETUP
         const today = new Date();
         document.getElementById('dateInput').valueAsDate = today;
         const yesterday = new Date(today);
         yesterday.setDate(yesterday.getDate() - 1);
 
-        // FETCH & RENDER
         async function fetchSunData() {
             const city = document.getElementById('cityInput').value.trim();
             const dateStr = document.getElementById('dateInput').value;
@@ -494,7 +482,7 @@
             document.getElementById('error').classList.remove('active');
 
             try {
-                // Step 1: Geocode city via Open-Meteo
+                // Geocode city
                 const geoResp = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=en&format=json`);
                 const geoData = await geoResp.json();
 
@@ -504,55 +492,59 @@
 
                 const { latitude, longitude, name, country } = geoData.results[0];
 
-                // Step 2: Fetch sunrise/sunset for selected date and previous day
+                // Fetch sunrise/sunset
                 const [selectedResp, prevResp] = await Promise.all([
-                    fetch(`https://api.open-meteo.com/v1/astronomy?latitude=${latitude}&longitude=${longitude}&date=${dateStr}&timezone=auto`),
-                    fetch(`https://api.open-meteo.com/v1/astronomy?latitude=${latitude}&longitude=${longitude}&date=${yesterday.toISOString().split('T')[0]}&timezone=auto`)
+                    fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&date=${dateStr}&daily=sunrise,sunset&timezone=auto`),
+                    fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&date=${yesterday.toISOString().split('T')[0]}&daily=sunrise,sunset&timezone=auto`)
                 ]);
 
                 const selectedData = await selectedResp.json();
                 const prevData = await prevResp.json();
 
-                const sunrise = new Date(`${dateStr}T${selectedData.data[0].sunrise}`);
-                const sunset = new Date(`${dateStr}T${selectedData.data[0].sunset}`);
-                const prevSunrise = new Date(`${yesterday.toISOString().split('T')[0]}T${prevData.data[0].sunrise}`);
-                const prevSunset = new Date(`${yesterday.toISOString().split('T')[0]}T${prevData.data[0].sunset}`);
+                const sunriseStr = selectedData.daily.sunrise[0];
+                const sunsetStr = selectedData.daily.sunset[0];
+                const prevSunriseStr = prevData.daily.sunrise[0];
+                const prevSunsetStr = prevData.daily.sunset[0];
 
-                // MATH
-                const sunriseMin = timeToMinutes(sunrise.getHours(), sunrise.getMinutes());
-                const sunsetMin = timeToMinutes(sunset.getHours(), sunset.getMinutes());
+                // Parse times
+                const [srH, srM] = sunriseStr.split('T')[1].split(':').map(Number);
+                const [ssH, ssM] = sunsetStr.split('T')[1].split(':').map(Number);
+                const [prevSrH, prevSrM] = prevSunriseStr.split('T')[1].split(':').map(Number);
+                const [prevSsH, prevSsM] = prevSunsetStr.split('T')[1].split(':').map(Number);
+
+                const sunriseMin = timeToMinutes(srH, srM);
+                const sunsetMin = timeToMinutes(ssH, ssM);
+                const prevSunriseMin = timeToMinutes(prevSrH, prevSrM);
+                const prevSunsetMin = timeToMinutes(prevSsH, prevSsM);
+
                 const daylightMin = sunsetMin - sunriseMin;
+                const prevDaylightMin = prevSunsetMin - prevSunriseMin;
                 const daylightH = Math.floor(daylightMin / 60);
                 const daylightM = daylightMin % 60;
 
-                const prevDaylightMin = (timeToMinutes(prevSunset.getHours(), prevSunset.getMinutes()) - 
-                                        timeToMinutes(prevSunrise.getHours(), prevSunrise.getMinutes()));
-                const daylightChangeMin = daylightMin - prevDaylightMin;
-
-                const solarNoon = new Date(sunrise.getTime() + daylightMin / 2 * 60000);
+                const solarNoonMin = sunriseMin + daylightMin / 2;
+                const solarNoonH = Math.floor(solarNoonMin / 60);
+                const solarNoonM = Math.round(solarNoonMin % 60);
 
                 const sunriseDeg = minutesToDegrees(sunriseMin);
                 const sunsetDeg = minutesToDegrees(sunsetMin);
-                const noonDeg = minutesToDegrees(timeToMinutes(solarNoon.getHours(), solarNoon.getMinutes()));
-
-                // CIVIL TWILIGHT (approx 6° before sunrise, after sunset)
-                const civilTwilightMins = Math.round((sunsetDeg - sunriseDeg) / 360 * 1440 * 0.1);
+                const civilTwilightMins = Math.round(daylightMin * 0.1);
 
                 // RENDER
-                document.getElementById('sunriseLabel').textContent = formatTime(sunrise);
-                document.getElementById('sunsetLabel').textContent = formatTime(sunset);
-                document.getElementById('noonLabel').textContent = 'Solar Noon\n' + formatTime(solarNoon);
+                document.getElementById('sunriseLabel').textContent = formatTime(sunriseStr.split('T')[1]);
+                document.getElementById('sunsetLabel').textContent = formatTime(sunsetStr.split('T')[1]);
+                document.getElementById('noonLabel').textContent = `${solarNoonH % 12 || 12}:${solarNoonM.toString().padStart(2, '0')} ${solarNoonH >= 12 ? 'PM' : 'AM'}`;
                 document.getElementById('daylightHours').textContent = `${daylightH}h ${daylightM}m`;
                 document.getElementById('daylightChange').textContent = calculateDaylightChange(daylightMin, prevDaylightMin);
-                document.getElementById('solarNoon').textContent = formatTime(solarNoon);
-                document.getElementById('twilightWindow').textContent = `${Math.floor(civilTwilightMins / 60)}m ${civilTwilightMins % 60}s`;
-                document.getElementById('infoText').textContent = `${name}, ${country} on ${new Date(dateStr).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}. Daylight stretches from ${formatTime(sunrise)} to ${formatTime(sunset)}, giving you ${daylightH}h ${daylightM}m of natural light.`;
+                document.getElementById('solarNoon').textContent = `${solarNoonH % 12 || 12}:${solarNoonM.toString().padStart(2, '0')} ${solarNoonH >= 12 ? 'PM' : 'AM'}`;
+                document.getElementById('twilightWindow').textContent = `${Math.floor(civilTwilightMins / 60)}h ${civilTwilightMins % 60}m`;
+                document.getElementById('infoText').textContent = `${name}, ${country} on ${new Date(dateStr).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}. Daylight stretches from ${formatTime(sunriseStr.split('T')[1])} to ${formatTime(sunsetStr.split('T')[1])}, giving you ${daylightH}h ${daylightM}m of natural light.`;
 
                 // ARC PATH
                 const arcPath = degreesToArcPath(sunriseDeg, sunsetDeg);
                 document.getElementById('daylightArc').setAttribute('d', arcPath);
 
-                // SUNRISE/SUNSET LINES
+                // LINES
                 const radius = 90;
                 const cx = 100, cy = 100;
                 const sunriseRad = (sunriseDeg - 90) * Math.PI / 180;
@@ -596,12 +588,10 @@
             el.classList.add('active');
         }
 
-        // INITIAL LOAD
         window.addEventListener('load', () => {
             fetchSunData();
         });
 
-        // ENTER KEY
         document.getElementById('cityInput').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') fetchSunData();
         });
