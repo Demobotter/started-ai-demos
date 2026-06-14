@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Harmonic Resonator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@700;900&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            font-family: 'IBM Plex Mono', monospace;
+            overflow: hidden;
+            background: linear-gradient(135deg, #0a0f1f 0%, #1a0033 50%, #0f1a2e 100%);
+            color: #fff;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><defs><filter id="noise"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="4" seed="2"/></filter></defs><rect width="100" height="100" fill="rgba(0,255,255,0.03)" filter="url(%23noise)"/></svg>');
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .container {
+            position: relative;
+            z-index: 2;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            padding: 2rem;
+            gap: 2rem;
+            overflow: auto;
+        }
+
+        .hero {
+            text-align: center;
+            animation: slideDown 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .hero h1 {
+            font-family: 'Rubik', sans-serif;
+            font-size: clamp(48px, 8vw, 72px);
+            font-weight: 900;
+            letter-spacing: -2px;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, #00ffff, #ff00ff, #00ffff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero p {
+            font-size: 1rem;
+            color: #aaa;
+            font-weight: 400;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            animation: fadeInUp 0.6s ease-out 0.2s both;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .canvas-wrapper {
+            position: relative;
+            background: rgba(10, 15, 40, 0.5);
+            border: 2px solid #00ffff;
+            border-radius: 12px;
+            padding: 1rem;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 255, 255, 0.1);
+            overflow: hidden;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 300px;
+            border-radius: 8px;
+            background: rgba(5, 10, 30, 0.9);
+            cursor: crosshair;
+        }
+
+        .stats-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            animation: fadeInUp 0.6s ease-out 0.3s both;
+        }
+
+        .stat-box {
+            background: rgba(0, 255, 255, 0.05);
+            border-left: 3px solid #00ffff;
+            padding: 1.5rem;
+            border-radius: 8px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(0, 255, 255, 0.2);
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #00ffff;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-value {
+            font-size: 1.75rem;
+            font-family: 'IBM Plex Mono', monospace;
+            font-weight: 600;
+            color: #00ffff;
+            letter-spacing: 1px;
+        }
+
+        .stat-unit {
+            font-size: 0.9rem;
+            color: #888;
+            margin-left: 0.5rem;
+        }
+
+        .controls {
+            background: rgba(10, 15, 40, 0.5);
+            border: 2px solid #ff00ff;
+            border-radius: 12px;
+            padding: 2rem;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(255, 0, 255, 0.1);
+            animation: fadeInUp 0.6s ease-out 0.4s both;
+            grid-column: 1 / -1;
+        }
+
+        .control-group {
+            margin-bottom: 2rem;
+        }
+
+        .control-group:last-child {
+            margin-bottom: 0;
+        }
+
+        .control-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.8rem;
+            font-weight: 600;
+        }
+
+        .control-label-text {
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #fff;
+            font-size: 0.9rem;
+        }
+
+        .control-value {
+            font-family: 'IBM Plex Mono', monospace;
+            color: #00ffff;
+            font-weight: 600;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 8px;
+            border-radius: 4px;
+            background: linear-gradient(90deg, #00ffff, #ff00ff);
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+            cursor: pointer;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #00ffff, #ff00ff);
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+            transition: box-shadow 0.2s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.8);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #00ffff, #ff00ff);
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+            transition: box-shadow 0.2s;
+        }
+
+        input[type="range"]::-moz-range-thumb:hover {
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.8);
+        }
+
+        @media (max-width: 768px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .container {
+                padding: 1rem;
+                gap: 1rem;
+            }
+
+            canvas {
+                height: 250px;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation-duration: 0.01ms !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="hero">
+            <h1>🌊 Harmonic Resonator</h1>
+            <p>Two waves meet. Watch standing patterns emerge.</p>
+        </div>
+
+        <div class="main-grid">
+            <div class="canvas-wrapper">
+                <canvas id="waveCanvas"></canvas>
+            </div>
+
+            <div class="stats-panel">
+                <div class="stat-box">
+                    <div class="stat-label">Frequency</div>
+                    <div class="stat-value"><span id="freqValue">50</span><span class="stat-unit">Hz</span></div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Wavelength</div>
+                    <div class="stat-value"><span id="waveValue">80</span><span class="stat-unit">px</span></div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Max Amplitude</div>
+                    <div class="stat-value"><span id="ampValue">42</span><span class="stat-unit">px</span></div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Nodes</div>
+                    <div class="stat-value"><span id="nodeValue">3</span><span class="stat-unit">#</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <div class="control-group">
+                <div class="control-label">
+                    <span class="control-label-text">Frequency</span>
+                    <span class="control-value" id="freqDisplay">50 Hz</span>
+                </div>
+                <input type="range" id="freqSlider" min="20" max="100" value="50" step="1">
+            </div>
+
+            <div class="control-group">
+                <div class="control-label">
+                    <span class="control-label-text">Damping</span>
+                    <span class="control-value" id="dampDisplay">0.98</span>
+                </div>
+                <input type="range" id="dampSlider" min="0.90" max="0.99" value="0.98" step="0.01">
+            </div>
+
+            <div class="control-group">
+                <div class="control-label">
+                    <span class="control-label-text">Wave Speed</span>
+                    <span class="control-value" id="speedDisplay">2</span>
+                </div>
+                <input type="range" id="speedSlider" min="0.5" max="4" value="2" step="0.1">
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Pure logic functions (headless-testable)
+        function computeWavelength(frequency) {
+            // wavelength = 320 / frequency (px)
+            return Math.max(10, 320 / frequency);
+        }
+
+        function computeWaveAmplitude(frequency) {
+            // higher frequency = smaller amplitude naturally
+            return Math.max(20, 60 - frequency * 0.3);
+        }
+
+        function computeNodes(frequency) {
+            // rough estimate: more nodes at higher freq
+            return Math.max(1, Math.floor(frequency / 20));
+        }
+
+        function computeWaveHeight(x, y, frequency, time, damping, waveSpeed) {
+            const wavelength = computeWavelength(frequency);
+            const amplitude = computeWaveAmplitude(frequency);
+            
+            // Forward wave from left
+            const phase1 = (x / wavelength + time * waveSpeed * frequency * 0.01) * Math.PI * 2;
+            const wave1 = Math.sin(phase1) * amplitude;
+
+            // Reflected wave from right (travels backward)
+            const phase2 = ((width - x) / wavelength - time * waveSpeed * frequency * 0.01) * Math.PI * 2;
+            const wave2 = Math.sin(phase2) * amplitude;
+
+            // Superposition (interference)
+            return (wave1 + wave2) * damping;
+        }
+
+        // Canvas setup
+        const canvas = document.getElementById('waveCanvas');
+        const ctx = canvas.getContext('2d');
+        let width = canvas.offsetWidth;
+        let height = canvas.offsetHeight;
+        canvas.width = width;
+        canvas.height = height;
+
+        let frequency = 50;
+        let damping = 0.98;
+        let waveSpeed = 2;
+        let time = 0;
+        let animationFrameId = null;
+
+        // Update canvas size on resize
+        function resizeCanvas() {
+            width = canvas.offsetWidth;
+            height = canvas.offsetHeight;
+            canvas.width = width;
+            canvas.height = height;
+        }
+        window.addEventListener('resize', resizeCanvas);
+
+        // Render function
+        function render() {
+            // Clear canvas with slight fade trail
+            ctx.fillStyle = 'rgba(5, 10, 30, 0.3)';
+            ctx.fillRect(0, 0, width, height);
+
+            // Draw grid lines
+            ctx.strokeStyle = 'rgba(0, 255, 255, 0.1)';
+            ctx.lineWidth = 1;
+            const gridSpacing = width / 8;
+            for (let i = 0; i <= 8; i++) {
+                ctx.beginPath();
+                ctx.moveTo(i * gridSpacing, 0);
+                ctx.lineTo(i * gridSpacing, height);
+                ctx.stroke();
+            }
+
+            // Draw centerline
+            ctx.strokeStyle = 'rgba(255, 0, 255, 0.2)';
+            ctx.setLineDash([5, 5]);
+            ctx.beginPath();
+            ctx.moveTo(0, height / 2);
+            ctx.lineTo(width, height / 2);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Draw standing wave (interference pattern)
+            const centerY = height / 2;
+            ctx.strokeStyle = '#00ffff';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+
+            for (let x = 0; x < width; x += 2) {
+                const y = computeWaveHeight(x, centerY, frequency, time, damping, waveSpeed);
+                const canvasY = centerY - y;
+                
+                if (x === 0) {
+                    ctx.moveTo(x, canvasY);
+                } else {
+                    ctx.lineTo(x, canvasY);
+                }
+            }
+            ctx.stroke();
+
+            // Draw reflected component (magenta)
+            ctx.strokeStyle = '#ff00ff';
+            ctx.lineWidth = 1;
+            ctx.globalAlpha = 0.4;
+            ctx.beginPath();
+
+            const wavelength = computeWavelength(frequency);
+            for (let x = 0; x < width; x += 2) {
+                const phase2 = ((width - x) / wavelength - time * waveSpeed * frequency * 0.01) * Math.PI * 2;
+                const wave2 = Math.sin(phase2) * computeWaveAmplitude(frequency);
+                const canvasY = centerY - wave2;
+                
+                if (x === 0) {
+                    ctx.moveTo(x, canvasY);
+                } else {
+                    ctx.lineTo(x, canvasY);
+                }
+            }
+            ctx.stroke();
+            ctx.globalAlpha = 1;
+
+            // Draw nodes (zero-crossings)
+            ctx.fillStyle = 'rgba(0, 255, 255, 0.6)';
+            const nodeRadius = 3;
+            for (let x = 0; x < width; x += Math.max(5, wavelength / 4)) {
+                const y = computeWaveHeight(x, centerY, frequency, time, damping, waveSpeed);
+                if (Math.abs(y) < nodeRadius * 2) {
+                    ctx.beginPath();
+                    ctx.arc(x, centerY, nodeRadius, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+
+            time += 0.05;
+            animationFrameId = requestAnimationFrame(render);
+        }
+
+        // Control updates
+        function updateStats() {
+            const wavelength = computeWavelength(frequency);
+            const amplitude = computeWaveAmplitude(frequency);
+            const nodes = computeNodes(frequency);
+
+            document.getElementById('freqValue').textContent = frequency;
+            document.getElementById('waveValue').textContent = Math.round(wavelength);
+            document.getElementById('ampValue').textContent = Math.round(amplitude);
+            document.getElementById('nodeValue').textContent = nodes;
+            document.getElementById('freqDisplay').textContent = frequency + ' Hz';
+        }
+
+        document.getElementById('freqSlider').addEventListener('input', (e) => {
+            frequency = parseFloat(e.target.value);
+            updateStats();
+        });
+
+        document.getElementById('dampSlider').addEventListener('input', (e) => {
+            damping = parseFloat(e.target.value);
+            document.getElementById('dampDisplay').textContent = damping.toFixed(2);
+        });
+
+        document.getElementById('speedSlider').addEventListener('input', (e) => {
+            waveSpeed = parseFloat(e.target.value);
+            document.getElementById('speedDisplay').textContent = waveSpeed.toFixed(1);
+        });
+
+        // Initialize
+        updateStats();
+        render();
+    </script>
+</body>
+</html>
