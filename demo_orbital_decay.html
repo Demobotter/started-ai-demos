@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Orbital Decay Predictor</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Space Mono', monospace;
+      background: linear-gradient(135deg, #0a0e27 0%, #1a1540 50%, #0d0f2d 100%);
+      color: #e0e6ff;
+      min-height: 100vh;
+      padding: 2rem 1rem;
+      overflow-x: hidden;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    /* Hero */
+    .hero {
+      text-align: center;
+      margin-bottom: 3rem;
+      animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      opacity: 0;
+      animation-delay: 0.1s;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .hero h1 {
+      font-family: 'Orbitron', sans-serif;
+      font-size: clamp(32px, 8vw, 72px);
+      font-weight: 900;
+      letter-spacing: -2px;
+      background: linear-gradient(90deg, #00d9ff, #ff006e);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 0.5rem;
+    }
+
+    .hero p {
+      font-size: 1.1rem;
+      color: #a0a6d2;
+      letter-spacing: 1px;
+    }
+
+    /* Chart + Controls */
+    .chart-section {
+      display: grid;
+      grid-template-columns: 1fr 300px;
+      gap: 2rem;
+      margin-bottom: 3rem;
+      animation: slideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.2s forwards;
+      opacity: 0;
+    }
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .chart-wrapper {
+      background: rgba(15, 20, 45, 0.6);
+      border: 1px solid #00d9ff;
+      border-radius: 12px;
+      padding: 1.5rem;
+      backdrop-filter: blur(10px);
+    }
+
+    canvas {
+      width: 100%;
+      height: 400px;
+      display: block;
+    }
+
+    .controls {
+      background: rgba(15, 20, 45, 0.6);
+      border: 1px solid #ff006e;
+      border-radius: 12px;
+      padding: 1.5rem;
+      backdrop-filter: blur(10px);
+    }
+
+    .control-group {
+      margin-bottom: 1.5rem;
+    }
+
+    .control-group label {
+      display: block;
+      font-size: 0.9rem;
+      letter-spacing: 1px;
+      color: #ff006e;
+      margin-bottom: 0.5rem;
+      font-weight: 700;
+    }
+
+    .control-group input {
+      width: 100%;
+      padding: 0.6rem;
+      background: rgba(30, 30, 60, 0.8);
+      border: 1px solid #00d9ff;
+      border-radius: 6px;
+      color: #e0e6ff;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.95rem;
+      transition: border 0.3s;
+    }
+
+    .control-group input:focus {
+      outline: none;
+      border-color: #ff006e;
+      box-shadow: 0 0 10px rgba(255, 0, 110, 0.3);
+    }
+
+    button {
+      width: 100%;
+      padding: 0.8rem;
+      background: linear-gradient(90deg, #00d9ff, #ff006e);
+      border: none;
+      border-radius: 6px;
+      color: #0a0e27;
+      font-family: 'Orbitron', sans-serif;
+      font-weight: 700;
+      font-size: 1rem;
+      letter-spacing: 1px;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    button:hover {
+      transform: scale(1.02);
+      box-shadow: 0 0 20px rgba(0, 217, 255, 0.5);
+    }
+
+    button:active {
+      transform: scale(0.98);
+    }
+
+    /* Table */
+    .table-section {
+      background: rgba(15, 20, 45, 0.6);
+      border: 1px solid #00d9ff;
+      border-radius: 12px;
+      padding: 1.5rem;
+      backdrop-filter: blur(10px);
+      animation: slideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.3s forwards;
+      opacity: 0;
+    }
+
+    .table-section h2 {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 1.3rem;
+      letter-spacing: 1px;
+      margin-bottom: 1rem;
+      color: #00d9ff;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+
+    th {
+      text-align: left;
+      padding: 0.8rem;
+      border-bottom: 1px solid #ff006e;
+      font-weight: 700;
+      letter-spacing: 1px;
+      color: #ff006e;
+    }
+
+    td {
+      padding: 0.8rem;
+      border-bottom: 1px solid rgba(0, 217, 255, 0.2);
+    }
+
+    tr:hover {
+      background: rgba(0, 217, 255, 0.05);
+    }
+
+    .status-active { color: #00ff88; }
+    .status-decaying { color: #ffcc00; }
+    .status-critical { color: #ff3366; }
+
+    @media (max-width: 800px) {
+      .chart-section {
+        grid-template-columns: 1fr;
+      }
+
+      .hero h1 {
+        font-size: 2rem;
+      }
+
+      canvas {
+        height: 300px;
+      }
+
+      table { font-size: 0.75rem; }
+      th, td { padding: 0.5rem; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * { animation: none !important; transition: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="hero">
+      <h1>⚡ ORBITAL DECAY</h1>
+      <p>Real-time satellite re-entry predictions</p>
+    </div>
+
+    <div class="chart-section">
+      <div class="chart-wrapper">
+        <canvas id="decayChart"></canvas>
+      </div>
+      <div class="controls">
+        <div class="control-group">
+          <label for="satSelect">Select Satellite:</label>
+          <select id="satSelect" style="width: 100%; padding: 0.6rem; background: rgba(30, 30, 60, 0.8); border: 1px solid #00d9ff; border-radius: 6px; color: #e0e6ff; font-family: 'Space Mono', monospace; cursor: pointer;">
+            <option value="all">All Tracked</option>
+            <option value="0">SL-14 Rocket Body</option>
+            <option value="1">ISS Piece (Debris)</option>
+            <option value="2">SL-16 Object</option>
+            <option value="3">Cosmos-1842 Debris</option>
+          </select>
+        </div>
+        <button onclick="resetChart()">RESET VIEW</button>
+      </div>
+    </div>
+
+    <div class="table-section">
+      <h2>RE-ENTRY TIMELINE</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Satellite</th>
+            <th>Current Alt</th>
+            <th>Re-Entry In</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody">
+          <!-- populated by JS -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    const satellites = [
+      { name: "SL-14 Rocket Body", alt: 450, decay: 12, color: "#00d9ff" },
+      { name: "ISS Piece (Debris)", alt: 380, decay: 5, color: "#00ff88" },
+      { name: "SL-16 Object", alt: 320, decay: 2, color: "#ffcc00" },
+      { name: "Cosmos-1842 Debris", alt: 280, decay: 1, color: "#ff3366" }
+    ];
+
+    const canvas = document.getElementById("decayChart");
+    const ctx = canvas.getContext("2d");
+    let selectedSat = "all";
+    let animationFrame = null;
+
+    function predictDecay(alt0, days, k) {
+      return alt0 * Math.exp(-k * days);
+    }
+
+    function calibrateK(alt0, decayDays) {
+      return 2.996 / decayDays;
+    }
+
+    function resizeCanvas() {
+      const rect = canvas.parentElement.getBoundingClientRect();
+      canvas.width = rect.width - 30;
+      canvas.height = rect.height;
+    }
+
+    function drawChart() {
+      resizeCanvas();
+      const w = canvas.width, h = canvas.height;
+      const padding = 40;
+      const chartW = w - padding * 2, chartH = h - padding * 2;
+
+      ctx.fillStyle = "rgba(10, 14, 39, 0.3)";
+      ctx.fillRect(0, 0, w, h);
+
+      // Draw grid
+      ctx.strokeStyle = "rgba(0, 217, 255, 0.1)";
+      ctx.lineWidth = 1;
+      for (let i = 0; i <= 5; i++) {
+        const y = padding + (chartH / 5) * i;
+        ctx.beginPath();
+        ctx.moveTo(padding, y);
+        ctx.lineTo(w - padding, y);
+        ctx.stroke();
+      }
+
+      // Axes
+      ctx.strokeStyle = "#00d9ff";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(padding, padding);
+      ctx.lineTo(padding, h - padding);
+      ctx.lineTo(w - padding, h - padding);
+      ctx.stroke();
+
+      // Labels
+      ctx.fillStyle = "#a0a6d2";
+      ctx.font = "12px 'Space Mono'";
+      ctx.textAlign = "right";
+      for (let i = 0; i <= 5; i++) {
+        const alt = 500 - (500 / 5) * i;
+        const y = padding + (chartH / 5) * i;
+        ctx.fillText(alt.toFixed(0) + " km", padding - 10, y + 4);
+      }
+
+      ctx.textAlign = "center";
+      for (let i = 0; i <= 12; i++) {
+        const x = padding + (chartW / 12) * i;
+        ctx.fillText(i + "d", x, h - padding + 20);
+      }
+
+      // Draw satellite decay curves
+      const toPlot = selectedSat === "all" ? satellites : [satellites[parseInt(selectedSat)]];
+      toPlot.forEach(sat => {
+        ctx.strokeStyle = sat.color;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+
+        for (let day = 0; day <= 12; day += 0.1) {
+          const k = calibrateK(sat.alt, sat.decay);
+          const altNow = predictDecay(sat.alt, day, k);
+          const xPos = padding + (day / 12) * chartW;
+          const yPos = h - padding - (Math.max(0, altNow) / 500) * chartH;
+
+          if (day === 0) ctx.moveTo(xPos, yPos);
+          else ctx.lineTo(xPos, yPos);
+        }
+        ctx.stroke();
+
+        // Mark re-entry day
+        const k = calibrateK(sat.alt, sat.decay);
+        const reentryX = padding + (sat.decay / 12) * chartW;
+        const reentryY = h - padding;
+        ctx.fillStyle = sat.color;
+        ctx.beginPath();
+        ctx.arc(reentryX, reentryY, 5, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      updateTable();
+    }
+
+    function updateTable() {
+      const body = document.getElementById("tableBody");
+      body.innerHTML = satellites.map((sat, i) => {
+        const status = sat.decay > 7 ? "Active" : (sat.decay > 2 ? "Decaying" : "Critical");
+        const statusClass = `status-${status.toLowerCase()}`;
+        return `
+          <tr>
+            <td style="cursor: pointer;" onclick="selectSat('${i}')">${sat.name}</td>
+            <td>${sat.alt} km</td>
+            <td>${sat.decay} day${sat.decay > 1 ? 's' : ''}</td>
+            <td class="${statusClass}">● ${status}</td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    function resetChart() {
+      selectedSat = "all";
+      document.getElementById("satSelect").value = "all";
+      drawChart();
+    }
+
+    function selectSat(idx) {
+      selectedSat = idx;
+      document.getElementById("satSelect").value = idx;
+      drawChart();
+    }
+
+    document.getElementById("satSelect").addEventListener("change", (e) => {
+      selectedSat = e.target.value;
+      drawChart();
+    });
+
+    window.addEventListener("resize", drawChart);
+    drawChart();
+  </script>
+</body>
+</html>
