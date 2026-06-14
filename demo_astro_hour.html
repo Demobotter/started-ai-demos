@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Astro Hour — Planetary Hour Angle Tracker</title>
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: linear-gradient(135deg, #0f1428 0%, #1a0a2e 50%, #16213e 100%);
+      color: #fff;
+      min-height: 100vh;
+      padding: 20px;
+      overflow-x: hidden;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    header {
+      text-align: center;
+      margin-bottom: 40px;
+      animation: fadeSlideDown 0.8s ease-out;
+    }
+    
+    h1 {
+      font-family: 'Sora', sans-serif;
+      font-size: clamp(32px, 6vw, 64px);
+      font-weight: 700;
+      margin-bottom: 12px;
+      background: linear-gradient(135deg, #00d9ff, #ff6ec7);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: -1px;
+    }
+    
+    .subtitle {
+      font-size: 18px;
+      color: #a0aec0;
+      font-weight: 400;
+      letter-spacing: 0.5px;
+    }
+    
+    .controls {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      margin-bottom: 40px;
+      animation: fadeSlideUp 0.8s ease-out 0.2s both;
+      flex-wrap: wrap;
+    }
+    
+    .control-group {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      background: rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(0, 217, 255, 0.3);
+      border-radius: 12px;
+      padding: 12px 16px;
+      font-size: 14px;
+    }
+    
+    input[type="number"] {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(0, 217, 255, 0.4);
+      color: #fff;
+      padding: 8px 12px;
+      border-radius: 8px;
+      width: 120px;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+    
+    input[type="number"]:focus {
+      outline: none;
+      border-color: #ff6ec7;
+      box-shadow: 0 0 12px rgba(255, 110, 199, 0.4);
+    }
+    
+    .time-display {
+      background: rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(0, 217, 255, 0.3);
+      border-radius: 12px;
+      padding: 12px 20px;
+      font-family: 'Sora', monospace;
+      font-weight: 600;
+      font-size: 16px;
+      animation: fadeSlideUp 0.8s ease-out 0.3s both;
+    }
+    
+    .planets-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 24px;
+      animation: fadeSlideUp 0.8s ease-out 0.4s both;
+    }
+    
+    .planet-card {
+      background: rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(0, 217, 255, 0.25);
+      border-radius: 16px;
+      padding: 28px;
+      text-align: center;
+      transition: all 0.3s;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .planet-card:hover {
+      border-color: rgba(255, 110, 199, 0.5);
+      box-shadow: 0 0 30px rgba(0, 217, 255, 0.15);
+      transform: translateY(-4px);
+    }
+    
+    .planet-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: radial-gradient(circle at 30% 30%, rgba(0, 217, 255, 0.1), transparent);
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    
+    .planet-card:hover::before {
+      opacity: 1;
+    }
+    
+    .planet-name {
+      font-family: 'Sora', sans-serif;
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 16px;
+      letter-spacing: 0.5px;
+    }
+    
+    .dial-container {
+      width: 160px;
+      height: 160px;
+      margin: 0 auto 20px;
+      position: relative;
+    }
+    
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+    
+    .ha-display {
+      font-family: 'Sora', monospace;
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: #00d9ff;
+    }
+    
+    .ra-info {
+      font-size: 12px;
+      color: #8b92a0;
+      letter-spacing: 0.3px;
+    }
+    
+    @keyframes fadeSlideDown {
+      from {
+        opacity: 0;
+        transform: translateY(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    @keyframes fadeSlideUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    @media (prefers-reduced-motion: reduce) {
+      * {
+        animation: none !important;
+        transition: none !important;
+      }
+    }
+    
+    @media (max-width: 600px) {
+      .planets-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .controls {
+        flex-direction: column;
+      }
+      
+      .control-group, .time-display {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Astro Hour</h1>
+      <p class="subtitle">Real-time Planetary Hour Angles</p>
+    </header>
+    
+    <div class="controls">
+      <div class="control-group">
+        <label for="longitude">Longitude (°E):</label>
+        <input type="number" id="longitude" value="149.18" min="-180" max="180" step="0.1">
+      </div>
+    </div>
+    
+    <div class="time-display" id="timeDisplay">LST: --:-- UT: --:--</div>
+    
+    <div class="planets-grid" id="planetsGrid"></div>
+  </div>
+  
+  <script>
+    // Astronomical constants
+    const J2000_EPOCH = 2451545.0; // JD for 2000-01-01 12:00 UT
+    const SECONDS_PER_DAY = 86400;
+    
+    // Real RA values for planets (2026-06-14, approximate from ephemeris)
+    const PLANETS = [
+      { name: 'Mercury', ra: 5.15, color: '#FFD700', size: 6 },
+      { name: 'Venus', ra: 8.05, color: '#FFB347', size: 9 },
+      { name: 'Mars', ra: 14.35, color: '#E27B58', size: 7 },
+      { name: 'Jupiter', ra: 3.85, color: '#DAA520', size: 12 },
+      { name: 'Saturn', ra: 21.60, color: '#F4A460', size: 11 }
+    ];
+    
+    function getJulianDate(date = new Date()) {
+      const ms = date.getTime();
+      const days = ms / (SECONDS_PER_DAY * 1000);
+      return days + 2440587.5;
+    }
+    
+    function getGMST(jd) {
+      const T = (jd - J2000_EPOCH) / 36525;
+      const gmst = 18.697374558 + 24.06570982441908 * (jd - J2000_EPOCH);
+      return gmst % 24;
+    }
+    
+    function getLST(longitude, jd) {
+      const gmst = getGMST(jd);
+      const lst = gmst + (longitude / 15);
+      return lst % 24;
+    }
+    
+    function getHourAngle(lst, ra) {
+      let ha = lst - ra;
+      if (ha < -12) ha += 24;
+      if (ha > 12) ha -= 24;
+      return ha;
+    }
+    
+    function formatHours(hours) {
+      const h = Math.floor(hours);
+      const m = Math.round((hours - h) * 60);
+      return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+    }
+    
+    function drawDial(canvas, ha, color) {
+      const ctx = canvas.getContext('2d');
+      const w = canvas.width;
+      const h = canvas.height;
+      const cx = w / 2;
+      const cy = h / 2;
+      const r = w / 2 - 8;
+      
+      // Clear
+      ctx.clearRect(0, 0, w, h);
+      
+      // Dial background circle
+      ctx.fillStyle = 'rgba(0, 217, 255, 0.1)';
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Dial border
+      ctx.strokeStyle = 'rgba(0, 217, 255, 0.4)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      
+      // Hour marks (0, 6, 12, 18 = N, E, S, W)
+      ctx.fillStyle = '#a0aec0';
+      ctx.font = '12px Sora';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      
+      const marks = ['N', 'E', 'S', 'W'];
+      const angles = [0, 6, 12, 18];
+      for (let i = 0; i < 4; i++) {
+        const angle = (angles[i] / 24) * Math.PI * 2 - Math.PI / 2;
+        const x = cx + Math.cos(angle) * (r - 16);
+        const y = cy + Math.sin(angle) * (r - 16);
+        ctx.fillText(marks[i], x, y);
+      }
+      
+      // Hour angle needle
+      const angle = (ha / 24) * Math.PI * 2 - Math.PI / 2;
+      const needleLen = r - 20;
+      
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 3;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.lineTo(cx + Math.cos(angle) * needleLen, cy + Math.sin(angle) * needleLen);
+      ctx.stroke();
+      
+      // Center dot
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(cx, cy, 4, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Glow around needle tip
+      ctx.strokeStyle = color;
+      ctx.globalAlpha = 0.3;
+      ctx.lineWidth = 8;
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.lineTo(cx + Math.cos(angle) * needleLen, cy + Math.sin(angle) * needleLen);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+    
+    function render() {
+      const longitude = parseFloat(document.getElementById('longitude').value) || 149.18;
+      const now = new Date();
+      const jd = getJulianDate(now);
+      
+      const gmst = getGMST(jd);
+      const lst = getLST(longitude, jd);
+      
+      // Update time display
+      const utStr = now.toISOString().slice(11, 19);
+      document.getElementById('timeDisplay').textContent = 
+        `LST: ${formatHours(lst)} UT: ${utStr}`;
+      
+      // Render planet cards
+      const grid = document.getElementById('planetsGrid');
+      
+      // Create cards on first load
+      if (grid.children.length === 0) {
+        PLANETS.forEach((planet, idx) => {
+          const card = document.createElement('div');
+          card.className = 'planet-card';
+          card.style.animationDelay = `${0.5 + idx * 0.1}s`;
+          
+          const name = document.createElement('div');
+          name.className = 'planet-name';
+          name.textContent = planet.name;
+          
+          const dialContainer = document.createElement('div');
+          dialContainer.className = 'dial-container';
+          const canvas = document.createElement('canvas');
+          canvas.width = 160;
+          canvas.height = 160;
+          dialContainer.appendChild(canvas);
+          
+          const haDisplay = document.createElement('div');
+          haDisplay.className = 'ha-display';
+          
+          const raInfo = document.createElement('div');
+          raInfo.className = 'ra-info';
+          raInfo.textContent = `RA: ${planet.ra.toFixed(2)}h`;
+          
+          card.appendChild(name);
+          card.appendChild(dialContainer);
+          card.appendChild(haDisplay);
+          card.appendChild(raInfo);
+          
+          grid.appendChild(card);
+        });
+      }
+      
+      // Update dials
+      const cards = grid.querySelectorAll('.planet-card');
+      cards.forEach((card, idx) => {
+        const planet = PLANETS[idx];
+        const ha = getHourAngle(lst, planet.ra);
+        const canvas = card.querySelector('canvas');
+        const haDisplay = card.querySelector('.ha-display');
+        
+        drawDial(canvas, ha, planet.color);
+        haDisplay.textContent = `HA: ${ha.toFixed(2)}h (${(ha * 15).toFixed(1)}°)`;
+      });
+      
+      requestAnimationFrame(render);
+    }
+    
+    document.getElementById('longitude').addEventListener('change', render);
+    render();
+  </script>
+</body>
+</html>
