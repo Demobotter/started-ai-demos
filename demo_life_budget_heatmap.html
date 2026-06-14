@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Life Stage Budget Heatmap</title>
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            font-family: 'Sora', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #e0e0e0;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+            min-height: 100vh;
+        }
+
+        .hero {
+            animation: slideDown 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+            text-align: center;
+        }
+
+        .hero h1 {
+            font-size: clamp(32px, 6vw, 56px);
+            font-weight: 700;
+            background: linear-gradient(90deg, #00d9ff, #ff006e);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.02em;
+        }
+
+        .hero p {
+            font-size: 1.1rem;
+            color: #a0a0a0;
+            font-weight: 400;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+            animation: fadeInUp 0.8s 0.2s cubic-bezier(0.16, 1, 0.3, 1) both;
+        }
+
+        .income-toggle {
+            display: flex;
+            gap: 0.5rem;
+            background: rgba(0, 217, 255, 0.05);
+            border: 1px solid rgba(0, 217, 255, 0.3);
+            border-radius: 8px;
+            padding: 0.25rem;
+            backdrop-filter: blur(10px);
+        }
+
+        .income-btn {
+            padding: 0.6rem 1.2rem;
+            border: none;
+            background: transparent;
+            color: #a0a0a0;
+            cursor: pointer;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.9rem;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .income-btn:hover {
+            color: #00d9ff;
+        }
+
+        .income-btn.active {
+            background: linear-gradient(135deg, rgba(0, 217, 255, 0.2), rgba(255, 0, 110, 0.1));
+            color: #00d9ff;
+            border: 1px solid rgba(0, 217, 255, 0.5);
+        }
+
+        .heatmap-wrapper {
+            animation: fadeInUp 0.8s 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(0, 217, 255, 0.2);
+            border-radius: 12px;
+            padding: 1.5rem;
+            backdrop-filter: blur(10px);
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.95rem;
+        }
+
+        th, td {
+            padding: 0.8rem;
+            text-align: right;
+            border: 1px solid rgba(0, 217, 255, 0.1);
+        }
+
+        th {
+            background: rgba(0, 217, 255, 0.05);
+            color: #00d9ff;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+        }
+
+        td:first-child, th:first-child {
+            text-align: left;
+            position: sticky;
+            left: 0;
+            background: rgba(26, 26, 46, 0.95);
+            min-width: 140px;
+            z-index: 1;
+        }
+
+        th:first-child {
+            background: rgba(0, 217, 255, 0.05);
+        }
+
+        .heat-cell {
+            background: linear-gradient(135deg, var(--hue-start), var(--hue-end));
+            color: #fff;
+            font-weight: 500;
+            border-radius: 4px;
+            padding: 0.8rem;
+            position: relative;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .heat-cell:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 12px rgba(0, 217, 255, 0.3);
+        }
+
+        /* Color bands: cool (low %) → hot (high %) */
+        .heat-cold { --hue-start: rgba(0, 150, 200, 0.4); --hue-end: rgba(0, 150, 200, 0.6); }
+        .heat-cool { --hue-start: rgba(0, 200, 150, 0.4); --hue-end: rgba(100, 200, 100, 0.6); }
+        .heat-warm { --hue-start: rgba(200, 180, 0, 0.4); --hue-end: rgba(255, 150, 0, 0.6); }
+        .heat-hot { --hue-start: rgba(255, 100, 0, 0.4); --hue-end: rgba(255, 50, 0, 0.6); }
+        .heat-fire { --hue-start: rgba(255, 0, 50, 0.4); --hue-end: rgba(255, 0, 100, 0.6); }
+
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+            animation: fadeInUp 0.8s 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.85rem;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .legend-dot {
+            width: 20px;
+            height: 20px;
+            border-radius: 3px;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 1.5rem 1rem;
+            }
+
+            .hero h1 {
+                font-size: 28px;
+            }
+
+            table {
+                font-size: 0.8rem;
+            }
+
+            th, td {
+                padding: 0.5rem;
+            }
+
+            .heat-cell {
+                padding: 0.5rem;
+            }
+
+            .controls {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation: none !important;
+                transition: none !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="hero">
+            <h1>Life Stage Budget Guide</h1>
+            <p>How monthly budgets shift from student to retirement</p>
+        </div>
+
+        <div class="controls">
+            <div class="income-toggle">
+                <button class="income-btn active" data-income="low">Entry Level<br />$30k/yr</button>
+                <button class="income-btn" data-income="mid">Mid Career<br />$60k/yr</button>
+                <button class="income-btn" data-income="high">Senior<br />$100k/yr</button>
+            </div>
+        </div>
+
+        <div class="heatmap-wrapper">
+            <table id="heatmapTable">
+                <thead>
+                    <tr>
+                        <th>Life Stage</th>
+                        <th>Housing</th>
+                        <th>Food</th>
+                        <th>Transport</th>
+                        <th>Utilities</th>
+                        <th>Insurance</th>
+                        <th>Savings</th>
+                        <th>Entertainment</th>
+                        <th>Personal</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-dot" style="background: linear-gradient(135deg, rgba(0, 150, 200, 0.6), rgba(0, 150, 200, 0.8));"></div>
+                <span>5–10%</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-dot" style="background: linear-gradient(135deg, rgba(0, 200, 150, 0.6), rgba(100, 200, 100, 0.8));"></div>
+                <span>10–15%</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-dot" style="background: linear-gradient(135deg, rgba(200, 180, 0, 0.6), rgba(255, 150, 0, 0.8));"></div>
+                <span>15–25%</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-dot" style="background: linear-gradient(135deg, rgba(255, 100, 0, 0.6), rgba(255, 50, 0, 0.8));"></div>
+                <span>25–35%</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-dot" style="background: linear-gradient(135deg, rgba(255, 0, 50, 0.6), rgba(255, 0, 100, 0.8));"></div>
+                <span>35%+</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Pure logic test harness (node-compatible)
+        function getBudgetData(incomeLevel) {
+            // Realistic budgets for each life stage at each income level
+            const baseData = {
+                'low': {
+                    monthly: 2500,
+                    stages: {
+                        'Student': { housing: 500, food: 250, transport: 150, utilities: 80, insurance: 60, savings: 300, entertainment: 400, personal: 160 },
+                        'Young Adult': { housing: 900, food: 350, transport: 250, utilities: 120, insurance: 100, savings: 250, entertainment: 300, personal: 230 },
+                        'Mid-Career': { housing: 900, food: 300, transport: 200, utilities: 110, insurance: 125, savings: 500, entertainment: 300, personal: 65 },
+                        'Family': { housing: 1200, food: 500, transport: 400, utilities: 180, insurance: 200, savings: 300, entertainment: 200, personal: 220 },
+                        'Pre-Retirement': { housing: 1100, food: 450, transport: 250, utilities: 150, insurance: 250, savings: 350, entertainment: 250, personal: 200 }
+                    }
+                },
+                'mid': {
+                    monthly: 5000,
+                    stages: {
+                        'Student': { housing: 700, food: 350, transport: 250, utilities: 120, insurance: 100, savings: 1500, entertainment: 800, personal: 180 },
+                        'Young Adult': { housing: 1500, food: 500, transport: 400, utilities: 180, insurance: 180, savings: 1200, entertainment: 600, personal: 340 },
+                        'Mid-Career': { housing: 1600, food: 600, transport: 400, utilities: 210, insurance: 250, savings: 1000, entertainment: 500, personal: 440 },
+                        'Family': { housing: 2000, food: 700, transport: 500, utilities: 300, insurance: 300, savings: 800, entertainment: 400, personal: 300 },
+                        'Pre-Retirement': { housing: 2000, food: 600, transport: 500, utilities: 260, insurance: 400, savings: 1000, entertainment: 700, personal: 350 }
+                    }
+                },
+                'high': {
+                    monthly: 8333,
+                    stages: {
+                        'Student': { housing: 1000, food: 500, transport: 400, utilities: 150, insurance: 150, savings: 3000, entertainment: 1400, personal: 333 },
+                        'Young Adult': { housing: 2500, food: 800, transport: 700, utilities: 280, insurance: 300, savings: 2500, entertainment: 1200, personal: 183 },
+                        'Mid-Career': { housing: 2700, food: 1000, transport: 600, utilities: 350, insurance: 400, savings: 2000, entertainment: 900, personal: 383 },
+                        'Family': { housing: 3300, food: 1200, transport: 800, utilities: 400, insurance: 500, savings: 1500, entertainment: 700, personal: 233 },
+                        'Pre-Retirement': { housing: 3200, food: 1000, transport: 600, utilities: 350, insurance: 600, savings: 1800, entertainment: 900, personal: 183 }
+                    }
+                }
+            };
+            return baseData[incomeLevel] || baseData['low'];
+        }
+
+        function getHeatClass(percentage) {
+            if (percentage < 10) return 'heat-cold';
+            if (percentage < 15) return 'heat-cool';
+            if (percentage < 25) return 'heat-warm';
+            if (percentage < 35) return 'heat-hot';
+            return 'heat-fire';
+        }
+
+        function renderTable(incomeLevel) {
+            const data = getBudgetData(incomeLevel);
+            const tbody = document.querySelector('#heatmapTable tbody');
+            tbody.innerHTML = '';
+
+            const categories = ['housing', 'food', 'transport', 'utilities', 'insurance', 'savings', 'entertainment', 'personal'];
+
+            Object.entries(data.stages).forEach(([stage, budget]) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `<td style="font-weight: 600; color: #00d9ff;">${stage}</td>`;
+
+                categories.forEach(cat => {
+                    const amount = budget[cat];
+                    const percentage = ((amount / data.monthly) * 100).toFixed(1);
+                    const heatClass = getHeatClass(parseFloat(percentage));
+
+                    const cell = document.createElement('td');
+                    const cellDiv = document.createElement('div');
+                    cellDiv.className = `heat-cell ${heatClass}`;
+                    cellDiv.innerHTML = `$${amount}<br /><span style="font-size: 0.8rem; opacity: 0.9;">${percentage}%</span>`;
+                    cell.appendChild(cellDiv);
+                    row.appendChild(cell);
+                });
+
+                tbody.appendChild(row);
+            });
+        }
+
+        // Initialize
+        renderTable('low');
+
+        // Event handlers
+        document.querySelectorAll('.income-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                document.querySelectorAll('.income-btn').forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
+                renderTable(e.target.dataset.income);
+            });
+        });
+
+        // Headless test (would run in node)
+        if (typeof module !== 'undefined' && module.exports) {
+            module.exports = { getBudgetData, getHeatClass };
+        }
+    </script>
+</body>
+</html>
