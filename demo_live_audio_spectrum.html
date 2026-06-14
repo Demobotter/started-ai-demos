@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Live Audio Spectrum</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, #0f0f1e 0%, #1a0033 50%, #0f1f2e 100%);
+      color: #fff;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      position: relative;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(circle at 20% 50%, rgba(139, 0, 255, 0.1) 0%, transparent 50%),
+                  radial-gradient(circle at 80% 80%, rgba(0, 255, 200, 0.05) 0%, transparent 50%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .container {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 900px;
+      padding: 40px 20px;
+      text-align: center;
+    }
+
+    .hero {
+      margin-bottom: 60px;
+      animation: slideDown 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes slideDown {
+      from {
+        opacity: 0;
+        transform: translateY(-30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .hero h1 {
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(36px, 8vw, 56px);
+      font-weight: 700;
+      margin-bottom: 12px;
+      background: linear-gradient(90deg, #00d4ff, #ff006e);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: -1px;
+    }
+
+    .hero p {
+      font-size: 16px;
+      color: #aaa;
+      font-weight: 400;
+    }
+
+    .controls {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      margin-bottom: 40px;
+      animation: fadeInUp 0.8s 0.2s cubic-bezier(0.16, 1, 0.3, 1) both;
+      flex-wrap: wrap;
+    }
+
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    button {
+      padding: 12px 28px;
+      border: 2px solid transparent;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(10px);
+      color: #fff;
+      font-family: 'Inter', sans-serif;
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    button:hover {
+      background: rgba(0, 212, 255, 0.1);
+      border-color: #00d4ff;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0, 212, 255, 0.2);
+    }
+
+    button.active {
+      background: linear-gradient(135deg, rgba(0, 212, 255, 0.2), rgba(255, 0, 110, 0.2));
+      border-color: #00d4ff;
+      box-shadow: 0 0 24px rgba(0, 212, 255, 0.4), inset 0 0 12px rgba(0, 212, 255, 0.1);
+    }
+
+    .spectrum-wrapper {
+      background: rgba(10, 10, 20, 0.6);
+      backdrop-filter: blur(12px);
+      border: 2px solid rgba(0, 212, 255, 0.2);
+      border-radius: 20px;
+      padding: 40px 20px;
+      animation: fadeIn 0.8s 0.4s ease-out both;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .spectrum-canvas-wrapper {
+      position: relative;
+      width: 100%;
+      height: 300px;
+      margin-bottom: 24px;
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      filter: drop-shadow(0 0 20px rgba(0, 212, 255, 0.3));
+    }
+
+    .info-box {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 16px;
+      margin-top: 24px;
+    }
+
+    .info-item {
+      background: rgba(0, 212, 255, 0.05);
+      border: 1px solid rgba(0, 212, 255, 0.2);
+      border-radius: 12px;
+      padding: 16px;
+      animation: fadeIn 0.6s ease-out;
+    }
+
+    .info-item .label {
+      font-size: 12px;
+      color: #00d4ff;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+      font-weight: 600;
+    }
+
+    .info-item .value {
+      font-size: 24px;
+      font-weight: 700;
+      color: #fff;
+      font-family: 'Syne', sans-serif;
+    }
+
+    .status-text {
+      font-size: 14px;
+      color: #aaa;
+      margin-top: 20px;
+      min-height: 20px;
+    }
+
+    .status-text.active {
+      color: #00d4ff;
+    }
+
+    @media (max-width: 640px) {
+      .hero h1 {
+        font-size: clamp(28px, 6vw, 40px);
+      }
+
+      .spectrum-canvas-wrapper {
+        height: 250px;
+      }
+
+      .controls {
+        flex-direction: column;
+      }
+
+      button {
+        width: 100%;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * {
+        animation: none !important;
+        transition: none !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="hero">
+      <h1>Live Audio Spectrum</h1>
+      <p>Watch sound frequencies in real-time</p>
+    </div>
+
+    <div class="controls">
+      <button id="startBtn" class="active">Start Listening</button>
+      <button id="stopBtn">Stop</button>
+      <button id="clearBtn">Clear</button>
+    </div>
+
+    <div class="spectrum-wrapper">
+      <div class="spectrum-canvas-wrapper">
+        <canvas id="spectrumCanvas"></canvas>
+      </div>
+
+      <div class="info-box">
+        <div class="info-item">
+          <div class="label">Peak Frequency</div>
+          <div class="value" id="peakFreq">—</div>
+        </div>
+        <div class="info-item">
+          <div class="label">Avg Level</div>
+          <div class="value" id="avgLevel">—</div>
+        </div>
+        <div class="info-item">
+          <div class="label">Bands</div>
+          <div class="value" id="bandCount">32</div>
+        </div>
+      </div>
+
+      <p class="status-text" id="statusText">Click "Start Listening" to begin</p>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('spectrumCanvas');
+    const ctx = canvas.getContext('2d');
+    const startBtn = document.getElementById('startBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const statusText = document.getElementById('statusText');
+    const peakFreqElem = document.getElementById('peakFreq');
+    const avgLevelElem = document.getElementById('avgLevel');
+
+    let audioContext = null;
+    let analyser = null;
+    let microphone = null;
+    let animationId = null;
+    let isListening = false;
+
+    // Resize canvas to container
+    function resizeCanvas() {
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = rect.width;
+      canvas.height = rect.height;
+    }
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+
+    // Draw spectrum bars
+    function draw(dataArray) {
+      const width = canvas.width;
+      const height = canvas.height;
+      const barCount = dataArray.length;
+      const barWidth = width / barCount;
+
+      // Clear canvas
+      ctx.fillStyle = 'rgba(10, 10, 20, 0.1)';
+      ctx.fillRect(0, 0, width, height);
+
+      // Find max for normalization
+      const maxVal = Math.max(...dataArray);
+      const minVal = Math.min(...dataArray);
+      const range = maxVal - minVal || 1;
+
+      // Draw bars
+      for (let i = 0; i < barCount; i++) {
+        const val = (dataArray[i] - minVal) / range;
+        const hue = (i / barCount) * 360;
+        const saturation = 70 + val * 30; // 70–100%
+        const lightness = 45 + val * 10; // 45–55%
+
+        ctx.fillStyle = `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+        
+        const barHeight = val * height;
+        const x = i * barWidth;
+        const y = height - barHeight;
+
+        ctx.fillRect(x + 1, y, barWidth - 2, barHeight);
+
+        // Glow effect on top
+        const gradient = ctx.createLinearGradient(x, y - 10, x, y + barHeight);
+        gradient.addColorStop(0, `hsla(${hue}, 100%, 60%, 0.3)`);
+        gradient.addColorStop(1, `hsla(${hue}, 100%, 60%, 0)`);
+        ctx.fillStyle = gradient;
+        ctx.fillRect(x + 1, y - 10, barWidth - 2, 10);
+      }
+
+      // Calculate and display metrics
+      const avgLevel = Math.round(dataArray.reduce((a, b) => a + b) / dataArray.length);
+      const peakIdx = dataArray.indexOf(maxVal);
+      const peakFreq = Math.round((peakIdx / barCount) * 22050); // Nyquist limit
+
+      peakFreqElem.textContent = peakFreq + ' Hz';
+      avgLevelElem.textContent = avgLevel;
+
+      if (isListening) {
+        animationId = requestAnimationFrame(() => draw(dataArray));
+      }
+    }
+
+    // Start listening
+    startBtn.addEventListener('click', async () => {
+      if (isListening) return;
+
+      try {
+        if (!audioContext) {
+          audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        }
+
+        if (audioContext.state === 'suspended') {
+          await audioContext.resume();
+        }
+
+        if (!analyser) {
+          analyser = audioContext.createAnalyser();
+          analyser.fftSize = 256;
+          analyser.smoothingTimeConstant = 0.85;
+        }
+
+        microphone = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const source = audioContext.createMediaStreamSource(microphone);
+        source.connect(analyser);
+
+        isListening = true;
+        startBtn.classList.add('active');
+        stopBtn.classList.remove('active');
+        statusText.textContent = '🎤 Listening... Allow microphone access if prompted';
+        statusText.classList.add('active');
+
+        const dataArray = new Uint8Array(analyser.frequencyBinCount);
+
+        const animate = () => {
+          analyser.getByteFrequencyData(dataArray);
+          draw(dataArray);
+        };
+
+        animate();
+      } catch (error) {
+        statusText.textContent = '❌ Microphone access denied or not available';
+        statusText.classList.remove('active');
+        console.error('Error accessing microphone:', error);
+      }
+    });
+
+    // Stop listening
+    stopBtn.addEventListener('click', () => {
+      if (!isListening) return;
+
+      isListening = false;
+      if (animationId) {
+        cancelAnimationFrame(animationId);
+      }
+
+      if (microphone) {
+        microphone.getTracks().forEach(track => track.stop());
+        microphone = null;
+      }
+
+      startBtn.classList.remove('active');
+      stopBtn.classList.add('active');
+      statusText.textContent = 'Stopped. Click "Start Listening" to resume';
+      statusText.classList.remove('active');
+    });
+
+    // Clear
+    clearBtn.addEventListener('click', () => {
+      const width = canvas.width;
+      const height = canvas.height;
+      ctx.fillStyle = 'rgba(10, 10, 20, 0.3)';
+      ctx.fillRect(0, 0, width, height);
+      peakFreqElem.textContent = '—';
+      avgLevelElem.textContent = '—';
+    });
+  </script>
+</body>
+</html>
