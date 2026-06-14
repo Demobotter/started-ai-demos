@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Neon Glyph Animator</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Space Mono', monospace;
+      background: linear-gradient(135deg, #0a0a1f 0%, #1a0033 40%, #0f1f2e 100%);
+      color: #fff;
+      min-height: 100vh;
+      padding: 1.5rem;
+      position: relative;
+      overflow-x: hidden;
+    }
+    
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: 
+        radial-gradient(1px 1px at 10% 20%, #00ff88, transparent),
+        radial-gradient(1px 1px at 50% 30%, #00ccff, transparent),
+        radial-gradient(1px 1px at 80% 10%, #ff00ff, transparent),
+        radial-gradient(1px 1px at 20% 70%, #00ff88, transparent),
+        radial-gradient(1px 1px at 90% 60%, #00ccff, transparent),
+        radial-gradient(1px 1px at 40% 90%, #ff00ff, transparent),
+        radial-gradient(1px 1px at 30% 40%, #00ff88, transparent),
+        radial-gradient(1px 1px at 70% 50%, #00ccff, transparent);
+      background-size: 200% 200%;
+      background-position: 0% 0%;
+      pointer-events: none;
+      z-index: -1;
+      opacity: 0.2;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    .hero {
+      text-align: center;
+      margin-bottom: 3rem;
+      animation: slideDown 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    
+    .hero h1 {
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(42px, 8vw, 72px);
+      font-weight: 800;
+      background: linear-gradient(90deg, #00ff88, #00ccff, #ff00ff, #00ff88);
+      background-size: 300% auto;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: gradientShift 4s linear infinite;
+      margin-bottom: 0.5rem;
+      letter-spacing: -1px;
+    }
+    
+    .hero p {
+      font-size: 0.95rem;
+      color: #888;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.2s both;
+    }
+    
+    .canvas-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 2rem;
+      margin-bottom: 2rem;
+      animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.3s both;
+    }
+    
+    .glyph-canvas {
+      background: rgba(10, 15, 40, 0.6);
+      backdrop-filter: blur(10px);
+      border: 2px solid;
+      border-image: linear-gradient(135deg, #00ff88, #00ccff, #ff00ff) 1;
+      border-radius: 12px;
+      padding: 2rem;
+      min-height: 300px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+      gap: 1rem;
+      align-items: center;
+      justify-items: center;
+      box-shadow: 0 0 30px rgba(0, 255, 136, 0.1), inset 0 0 30px rgba(0, 204, 255, 0.05);
+    }
+    
+    .glyph {
+      width: 80px;
+      height: 80px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+    
+    .glyph svg {
+      width: 100%;
+      height: 100%;
+      filter: drop-shadow(0 0 8px rgba(0, 255, 136, 0.6));
+    }
+    
+    .glyph path {
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    
+    .controls-section {
+      background: rgba(10, 15, 40, 0.6);
+      backdrop-filter: blur(10px);
+      border: 2px solid;
+      border-image: linear-gradient(135deg, #00ccff, #ff00ff, #00ff88) 1;
+      border-radius: 12px;
+      padding: 2rem;
+      box-shadow: 0 0 30px rgba(0, 204, 255, 0.1), inset 0 0 30px rgba(255, 0, 255, 0.05);
+      animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.4s both;
+    }
+    
+    .control-group {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 2rem;
+      margin-bottom: 1.5rem;
+    }
+    
+    .control-item {
+      display: flex;
+      flex-direction: column;
+      gap: 0.8rem;
+    }
+    
+    .control-item label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: #00ff88;
+      font-weight: 700;
+    }
+    
+    .slider-container {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    
+    input[type="range"] {
+      flex: 1;
+      height: 6px;
+      background: linear-gradient(90deg, #00ff88, #00ccff, #ff00ff);
+      border: none;
+      border-radius: 3px;
+      outline: none;
+      -webkit-appearance: none;
+      cursor: pointer;
+    }
+    
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      background: linear-gradient(135deg, #00ff88, #00ccff);
+      border-radius: 50%;
+      cursor: pointer;
+      box-shadow: 0 0 15px rgba(0, 255, 136, 0.8), 0 0 30px rgba(0, 204, 255, 0.5);
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    
+    input[type="range"]::-webkit-slider-thumb:hover {
+      box-shadow: 0 0 20px rgba(0, 255, 136, 1), 0 0 40px rgba(0, 204, 255, 0.7);
+      transform: scale(1.2);
+    }
+    
+    input[type="range"]::-moz-range-thumb {
+      width: 18px;
+      height: 18px;
+      background: linear-gradient(135deg, #00ff88, #00ccff);
+      border: none;
+      border-radius: 50%;
+      cursor: pointer;
+      box-shadow: 0 0 15px rgba(0, 255, 136, 0.8), 0 0 30px rgba(0, 204, 255, 0.5);
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    
+    input[type="range"]::-moz-range-thumb:hover {
+      box-shadow: 0 0 20px rgba(0, 255, 136, 1), 0 0 40px rgba(0, 204, 255, 0.7);
+      transform: scale(1.2);
+    }
+    
+    .slider-value {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.9rem;
+      color: #00ccff;
+      min-width: 40px;
+      text-align: right;
+      font-weight: 700;
+    }
+    
+    .palette-buttons {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 1rem;
+    }
+    
+    .palette-btn {
+      padding: 0.75rem 1rem;
+      background: transparent;
+      border: 2px solid #555;
+      border-radius: 6px;
+      color: #aaa;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      font-weight: 600;
+    }
+    
+    .palette-btn:hover {
+      border-color: #00ccff;
+      color: #00ccff;
+      box-shadow: 0 0 15px rgba(0, 204, 255, 0.4);
+    }
+    
+    .palette-btn.active {
+      border-color: #00ff88;
+      color: #00ff88;
+      background: rgba(0, 255, 136, 0.1);
+      box-shadow: 0 0 20px rgba(0, 255, 136, 0.6), inset 0 0 20px rgba(0, 255, 136, 0.1);
+    }
+    
+    .stats-bar {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 1rem;
+      margin-top: 1.5rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid rgba(0, 255, 136, 0.2);
+    }
+    
+    .stat-item {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+      padding: 0.8rem;
+      background: rgba(0, 255, 136, 0.05);
+      border-left: 3px solid #00ff88;
+      border-radius: 4px;
+    }
+    
+    .stat-label {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      color: #888;
+      letter-spacing: 1px;
+    }
+    
+    .stat-value {
+      font-size: 1.2rem;
+      color: #00ff88;
+      font-weight: 700;
+      font-family: 'Space Mono', monospace;
+    }
+    
+    @keyframes slideDown {
+      from {
+        opacity: 0;
+        transform: translateY(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    @keyframes gradientShift {
+      0% { background-position: 0% center; }
+      100% { background-position: 300% center; }
+    }
+    
+    @media (prefers-reduced-motion: reduce) {
+      * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+    
+    @media (max-width: 768px) {
+      .hero h1 {
+        font-size: 2.5rem;
+      }
+      
+      .glyph-canvas {
+        grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
+        padding: 1.5rem;
+        gap: 0.8rem;
+        min-height: 250px;
+      }
+      
+      .glyph {
+        width: 70px;
+        height: 70px;
+      }
+      
+      .control-group {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="hero">
+      <h1>✦ Neon Glyph Animator ✦</h1>
+      <p>Morphing abstract glyphs in real-time</p>
+    </div>
+    
+    <div class="canvas-grid">
+      <div class="glyph-canvas" id="glyphCanvas"></div>
+    </div>
+    
+    <div class="controls-section">
+      <div class="control-group">
+        <div class="control-item">
+          <label for="morphSpeed">Morph Speed</label>
+          <div class="slider-container">
+            <input type="range" id="morphSpeed" min="0.5" max="3" step="0.1" value="1.5">
+            <span class="slider-value" id="morphSpeedValue">1.5x</span>
+          </div>
+        </div>
+        
+        <div class="control-item">
+          <label for="rotateSpeed">Rotation Speed</label>
+          <div class="slider-container">
+            <input type="range" id="rotateSpeed" min="0" max="3" step="0.1" value="1">
+            <span class="slider-value" id="rotateSpeedValue">1.0x</span>
+          </div>
+        </div>
+        
+        <div class="control-item">
+          <label for="playbackSpeed">Playback Speed</label>
+          <div class="slider-container">
+            <input type="range" id="playbackSpeed" min="0.25" max="2" step="0.25" value="1">
+            <span class="slider-value" id="playbackSpeedValue">1.0x</span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="control-item">
+        <label>Color Palette</label>
+        <div class="palette-buttons">
+          <button class="palette-btn active" data-palette="neon">Cyberpunk Neon</button>
+          <button class="palette-btn" data-palette="ocean">Ocean Gradient</button>
+          <button class="palette-btn" data-palette="sunset">Sunset Flame</button>
+        </div>
+      </div>
+      
+      <div class="stats-bar">
+        <div class="stat-item">
+          <div class="stat-label">Active Glyphs</div>
+          <div class="stat-value" id="glyphCount">0</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">Morph Phase</div>
+          <div class="stat-value" id="morphPhase">0%</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">Rotation Angle</div>
+          <div class="stat-value" id="rotationAngle">0°</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    function interpolate(a, b, t) {
+      return a + (b - a) * Math.min(Math.max(t, 0), 1);
+    }
+    
+    function easeInOutCubic(t) {
+      return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+    }
+    
+    function calculateMorphPhase(time, speed) {
+      const cycle = (time * speed) % 1;
+      return easeInOutCubic(cycle);
+    }
+    
+    function calculateRotation(time, speed) {
+      return (time * speed * 360) % 360;
+    }
+    
+    const glyphs = [
+      { name: 'Alpha', paths: ['M 40 20 Q 30 40 40 60 Q 50 40 40 20', 'M 20 20 L 60 20 L 40 60 L 30 40 L 50 40'] },
+      { name: 'Beta', paths: ['M 30 20 L 30 60 L 50 30 L 50 60', 'M 20 40 Q 40 20 40 60 Q 40 40 30 40'] },
+      { name: 'Gamma', paths: ['M 60 20 L 20 20 L 40 60', 'M 20 20 L 60 40 L 20 60 L 60 60'] },
+      { name: 'Delta', paths: ['M 40 25 L 25 55 L 55 55', 'M 40 20 L 30 35 L 50 35 L 40 55'] },
+      { name: 'Epsilon', paths: ['M 50 20 L 30 20 L 30 40 L 50 40 L 30 60 L 50 60', 'M 30 20 L 50 30 L 35 40 L 50 50 L 30 60'] },
+      { name: 'Zeta', paths: ['M 50 20 L 30 30 L 50 40 L 30 50 L 50 60', 'M 20 20 L 60 20 L 30 40 L 60 60 L 20 60'] },
+      { name: 'Theta', paths: ['M 40 20 Q 25 40 40 60 Q 55 40 40 20 M 30 40 L 50 40', 'M 30 20 L 50 20 Q 55 40 50 60 L 30 60 Q 25 40 30 20'] },
+      { name: 'Iota', paths: ['M 40 20 L 40 60', 'M 35 25 L 45 25 L 40 40 L 45 55 L 35 55'] },
+      { name: 'Kappa', paths: ['M 30 20 L 30 60 L 50 20 M 30 40 L 50 60', 'M 50 20 L 30 40 L 50 60 M 35 30 L 45 40 L 35 50'] },
+      { name: 'Lambda', paths: ['M 20 60 L 40 20 L 60 60', 'M 30 20 L 40 50 L 50 20 M 40 50 L 40 60'] },
+      { name: 'Mu', paths: ['M 25 60 L 25 20 Q 25 40 40 20 Q 55 40 55 20 L 55 60', 'M 30 20 L 30 50 Q 30 60 40 60 Q 50 60 50 50 L 50 20'] },
+      { name: 'Nu', paths: ['M 25 20 L 25 60 L 55 20 L 55 60', 'M 20 20 L 40 50 L 60 20 M 25 25 L 55 55'] }
+    ];
+    
+    const palettes = {
+      neon: {
+        color1: '#00ff88',
+        color2: '#00ccff',
+        color3: '#ff00ff',
+        name: 'Cyberpunk Neon'
+      },
+      ocean: {
+        color1: '#0099ff',
+        color2: '#00ccff',
+        color3: '#00ffcc',
+        name: 'Ocean Gradient'
+      },
+      sunset: {
+        color1: '#ff6600',
+        color2: '#ff0099',
+        color3: '#ffaa00',
+        name: 'Sunset Flame'
+      }
+    };
+    
+    let state = {
+      morphSpeed: 1.5,
+      rotateSpeed: 1,
+      playbackSpeed: 1,
+      palette: 'neon',
+      time: 0,
+      animationId: null
+    };
+    
+    function renderGlyphs() {
+      const canvas = document.getElementById('glyphCanvas');
+      canvas.innerHTML = '';
+      
+      glyphs.forEach((glyph, index) => {
+        const glyphEl = document.createElement('div');
+        glyphEl.className = 'glyph';
+        
+        const palette = palettes[state.palette];
+        const colors = [palette.color1, palette.color2, palette.color3];
+        const color = colors[index % colors.length];
+        
+        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svg.setAttribute('viewBox', '0 0 80 80');
+        svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+        
+        const rotation = calculateRotation(state.time, state.rotateSpeed);
+        
+        const pathEl = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        pathEl.setAttribute('d', glyph.paths[0]);
+        pathEl.setAttribute('fill', 'none');
+        pathEl.setAttribute('stroke', color);
+        pathEl.setAttribute('stroke-width', '2');
+        pathEl.setAttribute('transform', `translate(40, 40) rotate(${rotation}) translate(-40, -40)`);
+        
+        svg.appendChild(pathEl);
+        glyphEl.appendChild(svg);
+        canvas.appendChild(glyphEl);
+      });
+      
+      document.getElementById('glyphCount').textContent = glyphs.length;
+      document.getElementById('morphPhase').textContent = Math.round(calculateMorphPhase(state.time, state.morphSpeed) * 100) + '%';
+      document.getElementById('rotationAngle').textContent = Math.round(calculateRotation(state.time, state.rotateSpeed)) + '°';
+    }
+    
+    function animate(timestamp) {
+      state.time = (timestamp || 0) / 1000;
+      renderGlyphs();
+      state.animationId = requestAnimationFrame(animate);
+    }
+    
+    document.getElementById('morphSpeed').addEventListener('input', (e) => {
+      state.morphSpeed = parseFloat(e.target.value);
+      document.getElementById('morphSpeedValue').textContent = state.morphSpeed.toFixed(1) + 'x';
+    });
+    
+    document.getElementById('rotateSpeed').addEventListener('input', (e) => {
+      state.rotateSpeed = parseFloat(e.target.value);
+      document.getElementById('rotateSpeedValue').textContent = state.rotateSpeed.toFixed(1) + 'x';
+    });
+    
+    document.getElementById('playbackSpeed').addEventListener('input', (e) => {
+      state.playbackSpeed = parseFloat(e.target.value);
+      document.getElementById('playbackSpeedValue').textContent = state.playbackSpeed.toFixed(2) + 'x';
+    });
+    
+    document.querySelectorAll('.palette-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.palette-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        state.palette = btn.dataset.palette;
+        renderGlyphs();
+      });
+    });
+    
+    renderGlyphs();
+    animate(0);
+  </script>
+</body>
+</html>
