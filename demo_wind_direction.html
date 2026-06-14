@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wind Direction Navigator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Bricolage Grotesque', sans-serif;
+      background: linear-gradient(135deg, #0d1f3c 0%, #1a2f5a 50%, #0f1a2e 100%);
+      color: #fff;
+      min-height: 100vh;
+      padding: 2rem;
+      overflow-x: hidden;
+    }
+
+    /* Starfield */
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: 
+        radial-gradient(1px 1px at 15% 20%, #64b5ff, rgba(100, 181, 255, 0)),
+        radial-gradient(1px 1px at 75% 60%, #00ff9e, rgba(0, 255, 158, 0)),
+        radial-gradient(2px 2px at 50% 80%, #ff6b9d, rgba(255, 107, 157, 0));
+      background-size: 200% 200%;
+      background-repeat: no-repeat;
+      pointer-events: none;
+      z-index: 1;
+      opacity: 0.25;
+    }
+
+    .container {
+      position: relative;
+      z-index: 2;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    /* Hero */
+    .hero {
+      text-align: center;
+      margin-bottom: 3rem;
+      animation: slideDown 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .hero h1 {
+      font-family: 'Bricolage Grotesque', sans-serif;
+      font-size: clamp(48px, 8vw, 88px);
+      font-weight: 800;
+      margin-bottom: 0.5rem;
+      background: linear-gradient(135deg, #64b5ff, #00ff9e, #ff6b9d, #64b5ff);
+      background-size: 200% 200%;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: gradientShift 4s ease-in-out infinite;
+    }
+
+    .hero p {
+      color: #aaa;
+      font-size: 1.1rem;
+      font-weight: 400;
+    }
+
+    @keyframes slideDown {
+      from {
+        opacity: 0;
+        transform: translateY(-30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes gradientShift {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+    }
+
+    /* Main grid */
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1fr 380px;
+      gap: 2rem;
+      animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.2s both;
+      margin-bottom: 2rem;
+    }
+
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Compass container */
+    .compass-container {
+      background: rgba(10, 25, 50, 0.6);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(100, 181, 255, 0.3);
+      border-radius: 16px;
+      padding: 3rem;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 500px;
+    }
+
+    svg.compass {
+      width: 100%;
+      max-width: 400px;
+      height: auto;
+    }
+
+    .compass-ring {
+      fill: none;
+      stroke: rgba(100, 181, 255, 0.2);
+      stroke-width: 2;
+    }
+
+    .compass-cardinal {
+      font-size: 28px;
+      font-weight: 800;
+      text-anchor: middle;
+      dominant-baseline: central;
+      fill: #64b5ff;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      user-select: none;
+    }
+
+    .compass-cardinal:hover {
+      fill: #00ff9e;
+      filter: drop-shadow(0 0 8px rgba(0, 255, 158, 0.5));
+      font-size: 32px;
+    }
+
+    .compass-cardinal.active {
+      fill: #ff6b9d;
+      filter: drop-shadow(0 0 12px rgba(255, 107, 157, 0.7));
+      font-size: 36px;
+    }
+
+    .wind-arrow {
+      stroke: #64b5ff;
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .wind-arrow.active {
+      stroke: #ff6b9d;
+      stroke-width: 3;
+      filter: drop-shadow(0 0 6px rgba(255, 107, 157, 0.5));
+    }
+
+    /* Info panel */
+    .info-panel {
+      background: rgba(10, 25, 50, 0.6);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(100, 181, 255, 0.3);
+      border-radius: 16px;
+      padding: 2rem;
+      height: fit-content;
+      position: sticky;
+      top: 2rem;
+    }
+
+    .info-panel.empty {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      color: #666;
+      text-align: center;
+      min-height: 420px;
+    }
+
+    .info-title {
+      font-size: 36px;
+      font-weight: 800;
+      margin-bottom: 0.5rem;
+      color: #00ff9e;
+    }
+
+    .info-subtitle {
+      font-size: 0.95rem;
+      color: #aaa;
+      margin-bottom: 2rem;
+    }
+
+    .info-item {
+      margin-bottom: 2rem;
+    }
+
+    .info-label {
+      font-size: 0.8rem;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 0.7rem;
+      font-weight: 600;
+    }
+
+    .info-value {
+      font-size: 1.3rem;
+      color: #fff;
+      font-family: 'IBM Plex Mono', monospace;
+      font-weight: 600;
+    }
+
+    .wind-speed-bar {
+      width: 100%;
+      height: 12px;
+      background: rgba(100, 181, 255, 0.1);
+      border-radius: 6px;
+      border: 1px solid rgba(100, 181, 255, 0.3);
+      margin-top: 0.5rem;
+      overflow: hidden;
+    }
+
+    .wind-speed-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #64b5ff, #00ff9e, #ff6b9d);
+      width: 0%;
+      transition: width 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      border-radius: 6px;
+    }
+
+    .wind-level {
+      display: inline-block;
+      background: rgba(100, 181, 255, 0.15);
+      border: 1px solid rgba(100, 181, 255, 0.3);
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      color: #64b5ff;
+      margin-top: 0.5rem;
+      font-weight: 600;
+    }
+
+    .wind-level.active {
+      background: rgba(255, 107, 157, 0.2);
+      border-color: rgba(255, 107, 157, 0.5);
+      color: #ff6b9d;
+    }
+
+    .reset-btn {
+      width: 100%;
+      padding: 1rem;
+      background: linear-gradient(135deg, rgba(100, 181, 255, 0.15), rgba(0, 255, 158, 0.15));
+      border: 1px solid rgba(100, 181, 255, 0.4);
+      color: #64b5ff;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 700;
+      font-size: 0.95rem;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      margin-top: 2rem;
+      font-family: 'Bricolage Grotesque', sans-serif;
+    }
+
+    .reset-btn:hover {
+      background: linear-gradient(135deg, rgba(100, 181, 255, 0.25), rgba(0, 255, 158, 0.25));
+      border-color: rgba(100, 181, 255, 0.6);
+      box-shadow: 0 0 12px rgba(100, 181, 255, 0.3);
+    }
+
+    .reset-btn:active {
+      transform: scale(0.98);
+    }
+
+    /* Mobile */
+    @media (max-width: 768px) {
+      .main-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .info-panel {
+        position: static;
+      }
+
+      .compass-container {
+        min-height: 400px;
+        padding: 2rem;
+      }
+
+      .hero h1 {
+        font-size: clamp(36px, 7vw, 56px);
+      }
+    }
+
+    /* Reduced motion */
+    @media (prefers-reduced-motion: reduce) {
+      * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="hero">
+      <h1>🧭 Wind Direction</h1>
+      <p>Click a cardinal direction to explore wind patterns</p>
+    </div>
+
+    <div class="main-grid">
+      <div class="compass-container">
+        <svg class="compass" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
+          <!-- Outer ring -->
+          <circle cx="200" cy="200" r="180" class="compass-ring" stroke-width="1"/>
+          <circle cx="200" cy="200" r="150" class="compass-ring" stroke-width="1"/>
+          <circle cx="200" cy="200" r="120" class="compass-ring" stroke-width="1"/>
+          
+          <!-- Cardinal directions (clickable) -->
+          <text x="200" y="60" class="compass-cardinal" id="N" onclick="selectDirection('N')">N</text>
+          <text x="340" y="200" class="compass-cardinal" id="E" onclick="selectDirection('E')">E</text>
+          <text x="200" y="340" class="compass-cardinal" id="S" onclick="selectDirection('S')">S</text>
+          <text x="60" y="200" class="compass-cardinal" id="W" onclick="selectDirection('W')">W</text>
+
+          <!-- Wind arrows (will be animated) -->
+          <g id="arrows">
+            <!-- N Arrow -->
+            <line x1="200" y1="200" x2="200" y2="80" class="wind-arrow" id="arrow-N" stroke-dasharray="0,120"/>
+            <!-- NE Arrow -->
+            <line x1="200" y1="200" x2="285" y2="115" class="wind-arrow" id="arrow-NE" stroke-dasharray="0,120"/>
+            <!-- E Arrow -->
+            <line x1="200" y1="200" x2="320" y2="200" class="wind-arrow" id="arrow-E" stroke-dasharray="0,120"/>
+            <!-- SE Arrow -->
+            <line x1="200" y1="200" x2="285" y2="285" class="wind-arrow" id="arrow-SE" stroke-dasharray="0,120"/>
+            <!-- S Arrow -->
+            <line x1="200" y1="200" x2="200" y2="320" class="wind-arrow" id="arrow-S" stroke-dasharray="0,120"/>
+            <!-- SW Arrow -->
+            <line x1="200" y1="200" x2="115" y2="285" class="wind-arrow" id="arrow-SW" stroke-dasharray="0,120"/>
+            <!-- W Arrow -->
+            <line x1="200" y1="200" x2="80" y2="200" class="wind-arrow" id="arrow-W" stroke-dasharray="0,120"/>
+            <!-- NW Arrow -->
+            <line x1="200" y1="200" x2="115" y2="115" class="wind-arrow" id="arrow-NW" stroke-dasharray="0,120"/>
+          </g>
+        </svg>
+      </div>
+
+      <div class="info-panel empty" id="infoPanel">
+        <div style="font-size: 64px; margin-bottom: 1.5rem;">🧭</div>
+        <div>Click a cardinal direction</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const windData = {
+      N: {
+        name: 'North',
+        speed: 12,
+        level: 'Breezy',
+        conditions: 'Cool, dry northerlies from polar regions',
+        arrowIntensity: 0.8
+      },
+      NE: {
+        name: 'Northeast',
+        speed: 18,
+        level: 'Gusty',
+        conditions: 'Variable conditions, moderate trade winds',
+        arrowIntensity: 0.9
+      },
+      E: {
+        name: 'East',
+        speed: 8,
+        level: 'Light',
+        conditions: 'Gentle easterly winds, stable air',
+        arrowIntensity: 0.5
+      },
+      SE: {
+        name: 'Southeast',
+        speed: 15,
+        level: 'Breezy',
+        conditions: 'Subtropical flow, consistent winds',
+        arrowIntensity: 0.75
+      },
+      S: {
+        name: 'South',
+        speed: 22,
+        level: 'Stormy',
+        conditions: 'Strong southern winds, potential weather',
+        arrowIntensity: 1.0
+      },
+      SW: {
+        name: 'Southwest',
+        speed: 16,
+        level: 'Breezy',
+        conditions: 'Atlantic influence, moderate winds',
+        arrowIntensity: 0.8
+      },
+      W: {
+        name: 'West',
+        speed: 10,
+        level: 'Light',
+        conditions: 'Calm westerlies, mild conditions',
+        arrowIntensity: 0.6
+      },
+      NW: {
+        name: 'Northwest',
+        speed: 14,
+        level: 'Breezy',
+        conditions: 'Cool winds, clear skies',
+        arrowIntensity: 0.7
+      }
+    };
+
+    const directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+    let activeDirection = null;
+
+    function selectDirection(dir) {
+      // Remove active class from all cardinals
+      document.querySelectorAll('.compass-cardinal').forEach(el => el.classList.remove('active'));
+      document.getElementById(dir).classList.add('active');
+
+      // Clear arrows
+      document.querySelectorAll('.wind-arrow').forEach(arrow => arrow.classList.remove('active'));
+
+      // Activate arrows for this direction and adjacent ones
+      const idx = directions.indexOf(dir);
+      const adjacent = [
+        directions[(idx - 1 + 8) % 8],
+        dir,
+        directions[(idx + 1) % 8]
+      ];
+
+      adjacent.forEach(d => {
+        const arrow = document.getElementById(`arrow-${d}`);
+        if (arrow) arrow.classList.add('active');
+      });
+
+      activeDirection = dir;
+      updateInfoPanel(dir);
+    }
+
+    function updateInfoPanel(dir) {
+      const data = windData[dir];
+      const panel = document.getElementById('infoPanel');
+      panel.className = 'info-panel';
+
+      const fillPercent = (data.speed / 22) * 100;
+      const levelClass = data.level === 'Stormy' ? 'active' : '';
+
+      panel.innerHTML = `
+        <div class="info-title">${data.name}</div>
+        <div class="info-subtitle">${data.conditions}</div>
+
+        <div class="info-item">
+          <div class="info-label">Wind Speed</div>
+          <div class="info-value">${data.speed} km/h</div>
+          <div class="wind-speed-bar">
+            <div class="wind-speed-fill" style="width: ${fillPercent}%;"></div>
+          </div>
+        </div>
+
+        <div class="info-item">
+          <div class="info-label">Intensity</div>
+          <div class="wind-level ${levelClass}">${data.level}</div>
+        </div>
+
+        <button class="reset-btn" onclick="resetPanel()">Clear Direction</button>
+      `;
+    }
+
+    function resetPanel() {
+      activeDirection = null;
+      document.querySelectorAll('.compass-cardinal').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.wind-arrow').forEach(el => el.classList.remove('active'));
+      const panel = document.getElementById('infoPanel');
+      panel.className = 'info-panel empty';
+      panel.innerHTML = `
+        <div style="font-size: 64px; margin-bottom: 1.5rem;">🧭</div>
+        <div>Click a cardinal direction</div>
+      `;
+    }
+  </script>
+</body>
+</html>
