@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bacterial Bloom Simulator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Geist Mono', monospace;
+            background: linear-gradient(135deg, #0a1128 0%, #1a2847 50%, #0f1a2e 100%);
+            color: #e0e8ff;
+            min-height: 100vh;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .hero {
+            text-align: center;
+            margin-bottom: 40px;
+            animation: slideDown 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        
+        h1 {
+            font-family: 'Syne', sans-serif;
+            font-size: clamp(40px, 8vw, 72px);
+            font-weight: 800;
+            background: linear-gradient(90deg, #00d4ff, #ff00d4, #00d4ff);
+            background-size: 300% 100%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 12px;
+            letter-spacing: -1px;
+        }
+        
+        .subtitle {
+            font-size: 16px;
+            color: #8a9ac4;
+            max-width: 500px;
+            margin: 0 auto;
+            line-height: 1.5;
+            animation: fadeIn 0.8s ease 0.2s both;
+        }
+        
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 24px;
+            animation: fadeIn 0.8s ease 0.3s both;
+            margin-bottom: 40px;
+        }
+        
+        .dish-section {
+            background: rgba(20, 30, 60, 0.6);
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(0, 212, 255, 0.3);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 8px 32px rgba(0, 212, 255, 0.1);
+        }
+        
+        .stats-panel {
+            background: rgba(20, 30, 60, 0.6);
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255, 0, 212, 0.3);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 8px 32px rgba(255, 0, 212, 0.1);
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        
+        .stat-item {
+            padding: 12px;
+            background: rgba(0, 212, 255, 0.05);
+            border-left: 3px solid #00d4ff;
+            border-radius: 8px;
+            font-size: 13px;
+            line-height: 1.4;
+        }
+        
+        .stat-label {
+            color: #8a9ac4;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .stat-value {
+            font-size: 22px;
+            font-weight: 500;
+            color: #00d4ff;
+            margin-top: 4px;
+            font-family: 'Geist Mono', monospace;
+        }
+        
+        svg {
+            width: 100%;
+            height: auto;
+            display: block;
+            margin-bottom: 12px;
+        }
+        
+        .petri-circle {
+            fill: none;
+            stroke: url(#dishGradient);
+            stroke-width: 3;
+            filter: drop-shadow(0 0 8px rgba(0, 212, 255, 0.4));
+        }
+        
+        .controls {
+            background: rgba(20, 30, 60, 0.6);
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(0, 212, 255, 0.2);
+            border-radius: 16px;
+            padding: 24px;
+            animation: fadeIn 0.8s ease 0.4s both;
+        }
+        
+        .slider-group {
+            margin-bottom: 24px;
+            padding-bottom: 24px;
+            border-bottom: 1px solid rgba(0, 212, 255, 0.15);
+        }
+        
+        .slider-group:last-child {
+            margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
+        }
+        
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 13px;
+            font-family: 'Syne', sans-serif;
+            font-weight: 700;
+            color: #e0e8ff;
+        }
+        
+        .slider-value {
+            color: #00d4ff;
+            font-family: 'Geist Mono', monospace;
+        }
+        
+        input[type="range"] {
+            width: 100%;
+            height: 8px;
+            border-radius: 4px;
+            background: linear-gradient(90deg, rgba(0, 212, 255, 0.2), rgba(255, 0, 212, 0.2));
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+            cursor: pointer;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #00d4ff, #ff00d4);
+            cursor: pointer;
+            box-shadow: 0 0 12px rgba(0, 212, 255, 0.6);
+            transition: all 0.2s ease;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+            box-shadow: 0 0 20px rgba(0, 212, 255, 0.8);
+        }
+        
+        input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #00d4ff, #ff00d4);
+            cursor: pointer;
+            box-shadow: 0 0 12px rgba(0, 212, 255, 0.6);
+            border: none;
+            transition: all 0.2s ease;
+        }
+        
+        input[type="range"]::-moz-range-thumb:hover {
+            transform: scale(1.2);
+            box-shadow: 0 0 20px rgba(0, 212, 255, 0.8);
+        }
+        
+        .graph-section {
+            background: rgba(20, 30, 60, 0.6);
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(0, 212, 255, 0.2);
+            border-radius: 16px;
+            padding: 24px;
+            animation: fadeIn 0.8s ease 0.5s both;
+        }
+        
+        .graph-title {
+            font-family: 'Syne', sans-serif;
+            font-weight: 700;
+            font-size: 14px;
+            color: #e0e8ff;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+        
+        @media (max-width: 900px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation: none !important;
+                transition: none !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="hero">
+            <h1>🧬 Bacterial Bloom</h1>
+            <p class="subtitle">Tweak growth, food, and mutation rates. Watch a living petri dish evolve in real time.</p>
+        </div>
+        
+        <div class="main-grid">
+            <div class="dish-section">
+                <svg id="dishSvg" viewBox="0 0 400 400" style="min-height: 400px;">
+                    <defs>
+                        <linearGradient id="dishGradient" x1="0" y1="0" x2="100%" y2="100%">
+                            <stop offset="0%" style="stop-color:#00d4ff;stop-opacity:0.6" />
+                            <stop offset="100%" style="stop-color:#ff00d4;stop-opacity:0.6" />
+                        </linearGradient>
+                        <radialGradient id="bacteriaGradient" cx="40%" cy="40%">
+                            <stop offset="0%" style="stop-color:#00d4ff;stop-opacity:0.8" />
+                            <stop offset="100%" style="stop-color:#00a8cc;stop-opacity:0.4" />
+                        </radialGradient>
+                        <radialGradient id="mutantGradient" cx="40%" cy="40%">
+                            <stop offset="0%" style="stop-color:#ff3366;stop-opacity:0.8" />
+                            <stop offset="100%" style="stop-color:#cc0033;stop-opacity:0.4" />
+                        </radialGradient>
+                    </defs>
+                    <circle class="petri-circle" cx="200" cy="200" r="190" />
+                    <g id="bacteriaGroup"></g>
+                </svg>
+            </div>
+            
+            <div class="stats-panel">
+                <div class="stat-item">
+                    <div class="stat-label">Population</div>
+                    <div class="stat-value" id="popCount">0</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Generation</div>
+                    <div class="stat-value" id="genCount">0</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Growth Rate</div>
+                    <div class="stat-value" id="growthRate">0%</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Mutants</div>
+                    <div class="stat-value" id="mutantCount">0</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Food Level</div>
+                    <div class="stat-value" id="foodLevel">100%</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <div class="slider-group">
+                <div class="slider-label">
+                    <span>Growth Rate</span>
+                    <span class="slider-value" id="growthVal">0.50</span>
+                </div>
+                <input type="range" id="growthSlider" min="0" max="100" value="50" step="1">
+            </div>
+            
+            <div class="slider-group">
+                <div class="slider-label">
+                    <span>Food Availability</span>
+                    <span class="slider-value" id="foodVal">100%</span>
+                </div>
+                <input type="range" id="foodSlider" min="0" max="100" value="100" step="1">
+            </div>
+            
+            <div class="slider-group">
+                <div class="slider-label">
+                    <span>Mutation Chance</span>
+                    <span class="slider-value" id="mutationVal">10%</span>
+                </div>
+                <input type="range" id="mutationSlider" min="0" max="50" value="10" step="1">
+            </div>
+        </div>
+        
+        <div class="graph-section">
+            <div class="graph-title">Population History</div>
+            <svg id="graphSvg" viewBox="0 0 100 60" style="min-height: 180px;">
+                <defs>
+                    <linearGradient id="graphGradient" x1="0" y1="0" x2="0" y2="100%">
+                        <stop offset="0%" style="stop-color:#00d4ff;stop-opacity:0.6" />
+                        <stop offset="100%" style="stop-color:#00d4ff;stop-opacity:0.1" />
+                    </linearGradient>
+                </defs>
+                <polyline id="graphPath" points="0,60" fill="none" stroke="#00d4ff" stroke-width="0.5" vector-effect="non-scaling-stroke" />
+                <polyline id="graphArea" points="0,60" fill="url(#graphGradient)" opacity="0.3" />
+            </svg>
+        </div>
+    </div>
+
+    <script>
+        // ─── STATE ──────────────────────────────────────────────────────
+        class Bacteria {
+            constructor(x, y, isMutant = false) {
+                this.x = x;
+                this.y = y;
+                this.age = 0;
+                this.isMutant = isMutant;
+                this.energy = 100;
+            }
+        }
+
+        let state = {
+            bacteria: [],
+            generation: 0,
+            growthRate: 0.5,
+            foodAvailability: 1.0,
+            mutationChance: 0.1,
+            populationHistory: [],
+            lastRender: 0
+        };
+
+        // ─── PURE LOGIC (headless-testable) ──────────────────────────────
+        function initBacteria() {
+            state.bacteria = [];
+            for (let i = 0; i < 10; i++) {
+                const angle = (i / 10) * Math.PI * 2;
+                const radius = 80;
+                const x = 200 + radius * Math.cos(angle);
+                const y = 200 + radius * Math.sin(angle);
+                state.bacteria.push(new Bacteria(x, y, false));
+            }
+        }
+
+        function step() {
+            const toAdd = [];
+            const toBacter = [];
+
+            // Simulate each bacterium
+            for (let b of state.bacteria) {
+                b.age++;
+                b.energy -= state.growthRate * 5;
+
+                // Random walk (slow drift)
+                b.x += (Math.random() - 0.5) * 2;
+                b.y += (Math.random() - 0.5) * 2;
+
+                // Clamp to dish (circle at cx=200, cy=200, r=190)
+                const dx = b.x - 200;
+                const dy = b.y - 200;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist > 190) {
+                    const angle = Math.atan2(dy, dx);
+                    b.x = 200 + 185 * Math.cos(angle);
+                    b.y = 200 + 185 * Math.sin(angle);
+                }
+
+                // Try to find food and reproduce
+                if (Math.random() < state.foodAvailability && b.energy > 30) {
+                    b.energy = Math.min(100, b.energy + 10);  // Gain energy from food
+                    // Reproduce if energy high
+                    if (b.energy > 70 && state.generation > 5) {
+                        const isMutant = Math.random() < state.mutationChance;
+                        toAdd.push(new Bacteria(b.x + (Math.random() - 0.5) * 10, b.y + (Math.random() - 0.5) * 10, isMutant || b.isMutant));
+                    }
+                }
+
+                // Age out
+                if (b.age > 500 || b.energy < 0) {
+                    toBacter.push(false);
+                } else {
+                    toBacter.push(true);
+                }
+            }
+
+            state.bacteria = state.bacteria.filter((_, i) => toBacter[i]);
+            state.bacteria.push(...toAdd);
+            state.generation++;
+
+            // Cap population to avoid slowdown
+            if (state.bacteria.length > 2000) {
+                state.bacteria = state.bacteria.slice(0, 2000);
+            }
+
+            state.populationHistory.push(state.bacteria.length);
+            if (state.populationHistory.length > 100) {
+                state.populationHistory.shift();
+            }
+        }
+
+        // ─── RENDERING ──────────────────────────────────────────────────
+        function render() {
+            const now = Date.now();
+            if (now - state.lastRender < 50) return; // ~20 FPS cap
+            state.lastRender = now;
+
+            // Render bacteria
+            const group = document.getElementById('bacteriaGroup');
+            group.innerHTML = '';
+            for (let b of state.bacteria) {
+                const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                circle.setAttribute('cx', b.x);
+                circle.setAttribute('cy', b.y);
+                circle.setAttribute('r', 2);
+                circle.setAttribute('fill', b.isMutant ? 'url(#mutantGradient)' : 'url(#bacteriaGradient)');
+                circle.setAttribute('opacity', 1 - b.age / 200);
+                group.appendChild(circle);
+            }
+
+            // Update stats
+            const mutantCount = state.bacteria.filter(b => b.isMutant).length;
+            document.getElementById('popCount').textContent = state.bacteria.length;
+            document.getElementById('genCount').textContent = state.generation;
+            document.getElementById('mutantCount').textContent = mutantCount;
+            document.getElementById('growthRate').textContent = Math.round(state.growthRate * 100) + '%';
+            document.getElementById('foodLevel').textContent = Math.round(state.foodAvailability * 100) + '%';
+
+            // Render graph
+            if (state.populationHistory.length > 1) {
+                const maxPop = Math.max(1, ...state.populationHistory);
+                const points = state.populationHistory.map((pop, i) => {
+                    const x = (i / Math.max(1, state.populationHistory.length - 1)) * 100;
+                    const y = 60 - (pop / maxPop) * 55;
+                    return `${x},${y}`;
+                }).join(' ');
+                document.getElementById('graphPath').setAttribute('points', points);
+                document.getElementById('graphArea').setAttribute('points', '0,60 ' + points + ' 100,60');
+            }
+        }
+
+        // ─── INTERACTION ────────────────────────────────────────────────
+        document.getElementById('growthSlider').addEventListener('input', (e) => {
+            state.growthRate = parseFloat(e.target.value) / 100;
+            document.getElementById('growthVal').textContent = state.growthRate.toFixed(2);
+        });
+
+        document.getElementById('foodSlider').addEventListener('input', (e) => {
+            state.foodAvailability = parseFloat(e.target.value) / 100;
+            document.getElementById('foodVal').textContent = e.target.value + '%';
+        });
+
+        document.getElementById('mutationSlider').addEventListener('input', (e) => {
+            state.mutationChance = parseFloat(e.target.value) / 100;
+            document.getElementById('mutationVal').textContent = e.target.value + '%';
+        });
+
+        // ─── MAIN LOOP ──────────────────────────────────────────────────
+        function main() {
+            step();
+            render();
+            requestAnimationFrame(main);
+        }
+
+        // INIT
+        initBacteria();
+        main();
+    </script>
+</body>
+</html>
