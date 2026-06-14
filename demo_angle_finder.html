@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Angle Finder — Interactive Geometry Tool</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Space Grotesk', sans-serif;
+      background: linear-gradient(135deg, #0f1419 0%, #1a2347 50%, #0d1f2d 100%);
+      color: #e0e6ed;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    /* Starfield texture background */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: 
+        radial-gradient(2px 2px at 20px 30px, #00d4ff, rgba(0,212,255,0)),
+        radial-gradient(2px 2px at 60px 70px, #00d4ff, rgba(0,212,255,0)),
+        radial-gradient(1px 1px at 50px 50px, #00d4ff, rgba(0,212,255,0)),
+        radial-gradient(1px 1px at 130px 80px, #ff00ff, rgba(255,0,255,0)),
+        radial-gradient(2px 2px at 90px 10px, #00d4ff, rgba(0,212,255,0));
+      background-repeat: repeat;
+      background-size: 200px 200px;
+      opacity: 0.15;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .container {
+      position: relative;
+      z-index: 1;
+      max-width: 1000px;
+      width: 100%;
+    }
+
+    /* Hero section */
+    .hero {
+      text-align: center;
+      margin-bottom: 40px;
+      animation: slideDown 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .hero h1 {
+      font-size: clamp(40px, 8vw, 72px);
+      font-weight: 700;
+      margin-bottom: 12px;
+      background: linear-gradient(90deg, #00d4ff, #ff00ff, #00d4ff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: -1px;
+    }
+
+    .hero p {
+      font-size: 16px;
+      color: #999;
+      font-weight: 400;
+    }
+
+    /* Main content grid */
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.2s both;
+    }
+
+    /* Canvas section */
+    .canvas-section {
+      backdrop-filter: blur(20px);
+      background: rgba(10, 20, 40, 0.5);
+      border: 1px solid #00d4ff;
+      border-radius: 20px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      box-shadow: 0 8px 32px rgba(0, 212, 255, 0.1);
+    }
+
+    .canvas-section h2 {
+      font-size: 14px;
+      font-weight: 600;
+      color: #00d4ff;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    canvas {
+      width: 100%;
+      height: 360px;
+      background: rgba(5, 10, 30, 0.9);
+      border-radius: 12px;
+      border: 1px solid rgba(0, 212, 255, 0.3);
+      cursor: crosshair;
+      display: block;
+    }
+
+    canvas.has-points {
+      cursor: pointer;
+    }
+
+    .canvas-instructions {
+      font-size: 13px;
+      color: #666;
+      text-align: center;
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    .canvas-instructions.active {
+      color: #00d4ff;
+    }
+
+    /* Stats section */
+    .stats-section {
+      backdrop-filter: blur(20px);
+      background: rgba(10, 20, 40, 0.5);
+      border: 1px solid #ff00ff;
+      border-radius: 20px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      box-shadow: 0 8px 32px rgba(255, 0, 255, 0.1);
+    }
+
+    .stats-section h2 {
+      font-size: 14px;
+      font-weight: 600;
+      color: #ff00ff;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .stat-item {
+      padding: 16px;
+      background: rgba(0, 212, 255, 0.05);
+      border-left: 3px solid #00d4ff;
+      border-radius: 8px;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .stat-item.active {
+      background: rgba(255, 0, 255, 0.05);
+      border-left-color: #ff00ff;
+    }
+
+    .stat-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: #666;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 6px;
+    }
+
+    .stat-value {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 24px;
+      font-weight: 600;
+      color: #00d4ff;
+    }
+
+    .stat-item.active .stat-value {
+      color: #ff00ff;
+    }
+
+    .reset-btn {
+      padding: 12px 20px;
+      background: linear-gradient(90deg, #00d4ff, #ff00ff);
+      border: none;
+      border-radius: 8px;
+      color: #0a1428;
+      font-weight: 600;
+      font-family: 'Space Grotesk', sans-serif;
+      cursor: pointer;
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 0 4px 16px rgba(0, 212, 255, 0.2);
+    }
+
+    .reset-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0, 212, 255, 0.4);
+    }
+
+    .reset-btn:active {
+      transform: translateY(0);
+    }
+
+    /* Mobile layout */
+    @media (max-width: 700px) {
+      .main-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .hero h1 {
+        font-size: clamp(36px, 10vw, 52px);
+      }
+
+      canvas {
+        height: 300px;
+      }
+    }
+
+    /* Animations */
+    @keyframes slideDown {
+      from {
+        opacity: 0;
+        transform: translateY(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="hero">
+      <h1>🎯 Angle Finder</h1>
+      <p>Click to place points and discover their geometric relationship</p>
+    </div>
+
+    <div class="main-grid">
+      <div class="canvas-section">
+        <h2>Canvas</h2>
+        <canvas id="canvas"></canvas>
+        <div class="canvas-instructions" id="instructions">
+          Click to place Point A, then Point B
+        </div>
+      </div>
+
+      <div class="stats-section">
+        <h2>Measurements</h2>
+        <div class="stat-item" id="distanceStat">
+          <div class="stat-label">Distance</div>
+          <div class="stat-value" id="distance">—</div>
+        </div>
+        <div class="stat-item" id="angleStat">
+          <div class="stat-label">Angle</div>
+          <div class="stat-value" id="angle">—</div>
+        </div>
+        <div class="stat-item" id="coordAStat">
+          <div class="stat-label">Point A</div>
+          <div class="stat-value" id="coordA">—</div>
+        </div>
+        <div class="stat-item" id="coordBStat">
+          <div class="stat-label">Point B</div>
+          <div class="stat-value" id="coordB">—</div>
+        </div>
+        <button class="reset-btn" onclick="resetPoints()">Reset</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const instructions = document.getElementById('instructions');
+
+    // Canvas resolution matching
+    function resizeCanvas() {
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = Math.floor(rect.width * window.devicePixelRatio);
+      canvas.height = Math.floor(rect.height * window.devicePixelRatio);
+      ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+      redraw();
+    }
+
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+
+    // State
+    let pointA = null;
+    let pointB = null;
+
+    // Pure math functions (tested headless)
+    function computeDistance(x1, y1, x2, y2) {
+      const dx = x2 - x1;
+      const dy = y2 - y1;
+      return Math.sqrt(dx * dx + dy * dy);
+    }
+
+    function computeAngle(x1, y1, x2, y2) {
+      const dx = x2 - x1;
+      const dy = y2 - y1;
+      let angle = Math.atan2(dy, dx) * (180 / Math.PI);
+      if (angle < 0) angle += 360;
+      return angle;
+    }
+
+    function mapCanvasCoords(clientX, clientY) {
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      const x = (clientX - rect.left) * scaleX;
+      const y = (clientY - rect.top) * scaleY;
+      return { x, y };
+    }
+
+    // Canvas drawing
+    function redraw() {
+      const rect = canvas.getBoundingClientRect();
+      ctx.clearRect(0, 0, rect.width, rect.height);
+
+      if (!pointA && !pointB) return;
+
+      if (pointA) {
+        // Point A
+        ctx.fillStyle = '#00d4ff';
+        ctx.beginPath();
+        ctx.arc(pointA.x, pointA.y, 6, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Label A
+        ctx.fillStyle = '#00d4ff';
+        ctx.font = '600 14px "IBM Plex Mono"';
+        ctx.fillText('A', pointA.x + 12, pointA.y - 8);
+      }
+
+      if (pointB) {
+        // Point B
+        ctx.fillStyle = '#ff00ff';
+        ctx.beginPath();
+        ctx.arc(pointB.x, pointB.y, 6, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Label B
+        ctx.fillStyle = '#ff00ff';
+        ctx.font = '600 14px "IBM Plex Mono"';
+        ctx.fillText('B', pointB.x + 12, pointB.y - 8);
+
+        if (pointA) {
+          // Line connecting them
+          ctx.strokeStyle = 'rgba(0, 212, 255, 0.4)';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(pointA.x, pointA.y);
+          ctx.lineTo(pointB.x, pointB.y);
+          ctx.stroke();
+
+          // Arrow at B
+          const angle = computeAngle(pointA.x, pointA.y, pointB.x, pointB.y);
+          const arrowSize = 12;
+          const radians = angle * (Math.PI / 180);
+          const arrowX = pointB.x - arrowSize * Math.cos(radians);
+          const arrowY = pointB.y - arrowSize * Math.sin(radians);
+
+          ctx.fillStyle = 'rgba(0, 212, 255, 0.6)';
+          ctx.beginPath();
+          ctx.moveTo(pointB.x, pointB.y);
+          ctx.lineTo(arrowX - 5 * Math.sin(radians), arrowY + 5 * Math.cos(radians));
+          ctx.lineTo(arrowX + 5 * Math.sin(radians), arrowY - 5 * Math.cos(radians));
+          ctx.closePath();
+          ctx.fill();
+        }
+      }
+    }
+
+    // Update stats display
+    function updateStats() {
+      const distStat = document.getElementById('distanceStat');
+      const angleStat = document.getElementById('angleStat');
+      const coordAStat = document.getElementById('coordAStat');
+      const coordBStat = document.getElementById('coordBStat');
+
+      distStat.classList.remove('active');
+      angleStat.classList.remove('active');
+      coordAStat.classList.remove('active');
+      coordBStat.classList.remove('active');
+
+      if (pointA) {
+        document.getElementById('coordA').textContent = `(${Math.round(pointA.x)}, ${Math.round(pointA.y)})`;
+        coordAStat.classList.add('active');
+      } else {
+        document.getElementById('coordA').textContent = '—';
+      }
+
+      if (pointB) {
+        document.getElementById('coordB').textContent = `(${Math.round(pointB.x)}, ${Math.round(pointB.y)})`;
+        coordBStat.classList.add('active');
+      } else {
+        document.getElementById('coordB').textContent = '—';
+      }
+
+      if (pointA && pointB) {
+        const dist = computeDistance(pointA.x, pointA.y, pointB.x, pointB.y);
+        const ang = computeAngle(pointA.x, pointA.y, pointB.x, pointB.y);
+
+        document.getElementById('distance').textContent = `${Math.round(dist)}px`;
+        document.getElementById('angle').textContent = `${Math.round(ang)}°`;
+
+        distStat.classList.add('active');
+        angleStat.classList.add('active');
+
+        instructions.textContent = 'Points placed. Click Reset to start over.';
+        instructions.classList.add('active');
+        canvas.classList.add('has-points');
+      } else if (pointA) {
+        instructions.textContent = 'Click to place Point B';
+        instructions.classList.add('active');
+        canvas.classList.add('has-points');
+      } else {
+        instructions.textContent = 'Click to place Point A, then Point B';
+        instructions.classList.remove('active');
+        canvas.classList.remove('has-points');
+      }
+    }
+
+    // Canvas click handler
+    canvas.addEventListener('click', (e) => {
+      const coords = mapCanvasCoords(e.clientX, e.clientY);
+
+      if (!pointA) {
+        pointA = coords;
+      } else if (!pointB) {
+        pointB = coords;
+      }
+
+      redraw();
+      updateStats();
+    });
+
+    // Reset
+    function resetPoints() {
+      pointA = null;
+      pointB = null;
+      document.getElementById('distance').textContent = '—';
+      document.getElementById('angle').textContent = '—';
+      document.getElementById('coordA').textContent = '—';
+      document.getElementById('coordB').textContent = '—';
+      document.getElementById('distanceStat').classList.remove('active');
+      document.getElementById('angleStat').classList.remove('active');
+      document.getElementById('coordAStat').classList.remove('active');
+      document.getElementById('coordBStat').classList.remove('active');
+      instructions.textContent = 'Click to place Point A, then Point B';
+      instructions.classList.remove('active');
+      canvas.classList.remove('has-points');
+      redraw();
+    }
+
+    // Initial draw
+    updateStats();
+  </script>
+</body>
+</html>
