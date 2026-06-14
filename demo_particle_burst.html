@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Particle Burst</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Manrope:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Manrope', sans-serif;
+            background: linear-gradient(135deg, #0a0a1f 0%, #1a0033 25%, #0f1f2e 75%, #0a0a1f 100%);
+            color: #fff;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        .stars {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .star {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            background: rgba(100, 200, 255, 0.3);
+            border-radius: 50%;
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+            max-width: 900px;
+            width: 100%;
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-40px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .hero {
+            text-align: center;
+            margin-bottom: 40px;
+            animation: slideDown 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        h1 {
+            font-family: 'Syne', sans-serif;
+            font-size: clamp(42px, 8vw, 72px);
+            font-weight: 800;
+            background: linear-gradient(90deg, #00d4ff, #ff00d4, #00d4ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -1px;
+            margin-bottom: 12px;
+            line-height: 1.1;
+        }
+
+        .subtitle {
+            font-size: 16px;
+            color: #aaa;
+            margin-bottom: 0;
+            font-weight: 400;
+        }
+
+        .main-section {
+            background: rgba(15, 15, 30, 0.6);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(0, 212, 255, 0.3);
+            border-radius: 16px;
+            padding: 24px;
+            animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.15s both;
+        }
+
+        canvas {
+            width: 100%;
+            height: auto;
+            display: block;
+            border-radius: 12px;
+            border: 2px solid rgba(0, 212, 255, 0.5);
+            cursor: crosshair;
+            background: rgba(10, 15, 40, 0.8);
+            transition: border-color 0.3s;
+            margin-bottom: 20px;
+            aspect-ratio: 16 / 9;
+        }
+
+        canvas:hover {
+            border-color: rgba(0, 212, 255, 0.8);
+        }
+
+        .info-bar {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.3s both;
+        }
+
+        .stat-box {
+            background: rgba(0, 212, 255, 0.1);
+            border-left: 3px solid #00d4ff;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 13px;
+            color: #aaa;
+        }
+
+        .stat-label {
+            font-weight: 600;
+            color: #fff;
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .stat-value {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 18px;
+            color: #00d4ff;
+            font-weight: 700;
+        }
+
+        .controls {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(0, 212, 255, 0.2);
+            animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.4s both;
+        }
+
+        .control-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .control-label {
+            font-size: 13px;
+            color: #aaa;
+            min-width: 100px;
+        }
+
+        .slider {
+            flex: 1;
+            height: 6px;
+            border-radius: 3px;
+            background: linear-gradient(90deg, rgba(0, 212, 255, 0.2), rgba(255, 0, 212, 0.2));
+            -webkit-appearance: none;
+            appearance: none;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #00d4ff, #ff00d4);
+            cursor: pointer;
+            transition: transform 0.2s;
+            box-shadow: 0 0 12px rgba(0, 212, 255, 0.5);
+        }
+
+        .slider::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+
+        .slider::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #00d4ff, #ff00d4);
+            cursor: pointer;
+            border: none;
+            transition: transform 0.2s;
+            box-shadow: 0 0 12px rgba(0, 212, 255, 0.5);
+        }
+
+        .slider::-moz-range-thumb:hover {
+            transform: scale(1.2);
+        }
+
+        .slider-value {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 12px;
+            color: #00d4ff;
+            min-width: 30px;
+            text-align: right;
+        }
+
+        .hint {
+            margin-top: 12px;
+            font-size: 12px;
+            color: #888;
+            text-align: center;
+        }
+
+        @media (max-width: 600px) {
+            .main-section {
+                padding: 16px;
+            }
+
+            .info-bar {
+                grid-template-columns: 1fr;
+            }
+
+            h1 {
+                font-size: clamp(32px, 8vw, 48px);
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation-duration: 0.01ms !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="stars" id="starfield"></div>
+
+    <div class="container">
+        <div class="hero">
+            <h1>✨ Particle Burst</h1>
+            <p class="subtitle">Click anywhere to create explosive particle effects</p>
+        </div>
+
+        <div class="main-section">
+            <canvas id="canvas"></canvas>
+
+            <div class="info-bar">
+                <div class="stat-box">
+                    <span class="stat-label">Active Particles</span>
+                    <span class="stat-value" id="particleCount">0</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-label">Bursts</span>
+                    <span class="stat-value" id="burstCount">0</span>
+                </div>
+            </div>
+
+            <div class="controls">
+                <div class="control-item">
+                    <span class="control-label">Gravity</span>
+                    <input type="range" min="0" max="0.5" step="0.05" value="0.15" class="slider" id="gravitySlider">
+                    <span class="slider-value" id="gravityValue">0.15</span>
+                </div>
+                <div class="control-item">
+                    <span class="control-label">Friction</span>
+                    <input type="range" min="0.9" max="0.99" step="0.01" value="0.95" class="slider" id="frictionSlider">
+                    <span class="slider-value" id="frictionValue">0.95</span>
+                </div>
+                <div class="control-item">
+                    <span class="control-label">Particle Count</span>
+                    <input type="range" min="10" max="200" step="10" value="80" class="slider" id="countSlider">
+                    <span class="slider-value" id="countValue">80</span>
+                </div>
+
+                <div class="hint">Adjust physics for different effects. Higher gravity = heavy drops. Lower friction = longer trails.</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Core canvas + particle logic (headless-testable)
+
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        // Set canvas to device pixel ratio for crisp rendering
+        function resizeCanvas() {
+            const dpr = window.devicePixelRatio || 1;
+            const rect = canvas.getBoundingClientRect();
+            canvas.width = rect.width * dpr;
+            canvas.height = rect.height * dpr;
+            ctx.scale(dpr, dpr);
+        }
+
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        // Particle system
+        class Particle {
+            constructor(x, y, vx, vy, hue) {
+                this.x = x;
+                this.y = y;
+                this.vx = vx;
+                this.vy = vy;
+                this.hue = hue;
+                this.opacity = 1;
+                this.life = 1;
+                this.size = Math.random() * 3 + 2;
+            }
+
+            update(gravity, friction) {
+                this.vy += gravity;
+                this.vx *= friction;
+                this.vy *= friction;
+
+                this.x += this.vx;
+                this.y += this.vy;
+
+                // Bounce off edges
+                const w = canvas.width / (window.devicePixelRatio || 1);
+                const h = canvas.height / (window.devicePixelRatio || 1);
+                if (this.x < 0 || this.x > w) this.vx *= -0.8;
+                if (this.y < 0 || this.y > h) this.vy *= -0.8;
+
+                this.x = Math.max(0, Math.min(w, this.x));
+                this.y = Math.max(0, Math.min(h, this.y));
+
+                this.life -= 0.015;
+                this.opacity = Math.max(0, this.life);
+            }
+
+            draw() {
+                ctx.fillStyle = `hsla(${this.hue}, 100%, 50%, ${this.opacity})`;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            isDead() {
+                return this.life <= 0;
+            }
+        }
+
+        let particles = [];
+        let burstCount = 0;
+        let gravity = 0.15;
+        let friction = 0.95;
+        let particleCount = 80;
+
+        // Sliders
+        document.getElementById('gravitySlider').addEventListener('input', (e) => {
+            gravity = parseFloat(e.target.value);
+            document.getElementById('gravityValue').textContent = gravity.toFixed(2);
+        });
+
+        document.getElementById('frictionSlider').addEventListener('input', (e) => {
+            friction = parseFloat(e.target.value);
+            document.getElementById('frictionValue').textContent = friction.toFixed(2);
+        });
+
+        document.getElementById('countSlider').addEventListener('input', (e) => {
+            particleCount = parseInt(e.target.value);
+            document.getElementById('countValue').textContent = particleCount;
+        });
+
+        // Canvas click to create burst
+        canvas.addEventListener('click', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            const baseHue = Math.random() * 360;
+            for (let i = 0; i < particleCount; i++) {
+                const angle = (Math.random() * Math.PI * 2);
+                const speed = Math.random() * 8 + 3;
+                const vx = Math.cos(angle) * speed;
+                const vy = Math.sin(angle) * speed;
+                const hue = baseHue + Math.random() * 60 - 30;
+
+                particles.push(new Particle(x, y, vx, vy, hue));
+            }
+
+            burstCount++;
+            document.getElementById('burstCount').textContent = burstCount;
+        });
+
+        // Animation loop
+        function animate() {
+            const w = canvas.width / (window.devicePixelRatio || 1);
+            const h = canvas.height / (window.devicePixelRatio || 1);
+
+            ctx.fillStyle = 'rgba(10, 15, 40, 0.1)';
+            ctx.fillRect(0, 0, w, h);
+
+            // Update and draw particles
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.update(gravity, friction);
+                p.draw();
+
+                if (p.isDead()) {
+                    particles.splice(i, 1);
+                }
+            }
+
+            document.getElementById('particleCount').textContent = particles.length;
+
+            requestAnimationFrame(animate);
+        }
+
+        animate();
+    </script>
+
+    <script>
+        // Starfield background (non-critical visual)
+        const starfield = document.getElementById('starfield');
+        for (let i = 0; i < 50; i++) {
+            const star = document.createElement('div');
+            star.className = 'star';
+            star.style.left = Math.random() * 100 + '%';
+            star.style.top = Math.random() * 100 + '%';
+            star.style.opacity = Math.random() * 0.5 + 0.3;
+            starfield.appendChild(star);
+        }
+    </script>
+</body>
+</html>
