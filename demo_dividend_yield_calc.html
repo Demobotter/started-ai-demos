@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dividend Yield Calculator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            font-family: 'Geist', system-ui, sans-serif;
+            overflow-x: hidden;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0d1117 0%, #1a0033 25%, #0f1f2e 50%, #1a003a 75%, #0d1117 100%);
+            background-attachment: fixed;
+            position: relative;
+        }
+
+        /* Starfield overlay */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                radial-gradient(circle, rgba(0, 255, 200, 0.15) 1px, transparent 1px),
+                radial-gradient(circle, rgba(255, 0, 200, 0.1) 1px, transparent 1px);
+            background-size: 80px 80px, 120px 120px;
+            background-position: 0 0, 40px 40px;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .container {
+            position: relative;
+            z-index: 2;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            gap: 40px;
+        }
+
+        /* Hero Section */
+        .hero {
+            text-align: center;
+            animation: heroSlideDown 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            opacity: 0;
+            transform: translateY(-30px);
+        }
+
+        @keyframes heroSlideDown {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .hero h1 {
+            font-family: 'Instrument Serif', serif;
+            font-size: clamp(42px, 8vw, 72px);
+            font-weight: 700;
+            background: linear-gradient(90deg, #00ffc8, #ff00ff, #ff00e5);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 12px;
+            letter-spacing: -1px;
+        }
+
+        .hero p {
+            font-size: 16px;
+            color: rgba(255, 255, 255, 0.6);
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        /* Main Grid */
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 32px;
+            animation: gridFadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.2s forwards;
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        @keyframes gridFadeInUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Input Panel */
+        .panel {
+            background: rgba(13, 17, 23, 0.7);
+            backdrop-filter: blur(20px);
+            border: 2px solid;
+            border-radius: 12px;
+            padding: 32px;
+        }
+
+        .panel.input-panel {
+            border-color: #00ffc8;
+            box-shadow: 0 8px 32px rgba(0, 255, 200, 0.1);
+        }
+
+        .panel.results-panel {
+            border-color: #ff00ff;
+            box-shadow: 0 8px 32px rgba(255, 0, 255, 0.1);
+        }
+
+        .panel-title {
+            font-size: 14px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 24px;
+            color: #00ffc8;
+        }
+
+        .results-panel .panel-title {
+            color: #ff00ff;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        label {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        input {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            padding: 12px 16px;
+            font-family: 'Geist', system-ui, sans-serif;
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.9);
+            transition: all 0.2s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #00ffc8;
+            background: rgba(0, 255, 200, 0.05);
+            box-shadow: 0 0 12px rgba(0, 255, 200, 0.2);
+        }
+
+        input::placeholder {
+            color: rgba(255, 255, 255, 0.3);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        button {
+            flex: 1;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: 'Geist', system-ui, sans-serif;
+        }
+
+        .btn-calculate {
+            background: linear-gradient(90deg, #00ffc8, #00ffaa);
+            color: #0d1117;
+        }
+
+        .btn-calculate:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0, 255, 200, 0.3);
+        }
+
+        .btn-reset {
+            background: rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-reset:hover {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        /* Results Grid */
+        .results-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .result-item {
+            background: rgba(255, 255, 255, 0.05);
+            border-left: 3px solid #ff00ff;
+            padding: 16px;
+            border-radius: 8px;
+            opacity: 0;
+            animation: resultFade 0.3s ease-out forwards;
+        }
+
+        @keyframes resultFade {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .result-item:nth-child(1) { animation-delay: 0.05s; }
+        .result-item:nth-child(2) { animation-delay: 0.1s; }
+        .result-item:nth-child(3) { animation-delay: 0.15s; }
+        .result-item:nth-child(4) { animation-delay: 0.2s; }
+
+        .result-label {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: rgba(255, 255, 255, 0.6);
+            margin-bottom: 6px;
+        }
+
+        .result-value {
+            font-family: 'Courier New', monospace;
+            font-size: 22px;
+            font-weight: 700;
+            color: #00ffc8;
+            word-break: break-all;
+        }
+
+        .result-item:nth-child(2n) .result-value,
+        .result-item:nth-child(4n) .result-value {
+            color: #00ffff;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 14px;
+        }
+
+        .status-message {
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            margin-top: 16px;
+            text-align: center;
+            display: none;
+        }
+
+        .status-message.loading {
+            display: block;
+            background: rgba(0, 255, 200, 0.1);
+            border: 1px solid rgba(0, 255, 200, 0.3);
+            color: #00ffc8;
+        }
+
+        .status-message.error {
+            display: block;
+            background: rgba(255, 100, 100, 0.1);
+            border: 1px solid rgba(255, 100, 100, 0.3);
+            color: #ff6464;
+        }
+
+        .status-message.success {
+            display: block;
+            background: rgba(0, 255, 200, 0.1);
+            border: 1px solid rgba(0, 255, 200, 0.3);
+            color: #00ffc8;
+        }
+
+        /* Mobile */
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+
+            .results-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .container {
+                padding: 24px 16px;
+                gap: 24px;
+            }
+
+            .panel {
+                padding: 24px;
+            }
+        }
+
+        /* Reduced motion */
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation-duration: 0.01ms !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border: 2px solid rgba(0, 255, 200, 0.3);
+            border-top-color: #00ffc8;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="hero">
+            <h1>💰 Dividend Yield Calculator</h1>
+            <p>See how much income your stocks generate annually</p>
+        </div>
+
+        <div class="grid">
+            <!-- Input Panel -->
+            <div class="panel input-panel">
+                <div class="panel-title">📊 Enter Stock Details</div>
+                
+                <div class="input-group">
+                    <label for="ticker">Stock Ticker</label>
+                    <input type="text" id="ticker" placeholder="e.g., AAPL, MSFT, JNJ" value="JNJ">
+                </div>
+
+                <div class="input-group">
+                    <label for="shares">Number of Shares</label>
+                    <input type="number" id="shares" placeholder="e.g., 100" value="100" min="1">
+                </div>
+
+                <div class="input-group">
+                    <label for="dividend">Annual Dividend Per Share ($)</label>
+                    <input type="number" id="dividend" placeholder="e.g., 4.50" value="4.50" step="0.01" min="0">
+                </div>
+
+                <div class="button-group">
+                    <button class="btn-calculate" onclick="calculateYield()">Calculate</button>
+                    <button class="btn-reset" onclick="resetForm()">Reset</button>
+                </div>
+
+                <div class="status-message" id="status"></div>
+            </div>
+
+            <!-- Results Panel -->
+            <div class="panel results-panel">
+                <div class="panel-title">📈 Your Results</div>
+                <div id="results">
+                    <div class="empty-state">Enter your stock details and click Calculate.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Core math functions (headless-testable)
+        function calculateDividendYield(currentPrice, annualDividend) {
+            if (currentPrice <= 0) return 0;
+            return ((annualDividend / currentPrice) * 100);
+        }
+
+        function calculateAnnualPayout(annualDividend, shares) {
+            if (shares <= 0) return 0;
+            return annualDividend * shares;
+        }
+
+        function formatCurrency(value) {
+            return new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD',
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }).format(value);
+        }
+
+        function formatPercent(value) {
+            return (value).toFixed(2) + '%';
+        }
+
+        // Fetch stock data from hardcoded list
+        async function fetchStockPrice(ticker) {
+            try {
+                // Simulate async fetch with hardcoded stock prices
+                const prices = {
+                    'JNJ': 155.42,
+                    'MSFT': 421.88,
+                    'AAPL': 189.95,
+                    'PG': 164.50,
+                    'KO': 63.42,
+                    'PM': 102.35,
+                    'PEP': 205.60,
+                    'T': 18.92,
+                    'VZ': 41.75,
+                    'F': 10.45
+                };
+
+                const price = prices[ticker.toUpperCase()];
+                if (!price) {
+                    throw new Error(`Ticker "${ticker}" not found. Try: AAPL, MSFT, JNJ, PG, KO, PM, PEP, T, VZ, F`);
+                }
+
+                return price;
+            } catch (error) {
+                throw new Error(`Could not fetch price: ${error.message}`);
+            }
+        }
+
+        async function calculateYield() {
+            const ticker = document.getElementById('ticker').value.trim();
+            const shares = parseFloat(document.getElementById('shares').value);
+            const dividend = parseFloat(document.getElementById('dividend').value);
+            const status = document.getElementById('status');
+            const resultsDiv = document.getElementById('results');
+
+            // Clear previous status
+            status.className = 'status-message';
+            status.innerHTML = '';
+
+            if (!ticker) {
+                status.className = 'status-message error';
+                status.textContent = '⚠️ Please enter a stock ticker.';
+                return;
+            }
+
+            if (!shares || shares <= 0) {
+                status.className = 'status-message error';
+                status.textContent = '⚠️ Please enter a valid number of shares.';
+                return;
+            }
+
+            if (dividend < 0) {
+                status.className = 'status-message error';
+                status.textContent = '⚠️ Dividend cannot be negative.';
+                return;
+            }
+
+            // Show loading state
+            status.className = 'status-message loading';
+            status.innerHTML = '<span class="loading-spinner"></span> Fetching data...';
+
+            try {
+                const price = await fetchStockPrice(ticker);
+
+                // Calculate metrics
+                const yieldPercent = calculateDividendYield(price, dividend);
+                const annualPayout = calculateAnnualPayout(dividend, shares);
+
+                // Render results
+                const resultsHTML = `
+                    <div class="results-grid">
+                        <div class="result-item">
+                            <div class="result-label">Stock Price</div>
+                            <div class="result-value">${formatCurrency(price)}</div>
+                        </div>
+                        <div class="result-item">
+                            <div class="result-label">Dividend Yield</div>
+                            <div class="result-value">${formatPercent(yieldPercent)}</div>
+                        </div>
+                        <div class="result-item">
+                            <div class="result-label">Annual Payout</div>
+                            <div class="result-value">${formatCurrency(annualPayout)}</div>
+                        </div>
+                        <div class="result-item">
+                            <div class="result-label">Monthly Income</div>
+                            <div class="result-value">${formatCurrency(annualPayout / 12)}</div>
+                        </div>
+                    </div>
+                `;
+
+                resultsDiv.innerHTML = resultsHTML;
+                status.className = 'status-message success';
+                status.textContent = `✓ Data loaded for ${ticker.toUpperCase()}`;
+
+                // Clear status after 3 seconds
+                setTimeout(() => {
+                    status.className = 'status-message';
+                    status.textContent = '';
+                }, 3000);
+            } catch (error) {
+                status.className = 'status-message error';
+                status.textContent = `❌ ${error.message}`;
+                resultsDiv.innerHTML = '<div class="empty-state">Unable to load data. Please try again.</div>';
+            }
+        }
+
+        function resetForm() {
+            document.getElementById('ticker').value = 'JNJ';
+            document.getElementById('shares').value = '100';
+            document.getElementById('dividend').value = '4.50';
+            document.getElementById('results').innerHTML = '<div class="empty-state">Enter your stock details and click Calculate.</div>';
+            document.getElementById('status').className = 'status-message';
+            document.getElementById('status').textContent = '';
+        }
+
+        // Allow Enter to calculate
+        document.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && e.target.tagName === 'INPUT') {
+                calculateYield();
+            }
+        });
+    </script>
+</body>
+</html>
