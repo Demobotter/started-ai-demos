@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Live Ticker Bars</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+      font-family: 'Sora', sans-serif;
+      background: linear-gradient(135deg, #0a0e27 0%, #1a0033 50%, #0f2847 100%);
+      color: #e0e0e0;
+      min-height: 100vh;
+      padding: 2rem;
+      overflow-x: hidden;
+    }
+    
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: 
+        radial-gradient(circle at 20% 50%, rgba(0, 255, 136, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 80% 80%, rgba(255, 0, 136, 0.1) 0%, transparent 50%);
+      pointer-events: none;
+      z-index: -1;
+    }
+    
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+    
+    .hero {
+      text-align: center;
+      margin-bottom: 3rem;
+      animation: slideDown 0.8s cubic-bezier(0.16, 1, 0.3, 1) ease-out;
+    }
+    
+    @keyframes slideDown {
+      from {
+        opacity: 0;
+        transform: translateY(-40px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    .hero h1 {
+      font-size: clamp(42px, 8vw, 72px);
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      background: linear-gradient(90deg, #00ff88, #00ffff, #ff00ff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: -0.02em;
+    }
+    
+    .hero p {
+      font-size: 1rem;
+      color: #999;
+      font-weight: 400;
+    }
+    
+    .ticker-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem;
+      animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) ease-out 0.2s both;
+    }
+    
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    .ticker-card {
+      background: rgba(15, 25, 50, 0.6);
+      border: 1.5px solid rgba(0, 255, 136, 0.3);
+      border-radius: 12px;
+      padding: 1.5rem;
+      backdrop-filter: blur(10px);
+      transition: all 0.3s ease;
+    }
+    
+    .ticker-card:hover {
+      border-color: rgba(0, 255, 136, 0.8);
+      background: rgba(15, 25, 50, 0.9);
+      transform: translateY(-4px);
+    }
+    
+    .ticker-symbol {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #00ff88;
+      margin-bottom: 0.5rem;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    
+    .ticker-price {
+      font-size: 2rem;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 0.25rem;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    
+    .ticker-change {
+      font-size: 0.95rem;
+      margin-bottom: 1rem;
+      font-family: 'JetBrains Mono', monospace;
+      transition: color 0.3s ease;
+    }
+    
+    .ticker-change.up {
+      color: #00ff88;
+    }
+    
+    .ticker-change.down {
+      color: #ff4444;
+    }
+    
+    .ticker-bar {
+      width: 100%;
+      height: 32px;
+      background: rgba(50, 50, 100, 0.4);
+      border-radius: 6px;
+      overflow: hidden;
+      margin-bottom: 0.5rem;
+    }
+    
+    .ticker-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #00ff88, #00ffff);
+      width: 0%;
+      transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      padding-right: 8px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #000;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    
+    .ticker-bar-fill.down {
+      background: linear-gradient(90deg, #ff4444, #ff8800);
+    }
+    
+    .status {
+      text-align: center;
+      margin-bottom: 2rem;
+      font-size: 0.95rem;
+      color: #999;
+      font-family: 'JetBrains Mono', monospace;
+      animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) ease-out 0.1s both;
+    }
+    
+    .status.loading::after {
+      content: ' ⏳';
+      animation: pulse 0.6s infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    
+    @media (max-width: 768px) {
+      .ticker-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      body {
+        padding: 1rem;
+      }
+    }
+    
+    @media (prefers-reduced-motion: reduce) {
+      * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="hero">
+      <h1>Market Pulse</h1>
+      <p>Live crypto prices & 24h performance</p>
+    </div>
+    
+    <div class="status" id="status">Loading market data…</div>
+    
+    <div class="ticker-grid" id="ticker-grid"></div>
+  </div>
+  
+  <script>
+    const SYMBOLS = ['bitcoin', 'ethereum', 'ripple', 'cardano'];
+    const STATUS_EL = document.getElementById('status');
+    const GRID_EL = document.getElementById('ticker-grid');
+    let previousPrices = {};
+    
+    async function fetchPrices() {
+      try {
+        const ids = SYMBOLS.join(',');
+        const url = `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true&include_market_cap=false`;
+        
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        
+        const data = await response.json();
+        renderTickers(data);
+        STATUS_EL.textContent = '✓ Live data updated';
+        STATUS_EL.classList.remove('loading');
+        previousPrices = { ...data };
+      } catch (error) {
+        STATUS_EL.textContent = '✗ Error fetching data';
+        console.error(error);
+      }
+    }
+    
+    function renderTickers(data) {
+      GRID_EL.innerHTML = '';
+      
+      SYMBOLS.forEach(symbol => {
+        const priceData = data[symbol];
+        if (!priceData) return;
+        
+        const price = priceData.usd;
+        const change24h = priceData.usd_24h_change || 0;
+        const previousPrice = previousPrices[symbol]?.usd || price;
+        const isUp = change24h >= 0;
+        
+        // Clamp bar width to 0–100%
+        const barWidth = Math.min(100, Math.max(0, Math.abs(change24h)));
+        
+        const card = document.createElement('div');
+        card.className = 'ticker-card';
+        card.innerHTML = `
+          <div class="ticker-symbol">${symbol.toUpperCase()}</div>
+          <div class="ticker-price">$${price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+          <div class="ticker-change ${isUp ? 'up' : 'down'}">
+            ${isUp ? '▲' : '▼'} ${Math.abs(change24h).toFixed(2)}%
+          </div>
+          <div class="ticker-bar">
+            <div class="ticker-bar-fill ${isUp ? '' : 'down'}" style="width: ${barWidth}%">
+              ${barWidth > 10 ? Math.abs(change24h).toFixed(1) + '%' : ''}
+            </div>
+          </div>
+        `;
+        
+        GRID_EL.appendChild(card);
+      });
+    }
+    
+    // Initial fetch
+    STATUS_EL.classList.add('loading');
+    fetchPrices();
+    
+    // Refresh every 10 seconds
+    setInterval(fetchPrices, 10000);
+  </script>
+</body>
+</html>
