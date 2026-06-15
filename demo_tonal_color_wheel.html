@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tonal Color Wheel — HSL Harmony Explorer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@700;800&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; font-family: 'IBM Plex Mono', monospace; color: #e0e0ff; }
+    
+    body {
+      background: linear-gradient(135deg, #0a1428 0%, #1a0a2e 50%, #0f1f3f 100%);
+      overflow-y: auto;
+      padding: 2rem 1rem;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: radial-gradient(circle at 20% 50%, rgba(0, 255, 200, 0.08) 0%, transparent 50%),
+                  radial-gradient(circle at 80% 80%, rgba(255, 0, 150, 0.06) 0%, transparent 50%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    main { position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; }
+
+    .hero {
+      text-align: center;
+      margin-bottom: 3rem;
+      animation: slideDown 0.8s cubic-bezier(.16,1,.3,1);
+    }
+
+    .hero h1 {
+      font-family: 'Outfit', sans-serif;
+      font-size: clamp(36px, 6vw, 64px);
+      font-weight: 800;
+      margin-bottom: 0.5rem;
+      background: linear-gradient(90deg, #00ffcc, #ff00ff, #ff0080);
+      background-size: 200% auto;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: gradientShift 4s ease-in-out infinite;
+    }
+
+    .hero p {
+      font-size: 14px;
+      opacity: 0.7;
+      animation: fadeInUp 0.6s cubic-bezier(.16,1,.3,1) 0.1s both;
+    }
+
+    .container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+      animation: fadeInUp 0.6s cubic-bezier(.16,1,.3,1) 0.2s both;
+    }
+
+    .canvas-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+      padding: 2rem;
+      background: rgba(20, 30, 60, 0.4);
+      border: 2px solid rgba(0, 255, 200, 0.5);
+      border-radius: 16px;
+      backdrop-filter: blur(20px);
+    }
+
+    .wheel-wrapper {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex: 1;
+      min-height: 320px;
+    }
+
+    svg.wheel {
+      max-width: 100%;
+      height: auto;
+      filter: drop-shadow(0 0 20px rgba(0, 255, 200, 0.3));
+    }
+
+    .controls-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+      padding: 2rem;
+      background: rgba(20, 30, 60, 0.4);
+      border: 2px solid rgba(255, 0, 150, 0.5);
+      border-radius: 16px;
+      backdrop-filter: blur(20px);
+    }
+
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .control-label {
+      font-weight: 600;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      color: #00ffcc;
+    }
+
+    .slider-row {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+    }
+
+    input[type="range"] {
+      flex: 1;
+      height: 6px;
+      border-radius: 3px;
+      background: linear-gradient(90deg, #00ffcc, #ff00ff);
+      outline: none;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #00ffcc, #ff00ff);
+      cursor: pointer;
+      box-shadow: 0 0 12px rgba(0, 255, 200, 0.6);
+      transition: box-shadow 0.2s;
+    }
+
+    input[type="range"]::-moz-range-thumb {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #00ffcc, #ff00ff);
+      cursor: pointer;
+      box-shadow: 0 0 12px rgba(0, 255, 200, 0.6);
+      border: none;
+      transition: box-shadow 0.2s;
+    }
+
+    input[type="range"]::-webkit-slider-thumb:hover {
+      box-shadow: 0 0 20px rgba(0, 255, 200, 0.8);
+    }
+
+    .slider-value {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 14px;
+      color: #ff00ff;
+      min-width: 40px;
+      text-align: right;
+    }
+
+    .scheme-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.8rem;
+    }
+
+    .scheme-name {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #ff00ff;
+      opacity: 0.8;
+    }
+
+    .scheme-colors {
+      display: flex;
+      gap: 0.8rem;
+    }
+
+    .color-swatch {
+      flex: 1;
+      aspect-ratio: 1;
+      border-radius: 8px;
+      border: 2px solid rgba(255, 255, 255, 0.1);
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(.16,1,.3,1);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+    }
+
+    .color-swatch:hover {
+      transform: scale(1.05);
+      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5);
+      border-color: rgba(255, 255, 255, 0.3);
+    }
+
+    .color-label {
+      font-size: 10px;
+      color: #b0b0d0;
+      opacity: 0.7;
+      margin-top: 0.3rem;
+      word-break: break-word;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+
+    .stat-box {
+      padding: 1rem;
+      background: rgba(0, 255, 200, 0.05);
+      border-left: 3px solid #00ffcc;
+      border-radius: 8px;
+    }
+
+    .stat-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #00ffcc;
+      margin-bottom: 0.5rem;
+    }
+
+    .stat-value {
+      font-size: 20px;
+      font-weight: 600;
+      color: #fff;
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    .reset-btn {
+      padding: 0.75rem 1.5rem;
+      background: linear-gradient(90deg, #00ffcc, #ff00ff);
+      color: #000;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(.16,1,.3,1);
+      font-family: 'Outfit', sans-serif;
+    }
+
+    .reset-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0, 255, 200, 0.4);
+    }
+
+    .reset-btn:active {
+      transform: translateY(0);
+    }
+
+    @media (max-width: 768px) {
+      .container {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+      }
+      .hero h1 { font-size: clamp(32px, 8vw, 48px); }
+      .wheel-wrapper { min-height: 280px; }
+      .canvas-panel, .controls-panel { padding: 1.5rem; }
+    }
+
+    @keyframes slideDown {
+      from { opacity: 0; transform: translateY(-20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes gradientShift {
+      0%, 100% { background-position: 0% center; }
+      50% { background-position: 100% center; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * { animation-duration: 0.01ms !important; animation-delay: 0 !important; transition-duration: 0.01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="hero">
+      <h1>🎨 Tonal Color Wheel</h1>
+      <p>Click the wheel to explore color harmonies in real-time</p>
+    </div>
+
+    <div class="container">
+      <div class="canvas-panel">
+        <div class="wheel-wrapper">
+          <svg class="wheel" width="300" height="300" viewBox="0 0 300 300">
+            <defs>
+              <filter id="hueGlow">
+                <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+                <feMerge>
+                  <feMergeNode in="coloredBlur"/>
+                  <feMergeNode in="SourceGraphic"/>
+                </feMerge>
+              </filter>
+            </defs>
+            <g id="hueWheel"></g>
+            <circle cx="150" cy="150" r="140" fill="none" stroke="rgba(0, 255, 200, 0.2)" stroke-width="2" stroke-dasharray="4 4"/>
+            <g id="needle"></g>
+            <circle cx="150" cy="150" r="30" fill="rgba(20, 30, 60, 0.8)" stroke="#00ffcc" stroke-width="2"/>
+            <text x="150" y="155" text-anchor="middle" font-size="12" fill="#00ffcc" font-family="IBM Plex Mono" font-weight="600">HSL</text>
+          </svg>
+        </div>
+      </div>
+
+      <div class="controls-panel">
+        <div class="control-group">
+          <div class="control-label">Current Hue</div>
+          <div style="padding: 1rem; background: rgba(0, 255, 200, 0.1); border-left: 3px solid #00ffcc; border-radius: 8px;">
+            <div style="font-size: 24px; font-weight: 600; color: #00ffcc; margin-bottom: 0.5rem;" id="hueDisplay">0°</div>
+            <div style="font-size: 12px; color: #b0b0d0;" id="hueName">Red</div>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <div class="control-label">Saturation</div>
+          <div class="slider-row">
+            <input type="range" id="saturationSlider" min="0" max="100" value="100">
+            <span class="slider-value" id="satValue">100%</span>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <div class="control-label">Lightness</div>
+          <div class="slider-row">
+            <input type="range" id="lightnessSlider" min="0" max="100" value="50">
+            <span class="slider-value" id="lightValue">50%</span>
+          </div>
+        </div>
+
+        <div class="scheme-group">
+          <div class="control-label">Complementary</div>
+          <div class="scheme-colors" id="complementaryScheme"></div>
+        </div>
+
+        <div class="scheme-group">
+          <div class="control-label">Triadic</div>
+          <div class="scheme-colors" id="triadicScheme"></div>
+        </div>
+
+        <div class="scheme-group">
+          <div class="control-label">Analogous</div>
+          <div class="scheme-colors" id="analogousScheme"></div>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat-box">
+            <div class="stat-label">Total Swatches</div>
+            <div class="stat-value" id="swatchCount">8</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Updates</div>
+            <div class="stat-value" id="updateCount">0</div>
+          </div>
+        </div>
+
+        <button class="reset-btn" id="resetBtn">Reset to Red</button>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    function hslToRgb(h, s, l) {
+      const c = (1 - Math.abs(2 * (l / 100) - 1)) * (s / 100);
+      const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+      const m = (l / 100) - c / 2;
+      let r = 0, g = 0, b = 0;
+
+      if (h >= 0 && h < 60) { r = c; g = x; b = 0; }
+      else if (h >= 60 && h < 120) { r = x; g = c; b = 0; }
+      else if (h >= 120 && h < 180) { r = 0; g = c; b = x; }
+      else if (h >= 180 && h < 240) { r = 0; g = x; b = c; }
+      else if (h >= 240 && h < 300) { r = x; g = 0; b = c; }
+      else if (h >= 300 && h < 360) { r = c; g = 0; b = x; }
+
+      return {
+        r: Math.round((r + m) * 255),
+        g: Math.round((g + m) * 255),
+        b: Math.round((b + m) * 255)
+      };
+    }
+
+    function rgbToHex(r, g, b) {
+      return '#' + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('');
+    }
+
+    function getHueName(h) {
+      if (h < 15 || h >= 345) return 'Red';
+      if (h < 45) return 'Orange';
+      if (h < 65) return 'Yellow';
+      if (h < 150) return 'Green';
+      if (h < 200) return 'Cyan';
+      if (h < 270) return 'Blue';
+      if (h < 300) return 'Magenta';
+      return 'Red-Magenta';
+    }
+
+    function getComplementary(h) {
+      return (h + 180) % 360;
+    }
+
+    function getTriadic(h) {
+      return [(h) % 360, (h + 120) % 360, (h + 240) % 360];
+    }
+
+    function getAnalogous(h) {
+      return [(h - 30 + 360) % 360, h, (h + 30) % 360];
+    }
+
+    let state = {
+      hue: 0,
+      saturation: 100,
+      lightness: 50,
+      updateCount: 0
+    };
+
+    const hueDisplay = document.getElementById('hueDisplay');
+    const hueName = document.getElementById('hueName');
+    const saturationSlider = document.getElementById('saturationSlider');
+    const lightnessSlider = document.getElementById('lightnessSlider');
+    const satValue = document.getElementById('satValue');
+    const lightValue = document.getElementById('lightValue');
+    const resetBtn = document.getElementById('resetBtn');
+    const hueWheel = document.getElementById('hueWheel');
+    const needle = document.getElementById('needle');
+    const complementaryScheme = document.getElementById('complementaryScheme');
+    const triadicScheme = document.getElementById('triadicScheme');
+    const analogousScheme = document.getElementById('analogousScheme');
+    const updateCount = document.getElementById('updateCount');
+
+    function renderWheel() {
+      hueWheel.innerHTML = '';
+      const numSegments = 60;
+      const radius = 140;
+
+      for (let i = 0; i < numSegments; i++) {
+        const hue = (i / numSegments) * 360;
+        const nextHue = ((i + 1) / numSegments) * 360;
+        const angle1 = (hue - 90) * (Math.PI / 180);
+        const angle2 = (nextHue - 90) * (Math.PI / 180);
+
+        const x1 = 150 + radius * Math.cos(angle1);
+        const y1 = 150 + radius * Math.sin(angle1);
+        const x2 = 150 + radius * Math.cos(angle2);
+        const y2 = 150 + radius * Math.sin(angle2);
+
+        const rgb = hslToRgb(hue, 100, 50);
+        const color = rgbToHex(rgb.r, rgb.g, rgb.b);
+
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        const largeArc = nextHue - hue > 180 ? 1 : 0;
+        const pathData = `M 150 150 L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2} Z`;
+        path.setAttribute('d', pathData);
+        path.setAttribute('fill', color);
+        path.setAttribute('stroke', 'rgba(0, 0, 0, 0.1)');
+        path.setAttribute('stroke-width', '0.5');
+        path.style.cursor = 'pointer';
+        path.addEventListener('click', () => setHue(hue));
+        path.addEventListener('mouseenter', (e) => {
+          e.target.style.filter = 'brightness(1.2)';
+        });
+        path.addEventListener('mouseleave', (e) => {
+          e.target.style.filter = 'none';
+        });
+
+        hueWheel.appendChild(path);
+      }
+    }
+
+    function updateNeedle() {
+      needle.innerHTML = '';
+      const angle = (state.hue - 90) * (Math.PI / 180);
+      const radius = 140;
+      const x = 150 + radius * Math.cos(angle);
+      const y = 150 + radius * Math.sin(angle);
+
+      const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      line.setAttribute('x1', '150');
+      line.setAttribute('y1', '150');
+      line.setAttribute('x2', String(x));
+      line.setAttribute('y2', String(y));
+      line.setAttribute('stroke', '#00ffcc');
+      line.setAttribute('stroke-width', '2');
+      line.setAttribute('filter', 'url(#hueGlow)');
+
+      const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      dot.setAttribute('cx', String(x));
+      dot.setAttribute('cy', String(y));
+      dot.setAttribute('r', '6');
+      dot.setAttribute('fill', '#00ffcc');
+      dot.setAttribute('stroke', 'rgba(255, 255, 255, 0.5)');
+      dot.setAttribute('stroke-width', '2');
+
+      group.appendChild(line);
+      group.appendChild(dot);
+      needle.appendChild(group);
+    }
+
+    function renderSchemes() {
+      const comp = getComplementary(state.hue);
+      complementaryScheme.innerHTML = '';
+      [state.hue, comp].forEach(h => {
+        const rgb = hslToRgb(h, state.saturation, state.lightness);
+        const hex = rgbToHex(rgb.r, rgb.g, rgb.b);
+        const div = document.createElement('div');
+        div.style.flex = '1';
+        div.innerHTML = `<div class="color-swatch" style="background: ${hex}; cursor: pointer;" onclick="navigator.clipboard.writeText('${hex}')"></div><div class="color-label">${hex}</div>`;
+        complementaryScheme.appendChild(div);
+      });
+
+      const triadic = getTriadic(state.hue);
+      triadicScheme.innerHTML = '';
+      triadic.forEach(h => {
+        const rgb = hslToRgb(h, state.saturation, state.lightness);
+        const hex = rgbToHex(rgb.r, rgb.g, rgb.b);
+        const div = document.createElement('div');
+        div.style.flex = '1';
+        div.innerHTML = `<div class="color-swatch" style="background: ${hex}; cursor: pointer;" onclick="navigator.clipboard.writeText('${hex}')"></div><div class="color-label">${hex}</div>`;
+        triadicScheme.appendChild(div);
+      });
+
+      const analogous = getAnalogous(state.hue);
+      analogousScheme.innerHTML = '';
+      analogous.forEach(h => {
+        const rgb = hslToRgb(h, state.saturation, state.lightness);
+        const hex = rgbToHex(rgb.r, rgb.g, rgb.b);
+        const div = document.createElement('div');
+        div.style.flex = '1';
+        div.innerHTML = `<div class="color-swatch" style="background: ${hex}; cursor: pointer;" onclick="navigator.clipboard.writeText('${hex}')"></div><div class="color-label">${hex}</div>`;
+        analogousScheme.appendChild(div);
+      });
+    }
+
+    function setHue(h) {
+      state.hue = h;
+      state.updateCount++;
+      updateDisplay();
+    }
+
+    function updateDisplay() {
+      hueDisplay.textContent = Math.round(state.hue) + '°';
+      hueName.textContent = getHueName(state.hue);
+      satValue.textContent = state.saturation + '%';
+      lightValue.textContent = state.lightness + '%';
+      updateCount.textContent = state.updateCount;
+
+      updateNeedle();
+      renderSchemes();
+    }
+
+    saturationSlider.addEventListener('input', (e) => {
+      state.saturation = parseInt(e.target.value);
+      state.updateCount++;
+      updateDisplay();
+    });
+
+    lightnessSlider.addEventListener('input', (e) => {
+      state.lightness = parseInt(e.target.value);
+      state.updateCount++;
+      updateDisplay();
+    });
+
+    resetBtn.addEventListener('click', () => {
+      state.hue = 0;
+      state.saturation = 100;
+      state.lightness = 50;
+      state.updateCount = 0;
+      saturationSlider.value = 100;
+      lightnessSlider.value = 50;
+      updateDisplay();
+    });
+
+    renderWheel();
+    updateDisplay();
+  </script>
+</body>
+</html>
