@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tessellation Tile Toy</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;700;800&family=Albert+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Albert Sans', sans-serif;
+            background: linear-gradient(135deg, #0f0f2e 0%, #1a0a3a 50%, #0a1f30 100%);
+            min-height: 100vh;
+            padding: 2rem;
+            color: #fff;
+            overflow-x: hidden;
+        }
+
+        /* Starfield texture */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-image: 
+                radial-gradient(2px 2px at 20% 30%, #00ffff, transparent),
+                radial-gradient(2px 2px at 60% 70%, #ff00ff, transparent),
+                radial-gradient(1px 1px at 50% 50%, #00ffff, transparent),
+                radial-gradient(1px 1px at 80% 10%, #ff00ff, transparent);
+            background-repeat: repeat;
+            background-size: 200px 200px, 150px 150px, 180px 180px, 160px 160px;
+            opacity: 0.15;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* Hero */
+        .hero {
+            text-align: center;
+            margin-bottom: 3rem;
+            animation: slideDown 0.8s cubic-bezier(.16,1,.3,1);
+        }
+
+        .hero h1 {
+            font-family: 'Unbounded', sans-serif;
+            font-size: clamp(42px, 8vw, 72px);
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(90deg, #00ffff, #ff00ff, #ff00ff, #00ffff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -1px;
+        }
+
+        .hero p {
+            font-size: 1.1rem;
+            color: #aaa;
+            font-weight: 400;
+        }
+
+        /* Main grid */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 300px;
+            gap: 2rem;
+            animation: fadeInUp 0.6s cubic-bezier(.16,1,.3,1) 0.2s both;
+        }
+
+        /* Tile canvas section */
+        .tile-section {
+            background: rgba(20, 20, 40, 0.6);
+            backdrop-filter: blur(20px);
+            border: 2px solid #00ffff;
+            border-radius: 12px;
+            padding: 2rem;
+        }
+
+        .tile-section h2 {
+            font-family: 'Unbounded', sans-serif;
+            font-size: 1.3rem;
+            margin-bottom: 1.5rem;
+            color: #00ffff;
+            font-weight: 700;
+        }
+
+        /* SVG container */
+        #tileCanvas {
+            width: 100%;
+            height: auto;
+            background: rgba(5, 10, 30, 0.9);
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            border-radius: 8px;
+            cursor: crosshair;
+            display: block;
+        }
+
+        /* Control panel */
+        .control-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            animation: fadeInUp 0.6s cubic-bezier(.16,1,.3,1) 0.3s both;
+        }
+
+        .control-box {
+            background: rgba(20, 20, 40, 0.6);
+            backdrop-filter: blur(20px);
+            border: 2px solid #ff00ff;
+            border-radius: 12px;
+            padding: 1.5rem;
+        }
+
+        .control-box h3 {
+            font-family: 'Unbounded', sans-serif;
+            font-size: 0.95rem;
+            color: #ff00ff;
+            margin-bottom: 1rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Color picker */
+        .color-picker-group {
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
+        }
+
+        #colorPicker {
+            width: 60px;
+            height: 60px;
+            border: 2px solid #00ffff;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .color-label {
+            font-size: 0.85rem;
+            color: #aaa;
+            flex: 1;
+            font-family: 'Albert Sans', monospace;
+        }
+
+        /* Slider */
+        .slider-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9rem;
+            color: #aaa;
+        }
+
+        .slider-label strong {
+            color: #00ffff;
+            font-family: 'Albert Sans', monospace;
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 8px;
+            border-radius: 5px;
+            background: linear-gradient(90deg, #00ffff, #ff00ff);
+            outline: none;
+            cursor: pointer;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #00ffff, #ff00ff);
+            cursor: pointer;
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.5);
+            transition: box-shadow 0.2s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            box-shadow: 0 0 25px rgba(0, 255, 255, 0.8);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #00ffff, #ff00ff);
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.5);
+            transition: box-shadow 0.2s;
+        }
+
+        input[type="range"]::-moz-range-thumb:hover {
+            box-shadow: 0 0 25px rgba(0, 255, 255, 0.8);
+        }
+
+        /* Stats */
+        .stats-group {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1rem;
+        }
+
+        .stat-item {
+            background: rgba(0, 255, 255, 0.05);
+            border-left: 3px solid #00ffff;
+            padding: 1rem;
+            border-radius: 6px;
+            font-size: 0.85rem;
+        }
+
+        .stat-label {
+            color: #aaa;
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-value {
+            font-size: 1.3rem;
+            color: #00ffff;
+            font-family: 'Albert Sans', monospace;
+            font-weight: 700;
+        }
+
+        /* Button */
+        .reset-btn {
+            width: 100%;
+            padding: 0.75rem;
+            background: linear-gradient(90deg, #00ffff, #ff00ff);
+            color: #0a0a1f;
+            border: none;
+            border-radius: 8px;
+            font-family: 'Unbounded', sans-serif;
+            font-size: 0.9rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .reset-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(0, 255, 255, 0.3);
+        }
+
+        .reset-btn:active {
+            transform: translateY(0);
+        }
+
+        /* Animations */
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Reduced motion */
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation-duration: 0.01ms !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+
+        /* Mobile */
+        @media (max-width: 768px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .control-panel {
+                flex-direction: row;
+                gap: 1rem;
+                flex-wrap: wrap;
+            }
+
+            .control-box {
+                flex: 1;
+                min-width: 150px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Hero -->
+        <div class="hero">
+            <h1>🎨 Tessellation Tile Toy</h1>
+            <p>Paint a hexagonal mosaic in real-time</p>
+        </div>
+
+        <!-- Main grid -->
+        <div class="main-grid">
+            <!-- Canvas section -->
+            <div class="tile-section">
+                <h2>Canvas</h2>
+                <svg id="tileCanvas" viewBox="0 0 800 600" preserveAspectRatio="xMidYMid meet"></svg>
+            </div>
+
+            <!-- Control panel -->
+            <div class="control-panel">
+                <!-- Color picker -->
+                <div class="control-box">
+                    <h3>Color</h3>
+                    <div class="color-picker-group">
+                        <input type="color" id="colorPicker" value="#ff0080">
+                        <div class="color-label" id="colorLabel">#ff0080</div>
+                    </div>
+                </div>
+
+                <!-- Zoom slider -->
+                <div class="control-box">
+                    <h3>Zoom</h3>
+                    <div class="slider-group">
+                        <div class="slider-label">
+                            <span>Tile Size</span>
+                            <strong id="zoomValue">30</strong>
+                        </div>
+                        <input type="range" id="zoomSlider" min="15" max="60" value="30" step="5">
+                    </div>
+                </div>
+
+                <!-- Stats -->
+                <div class="control-box">
+                    <h3>Stats</h3>
+                    <div class="stats-group">
+                        <div class="stat-item">
+                            <div class="stat-label">Tiles Painted</div>
+                            <div class="stat-value" id="tileCount">0</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Reset button -->
+                <button class="reset-btn" id="resetBtn">Reset Canvas</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============ TILE LOGIC (headless-testable) ============
+        function generateHexGrid(width, height, tileSize) {
+            const tiles = [];
+            const hexWidth = tileSize * 2;
+            const hexHeight = tileSize * Math.sqrt(3) / 2;
+
+            for (let col = 0; col < Math.ceil(width / hexWidth) + 1; col++) {
+                for (let row = 0; row < Math.ceil(height / hexHeight) + 1; row++) {
+                    const x = col * hexWidth + (row % 2) * (hexWidth / 2);
+                    const y = row * hexHeight;
+
+                    if (x > -tileSize && x < width + tileSize && y > -tileSize && y < height + tileSize) {
+                        tiles.push({
+                            id: `${col}-${row}`,
+                            x,
+                            y,
+                            size: tileSize,
+                            color: '#1a3a3a',
+                            visited: false
+                        });
+                    }
+                }
+            }
+            return tiles;
+        }
+
+        function getHexPoints(x, y, size) {
+            const points = [];
+            for (let i = 0; i < 6; i++) {
+                const angle = (Math.PI / 3) * i;
+                points.push([
+                    x + size * Math.cos(angle),
+                    y + size * Math.sin(angle)
+                ]);
+            }
+            return points;
+        }
+
+        function pointInHex(px, py, hx, hy, size) {
+            const dx = px - hx;
+            const dy = py - hy;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            return dist < size * 0.95;
+        }
+
+        // ============ DOM & RENDER ============
+        const canvas = document.getElementById('tileCanvas');
+        const colorPicker = document.getElementById('colorPicker');
+        const colorLabel = document.getElementById('colorLabel');
+        const zoomSlider = document.getElementById('zoomSlider');
+        const zoomValue = document.getElementById('zoomValue');
+        const tileCountDisplay = document.getElementById('tileCount');
+        const resetBtn = document.getElementById('resetBtn');
+
+        let tiles = [];
+        let tileCount = 0;
+
+        function initTiles() {
+            tiles = generateHexGrid(800, 600, parseInt(zoomSlider.value));
+            tileCount = 0;
+            tileCountDisplay.textContent = tileCount;
+            render();
+        }
+
+        function render() {
+            canvas.innerHTML = '';
+            tiles.forEach(tile => {
+                const points = getHexPoints(tile.x, tile.y, tile.size);
+                const polygon = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+                polygon.setAttribute('points', points.map(p => p.join(',')).join(' '));
+                polygon.setAttribute('fill', tile.color);
+                polygon.setAttribute('stroke', 'rgba(0, 255, 255, 0.2)');
+                polygon.setAttribute('stroke-width', '1');
+                polygon.style.cursor = 'pointer';
+                polygon.style.transition = 'fill 0.2s';
+
+                polygon.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    if (!tile.visited) {
+                        tileCount++;
+                        tileCountDisplay.textContent = tileCount;
+                    }
+                    tile.color = colorPicker.value;
+                    tile.visited = true;
+                    polygon.setAttribute('fill', tile.color);
+                });
+
+                polygon.addEventListener('mouseenter', () => {
+                    if (tile.color === '#1a3a3a') {
+                        polygon.setAttribute('fill', 'rgba(0, 255, 255, 0.3)');
+                    }
+                });
+
+                polygon.addEventListener('mouseleave', () => {
+                    polygon.setAttribute('fill', tile.color);
+                });
+
+                canvas.appendChild(polygon);
+            });
+        }
+
+        // ============ EVENT LISTENERS ============
+        colorPicker.addEventListener('change', (e) => {
+            colorLabel.textContent = e.target.value;
+        });
+
+        zoomSlider.addEventListener('input', (e) => {
+            zoomValue.textContent = e.target.value;
+            initTiles();
+        });
+
+        resetBtn.addEventListener('click', () => {
+            initTiles();
+        });
+
+        canvas.addEventListener('click', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const svg = canvas.closest('svg') || canvas;
+            const pt = new DOMPoint(
+                (e.clientX - rect.left) * (800 / rect.width),
+                (e.clientY - rect.top) * (600 / rect.height)
+            );
+        });
+
+        // Init on load
+        initTiles();
+    </script>
+</body>
+</html>
