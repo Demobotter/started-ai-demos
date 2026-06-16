@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daylight Tracker</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: #e2e8f0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.5rem;
+            text-align: center;
+            margin-bottom: 10px;
+            color: #fbbf24;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #cbd5e1;
+            margin-bottom: 30px;
+            font-size: 0.95rem;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        .city-btn {
+            padding: 10px 16px;
+            background: #334155;
+            color: #e2e8f0;
+            border: 2px solid transparent;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        .city-btn:hover {
+            background: #475569;
+            border-color: #fbbf24;
+        }
+        
+        .city-btn.active {
+            background: #fbbf24;
+            color: #0f172a;
+            border-color: #fbbf24;
+        }
+        
+        .main-display {
+            background: #1e293b;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 30px;
+            border: 1px solid #334155;
+        }
+        
+        .city-name {
+            font-family: 'Playfair Display', serif;
+            font-size: 2rem;
+            margin-bottom: 20px;
+            color: #fbbf24;
+        }
+        
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: #0f172a;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #fbbf24;
+            text-align: center;
+        }
+        
+        .stat-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            color: #94a3b8;
+            margin-bottom: 8px;
+            letter-spacing: 1px;
+        }
+        
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #e2e8f0;
+        }
+        
+        .timeline-container {
+            background: #0f172a;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+        }
+        
+        .timeline-label {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            color: #94a3b8;
+            margin-bottom: 10px;
+            letter-spacing: 1px;
+        }
+        
+        .timeline-bar {
+            height: 40px;
+            background: linear-gradient(to right, #1e293b 0%, #334155 25%, #fbbf24 50%, #334155 75%, #1e293b 100%);
+            border-radius: 8px;
+            position: relative;
+            margin-bottom: 15px;
+        }
+        
+        .timeline-marker {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: white;
+            opacity: 0.7;
+        }
+        
+        .marker-label {
+            position: absolute;
+            top: -20px;
+            font-size: 0.75rem;
+            color: #cbd5e1;
+            transform: translateX(-50%);
+            left: 0;
+        }
+        
+        .table-container {
+            overflow-x: auto;
+            margin-top: 30px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+        
+        thead {
+            border-bottom: 2px solid #334155;
+        }
+        
+        th {
+            text-align: left;
+            padding: 12px;
+            color: #fbbf24;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 1px;
+        }
+        
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #334155;
+        }
+        
+        tbody tr:hover {
+            background: #334155;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #94a3b8;
+        }
+        
+        .refresh-badge {
+            display: inline-block;
+            background: #334155;
+            color: #94a3b8;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            margin-top: 20px;
+        }
+        
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.8rem;
+            }
+            
+            .main-display {
+                padding: 20px;
+            }
+            
+            .city-name {
+                font-size: 1.5rem;
+            }
+            
+            .stat-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>☀️ Daylight Tracker</h1>
+        <p class="subtitle">Click a city to see real sunrise/sunset times and daylight duration</p>
+        
+        <div class="controls" id="controls"></div>
+        
+        <div class="main-display">
+            <div class="city-name" id="cityName">Select a city</div>
+            
+            <div class="stat-grid" id="statGrid">
+                <div class="stat-card">
+                    <div class="stat-label">Sunrise</div>
+                    <div class="stat-value" id="sunriseTime">--:--</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Sunset</div>
+                    <div class="stat-value" id="sunsetTime">--:--</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Daylight</div>
+                    <div class="stat-value" id="daylightHours">-- h</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">% of Day</div>
+                    <div class="stat-value" id="daylightPercent">--%</div>
+                </div>
+            </div>
+            
+            <div class="timeline-container">
+                <div class="timeline-label">24-Hour Timeline</div>
+                <div class="timeline-bar" id="timelineBar">
+                    <div class="timeline-marker" id="sunriseMarker">
+                        <div class="marker-label">Rise</div>
+                    </div>
+                    <div class="timeline-marker" id="sunsetMarker">
+                        <div class="marker-label">Set</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="refresh-badge">Live data from open-meteo Solar API • Updates every 10s</div>
+        </div>
+        
+        <div class="table-container">
+            <table id="citiesTable">
+                <thead>
+                    <tr>
+                        <th>City</th>
+                        <th>Latitude</th>
+                        <th>Longitude</th>
+                        <th>Sunrise</th>
+                        <th>Sunset</th>
+                        <th>Daylight (hrs)</th>
+                    </tr>
+                </thead>
+                <tbody id="citiesBody">
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <script>
+        const cities = [
+            { name: 'New York', lat: 40.7128, lon: -74.0060 },
+            { name: 'London', lat: 51.5074, lon: -0.1278 },
+            { name: 'Tokyo', lat: 35.6762, lon: 139.6503 },
+            { name: 'Sydney', lat: -33.8688, lon: 151.2093 },
+            { name: 'Singapore', lat: 1.3521, lon: 103.8198 },
+            { name: 'São Paulo', lat: -23.5505, lon: -46.6333 },
+            { name: 'Dubai', lat: 25.2048, lon: 55.2708 },
+            { name: 'Moscow', lat: 55.7558, lon: 37.6173 }
+        ];
+        
+        let selectedCity = null;
+        let allCityData = {};
+        
+        async function fetchSolarData(lat, lon) {
+            try {
+                const response = await fetch(
+                    `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=sunrise,sunset&timezone=auto`
+                );
+                const data = await response.json();
+                return {
+                    sunrise: data.daily.sunrise[0],
+                    sunset: data.daily.sunset[0]
+                };
+            } catch (error) {
+                console.error('Error fetching solar data:', error);
+                return null;
+            }
+        }
+        
+        function formatTime(isoString) {
+            if (!isoString) return '--:--';
+            const date = new Date(isoString);
+            return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+        }
+        
+        function calculateDaylight(sunrise, sunset) {
+            if (!sunrise || !sunset) return 0;
+            const riseDate = new Date(sunrise);
+            const setDate = new Date(sunset);
+            const diff = (setDate - riseDate) / (1000 * 60 * 60); // hours
+            return Math.max(0, diff);
+        }
+        
+        function updateTimeline(sunrise, sunset) {
+            const riseDate = new Date(sunrise);
+            const setDate = new Date(sunset);
+            
+            // Calculate position as % of 24 hours
+            const risePercent = (riseDate.getHours() + riseDate.getMinutes() / 60) / 24 * 100;
+            const setPercent = (setDate.getHours() + setDate.getMinutes() / 60) / 24 * 100;
+            
+            const riseMarker = document.getElementById('sunriseMarker');
+            const setMarker = document.getElementById('sunsetMarker');
+            
+            riseMarker.style.left = risePercent + '%';
+            setMarker.style.left = setPercent + '%';
+        }
+        
+        async function selectCity(city) {
+            selectedCity = city;
+            
+            // Update button states
+            document.querySelectorAll('.city-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.city === city.name);
+            });
+            
+            document.getElementById('cityName').textContent = city.name;
+            
+            const data = allCityData[city.name];
+            if (data && data.sunrise && data.sunset) {
+                const daylight = calculateDaylight(data.sunrise, data.sunset);
+                const percent = (daylight / 24 * 100).toFixed(1);
+                
+                document.getElementById('sunriseTime').textContent = formatTime(data.sunrise);
+                document.getElementById('sunsetTime').textContent = formatTime(data.sunset);
+                document.getElementById('daylightHours').textContent = daylight.toFixed(1) + ' h';
+                document.getElementById('daylightPercent').textContent = percent + '%';
+                
+                updateTimeline(data.sunrise, data.sunset);
+            }
+        }
+        
+        async function initializeData() {
+            const controlsDiv = document.getElementById('controls');
+            
+            // Fetch data for all cities
+            for (const city of cities) {
+                const data = await fetchSolarData(city.lat, city.lon);
+                if (data) {
+                    allCityData[city.name] = data;
+                }
+                
+                // Create button
+                const btn = document.createElement('button');
+                btn.className = 'city-btn';
+                btn.dataset.city = city.name;
+                btn.textContent = city.name;
+                btn.onclick = () => selectCity(city);
+                controlsDiv.appendChild(btn);
+            }
+            
+            // Select first city
+            if (cities.length > 0) {
+                selectCity(cities[0]);
+            }
+            
+            // Update table
+            updateTable();
+        }
+        
+        function updateTable() {
+            const tbody = document.getElementById('citiesBody');
+            tbody.innerHTML = '';
+            
+            // Sort cities by daylight duration (descending)
+            const sortedCities = cities.map(city => {
+                const data = allCityData[city.name];
+                const daylight = data ? calculateDaylight(data.sunrise, data.sunset) : 0;
+                return { ...city, ...data, daylight };
+            }).sort((a, b) => b.daylight - a.daylight);
+            
+            sortedCities.forEach(city => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><strong>${city.name}</strong></td>
+                    <td>${city.lat.toFixed(2)}°</td>
+                    <td>${city.lon.toFixed(2)}°</td>
+                    <td>${formatTime(city.sunrise)}</td>
+                    <td>${formatTime(city.sunset)}</td>
+                    <td>${city.daylight.toFixed(1)}</td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+        
+        // Refresh data every 10 seconds
+        async function refresh() {
+            for (const city of cities) {
+                const data = await fetchSolarData(city.lat, city.lon);
+                if (data) {
+                    allCityData[city.name] = data;
+                }
+            }
+            
+            if (selectedCity) {
+                selectCity(selectedCity);
+            }
+            updateTable();
+        }
+        
+        setInterval(refresh, 10000);
+        
+        // Initialize
+        initializeData();
+    </script>
+</body>
+</html>
