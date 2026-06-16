@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Seismic Heatmap</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, #0f1419 0%, #1a1f2e 100%);
+      color: #e0e0e0;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+    .container {
+      max-width: 900px;
+      width: 100%;
+      background: #1a1f2e;
+      border-radius: 12px;
+      padding: 30px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+      border: 1px solid #2d3748;
+    }
+    h1 {
+      font-family: 'Space Mono', monospace;
+      font-size: 28px;
+      margin-bottom: 8px;
+      color: #fff;
+      letter-spacing: -0.5px;
+    }
+    .subtitle {
+      font-size: 14px;
+      color: #888;
+      margin-bottom: 24px;
+    }
+    .controls-row {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 24px;
+      align-items: center;
+    }
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .control-label {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #aaa;
+      font-weight: 600;
+    }
+    input[type="range"] {
+      width: 180px;
+      height: 6px;
+      border-radius: 3px;
+      background: #2d3748;
+      outline: none;
+      -webkit-appearance: none;
+      accent-color: #ff6b6b;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #ff6b6b;
+      cursor: pointer;
+    }
+    input[type="range"]::-moz-range-thumb {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #ff6b6b;
+      border: none;
+      cursor: pointer;
+    }
+    .mag-value {
+      font-family: 'Space Mono', monospace;
+      font-size: 14px;
+      font-weight: 600;
+      color: #ff6b6b;
+    }
+    .canvas-wrapper {
+      background: #0f1419;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      padding: 12px;
+      border: 1px solid #2d3748;
+      overflow: hidden;
+    }
+    canvas {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+    .stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    .stat-card {
+      background: #0f1419;
+      border: 1px solid #2d3748;
+      border-radius: 8px;
+      padding: 12px;
+    }
+    .stat-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #777;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    .stat-value {
+      font-family: 'Space Mono', monospace;
+      font-size: 18px;
+      font-weight: 700;
+      color: #4ade80;
+    }
+    .stat-value.danger { color: #ff6b6b; }
+    .stat-value.warning { color: #fbbf24; }
+    .refresh-info {
+      font-size: 12px;
+      color: #666;
+      text-align: center;
+      margin-top: 12px;
+    }
+    .gradient-legend {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: #777;
+      margin-top: 12px;
+      padding: 0 4px;
+    }
+    .gradient-bar {
+      width: 100%;
+      height: 20px;
+      background: linear-gradient(to right, #1e40af, #3b82f6, #10b981, #fbbf24, #f97316, #ef4444);
+      border-radius: 4px;
+      margin: 8px 0;
+    }
+    @media (max-width: 600px) {
+      .controls-row {
+        flex-direction: column;
+        gap: 12px;
+      }
+      input[type="range"] {
+        width: 100%;
+      }
+      .stats {
+        grid-template-columns: 1fr;
+      }
+      h1 {
+        font-size: 22px;
+      }
+      .container {
+        padding: 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🌋 Seismic Heatmap</h1>
+    <p class="subtitle">Real-time USGS earthquake activity</p>
+
+    <div class="controls-row">
+      <div class="control-group">
+        <label class="control-label">Magnitude Range</label>
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <input type="range" id="magMin" min="0" max="9" step="0.1" value="0" style="width: 100px;">
+          <span class="mag-value" id="magDisplay">0.0–9.0</span>
+        </div>
+      </div>
+      <div class="control-group">
+        <label class="control-label">Time Window</label>
+        <span class="mag-value" style="color: #4ade80;">Last 24h</span>
+      </div>
+    </div>
+
+    <div class="canvas-wrapper">
+      <canvas id="heatmapCanvas" width="800" height="400"></canvas>
+      <div class="gradient-legend">
+        <span>Cold (Old/Small)</span>
+        <span>Hot (Recent/Large)</span>
+      </div>
+      <div class="gradient-bar"></div>
+    </div>
+
+    <div class="stats">
+      <div class="stat-card">
+        <div class="stat-label">Total Earthquakes</div>
+        <div class="stat-value" id="statTotal">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Average Magnitude</div>
+        <div class="stat-value" id="statAvg">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Strongest Event</div>
+        <div class="stat-value danger" id="statMax">—</div>
+      </div>
+    </div>
+
+    <div class="refresh-info">
+      Last updated: <span id="updateTime">loading…</span> • Auto-refresh every 30s
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('heatmapCanvas');
+    const ctx = canvas.getContext('2d');
+    const magMinInput = document.getElementById('magMin');
+    const magDisplay = document.getElementById('magDisplay');
+    const statTotal = document.getElementById('statTotal');
+    const statAvg = document.getElementById('statAvg');
+    const statMax = document.getElementById('statMax');
+    const updateTime = document.getElementById('updateTime');
+
+    let allQuakes = [];
+    const USGS_URL = 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson';
+    const GRID_COLS = 40;
+    const GRID_ROWS = 20;
+
+    async function fetchQuakes() {
+      try {
+        const res = await fetch(USGS_URL);
+        const data = await res.json();
+        allQuakes = data.features.map(f => ({
+          mag: f.properties.mag || 0,
+          lon: f.geometry.coordinates[0],
+          lat: f.geometry.coordinates[1],
+          time: f.properties.time,
+          place: f.properties.place
+        }));
+        return true;
+      } catch (e) {
+        console.error('Fetch failed:', e);
+        return false;
+      }
+    }
+
+    function getFilteredQuakes() {
+      const minMag = parseFloat(magMinInput.value);
+      return allQuakes.filter(q => q.mag >= minMag);
+    }
+
+    function drawHeatmap() {
+      const quakes = getFilteredQuakes();
+      
+      // Clear
+      ctx.fillStyle = '#0f1419';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Build grid
+      const grid = Array(GRID_ROWS).fill(null).map(() => Array(GRID_COLS).fill(0));
+      const now = Date.now();
+      const dayAgo = now - 24 * 60 * 60 * 1000;
+
+      quakes.forEach(q => {
+        // Normalize coordinates to grid (lon -180..180, lat -90..90)
+        const col = Math.floor(((q.lon + 180) / 360) * GRID_COLS);
+        const row = Math.floor(((90 - q.lat) / 180) * GRID_ROWS);
+        
+        if (col >= 0 && col < GRID_COLS && row >= 0 && row < GRID_ROWS) {
+          // Weight: magnitude + recency
+          const age = Math.max(0, 1 - (now - q.time) / (dayAgo ? 1 : 1));
+          const weight = q.mag * (0.5 + 0.5 * age);
+          grid[row][col] += weight;
+        }
+      });
+
+      // Find max for normalization
+      let maxVal = 0;
+      grid.forEach(row => {
+        row.forEach(val => { maxVal = Math.max(maxVal, val); });
+      });
+
+      // Draw grid cells
+      const cellW = canvas.width / GRID_COLS;
+      const cellH = canvas.height / GRID_ROWS;
+
+      grid.forEach((row, r) => {
+        row.forEach((val, c) => {
+          const norm = maxVal > 0 ? val / maxVal : 0;
+          ctx.fillStyle = valueToColor(norm);
+          ctx.fillRect(c * cellW, r * cellH, cellW, cellH);
+          ctx.strokeStyle = 'rgba(45, 55, 72, 0.2)';
+          ctx.lineWidth = 0.5;
+          ctx.strokeRect(c * cellW, r * cellH, cellW, cellH);
+        });
+      });
+
+      // Update stats
+      if (quakes.length === 0) {
+        statTotal.textContent = '0';
+        statAvg.textContent = '—';
+        statMax.textContent = '—';
+      } else {
+        const avgMag = (quakes.reduce((sum, q) => sum + q.mag, 0) / quakes.length).toFixed(2);
+        const maxMag = Math.max(...quakes.map(q => q.mag)).toFixed(2);
+        statTotal.textContent = quakes.length.toString();
+        statAvg.textContent = avgMag;
+        statMax.textContent = maxMag;
+      }
+
+      updateTime.textContent = new Date().toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true
+      });
+    }
+
+    function valueToColor(norm) {
+      // Blue (cold) → Red (hot)
+      if (norm < 0.2) return '#1e40af';
+      if (norm < 0.4) return '#3b82f6';
+      if (norm < 0.6) return '#10b981';
+      if (norm < 0.8) return '#fbbf24';
+      if (norm < 0.9) return '#f97316';
+      return '#ef4444';
+    }
+
+    magMinInput.addEventListener('input', () => {
+      const val = parseFloat(magMinInput.value);
+      magDisplay.textContent = val.toFixed(1) + '–9.0';
+      drawHeatmap();
+    });
+
+    async function init() {
+      const ok = await fetchQuakes();
+      if (ok) {
+        drawHeatmap();
+        setInterval(async () => {
+          await fetchQuakes();
+          drawHeatmap();
+        }, 30000);
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>
