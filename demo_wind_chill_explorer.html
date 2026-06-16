@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wind Chill Explorer</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+    .container {
+      background: white;
+      border-radius: 16px;
+      padding: 40px;
+      max-width: 500px;
+      width: 100%;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    h1 {
+      font-family: 'Poppins', sans-serif;
+      font-size: 28px;
+      margin-bottom: 10px;
+      color: #1a1a1a;
+    }
+    .subtitle {
+      color: #666;
+      font-size: 14px;
+      margin-bottom: 30px;
+    }
+    .input-group {
+      margin-bottom: 24px;
+    }
+    label {
+      display: block;
+      font-weight: 500;
+      color: #333;
+      margin-bottom: 8px;
+      font-size: 14px;
+    }
+    input, select {
+      width: 100%;
+      padding: 12px;
+      border: 1.5px solid #ddd;
+      border-radius: 8px;
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      transition: border-color 0.2s;
+    }
+    input:focus, select:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+    button {
+      width: 100%;
+      padding: 12px;
+      background: #667eea;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+      font-size: 14px;
+    }
+    button:hover {
+      background: #5568d3;
+    }
+    button:active {
+      transform: scale(0.98);
+    }
+    .results {
+      margin-top: 40px;
+      padding-top: 40px;
+      border-top: 2px solid #f0f0f0;
+    }
+    .result-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    .result-label {
+      color: #666;
+      font-size: 14px;
+    }
+    .result-value {
+      font-family: 'Poppins', sans-serif;
+      font-size: 24px;
+      font-weight: 700;
+    }
+    .temp-actual {
+      color: #667eea;
+    }
+    .temp-feels-like {
+      color: #764ba2;
+    }
+    .gauge-container {
+      margin: 30px 0;
+      text-align: center;
+    }
+    .gauge {
+      height: 40px;
+      background: linear-gradient(90deg, #4CAF50 0%, #FFC107 40%, #FF9800 70%, #f44336 100%);
+      border-radius: 20px;
+      position: relative;
+      margin-bottom: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .gauge-pointer {
+      position: absolute;
+      width: 8px;
+      height: 48px;
+      background: #333;
+      border-radius: 4px;
+      top: -4px;
+      transform: translateX(-50%);
+      transition: left 0.3s ease;
+    }
+    .gauge-labels {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: #999;
+      padding: 0 4px;
+    }
+    .status {
+      margin-top: 20px;
+      padding: 16px;
+      border-radius: 8px;
+      text-align: center;
+      font-size: 14px;
+      font-weight: 500;
+    }
+    .status.safe {
+      background: #E8F5E9;
+      color: #2E7D32;
+    }
+    .status.caution {
+      background: #FFF3E0;
+      color: #E65100;
+    }
+    .status.danger {
+      background: #FFEBEE;
+      color: #C62828;
+    }
+    .error {
+      color: #f44336;
+      font-size: 13px;
+      margin-top: 8px;
+    }
+    .loading {
+      text-align: center;
+      color: #667eea;
+      font-size: 14px;
+      margin-top: 12px;
+    }
+    .spinner {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border: 2px solid #667eea;
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-right: 8px;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    .hidden {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🌡️ Wind Chill Explorer</h1>
+    <p class="subtitle">Real-time wind chill from OpenMeteo live weather</p>
+
+    <div class="input-group">
+      <label for="latitude">City or Latitude (°)</label>
+      <input type="text" id="latitude" placeholder="e.g. Melbourne or -37.81" value="Melbourne">
+    </div>
+
+    <div class="input-group">
+      <label for="longitude">Longitude (°) — auto-filled for major cities</label>
+      <input type="text" id="longitude" placeholder="e.g. 144.97" value="">
+    </div>
+
+    <div class="input-group">
+      <label for="windSpeed">Wind Speed (km/h)</label>
+      <input type="number" id="windSpeed" placeholder="e.g. 25" value="20" min="0" max="150">
+    </div>
+
+    <button onclick="calculate()">Calculate Wind Chill</button>
+    <div id="loadingMsg" class="loading hidden"><span class="spinner"></span> Fetching live weather...</div>
+    <div id="errorMsg" class="error hidden"></div>
+
+    <div id="results" class="results hidden">
+      <div class="result-row">
+        <span class="result-label">Actual Temperature</span>
+        <span class="result-value temp-actual" id="actualTemp">—</span>
+      </div>
+      <div class="result-row">
+        <span class="result-label">Wind Speed</span>
+        <span class="result-value" id="displayWindSpeed" style="color: #666;">—</span>
+      </div>
+      <div class="result-row">
+        <span class="result-label">Feels Like (Wind Chill)</span>
+        <span class="result-value temp-feels-like" id="feelsLike">—</span>
+      </div>
+      <div class="result-row">
+        <span class="result-label">Difference</span>
+        <span class="result-value" id="difference" style="color: #ff9800;">—</span>
+      </div>
+
+      <div class="gauge-container">
+        <div class="gauge">
+          <div class="gauge-pointer" id="pointer" style="left: 50%;"></div>
+        </div>
+        <div class="gauge-labels">
+          <span>Comfortable</span>
+          <span>Caution</span>
+          <span>Danger</span>
+        </div>
+      </div>
+
+      <div id="statusBox" class="status safe">Ready</div>
+    </div>
+  </div>
+
+  <script>
+    const cityCoords = {
+      'melbourne': [-37.8136, 144.9631],
+      'sydney': [-33.8688, 151.2093],
+      'brisbane': [-27.4698, 153.0251],
+      'perth': [-31.9505, 115.8605],
+      'auckland': [-37.0882, 174.887],
+      'london': [51.5074, -0.1278],
+      'new york': [40.7128, -74.0060],
+      'tokyo': [35.6762, 139.6503],
+      'singapore': [1.3521, 103.8198],
+    };
+
+    async function calculate() {
+      const latInput = document.getElementById('latitude').value.trim();
+      const lonInput = document.getElementById('longitude').value.trim();
+      const windInput = parseFloat(document.getElementById('windSpeed').value);
+
+      document.getElementById('errorMsg').classList.add('hidden');
+      document.getElementById('results').classList.add('hidden');
+      document.getElementById('loadingMsg').classList.remove('hidden');
+
+      if (!latInput) {
+        showError('Enter a city name or latitude');
+        return;
+      }
+
+      if (isNaN(windInput) || windInput < 0) {
+        showError('Wind speed must be a number ≥ 0');
+        return;
+      }
+
+      let lat, lon;
+
+      // Check if input is a city name
+      if (isNaN(parseFloat(latInput))) {
+        const lower = latInput.toLowerCase();
+        if (cityCoords[lower]) {
+          [lat, lon] = cityCoords[lower];
+          document.getElementById('latitude').value = lower.charAt(0).toUpperCase() + lower.slice(1);
+          document.getElementById('longitude').value = lon;
+        } else {
+          showError(`City "${latInput}" not recognized. Use city name or lat/lon.`);
+          return;
+        }
+      } else {
+        lat = parseFloat(latInput);
+        lon = lonInput ? parseFloat(lonInput) : null;
+        if (isNaN(lon)) {
+          showError('Longitude must be a number');
+          return;
+        }
+      }
+
+      try {
+        // Fetch current temp from OpenMeteo
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code&temperature_unit=celsius&timezone=auto`;
+        const resp = await fetch(url);
+        const data = await resp.json();
+
+        if (!data.current) throw new Error('Invalid location');
+
+        const tempC = data.current.temperature_2m;
+        const windKmh = windInput;
+
+        // Wind chill formula (Siple & Passel, adapted)
+        // WC = 13.12 + 0.6215*T - 11.37*V^0.16 + 0.3965*T*V^0.16
+        // where T = temp (C), V = wind speed (km/h)
+        const V = windKmh;
+        const T = tempC;
+        let windChill;
+
+        if (V > 0 && T < 10) {
+          // Only applies below 10°C
+          windChill = 13.12 + 0.6215*T - 11.37*Math.pow(V, 0.16) + 0.3965*T*Math.pow(V, 0.16);
+        } else {
+          windChill = T; // No wind chill above 10°C or no wind
+        }
+
+        displayResults(tempC, windKmh, windChill);
+      } catch (err) {
+        showError('Failed to fetch weather. Check location and try again.');
+      }
+    }
+
+    function displayResults(tempC, windKmh, windChill) {
+      const diff = Math.round((tempC - windChill) * 10) / 10;
+
+      document.getElementById('actualTemp').textContent = Math.round(tempC) + '°C';
+      document.getElementById('displayWindSpeed').textContent = Math.round(windKmh) + ' km/h';
+      document.getElementById('feelsLike').textContent = Math.round(windChill) + '°C';
+      document.getElementById('difference').textContent = (diff > 0 ? '+' : '') + diff + '°C';
+
+      // Gauge position: -40 (left) to +20 (right)
+      const minTemp = -40;
+      const maxTemp = 20;
+      const normalizedTemp = Math.max(minTemp, Math.min(maxTemp, windChill));
+      const position = ((normalizedTemp - minTemp) / (maxTemp - minTemp)) * 100;
+      document.getElementById('pointer').style.left = position + '%';
+
+      // Status box
+      const statusBox = document.getElementById('statusBox');
+      let statusText = '';
+      let statusClass = 'safe';
+
+      if (windChill < -30) {
+        statusText = '🔴 Extreme danger: frostbite in < 5 min';
+        statusClass = 'danger';
+      } else if (windChill < -20) {
+        statusText = '🟠 High risk: frostbite in 10–30 min';
+        statusClass = 'danger';
+      } else if (windChill < -10) {
+        statusText = '🟡 Caution: frostbite possible in 30+ min';
+        statusClass = 'caution';
+      } else if (windChill < 0) {
+        statusText = '🟡 Cold: dress warm';
+        statusClass = 'caution';
+      } else {
+        statusText = '🟢 Comfortable: normal conditions';
+        statusClass = 'safe';
+      }
+
+      statusBox.className = 'status ' + statusClass;
+      statusBox.textContent = statusText;
+
+      document.getElementById('loadingMsg').classList.add('hidden');
+      document.getElementById('results').classList.remove('hidden');
+    }
+
+    function showError(msg) {
+      document.getElementById('errorMsg').textContent = msg;
+      document.getElementById('errorMsg').classList.remove('hidden');
+      document.getElementById('loadingMsg').classList.add('hidden');
+    }
+
+    // Enter key to calculate
+    document.getElementById('windSpeed').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') calculate();
+    });
+
+    // Auto-fill longitude for known cities
+    document.getElementById('latitude').addEventListener('change', (e) => {
+      const city = e.target.value.trim().toLowerCase();
+      if (cityCoords[city]) {
+        const [lat, lon] = cityCoords[city];
+        document.getElementById('longitude').value = lon;
+      }
+    });
+  </script>
+</body>
+</html>
