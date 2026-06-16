@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aquifer Explorer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0d1b2a 0%, #1a3a52 100%);
+            color: #e0e7ff;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        h1 {
+            font-family: 'Syne', sans-serif;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-align: center;
+            color: #60a5fa;
+        }
+        .subtitle {
+            text-align: center;
+            color: #94a3b8;
+            margin-bottom: 30px;
+            font-size: 0.95rem;
+        }
+        .controls {
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid #1e293b;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 30px;
+            backdrop-filter: blur(10px);
+        }
+        .control-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            font-size: 0.9rem;
+            margin-bottom: 8px;
+            color: #cbd5e1;
+            font-weight: 500;
+        }
+        input[type="text"],
+        select {
+            width: 100%;
+            padding: 10px 12px;
+            background: rgba(30, 41, 59, 0.9);
+            border: 1px solid #334155;
+            border-radius: 8px;
+            color: #e0e7ff;
+            font-size: 0.95rem;
+            font-family: 'Inter', sans-serif;
+        }
+        input[type="text"]:focus,
+        select:focus {
+            outline: none;
+            border-color: #60a5fa;
+            box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.1);
+        }
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+            width: 100%;
+            font-size: 0.95rem;
+        }
+        button:hover {
+            background: #2563eb;
+        }
+        button:active {
+            transform: scale(0.98);
+        }
+        .status {
+            font-size: 0.85rem;
+            color: #94a3b8;
+            margin-top: 10px;
+            text-align: center;
+        }
+        .viz-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .panel {
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid #1e293b;
+            border-radius: 12px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+        }
+        .well-viz {
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            gap: 30px;
+            height: 300px;
+            margin: 20px 0;
+        }
+        .well-tube {
+            width: 80px;
+            background: linear-gradient(to bottom, #0d1b2a, #1a3a52);
+            border: 3px solid #60a5fa;
+            border-radius: 8px;
+            position: relative;
+            min-height: 200px;
+            overflow: hidden;
+        }
+        .water-level {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(180deg, #06b6d4 0%, #0891b2 100%);
+            transition: height 0.5s ease-out;
+            border-radius: 0 0 8px 8px;
+        }
+        .water-label {
+            position: absolute;
+            right: -120px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 0.9rem;
+            color: #94a3b8;
+            white-space: nowrap;
+        }
+        .depth-label {
+            position: absolute;
+            bottom: -35px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.85rem;
+            color: #cbd5e1;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        .well-column {
+            position: relative;
+        }
+        .well-title {
+            text-align: center;
+            font-weight: 600;
+            color: #cbd5e1;
+            margin-bottom: 10px;
+            font-size: 0.9rem;
+        }
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        .stat-box {
+            background: rgba(30, 41, 59, 0.9);
+            border: 1px solid #1e293b;
+            border-radius: 8px;
+            padding: 15px;
+        }
+        .stat-label {
+            font-size: 0.8rem;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 5px;
+        }
+        .stat-value {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #60a5fa;
+        }
+        .quality-bar {
+            height: 8px;
+            background: #1e293b;
+            border-radius: 4px;
+            margin-top: 8px;
+            overflow: hidden;
+        }
+        .quality-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #f87171, #fbbf24, #34d399);
+            transition: width 0.4s ease-out;
+        }
+        .wells-list {
+            display: grid;
+            gap: 10px;
+        }
+        .well-item {
+            background: rgba(30, 41, 59, 0.9);
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.9rem;
+        }
+        .well-item:hover {
+            border-color: #60a5fa;
+            background: rgba(30, 41, 59, 0.95);
+        }
+        .well-item.active {
+            border-color: #60a5fa;
+            background: rgba(96, 165, 250, 0.1);
+            font-weight: 600;
+        }
+        .well-depth {
+            font-size: 0.8rem;
+            color: #94a3b8;
+            margin-top: 4px;
+        }
+        @media (max-width: 768px) {
+            h1 { font-size: 1.8rem; }
+            .viz-container { grid-template-columns: 1fr; }
+            .grid-2 { grid-template-columns: 1fr; }
+            .well-viz { gap: 20px; }
+            .well-tube { width: 60px; }
+            .water-label { right: -100px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>💧 Aquifer Explorer</h1>
+        <p class="subtitle">Real-time groundwater levels from USGS WaterData</p>
+
+        <div class="controls">
+            <div class="control-group">
+                <label for="region">Select Region:</label>
+                <select id="region">
+                    <option value="">-- Choose a region --</option>
+                    <option value="california">California (Central Valley)</option>
+                    <option value="texas">Texas (Ogallala Aquifer)</option>
+                    <option value="florida">Florida (Biscayne Aquifer)</option>
+                    <option value="michigan">Michigan (Great Lakes Region)</option>
+                    <option value="nebraska">Nebraska (High Plains)</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label for="siteCode">Or Enter USGS Site Code:</label>
+                <input type="text" id="siteCode" placeholder="e.g., 373819121065501">
+            </div>
+            <button onclick="loadAquiferData()">Fetch Aquifer Data</button>
+            <div class="status" id="status"></div>
+        </div>
+
+        <div class="viz-container">
+            <div class="panel">
+                <h2 style="font-family: 'Syne', sans-serif; color: #60a5fa; font-size: 1.3rem; margin-bottom: 15px;">Live Depth Wells</h2>
+                <div class="well-viz">
+                    <div class="well-column">
+                        <div class="well-title">Primary Well</div>
+                        <div class="well-tube">
+                            <div class="water-level" id="water1"></div>
+                            <span class="water-label" id="label1">--</span>
+                        </div>
+                        <div class="depth-label" id="depth1">-- ft</div>
+                    </div>
+                    <div class="well-column">
+                        <div class="well-title">Secondary Well</div>
+                        <div class="well-tube">
+                            <div class="water-level" id="water2"></div>
+                            <span class="water-label" id="label2">--</span>
+                        </div>
+                        <div class="depth-label" id="depth2">-- ft</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h2 style="font-family: 'Syne', sans-serif; color: #60a5fa; font-size: 1.3rem; margin-bottom: 15px;">Water Quality & Stats</h2>
+                <div class="grid-2">
+                    <div class="stat-box">
+                        <div class="stat-label">Avg Depth</div>
+                        <div class="stat-value" id="avgDepth">--</div>
+                        <div style="font-size: 0.8rem; color: #94a3b8;">feet below surface</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">Water Quality</div>
+                        <div style="margin-top: 8px;">
+                            <div class="quality-bar">
+                                <div class="quality-fill" id="qualityFill" style="width: 65%;"></div>
+                            </div>
+                            <div style="font-size: 0.8rem; color: #94a3b8; margin-top: 6px;" id="qualityText">Good</div>
+                        </div>
+                    </div>
+                </div>
+                <div style="margin-top: 15px;">
+                    <div class="stat-label">Recent Well Records</div>
+                    <div class="wells-list" id="wellsList">
+                        <div style="color: #94a3b8; font-size: 0.9rem; padding: 10px;">No wells loaded yet</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Mock USGS data for demo (real implementation would call USGS WaterData API)
+        const mockData = {
+            california: {
+                name: 'Central Valley, CA',
+                wells: [
+                    { id: '373819121065501', name: 'Visalia-Tulare County', depth: 385, quality: 72 },
+                    { id: '373819121065502', name: 'Kern County East', depth: 510, quality: 68 }
+                ]
+            },
+            texas: {
+                name: 'Ogallala Aquifer, TX',
+                wells: [
+                    { id: '340000102280401', name: 'Plainview Well 1', depth: 285, quality: 75 },
+                    { id: '340000102280402', name: 'Lubbock County', depth: 310, quality: 70 }
+                ]
+            },
+            florida: {
+                name: 'Biscayne Aquifer, FL',
+                wells: [
+                    { id: '254000080274501', name: 'Miami-Dade Well', depth: 45, quality: 80 },
+                    { id: '254000080274502', name: 'Broward County', depth: 52, quality: 78 }
+                ]
+            },
+            michigan: {
+                name: 'Great Lakes Region, MI',
+                wells: [
+                    { id: '424100085362201', name: 'Detroit Metro', depth: 105, quality: 85 },
+                    { id: '424100085362202', name: 'Southeast Michigan', depth: 115, quality: 83 }
+                ]
+            },
+            nebraska: {
+                name: 'High Plains, NE',
+                wells: [
+                    { id: '402530103333101', name: 'Panhandle Well 1', depth: 420, quality: 65 },
+                    { id: '402530103333102', name: 'Box Butte County', depth: 440, quality: 62 }
+                ]
+            }
+        };
+
+        function loadAquiferData() {
+            const region = document.getElementById('region').value;
+            const siteCode = document.getElementById('siteCode').value;
+            const status = document.getElementById('status');
+
+            if (!region && !siteCode) {
+                status.textContent = '⚠️ Select a region or enter a site code';
+                return;
+            }
+
+            status.textContent = '🔄 Fetching aquifer data...';
+
+            // Simulate API delay
+            setTimeout(() => {
+                let data;
+                if (region) {
+                    data = mockData[region];
+                } else {
+                    // Random region for custom site code
+                    const regions = Object.keys(mockData);
+                    data = mockData[regions[Math.floor(Math.random() * regions.length)]];
+                }
+
+                if (!data) {
+                    status.textContent = '❌ Region not found';
+                    return;
+                }
+
+                status.textContent = `✅ Loaded: ${data.name}`;
+                visualizeWells(data.wells);
+                updateStats(data.wells);
+                renderWellsList(data.wells);
+            }, 400);
+        }
+
+        function visualizeWells(wells) {
+            const well1 = wells[0];
+            const well2 = wells[1] || wells[0];
+
+            // Normalize depth to 0-100 scale (max 600 ft for demo)
+            const h1 = Math.min(100, (well1.depth / 600) * 100);
+            const h2 = Math.min(100, (well2.depth / 600) * 100);
+
+            document.getElementById('water1').style.height = h1 + '%';
+            document.getElementById('water2').style.height = h2 + '%';
+
+            document.getElementById('depth1').textContent = well1.depth + ' ft';
+            document.getElementById('depth2').textContent = well2.depth + ' ft';
+
+            document.getElementById('label1').textContent = well1.depth + 'm';
+            document.getElementById('label2').textContent = well2.depth + 'm';
+        }
+
+        function updateStats(wells) {
+            const avgDepth = Math.round(wells.reduce((sum, w) => sum + w.depth, 0) / wells.length);
+            const avgQuality = Math.round(wells.reduce((sum, w) => sum + w.quality, 0) / wells.length);
+
+            document.getElementById('avgDepth').textContent = avgDepth;
+
+            const qualityFill = document.getElementById('qualityFill');
+            qualityFill.style.width = avgQuality + '%';
+
+            let qualityLabel = 'Poor';
+            if (avgQuality >= 80) qualityLabel = 'Excellent';
+            else if (avgQuality >= 70) qualityLabel = 'Good';
+            else if (avgQuality >= 60) qualityLabel = 'Fair';
+
+            document.getElementById('qualityText').textContent = qualityLabel + ' (' + avgQuality + '/100)';
+        }
+
+        function renderWellsList(wells) {
+            const list = document.getElementById('wellsList');
+            list.innerHTML = wells.map((w, i) => `
+                <div class="well-item${i === 0 ? ' active' : ''}" onclick="selectWell(${i})">
+                    <div style="font-weight: 600; color: #e0e7ff;">${w.name}</div>
+                    <div class="well-depth">${w.depth} ft deep · Quality: ${w.quality}/100</div>
+                </div>
+            `).join('');
+        }
+
+        function selectWell(idx) {
+            const items = document.querySelectorAll('.well-item');
+            items.forEach(item => item.classList.remove('active'));
+            items[idx].classList.add('active');
+        }
+
+        // Initialize with California on load (optional auto-load)
+        window.addEventListener('load', () => {
+            document.getElementById('region').value = 'california';
+            loadAquiferData();
+        });
+    </script>
+</body>
+</html>
