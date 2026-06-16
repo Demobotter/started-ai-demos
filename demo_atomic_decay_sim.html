@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Half-Life Lab</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #e0e0e0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            max-width: 600px;
+            background: rgba(20, 20, 35, 0.9);
+            border: 1px solid rgba(100, 150, 200, 0.3);
+            border-radius: 12px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+        h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 36px;
+            margin-bottom: 8px;
+            color: #fff;
+        }
+        .subtitle {
+            color: #999;
+            margin-bottom: 32px;
+            font-size: 14px;
+        }
+        .control-group {
+            margin-bottom: 28px;
+        }
+        label {
+            display: block;
+            margin-bottom: 10px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #ccc;
+        }
+        select, input[type="range"] {
+            width: 100%;
+            padding: 10px;
+            background: rgba(50, 50, 70, 0.8);
+            border: 1px solid rgba(100, 150, 200, 0.3);
+            border-radius: 6px;
+            color: #e0e0e0;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        select:hover, input[type="range"]:hover {
+            border-color: rgba(100, 150, 200, 0.6);
+        }
+        input[type="range"] {
+            padding: 0;
+            height: 6px;
+            appearance: none;
+            background: rgba(100, 150, 200, 0.2);
+            outline: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #64c4ff;
+            cursor: pointer;
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #64c4ff;
+            cursor: pointer;
+            border: none;
+        }
+        .info-box {
+            background: rgba(100, 150, 200, 0.1);
+            border-left: 3px solid #64c4ff;
+            padding: 12px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            font-size: 13px;
+            line-height: 1.5;
+            color: #aaa;
+        }
+        canvas {
+            width: 100%;
+            height: 300px;
+            background: rgba(30, 30, 50, 0.8);
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: block;
+            border: 1px solid rgba(100, 150, 200, 0.2);
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+        .stat {
+            background: rgba(50, 50, 70, 0.6);
+            padding: 16px;
+            border-radius: 6px;
+            border: 1px solid rgba(100, 150, 200, 0.2);
+        }
+        .stat-label {
+            font-size: 12px;
+            color: #888;
+            margin-bottom: 6px;
+        }
+        .stat-value {
+            font-size: 20px;
+            font-weight: 600;
+            color: #64c4ff;
+            font-family: 'Courier New', monospace;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #64c4ff 0%, #4a9fdb 100%);
+            border: none;
+            border-radius: 6px;
+            color: #000;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        button:hover {
+            transform: translateY(-2px);
+        }
+        button:active {
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>⚛️ Half-Life Lab</h1>
+        <div class="subtitle">Pick an isotope and watch atoms decay at their true half-life rate.</div>
+        
+        <div class="info-box">
+            💡 Each particle represents one atom. When it decays, it vanishes. The half-life is the time it takes for half to decay.
+        </div>
+
+        <div class="control-group">
+            <label for="isotope">Select Isotope</label>
+            <select id="isotope">
+                <option value="C14">Carbon-14 (5,730 years)</option>
+                <option value="U235">Uranium-235 (704M years)</option>
+                <option value="Po210">Polonium-210 (138 days)</option>
+                <option value="I131">Iodine-131 (8 days)</option>
+                <option value="Ra226">Radium-226 (1,600 years)</option>
+            </select>
+        </div>
+
+        <div class="control-group">
+            <label for="speed">Simulation Speed</label>
+            <input type="range" id="speed" min="1" max="10" value="5">
+            <div style="font-size: 12px; color: #888; margin-top: 6px;">1x = real time, 10x = 10x faster</div>
+        </div>
+
+        <canvas id="canvas"></canvas>
+
+        <div class="stats">
+            <div class="stat">
+                <div class="stat-label">Atoms Remaining</div>
+                <div class="stat-value" id="remaining">100</div>
+            </div>
+            <div class="stat">
+                <div class="stat-label">Time Elapsed</div>
+                <div class="stat-value" id="timeElapsed">0s</div>
+            </div>
+        </div>
+
+        <button onclick="resetSimulation()">Reset</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        const isotopes = {
+            C14: { halfLife: 5730 * 365.25 * 24 * 3600, name: 'Carbon-14' },
+            U235: { halfLife: 704e6 * 365.25 * 24 * 3600, name: 'Uranium-235' },
+            Po210: { halfLife: 138.4 * 24 * 3600, name: 'Polonium-210' },
+            I131: { halfLife: 8.02 * 24 * 3600, name: 'Iodine-131' },
+            Ra226: { halfLife: 1600 * 365.25 * 24 * 3600, name: 'Radium-226' }
+        };
+
+        let atoms = [];
+        let currentIsotope = 'C14';
+        let simulationTime = 0;
+        let animationFrameId = null;
+        let lastFrameTime = Date.now();
+        let isRunning = true;
+
+        function resizeCanvas() {
+            const rect = canvas.getBoundingClientRect();
+            canvas.width = rect.width * window.devicePixelRatio;
+            canvas.height = rect.height * window.devicePixelRatio;
+            ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+        }
+
+        function initAtoms() {
+            atoms = [];
+            for (let i = 0; i < 100; i++) {
+                atoms.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    vx: (Math.random() - 0.5) * 20,
+                    vy: (Math.random() - 0.5) * 20,
+                    createdAt: 0,
+                    alive: true
+                });
+            }
+        }
+
+        function updateAtoms(dt) {
+            const lambda = Math.log(2) / isotopes[currentIsotope].halfLife;
+            
+            atoms.forEach(atom => {
+                if (!atom.alive) return;
+                
+                // Decay probability based on exponential decay
+                const decayProb = 1 - Math.exp(-lambda * dt);
+                if (Math.random() < decayProb) {
+                    atom.alive = false;
+                    return;
+                }
+                
+                // Move with bouncing
+                atom.x += atom.vx * dt / 16;
+                atom.y += atom.vy * dt / 16;
+                
+                const w = canvas.width;
+                const h = canvas.height;
+                
+                if (atom.x < 0 || atom.x > w) atom.vx *= -1;
+                if (atom.y < 0 || atom.y > h) atom.vy *= -1;
+                
+                atom.x = Math.max(0, Math.min(w, atom.x));
+                atom.y = Math.max(0, Math.min(h, atom.y));
+            });
+        }
+
+        function drawAtoms() {
+            ctx.fillStyle = 'rgba(20, 20, 35, 0.5)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            atoms.forEach(atom => {
+                if (!atom.alive) return;
+                
+                ctx.fillStyle = '#64c4ff';
+                ctx.beginPath();
+                ctx.arc(atom.x, atom.y, 4, 0, Math.PI * 2);
+                ctx.fill();
+            });
+        }
+
+        function formatTime(seconds) {
+            if (seconds < 60) return Math.round(seconds) + 's';
+            if (seconds < 3600) return (seconds / 60).toFixed(1) + 'm';
+            if (seconds < 86400) return (seconds / 3600).toFixed(1) + 'h';
+            if (seconds < 31536000) return (seconds / 86400).toFixed(1) + 'd';
+            return (seconds / 31536000).toFixed(2) + 'y';
+        }
+
+        function updateStats() {
+            const alive = atoms.filter(a => a.alive).length;
+            document.getElementById('remaining').textContent = alive;
+            document.getElementById('timeElapsed').textContent = formatTime(simulationTime);
+        }
+
+        function animate() {
+            if (!isRunning) {
+                animationFrameId = requestAnimationFrame(animate);
+                return;
+            }
+
+            const now = Date.now();
+            const delta = (now - lastFrameTime) / 1000;
+            const speedMultiplier = parseInt(document.getElementById('speed').value);
+            lastFrameTime = now;
+
+            updateAtoms(delta * speedMultiplier);
+            drawAtoms();
+            updateStats();
+
+            simulationTime += delta * speedMultiplier;
+            if (simulationTime > isotopes[currentIsotope].halfLife * 100) {
+                isRunning = false;
+            }
+
+            animationFrameId = requestAnimationFrame(animate);
+        }
+
+        function resetSimulation() {
+            simulationTime = 0;
+            initAtoms();
+            isRunning = true;
+            lastFrameTime = Date.now();
+        }
+
+        document.getElementById('isotope').addEventListener('change', (e) => {
+            currentIsotope = e.target.value;
+            resetSimulation();
+        });
+
+        resizeCanvas();
+        initAtoms();
+        animate();
+
+        window.addEventListener('resize', () => {
+            resizeCanvas();
+        });
+    </script>
+</body>
+</html>
