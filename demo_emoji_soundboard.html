@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emoji Soundboard</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body {
+            width: 100%;
+            height: 100%;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 32px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 500px;
+            width: 90%;
+        }
+        h1 {
+            text-align: center;
+            font-size: 28px;
+            margin-bottom: 24px;
+            color: #333;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+        .button {
+            width: 100%;
+            aspect-ratio: 1;
+            border: none;
+            border-radius: 12px;
+            font-size: 48px;
+            cursor: pointer;
+            background: #f0f0f0;
+            transition: all 0.15s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .button:hover {
+            transform: scale(1.1);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+        }
+        .button:active {
+            transform: scale(0.95);
+        }
+        .info {
+            font-size: 12px;
+            color: #999;
+            text-align: center;
+            line-height: 1.6;
+        }
+        .waveform {
+            height: 40px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            border-radius: 8px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>🎵 Emoji Soundboard</h1>
+    <div class="waveform" id="waveform">Click any emoji to play its sound</div>
+    <div class="grid" id="grid"></div>
+    <div class="info">
+        Tap emojis to trigger real sound effects. Each emoji has its own unique sound.
+    </div>
+</div>
+
+<script>
+// Web Audio API + Emoji Soundboard
+const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+const sounds = {
+    '😀': { freq: 523.25, dur: 0.3, wave: 'sine' }, // C5
+    '😍': { freq: 587.33, dur: 0.35, wave: 'sine' }, // D5
+    '🎉': { freq: 659.25, dur: 0.2, wave: 'square' }, // E5
+    '💥': { freq: 349.23, dur: 0.1, wave: 'sawtooth' }, // F4
+    '🚀': { freq: 784, dur: 0.25, wave: 'sine' }, // G5
+    '❤️': { freq: 440, dur: 0.4, wave: 'sine' }, // A4
+    '🎵': { freq: 659.25, dur: 0.15, wave: 'triangle' }, // E5
+    '⭐': { freq: 932.33, dur: 0.2, wave: 'sine' }, // A#5
+    '👾': { freq: 261.63, dur: 0.2, wave: 'square' }, // C4
+    '🔥': { freq: 293.66, dur: 0.15, wave: 'sawtooth' }, // D4
+    '🎪': { freq: 392, dur: 0.3, wave: 'triangle' }, // G4
+    '🌈': { freq: 880, dur: 0.25, wave: 'sine' }, // A5
+};
+
+function playSound(config) {
+    const now = audioContext.currentTime;
+    const osc = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+
+    osc.type = config.wave;
+    osc.frequency.setValueAtTime(config.freq, now);
+    osc.frequency.exponentialRampToValueAtTime(config.freq * 0.7, now + config.dur);
+
+    gain.gain.setValueAtTime(0.3, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + config.dur);
+
+    osc.connect(gain);
+    gain.connect(audioContext.destination);
+
+    osc.start(now);
+    osc.stop(now + config.dur);
+
+    // Animate waveform
+    document.getElementById('waveform').textContent = '♪ Playing...';
+    setTimeout(() => {
+        document.getElementById('waveform').textContent = 'Click any emoji to play its sound';
+    }, config.dur * 1000);
+}
+
+// Build grid
+const grid = document.getElementById('grid');
+Object.keys(sounds).forEach(emoji => {
+    const btn = document.createElement('button');
+    btn.className = 'button';
+    btn.textContent = emoji;
+    btn.addEventListener('click', () => playSound(sounds[emoji]));
+    grid.appendChild(btn);
+});
+</script>
+</body>
+</html>
