@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gravity Well — Physics Sandbox</title>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a3a 100%);
+            color: #e0e0e0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 900px;
+            width: 100%;
+            background: rgba(20, 20, 40, 0.8);
+            border-radius: 16px;
+            padding: 24px;
+            border: 1px solid rgba(100, 120, 200, 0.2);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        }
+        h1 {
+            font-family: 'Space Mono', monospace;
+            font-size: 28px;
+            margin-bottom: 12px;
+            color: #4dd0ff;
+            text-align: center;
+        }
+        .subtitle {
+            text-align: center;
+            font-size: 14px;
+            color: #888;
+            margin-bottom: 24px;
+        }
+        canvas {
+            width: 100%;
+            height: 500px;
+            background: linear-gradient(135deg, rgba(15,30,60,0.9) 0%, rgba(20,10,40,0.9) 100%);
+            border-radius: 12px;
+            border: 1px solid rgba(100, 150, 200, 0.3);
+            display: block;
+            margin-bottom: 24px;
+            cursor: crosshair;
+        }
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+        }
+        .control-group {
+            background: rgba(40, 50, 80, 0.5);
+            padding: 16px;
+            border-radius: 8px;
+            border: 1px solid rgba(100, 120, 200, 0.15);
+        }
+        .control-group label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: #aaa;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        input[type="range"] {
+            width: 100%;
+            height: 4px;
+            border-radius: 2px;
+            background: rgba(100, 150, 200, 0.3);
+            outline: none;
+            -webkit-appearance: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #4dd0ff;
+            cursor: pointer;
+            box-shadow: 0 0 8px rgba(77, 208, 255, 0.5);
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #4dd0ff;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 0 8px rgba(77, 208, 255, 0.5);
+        }
+        .value-display {
+            display: inline-block;
+            font-family: 'Space Mono', monospace;
+            font-size: 12px;
+            color: #4dd0ff;
+            margin-top: 6px;
+        }
+        button {
+            width: 100%;
+            padding: 10px;
+            background: rgba(77, 208, 255, 0.2);
+            border: 1px solid #4dd0ff;
+            border-radius: 8px;
+            color: #4dd0ff;
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        button:hover {
+            background: rgba(77, 208, 255, 0.3);
+            box-shadow: 0 0 12px rgba(77, 208, 255, 0.4);
+        }
+        .stats {
+            margin-top: 20px;
+            padding: 12px;
+            background: rgba(40, 50, 80, 0.5);
+            border-radius: 8px;
+            border: 1px solid rgba(100, 120, 200, 0.15);
+            font-size: 12px;
+            font-family: 'Space Mono', monospace;
+            color: #aaa;
+        }
+        @media (max-width: 600px) {
+            h1 { font-size: 24px; }
+            canvas { height: 350px; }
+            .controls { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌌 Gravity Well</h1>
+        <p class="subtitle">Click to create mass points, drag to add momentum. Real Newton physics.</p>
+        <canvas id="canvas"></canvas>
+        <div class="controls">
+            <div class="control-group">
+                <label for="gravityStrength">Gravity Strength</label>
+                <input type="range" id="gravityStrength" min="0.1" max="200" value="100" step="1">
+                <div class="value-display" id="gravityDisplay">100</div>
+            </div>
+            <div class="control-group">
+                <label for="mass">Mass (per point)</label>
+                <input type="range" id="mass" min="1" max="100" value="20" step="1">
+                <div class="value-display" id="massDisplay">20</div>
+            </div>
+            <div class="control-group">
+                <label for="damping">Damping</label>
+                <input type="range" id="damping" min="0" max="0.99" value="0.98" step="0.01">
+                <div class="value-display" id="dampingDisplay">0.98</div>
+            </div>
+            <div class="control-group">
+                <button id="clearBtn">Clear All</button>
+            </div>
+        </div>
+        <div class="stats">
+            <div>Particles: <span id="particleCount">0</span> | Mass Points: <span id="massPointCount">0</span></div>
+            <div style="margin-top: 6px;">Click canvas to add mass • Drag to create momentum • Watch gravity unfold</div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // DPI scaling
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width = canvas.offsetWidth * dpr;
+        canvas.height = canvas.offsetHeight * dpr;
+        ctx.scale(dpr, dpr);
+        
+        const displayWidth = canvas.offsetWidth;
+        const displayHeight = canvas.offsetHeight;
+        
+        // Physics parameters
+        let gravityStrength = 100;
+        let particleMass = 20;
+        let damping = 0.98;
+        const G = 6.67e-5; // Gravitational constant (scaled for canvas)
+        const particleCount = 300; // Particles per mass point
+        
+        // Entities
+        let massPoints = [];
+        let particles = [];
+        
+        // Input
+        let isDragging = false;
+        let dragStart = null;
+        let dragCurrent = null;
+        
+        // UI
+        document.getElementById('gravityStrength').addEventListener('change', (e) => {
+            gravityStrength = parseFloat(e.target.value);
+            document.getElementById('gravityDisplay').textContent = gravityStrength;
+        });
+        document.getElementById('mass').addEventListener('change', (e) => {
+            particleMass = parseFloat(e.target.value);
+            document.getElementById('massDisplay').textContent = particleMass;
+        });
+        document.getElementById('damping').addEventListener('change', (e) => {
+            damping = parseFloat(e.target.value);
+            document.getElementById('dampingDisplay').textContent = damping.toFixed(2);
+        });
+        document.getElementById('clearBtn').addEventListener('click', () => {
+            massPoints = [];
+            particles = [];
+        });
+        
+        // Canvas interaction
+        canvas.addEventListener('mousedown', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            dragStart = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+            dragCurrent = { x: dragStart.x, y: dragStart.y };
+            isDragging = true;
+        });
+        
+        canvas.addEventListener('mousemove', (e) => {
+            if (isDragging) {
+                const rect = canvas.getBoundingClientRect();
+                dragCurrent = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+            }
+        });
+        
+        canvas.addEventListener('mouseup', (e) => {
+            if (isDragging && dragStart && dragCurrent) {
+                const dx = dragCurrent.x - dragStart.x;
+                const dy = dragCurrent.y - dragStart.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                
+                if (dist > 5) {
+                    // Create mass point with momentum
+                    massPoints.push({
+                        x: dragStart.x,
+                        y: dragStart.y,
+                        vx: dx * 0.3,
+                        vy: dy * 0.3,
+                        mass: particleMass
+                    });
+                    
+                    // Spawn particles around mass point
+                    for (let i = 0; i < particleCount; i++) {
+                        const angle = (Math.random() * Math.PI * 2);
+                        const speed = Math.random() * 2;
+                        particles.push({
+                            x: dragStart.x + Math.cos(angle) * 10,
+                            y: dragStart.y + Math.sin(angle) * 10,
+                            vx: Math.cos(angle) * speed,
+                            vy: Math.sin(angle) * speed,
+                            mass: 0.1
+                        });
+                    }
+                } else {
+                    // Just add a mass point
+                    massPoints.push({
+                        x: dragStart.x,
+                        y: dragStart.y,
+                        vx: 0,
+                        vy: 0,
+                        mass: particleMass
+                    });
+                    
+                    for (let i = 0; i < particleCount; i++) {
+                        const angle = (Math.random() * Math.PI * 2);
+                        const speed = Math.random() * 1;
+                        particles.push({
+                            x: dragStart.x + Math.cos(angle) * 8,
+                            y: dragStart.y + Math.sin(angle) * 8,
+                            vx: Math.cos(angle) * speed,
+                            vy: Math.sin(angle) * speed,
+                            mass: 0.1
+                        });
+                    }
+                }
+            }
+            isDragging = false;
+        });
+        
+        // Physics loop
+        function update() {
+            // Update mass points
+            massPoints.forEach(mp => {
+                mp.x += mp.vx;
+                mp.y += mp.vy;
+                mp.vx *= damping;
+                mp.vy *= damping;
+                
+                // Bounce off walls
+                if (mp.x < 0 || mp.x > displayWidth) mp.vx *= -0.8;
+                if (mp.y < 0 || mp.y > displayHeight) mp.vy *= -0.8;
+                mp.x = Math.max(0, Math.min(displayWidth, mp.x));
+                mp.y = Math.max(0, Math.min(displayHeight, mp.y));
+            });
+            
+            // Update particles with gravity
+            particles = particles.filter(p => {
+                let fx = 0, fy = 0;
+                
+                // Gravity from each mass point
+                massPoints.forEach(mp => {
+                    const dx = mp.x - p.x;
+                    const dy = mp.y - p.y;
+                    const distSq = dx * dx + dy * dy + 100; // Avoid singularity
+                    const dist = Math.sqrt(distSq);
+                    
+                    const force = (G * gravityStrength * mp.mass * p.mass) / distSq;
+                    fx += (force * dx) / dist;
+                    fy += (force * dy) / dist;
+                });
+                
+                // Apply forces
+                p.vx += fx / p.mass;
+                p.vy += fy / p.mass;
+                p.vx *= damping;
+                p.vy *= damping;
+                
+                // Update position
+                p.x += p.vx;
+                p.y += p.vy;
+                
+                // Remove if out of bounds
+                return p.x > -50 && p.x < displayWidth + 50 && p.y > -50 && p.y < displayHeight + 50;
+            });
+        }
+        
+        // Render
+        function render() {
+            ctx.fillStyle = 'rgba(15, 30, 60, 0.1)';
+            ctx.fillRect(0, 0, displayWidth, displayHeight);
+            
+            // Draw particles
+            particles.forEach(p => {
+                ctx.fillStyle = 'rgba(77, 208, 255, 0.6)';
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 1.5, 0, Math.PI * 2);
+                ctx.fill();
+            });
+            
+            // Draw mass points
+            massPoints.forEach(mp => {
+                const radius = Math.sqrt(mp.mass) * 1.5;
+                ctx.fillStyle = 'rgba(255, 100, 150, 0.8)';
+                ctx.beginPath();
+                ctx.arc(mp.x, mp.y, radius, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Glow
+                ctx.strokeStyle = 'rgba(255, 100, 150, 0.3)';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(mp.x, mp.y, radius + 8, 0, Math.PI * 2);
+                ctx.stroke();
+            });
+            
+            // Draw drag preview
+            if (isDragging && dragStart && dragCurrent) {
+                const dx = dragCurrent.x - dragStart.x;
+                const dy = dragCurrent.y - dragStart.y;
+                ctx.strokeStyle = 'rgba(77, 208, 255, 0.5)';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(dragStart.x, dragStart.y);
+                ctx.lineTo(dragCurrent.x, dragCurrent.y);
+                ctx.stroke();
+                
+                ctx.fillStyle = 'rgba(77, 208, 255, 0.3)';
+                ctx.beginPath();
+                ctx.arc(dragStart.x, dragStart.y, 8, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+        
+        // Update stats
+        function updateStats() {
+            document.getElementById('particleCount').textContent = particles.length;
+            document.getElementById('massPointCount').textContent = massPoints.length;
+        }
+        
+        // Main loop
+        function animate() {
+            update();
+            render();
+            updateStats();
+            requestAnimationFrame(animate);
+        }
+        
+        animate();
+        
+        // Initial assertion for headless validation
+        console.assert(particles.length === 0, 'Initial particles should be 0');
+        console.assert(massPoints.length === 0, 'Initial mass points should be 0');
+        console.assert(gravityStrength === 100, 'Gravity should initialize to 100');
+    </script>
+</body>
+</html>
