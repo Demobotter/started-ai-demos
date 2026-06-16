@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Expense Pie</title>
+  <link href="https://fonts.googleapis.com/css2?family=Urbanist:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .container {
+      max-width: 900px;
+      width: 100%;
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.12);
+      padding: 40px;
+    }
+    h1 {
+      font-family: 'Urbanist', sans-serif;
+      font-size: 32px;
+      font-weight: 700;
+      color: #1a1a1a;
+      margin-bottom: 8px;
+    }
+    .subtitle {
+      color: #666;
+      margin-bottom: 30px;
+      font-size: 14px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 40px;
+      margin-bottom: 30px;
+    }
+    .input-section {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .input-group {
+      display: flex;
+      gap: 8px;
+    }
+    input[type="number"], input[type="text"], select {
+      flex: 1;
+      padding: 10px 14px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 14px;
+      font-family: 'Inter', sans-serif;
+    }
+    input[type="number"]:focus, input[type="text"]:focus, select:focus {
+      outline: none;
+      border-color: #4f46e5;
+      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+    }
+    button {
+      padding: 10px 16px;
+      background: #4f46e5;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-weight: 500;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background 0.2s;
+    }
+    button:hover {
+      background: #4338ca;
+    }
+    button.delete-btn {
+      background: #ef4444;
+      padding: 6px 10px;
+      font-size: 12px;
+    }
+    button.delete-btn:hover {
+      background: #dc2626;
+    }
+    .csv-section {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    textarea {
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      resize: vertical;
+      min-height: 100px;
+    }
+    .chart-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    #pieCanvas {
+      max-width: 100%;
+      height: auto;
+    }
+    .transactions-list {
+      max-height: 300px;
+      overflow-y: auto;
+      border: 1px solid #eee;
+      border-radius: 8px;
+      padding: 12px;
+      margin-top: 16px;
+    }
+    .transaction-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px solid #f0f0f0;
+      font-size: 13px;
+    }
+    .transaction-item:last-child {
+      border-bottom: none;
+    }
+    .tx-amount {
+      font-weight: 600;
+      color: #1a1a1a;
+    }
+    .tx-category {
+      background: #f0f0f0;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 500;
+      color: #555;
+    }
+    .summary {
+      margin-top: 24px;
+      padding: 20px;
+      background: #f9fafb;
+      border-radius: 8px;
+    }
+    .summary-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      font-size: 14px;
+    }
+    .summary-row.total {
+      border-top: 2px solid #ddd;
+      padding-top: 12px;
+      margin-top: 12px;
+      font-weight: 600;
+      color: #1a1a1a;
+    }
+    .category-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid #eee;
+      font-size: 13px;
+    }
+    .bar-name {
+      font-weight: 500;
+      color: #1a1a1a;
+    }
+    .bar-stats {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+    .bar-amount {
+      font-weight: 600;
+      color: #4f46e5;
+      min-width: 70px;
+      text-align: right;
+    }
+    .bar-pct {
+      color: #999;
+      font-size: 12px;
+      min-width: 45px;
+      text-align: right;
+    }
+    @media (max-width: 768px) {
+      .grid {
+        grid-template-columns: 1fr;
+        gap: 24px;
+      }
+      .container {
+        padding: 24px;
+      }
+      h1 {
+        font-size: 24px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>💰 Expense Pie</h1>
+    <p class="subtitle">Track your spending by category in real-time</p>
+
+    <div class="grid">
+      <!-- Input Section -->
+      <div class="input-section">
+        <div>
+          <label style="display: block; margin-bottom: 8px; font-weight: 500; font-size: 13px; color: #555;">Add Transaction</label>
+          <div class="input-group">
+            <input type="number" id="amount" placeholder="Amount" step="0.01" min="0">
+            <select id="category">
+              <option value="Food">Food</option>
+              <option value="Transport">Transport</option>
+              <option value="Work">Work</option>
+              <option value="Health">Health</option>
+              <option value="Entertainment">Entertainment</option>
+              <option value="Other">Other</option>
+            </select>
+            <button onclick="addTransaction()">Add</button>
+          </div>
+        </div>
+
+        <div>
+          <label style="display: block; margin-bottom: 8px; font-weight: 500; font-size: 13px; color: #555;">Or Paste CSV</label>
+          <div class="csv-section">
+            <textarea id="csvInput" placeholder="amount,category&#10;50.00,Food&#10;15.50,Transport&#10;200.00,Work"></textarea>
+            <button onclick="parseCSV()">Load CSV</button>
+          </div>
+        </div>
+
+        <div>
+          <label style="display: block; margin-bottom: 8px; font-weight: 500; font-size: 13px; color: #555;">Transactions</label>
+          <div class="transactions-list" id="transactionsList"></div>
+        </div>
+
+        <button style="background: #ef4444; width: 100%;" onclick="clearAll()">Clear All</button>
+      </div>
+
+      <!-- Chart Section -->
+      <div class="chart-section">
+        <canvas id="pieCanvas" width="300" height="300"></canvas>
+        <div class="summary" id="summary"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const COLORS = {
+      'Food': '#ff6b6b',
+      'Transport': '#4ecdc4',
+      'Work': '#4f46e5',
+      'Health': '#10b981',
+      'Entertainment': '#f59e0b',
+      'Other': '#6b7280'
+    };
+
+    let transactions = [];
+
+    function addTransaction() {
+      const amount = parseFloat(document.getElementById('amount').value);
+      const category = document.getElementById('category').value;
+
+      if (!amount || amount <= 0) {
+        alert('Please enter a valid amount');
+        return;
+      }
+
+      transactions.push({ amount, category });
+      document.getElementById('amount').value = '';
+      render();
+    }
+
+    function parseCSV() {
+      const csv = document.getElementById('csvInput').value.trim();
+      if (!csv) return;
+
+      const lines = csv.split('\n').filter(l => l.trim());
+      let count = 0;
+
+      lines.forEach((line, idx) => {
+        // Skip header row if it looks like one
+        if (idx === 0 && line.toLowerCase().includes('amount')) return;
+
+        const parts = line.split(',').map(p => p.trim());
+        const amount = parseFloat(parts[0]);
+        const category = parts[1] || 'Other';
+
+        if (!isNaN(amount) && amount > 0) {
+          transactions.push({ amount, category });
+          count++;
+        }
+      });
+
+      document.getElementById('csvInput').value = '';
+      render();
+    }
+
+    function removeTransaction(idx) {
+      transactions.splice(idx, 1);
+      render();
+    }
+
+    function clearAll() {
+      if (transactions.length === 0) return;
+      if (confirm('Clear all transactions?')) {
+        transactions = [];
+        render();
+      }
+    }
+
+    function calculateStats() {
+      const stats = {};
+      let total = 0;
+
+      transactions.forEach(tx => {
+        if (!stats[tx.category]) stats[tx.category] = 0;
+        stats[tx.category] += tx.amount;
+        total += tx.amount;
+      });
+
+      return { stats, total };
+    }
+
+    function drawPie() {
+      const canvas = document.getElementById('pieCanvas');
+      const ctx = canvas.getContext('2d');
+      const { stats, total } = calculateStats();
+
+      const centerX = canvas.width / 2;
+      const centerY = canvas.height / 2;
+      const radius = 100;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      if (total === 0) {
+        ctx.fillStyle = '#e5e7eb';
+        ctx.font = '14px Inter';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('No expenses yet', centerX, centerY);
+        return;
+      }
+
+      let startAngle = -Math.PI / 2;
+
+      Object.entries(stats).forEach(([category, amount]) => {
+        const sliceAngle = (amount / total) * 2 * Math.PI;
+        const endAngle = startAngle + sliceAngle;
+
+        // Draw slice
+        ctx.beginPath();
+        ctx.moveTo(centerX, centerY);
+        ctx.arc(centerX, centerY, radius, startAngle, endAngle);
+        ctx.closePath();
+        ctx.fillStyle = COLORS[category];
+        ctx.fill();
+
+        // Draw border
+        ctx.strokeStyle = 'white';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Draw label
+        if (sliceAngle > 0.4) {
+          const labelAngle = startAngle + sliceAngle / 2;
+          const labelX = centerX + Math.cos(labelAngle) * (radius * 0.65);
+          const labelY = centerY + Math.sin(labelAngle) * (radius * 0.65);
+
+          const pct = Math.round((amount / total) * 100);
+          ctx.fillStyle = 'white';
+          ctx.font = 'bold 12px Inter';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(pct + '%', labelX, labelY);
+        }
+
+        startAngle = endAngle;
+      });
+    }
+
+    function updateSummary() {
+      const { stats, total } = calculateStats();
+      let html = '';
+
+      if (total === 0) {
+        html = '<p style="color: #999; text-align: center;">Add transactions to see breakdown</p>';
+      } else {
+        Object.entries(stats)
+          .sort((a, b) => b[1] - a[1])
+          .forEach(([category, amount]) => {
+            const pct = ((amount / total) * 100).toFixed(1);
+            html += `
+              <div class="category-bar">
+                <span class="bar-name" style="color: ${COLORS[category]};">● ${category}</span>
+                <div class="bar-stats">
+                  <span class="bar-amount">$${amount.toFixed(2)}</span>
+                  <span class="bar-pct">${pct}%</span>
+                </div>
+              </div>
+            `;
+          });
+
+        html += `
+          <div class="summary-row total">
+            <span>Total Spent</span>
+            <span>$${total.toFixed(2)}</span>
+          </div>
+        `;
+      }
+
+      document.getElementById('summary').innerHTML = html;
+    }
+
+    function updateTransactionsList() {
+      let html = '';
+      if (transactions.length === 0) {
+        html = '<p style="color: #999; text-align: center; font-size: 12px;">No transactions</p>';
+      } else {
+        transactions.forEach((tx, idx) => {
+          html += `
+            <div class="transaction-item">
+              <div style="flex: 1;">
+                <span class="tx-category">${tx.category}</span>
+                <span class="tx-amount" style="margin-left: 8px;">$${tx.amount.toFixed(2)}</span>
+              </div>
+              <button class="delete-btn" onclick="removeTransaction(${idx})">✕</button>
+            </div>
+          `;
+        });
+      }
+      document.getElementById('transactionsList').innerHTML = html;
+    }
+
+    function render() {
+      drawPie();
+      updateSummary();
+      updateTransactionsList();
+    }
+
+    // Init
+    render();
+  </script>
+</body>
+</html>
