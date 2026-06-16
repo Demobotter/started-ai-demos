@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stellar Brightness Tracker</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0a0a2e 0%, #16213e 50%, #0f3460 100%);
+            color: #e0e0e0;
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 900px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #00d4ff, #7c3aed);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .header p {
+            color: #a0a0a0;
+            font-size: 0.95em;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 10px 15px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        label {
+            font-weight: 600;
+            font-size: 0.9em;
+            color: #00d4ff;
+        }
+        
+        select {
+            background: rgba(255, 255, 255, 0.1);
+            color: #e0e0e0;
+            border: 1px solid #00d4ff;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9em;
+        }
+        
+        select:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+        
+        .canvas-wrapper {
+            background: rgba(15, 52, 96, 0.3);
+            border: 2px solid rgba(0, 212, 255, 0.2);
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 25px;
+            box-shadow: 0 8px 32px rgba(0, 212, 255, 0.1);
+        }
+        
+        canvas {
+            display: block;
+            width: 100%;
+            background: linear-gradient(180deg, rgba(10, 10, 46, 0.8) 0%, rgba(22, 33, 62, 0.9) 100%);
+        }
+        
+        .legend {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .legend-title {
+            font-weight: 700;
+            margin-bottom: 15px;
+            color: #00d4ff;
+        }
+        
+        .legend-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .legend-dot {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        
+        .legend-text {
+            font-size: 0.9em;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .stat-box {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(0, 212, 255, 0.3);
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+        }
+        
+        .stat-label {
+            font-size: 0.85em;
+            color: #a0a0a0;
+            margin-bottom: 8px;
+        }
+        
+        .stat-value {
+            font-size: 1.8em;
+            font-weight: 700;
+            color: #00d4ff;
+        }
+        
+        .refresh-btn {
+            background: linear-gradient(135deg, #00d4ff, #7c3aed);
+            color: #0a0a2e;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 0.95em;
+            transition: transform 0.2s, box-shadow 0.2s;
+            width: 100%;
+            margin-top: 10px;
+        }
+        
+        .refresh-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(0, 212, 255, 0.3);
+        }
+        
+        .refresh-btn:active {
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>⭐ Stellar Brightness Tracker</h1>
+            <p>Real-time visualization of visible star magnitudes and constellation data</p>
+        </div>
+        
+        <div class="controls">
+            <div class="control-group">
+                <label for="constellation">Constellation:</label>
+                <select id="constellation">
+                    <option value="all">All Constellations</option>
+                    <option value="orion">Orion</option>
+                    <option value="leo">Leo</option>
+                    <option value="ursa-major">Ursa Major</option>
+                    <option value="ursa-minor">Ursa Minor</option>
+                    <option value="pegasus">Pegasus</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label for="magnitude-filter">Brightness (Max Magnitude):</label>
+                <select id="magnitude-filter">
+                    <option value="6">Visible to naked eye (≤6)</option>
+                    <option value="3">Bright stars (≤3)</option>
+                    <option value="1">Very bright (≤1)</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="stats" id="stats"></div>
+        
+        <div class="canvas-wrapper">
+            <canvas id="canvas"></canvas>
+        </div>
+        
+        <div class="legend">
+            <div class="legend-title">Magnitude Scale (Brightness)</div>
+            <div class="legend-grid">
+                <div class="legend-item">
+                    <div class="legend-dot" style="background: #ffff00; box-shadow: 0 0 15px #ffff00;"></div>
+                    <div class="legend-text">Very Bright (< 0)</div>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-dot" style="background: #00ffff; box-shadow: 0 0 10px #00ffff;"></div>
+                    <div class="legend-text">Bright (0 - 2)</div>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-dot" style="background: #00ff88; box-shadow: 0 0 8px #00ff88;"></div>
+                    <div class="legend-text">Medium (2 - 4)</div>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-dot" style="background: #8800ff; box-shadow: 0 0 6px #8800ff;"></div>
+                    <div class="legend-text">Dim (4 - 6)</div>
+                </div>
+            </div>
+        </div>
+        
+        <button class="refresh-btn" id="refreshBtn">🔄 Update Observation</button>
+    </div>
+    
+    <script>
+        // Star data by constellation
+        const constellationData = {
+            orion: [
+                { name: 'Rigel', mag: 0.12, ra: 5.24, dec: -8.2 },
+                { name: 'Betelgeuse', mag: 0.45, ra: 5.92, dec: 7.41 },
+                { name: 'Bellatrix', mag: 1.64, ra: 5.42, dec: 6.35 },
+                { name: 'Mintaka', mag: 2.23, ra: 5.53, dec: -0.3 },
+                { name: 'Alnilam', mag: 1.69, ra: 5.64, dec: -2.6 },
+                { name: 'Saiph', mag: 2.07, ra: 5.79, dec: -9.67 },
+                { name: 'Alnitak', mag: 1.93, ra: 5.68, dec: -1.93 },
+            ],
+            leo: [
+                { name: 'Regulus', mag: 1.35, ra: 10.14, dec: 11.97 },
+                { name: 'Denebola', mag: 2.14, ra: 11.82, dec: 14.57 },
+                { name: 'Algieba', mag: 1.98, ra: 10.33, dec: 19.84 },
+                { name: 'Zosma', mag: 2.56, ra: 11.25, dec: 20.52 },
+                { name: 'Adhafera', mag: 3.44, ra: 9.74, dec: 23.77 },
+            ],
+            'ursa-major': [
+                { name: 'Alkaid', mag: 1.86, ra: 13.79, dec: 49.31 },
+                { name: 'Alioth', mag: 1.77, ra: 12.90, dec: 55.96 },
+                { name: 'Mizar', mag: 2.27, ra: 13.40, dec: 54.93 },
+                { name: 'Alkali', mag: 2.44, ra: 11.03, dec: 61.74 },
+                { name: 'Merak', mag: 2.37, ra: 11.03, dec: 56.38 },
+                { name: 'Dubhe', mag: 1.80, ra: 10.33, dec: 62.04 },
+            ],
+            'ursa-minor': [
+                { name: 'Polaris', mag: 1.97, ra: 2.53, dec: 89.26 },
+                { name: 'Kochab', mag: 2.08, ra: 15.73, dec: 74.15 },
+                { name: 'Pherkad', mag: 3.05, ra: 14.85, dec: 71.83 },
+            ],
+            pegasus: [
+                { name: 'Enif', mag: 2.38, ra: 21.73, dec: 9.87 },
+                { name: 'Scheat', mag: 2.42, ra: 23.16, dec: 28.10 },
+                { name: 'Markab', mag: 2.49, ra: 23.08, dec: 15.19 },
+                { name: 'Algenib', mag: 2.60, ra: 0.22, dec: 15.19 },
+            ]
+        };
+        
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const constellationSelect = document.getElementById('constellation');
+        const magnitudeSelect = document.getElementById('magnitude-filter');
+        const refreshBtn = document.getElementById('refreshBtn');
+        const statsDiv = document.getElementById('stats');
+        
+        function resizeCanvas() {
+            const wrapper = canvas.parentElement;
+            canvas.width = wrapper.offsetWidth;
+            canvas.height = Math.min(600, window.innerHeight * 0.5);
+        }
+        
+        function getMagnitudeColor(mag) {
+            if (mag < 0) return { color: '#ffff00', glow: 15 };
+            if (mag < 2) return { color: '#00ffff', glow: 10 };
+            if (mag < 4) return { color: '#00ff88', glow: 8 };
+            return { color: '#8800ff', glow: 6 };
+        }
+        
+        function drawStars() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Background stars (static)
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+            for (let i = 0; i < 150; i++) {
+                const x = Math.random() * canvas.width;
+                const y = Math.random() * canvas.height;
+                const size = Math.random() * 1.5;
+                ctx.fillRect(x, y, size, size);
+            }
+            
+            // Get selected constellation data
+            let selectedConstellation = constellationSelect.value;
+            let starList = [];
+            
+            if (selectedConstellation === 'all') {
+                Object.values(constellationData).forEach(stars => starList.push(...stars));
+            } else {
+                starList = constellationData[selectedConstellation] || [];
+            }
+            
+            const maxMag = parseFloat(magnitudeSelect.value);
+            starList = starList.filter(star => star.mag <= maxMag);
+            
+            // Draw stars
+            starList.forEach(star => {
+                const x = (star.ra / 24) * canvas.width;
+                const y = ((star.dec + 90) / 180) * canvas.height;
+                
+                const colorInfo = getMagnitudeColor(star.mag);
+                
+                // Glow effect
+                const gradient = ctx.createRadialGradient(x, y, 0, x, y, colorInfo.glow);
+                gradient.addColorStop(0, colorInfo.color + '60');
+                gradient.addColorStop(1, colorInfo.color + '00');
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(x, y, colorInfo.glow, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Star core
+                const radius = Math.max(2, 6 - star.mag);
+                ctx.fillStyle = colorInfo.color;
+                ctx.beginPath();
+                ctx.arc(x, y, radius, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Star label
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+                ctx.font = 'bold 12px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(star.name, x, y - radius - 15);
+            });
+            
+            // Update stats
+            const brightCount = starList.filter(s => s.mag < 2).length;
+            const avgMag = (starList.reduce((sum, s) => sum + s.mag, 0) / starList.length).toFixed(2);
+            
+            statsDiv.innerHTML = `
+                <div class="stat-box">
+                    <div class="stat-label">Visible Stars</div>
+                    <div class="stat-value">${starList.length}</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Bright Stars (&lt;2)</div>
+                    <div class="stat-value">${brightCount}</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Average Magnitude</div>
+                    <div class="stat-value">${avgMag}</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Observation Time</div>
+                    <div class="stat-value">${new Date().toLocaleTimeString()}</div>
+                </div>
+            `;
+        }
+        
+        resizeCanvas();
+        drawStars();
+        
+        constellationSelect.addEventListener('change', drawStars);
+        magnitudeSelect.addEventListener('change', drawStars);
+        refreshBtn.addEventListener('click', drawStars);
+        
+        window.addEventListener('resize', () => {
+            resizeCanvas();
+            drawStars();
+        });
+    </script>
+</body>
+</html>
