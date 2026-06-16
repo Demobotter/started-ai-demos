@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Productivity Zones</title>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1a1f35 100%);
+            color: #e2e8f0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 900px;
+            width: 100%;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        h1 {
+            font-family: 'Syne', sans-serif;
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, #60a5fa 0%, #a78bfa 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .subtitle {
+            font-size: 0.95rem;
+            color: #94a3b8;
+        }
+        
+        .zones-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .zone-card {
+            background: rgba(30, 41, 59, 0.6);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            border-radius: 12px;
+            padding: 24px;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+        
+        .zone-card:hover {
+            border-color: rgba(148, 163, 184, 0.4);
+            background: rgba(30, 41, 59, 0.8);
+            transform: translateY(-2px);
+        }
+        
+        .zone-title {
+            font-family: 'Syne', sans-serif;
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .zone-flag {
+            font-size: 1.8rem;
+        }
+        
+        .zone-time {
+            font-size: 2rem;
+            font-weight: 700;
+            font-family: 'Courier New', monospace;
+            margin: 16px 0;
+            color: #60a5fa;
+        }
+        
+        .zone-status {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+        
+        .status-working {
+            background: rgba(34, 197, 94, 0.2);
+            color: #86efac;
+            border: 1px solid rgba(34, 197, 94, 0.4);
+        }
+        
+        .status-lunch {
+            background: rgba(217, 119, 6, 0.2);
+            color: #fbbf24;
+            border: 1px solid rgba(217, 119, 6, 0.4);
+        }
+        
+        .status-off {
+            background: rgba(239, 68, 68, 0.2);
+            color: #fca5a5;
+            border: 1px solid rgba(239, 68, 68, 0.4);
+        }
+        
+        .activity-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(100, 116, 139, 0.2);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 12px;
+        }
+        
+        .activity-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+        
+        .fill-working {
+            background: linear-gradient(90deg, #22c55e 0%, #86efac 100%);
+        }
+        
+        .fill-lunch {
+            background: linear-gradient(90deg, #d97706 0%, #fbbf24 100%);
+        }
+        
+        .fill-off {
+            background: linear-gradient(90deg, #ef4444 0%, #fca5a5 100%);
+        }
+        
+        .meta-info {
+            font-size: 0.8rem;
+            color: #64748b;
+            margin-top: 12px;
+            border-top: 1px solid rgba(148, 163, 184, 0.1);
+            padding-top: 12px;
+        }
+        
+        .refresh-info {
+            text-align: center;
+            color: #64748b;
+            font-size: 0.85rem;
+            margin-top: 20px;
+        }
+        
+        @media (max-width: 640px) {
+            h1 {
+                font-size: 1.8rem;
+            }
+            
+            .zones-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🕐 Productivity Zones</h1>
+            <p class="subtitle">Who's working, lunching, or sleeping right now?</p>
+        </header>
+        
+        <div class="zones-grid" id="zonesGrid"></div>
+        
+        <div class="refresh-info">
+            <span id="refreshTime">Updates live every 10 seconds</span>
+        </div>
+    </div>
+    
+    <script>
+        const zones = [
+            { city: 'New York', tz: 'America/New_York', flag: '🗽', offset: -4 },
+            { city: 'London', tz: 'Europe/London', flag: '🇬🇧', offset: 1 },
+            { city: 'Tokyo', tz: 'Asia/Tokyo', flag: '🗾', offset: 9 },
+            { city: 'Sydney', tz: 'Australia/Sydney', flag: '🦘', offset: 10 },
+            { city: 'Singapore', tz: 'Asia/Singapore', flag: '🇸🇬', offset: 8 },
+            { city: 'São Paulo', tz: 'America/Sao_Paulo', flag: '🇧🇷', offset: -3 }
+        ];
+        
+        function getProductivityStatus(hour) {
+            if (hour >= 9 && hour < 12) return { status: 'working', label: 'Peak Hours', fill: 100 };
+            if (hour >= 12 && hour < 13) return { status: 'lunch', label: 'Lunch Break', fill: 50 };
+            if (hour >= 13 && hour < 17) return { status: 'working', label: 'Afternoon', fill: 80 };
+            if (hour >= 17 && hour < 18) return { status: 'lunch', label: 'Winding Down', fill: 40 };
+            if (hour >= 18 || hour < 9) return { status: 'off', label: 'Off Hours', fill: 10 };
+        }
+        
+        function renderZones() {
+            const grid = document.getElementById('zonesGrid');
+            grid.innerHTML = '';
+            
+            zones.forEach(zone => {
+                const now = new Date();
+                const utcTime = now.getTime() + now.getTimezoneOffset() * 60000;
+                const localTime = new Date(utcTime + (zone.offset * 3600000));
+                const hour = localTime.getHours();
+                const minutes = String(localTime.getMinutes()).padStart(2, '0');
+                const ampm = hour >= 12 ? 'PM' : 'AM';
+                const displayHour = hour % 12 || 12;
+                
+                const productivity = getProductivityStatus(hour);
+                const statusClass = `status-${productivity.status}`;
+                const fillClass = `fill-${productivity.status}`;
+                
+                const card = document.createElement('div');
+                card.className = 'zone-card';
+                card.innerHTML = `
+                    <div class="zone-title">
+                        <span class="zone-flag">${zone.flag}</span>
+                        <span>${zone.city}</span>
+                    </div>
+                    <div class="zone-time">${displayHour}:${minutes} ${ampm}</div>
+                    <div class="zone-status ${statusClass}">${productivity.label}</div>
+                    <div class="activity-bar">
+                        <div class="activity-fill ${fillClass}" style="width: ${productivity.fill}%"></div>
+                    </div>
+                    <div class="meta-info">
+                        ${hour >= 9 && hour < 17 ? '✓ Available to meet' : '✗ Likely unavailable'}
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+            
+            // Update refresh time display
+            const now = new Date();
+            const refreshTime = document.getElementById('refreshTime');
+            refreshTime.textContent = `Last updated: ${now.toLocaleTimeString()} Melbourne`;
+        }
+        
+        // Initial render
+        renderZones();
+        
+        // Refresh every 10 seconds
+        setInterval(renderZones, 10000);
+    </script>
+</body>
+</html>
