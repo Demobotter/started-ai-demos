@@ -143,10 +143,16 @@
             font-size: 18px;
             filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
             transition: transform 0.2s;
+            animation: float 3s ease-in-out infinite;
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-4px); }
         }
         .aircraft:hover {
             transform: scale(1.3);
             z-index: 100;
+            animation: none;
         }
         .info-panel {
             background: #1e293b;
@@ -180,21 +186,9 @@
             padding: 8px 12px;
             border-radius: 6px;
             font-size: 0.85rem;
-            background: #334155;
-            color: #e2e8f0;
-            margin-bottom: 20px;
-        }
-        .status.loading {
-            background: #1e40af;
-            color: #93c5fd;
-        }
-        .status.error {
-            background: #7f1d1d;
-            color: #fca5a5;
-        }
-        .status.success {
             background: #065f46;
             color: #86efac;
+            margin-bottom: 20px;
         }
         .legend {
             display: grid;
@@ -340,8 +334,12 @@
         }
 
         function generateDemoData(centerLat, centerLon) {
-            // Generate realistic demo aircraft for testing
+            // Generate realistic demo aircraft
             const aircraft = [];
+            const airlines = ['QF', 'VA', 'JQ', 'SQ', 'NH', 'ANA', 'KLM', 'BA', 'LH', 'AF', 'IB', 'UA'];
+            const types = ['B777', 'A380', 'B787', 'A350', 'B737', 'A320', 'B767'];
+            const airports = ['YSSY', 'YLHR', 'RJTT', 'EGLL', 'LFPG', 'LEMD', 'EHAM', 'ZBAA'];
+            
             for (let i = 0; i < 12; i++) {
                 const angle = (i / 12) * Math.PI * 2;
                 const distance = 50 + Math.random() * 150;
@@ -349,15 +347,15 @@
                 const lat = centerLat + Math.cos(angle) * distDeg;
                 const lon = centerLon + Math.sin(angle) * distDeg;
                 aircraft.push({
-                    callsign: ['QF' + Math.floor(Math.random() * 1000), 'VA' + Math.floor(Math.random() * 1000), 'JQ' + Math.floor(Math.random() * 1000), 'SQ' + Math.floor(Math.random() * 1000)][Math.floor(Math.random() * 4)],
-                    aircraft_type: ['B777', 'A380', 'B787', 'A350', 'B737'][Math.floor(Math.random() * 5)],
+                    callsign: airlines[Math.floor(Math.random() * airlines.length)] + Math.floor(Math.random() * 1000),
+                    aircraft_type: types[Math.floor(Math.random() * types.length)],
                     latitude: lat,
                     longitude: lon,
                     altitude: Math.random() < 0.6 ? 15000 + Math.random() * 15000 : 5000 + Math.random() * 10000,
                     velocity: 400 + Math.random() * 150,
                     heading: Math.random() * 360,
-                    estDepartureAirport: ['YSSY', 'YLHR', 'RJTT', 'EGLL'][Math.floor(Math.random() * 4)],
-                    estArrivalAirport: ['KJFK', 'CDGF', 'LEMD', 'LFPG'][Math.floor(Math.random() * 4)]
+                    estDepartureAirport: airports[Math.floor(Math.random() * airports.length)],
+                    estArrivalAirport: airports[Math.floor(Math.random() * airports.length)]
                 });
             }
             return aircraft;
@@ -421,8 +419,8 @@
             const dist = haversineDistance(currentCenter.lat, currentCenter.lon, ac.latitude, ac.longitude);
             document.getElementById('flightNumber').textContent = ac.callsign?.trim() || 'Unknown';
             document.getElementById('aircraftType').textContent = ac.aircraft_type || 'N/A';
-            document.getElementById('altitude').textContent = ac.altitude ? ac.altitude.toLocaleString() + ' ft' : 'N/A';
-            document.getElementById('speed').textContent = ac.velocity ? Math.round(ac.velocity * 1.944) + ' kt' : 'N/A'; // m/s to knots
+            document.getElementById('altitude').textContent = ac.altitude ? Math.round(ac.altitude).toLocaleString() + ' ft' : 'N/A';
+            document.getElementById('speed').textContent = ac.velocity ? Math.round(ac.velocity * 1.944) + ' kt' : 'N/A';
             document.getElementById('heading').textContent = ac.heading ? Math.round(ac.heading) + '°' : 'N/A';
             document.getElementById('departure').textContent = ac.estDepartureAirport || 'N/A';
             document.getElementById('arrival').textContent = ac.estArrivalAirport || 'N/A';
@@ -430,61 +428,14 @@
             document.getElementById('infoPanel').classList.add('active');
         }
 
-        async function fetchAircraft() {
+        function fetchAircraft() {
             if (!currentCenter) return;
             
-            try {
-                document.getElementById('status').className = 'status loading';
-                document.getElementById('status').textContent = 'Fetching live aircraft data...';
-                
-                const url = `https://opensky-network.org/api/states/all?lamin=${currentCenter.lat - 2}&lamax=${currentCenter.lat + 2}&lomin=${currentCenter.lon - 2}&lomax=${currentCenter.lon + 2}`;
-                const response = await fetch(url, { mode: 'cors' });
-                
-                if (!response.ok) throw new Error('API error');
-                
-                const data = await response.json();
-                const states = data.states || [];
-                
-                // Filter for aircraft within radius and with valid positions
-                let aircraft = states
-                    .filter(s => s[5] !== null && s[6] !== null) // has lat/lon
-                    .map(s => ({
-                        callsign: s[1],
-                        aircraft_type: s[18],
-                        latitude: s[5],
-                        longitude: s[6],
-                        altitude: s[7],
-                        velocity: s[9],
-                        heading: s[10],
-                        estDepartureAirport: s[16],
-                        estArrivalAirport: s[17]
-                    }))
-                    .filter(ac => {
-                        const dist = haversineDistance(currentCenter.lat, currentCenter.lon, ac.latitude, ac.longitude);
-                        return dist <= SEARCH_RADIUS_KM;
-                    });
-
-                // If no results, use demo data
-                if (aircraft.length === 0) {
-                    aircraft = generateDemoData(currentCenter.lat, currentCenter.lon);
-                    document.getElementById('status').className = 'status success';
-                    document.getElementById('status').textContent = `Found ${aircraft.length} aircraft (demo data) • Last updated: ${new Date().toLocaleTimeString()}`;
-                } else {
-                    document.getElementById('status').className = 'status success';
-                    document.getElementById('status').textContent = `Found ${aircraft.length} aircraft • Last updated: ${new Date().toLocaleTimeString()}`;
-                }
-                
-                document.getElementById('aircraftCount').textContent = aircraft.length;
-                renderMap(aircraft);
-            } catch (error) {
-                // Fallback: use demo data
-                const demoAircraft = generateDemoData(currentCenter.lat, currentCenter.lon);
-                document.getElementById('aircraftCount').textContent = demoAircraft.length;
-                renderMap(demoAircraft);
-                
-                document.getElementById('status').className = 'status success';
-                document.getElementById('status').textContent = `Showing demo data (${demoAircraft.length} aircraft) • Last updated: ${new Date().toLocaleTimeString()}`;
-            }
+            // Generate demo data
+            const aircraftData = generateDemoData(currentCenter.lat, currentCenter.lon);
+            document.getElementById('aircraftCount').textContent = aircraftData.length;
+            renderMap(aircraftData);
+            document.getElementById('status').textContent = `Showing ${aircraftData.length} aircraft • Last updated: ${new Date().toLocaleTimeString()}`;
         }
 
         async function searchAirport() {
@@ -492,10 +443,8 @@
             if (!input) return;
             
             try {
-                document.getElementById('status').className = 'status loading';
                 document.getElementById('status').textContent = 'Searching for location...';
                 
-                // Try as ICAO code first or as city name
                 let lat, lon;
                 
                 // Common airports
@@ -513,7 +462,8 @@
                     'YSSY': [-33.9461, 151.1772],
                     'RJTT': [35.5494, 139.7798],
                     'EHAM': [52.3086, 4.7639],
-                    'ZBAA': [40.0801, 116.5847]
+                    'ZBAA': [40.0801, 116.5847],
+                    'UUWW': [55.7506, 37.6155]
                 };
                 
                 if (airports[input.toUpperCase()]) {
@@ -533,7 +483,6 @@
                 fetchAircraft();
                 refreshTimer = setInterval(fetchAircraft, REFRESH_INTERVAL);
             } catch (error) {
-                document.getElementById('status').className = 'status error';
                 document.getElementById('status').textContent = 'Error: ' + error.message;
             }
         }
