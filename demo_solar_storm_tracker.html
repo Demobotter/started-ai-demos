@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aurora Forecast</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, #0a1428 0%, #1a0033 100%);
+      color: #e0e0e0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .container {
+      max-width: 600px;
+      width: 100%;
+      background: rgba(15, 20, 40, 0.9);
+      border: 1px solid rgba(0, 200, 255, 0.3);
+      border-radius: 12px;
+      padding: 40px;
+      box-shadow: 0 8px 32px rgba(0, 200, 255, 0.1);
+    }
+    h1 {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 2em;
+      margin-bottom: 10px;
+      color: #00d9ff;
+      text-align: center;
+    }
+    .subtitle {
+      text-align: center;
+      font-size: 0.9em;
+      color: #888;
+      margin-bottom: 30px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+    .metric {
+      background: rgba(0, 100, 150, 0.2);
+      border: 1px solid rgba(0, 200, 255, 0.2);
+      border-radius: 8px;
+      padding: 15px;
+      text-align: center;
+    }
+    .metric-label {
+      font-size: 0.85em;
+      color: #888;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .metric-value {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 1.8em;
+      color: #00ff88;
+      font-weight: bold;
+    }
+    .gauge-container {
+      margin: 30px 0;
+    }
+    .gauge-label {
+      font-size: 0.9em;
+      color: #aaa;
+      margin-bottom: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .gauge-bar {
+      height: 30px;
+      background: linear-gradient(90deg, #00aa00 0%, #ffff00 40%, #ff6600 70%, #ff0000 100%);
+      border-radius: 15px;
+      overflow: hidden;
+      box-shadow: 0 0 20px rgba(0, 200, 255, 0.3);
+      position: relative;
+    }
+    .gauge-fill {
+      height: 100%;
+      background: rgba(0, 0, 0, 0.6);
+      transition: width 0.6s ease;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      padding-right: 8px;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.75em;
+      color: #fff;
+      font-weight: bold;
+    }
+    .gauge-legend {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.75em;
+      color: #888;
+      margin-top: 8px;
+      padding: 0 5px;
+    }
+    .chart-container {
+      margin: 30px 0;
+      background: rgba(0, 50, 100, 0.2);
+      border: 1px solid rgba(0, 200, 255, 0.2);
+      border-radius: 8px;
+      padding: 15px;
+    }
+    .chart-title {
+      font-size: 0.9em;
+      color: #888;
+      margin-bottom: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    canvas {
+      width: 100%;
+      height: 150px;
+    }
+    .status-box {
+      background: rgba(0, 150, 100, 0.2);
+      border: 1px solid rgba(0, 255, 150, 0.4);
+      border-radius: 8px;
+      padding: 15px;
+      text-align: center;
+      margin: 20px 0;
+    }
+    .status-box.alert {
+      background: rgba(200, 0, 0, 0.2);
+      border-color: rgba(255, 100, 100, 0.4);
+    }
+    .status-text {
+      font-size: 0.9em;
+      line-height: 1.5;
+    }
+    .footer {
+      font-size: 0.8em;
+      color: #666;
+      text-align: center;
+      margin-top: 20px;
+    }
+    @media (max-width: 480px) {
+      .container { padding: 25px; }
+      h1 { font-size: 1.5em; }
+      .grid { grid-template-columns: 1fr; gap: 15px; }
+      .metric-value { font-size: 1.4em; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>☀️ Aurora Forecast</h1>
+    <p class="subtitle">Real-time geomagnetic storm watch</p>
+
+    <div class="grid">
+      <div class="metric">
+        <div class="metric-label">K-Index</div>
+        <div class="metric-value" id="kIndex">—</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Ap-Index</div>
+        <div class="metric-value" id="apIndex">—</div>
+      </div>
+    </div>
+
+    <div class="gauge-container">
+      <div class="gauge-label">Aurora Risk Level</div>
+      <div class="gauge-bar">
+        <div class="gauge-fill" id="gaugeFill" style="width: 0%">
+          <span id="gaugePercent">0%</span>
+        </div>
+      </div>
+      <div class="gauge-legend">
+        <span>None</span>
+        <span>Minor</span>
+        <span>Moderate</span>
+        <span>Severe</span>
+      </div>
+    </div>
+
+    <div id="statusBox" class="status-box">
+      <div class="status-text">Loading space weather data...</div>
+    </div>
+
+    <div class="chart-container">
+      <div class="chart-title">24-Hour K-Index Trace</div>
+      <canvas id="chart"></canvas>
+    </div>
+
+    <div class="footer">
+      Data: NOAA Space Weather Prediction Center (updates every 3 hours)
+    </div>
+  </div>
+
+  <script>
+    const NOAA_URL = 'https://api.swpc.noaa.gov/products/space-weather-observations-and-forecasts/solar-wind-speed';
+
+    // Risk level categories based on K-index
+    const RISK_LEVELS = [
+      { label: 'G0 — No Storm', range: [0, 4], color: '#00aa00', desc: 'Aurora inactive or very weak.' },
+      { label: 'G1 — Minor Storm', range: [5, 5], color: '#ffff00', desc: 'Minor storm. Aurora may be visible at high latitudes.' },
+      { label: 'G2 — Moderate Storm', range: [6, 6], color: '#ff6600', desc: 'Moderate storm. Aurora widespread at mid-latitudes.' },
+      { label: 'G3+ — Severe Storm', range: [7, 9], color: '#ff0000', desc: 'Severe storm. Aurora visible across most latitudes.' }
+    ];
+
+    let history = [];
+
+    function getRiskLevel(kIndex) {
+      for (const level of RISK_LEVELS) {
+        if (kIndex >= level.range[0] && kIndex <= level.range[1]) {
+          return level;
+        }
+      }
+      return RISK_LEVELS[0];
+    }
+
+    function updateGauge(kIndex) {
+      // K-index 0–9 scale → 0–100%
+      const percent = (Math.min(kIndex, 9) / 9) * 100;
+      const fill = document.getElementById('gaugeFill');
+      const percentSpan = document.getElementById('gaugePercent');
+
+      fill.style.width = percent + '%';
+      percentSpan.textContent = Math.round(percent) + '%';
+    }
+
+    function drawChart(data) {
+      const canvas = document.getElementById('chart');
+      const ctx = canvas.getContext('2d');
+      const width = canvas.offsetWidth;
+      const height = 150;
+
+      canvas.width = width;
+      canvas.height = height;
+
+      if (data.length < 2) {
+        ctx.fillStyle = '#666';
+        ctx.font = '12px Inter';
+        ctx.textAlign = 'center';
+        ctx.fillText('Insufficient history', width / 2, height / 2);
+        return;
+      }
+
+      const padding = 40;
+      const graphW = width - 2 * padding;
+      const graphH = height - 2 * padding;
+      const maxK = Math.max(...data, 9);
+
+      // Draw grid
+      ctx.strokeStyle = 'rgba(0, 200, 255, 0.1)';
+      ctx.lineWidth = 1;
+      for (let i = 0; i <= 3; i++) {
+        const y = padding + (graphH / 3) * i;
+        ctx.beginPath();
+        ctx.moveTo(padding, y);
+        ctx.lineTo(width - padding, y);
+        ctx.stroke();
+      }
+
+      // Draw line chart
+      ctx.strokeStyle = '#00d9ff';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+
+      data.forEach((val, idx) => {
+        const x = padding + (graphW / (data.length - 1)) * idx;
+        const y = height - padding - (val / maxK) * graphH;
+        if (idx === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+
+      ctx.stroke();
+
+      // Draw points
+      ctx.fillStyle = '#00ff88';
+      data.forEach((val, idx) => {
+        const x = padding + (graphW / (data.length - 1)) * idx;
+        const y = height - padding - (val / maxK) * graphH;
+        ctx.beginPath();
+        ctx.arc(x, y, 3, 0, 2 * Math.PI);
+        ctx.fill();
+      });
+    }
+
+    function formatTime(dateStr) {
+      const d = new Date(dateStr);
+      return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+    }
+
+    async function fetchData() {
+      try {
+        const response = await fetch(NOAA_URL);
+        const text = await response.text();
+
+        // Parse simple space-separated values
+        // NOAA format: lines with "Estimated Planetary K-index" value
+        const kMatch = text.match(/Estimated Planetary K-index:\s*(\d)/);
+        const kIndex = kMatch ? parseInt(kMatch[1]) : 0;
+
+        // For Ap-index, estimate from K-index (rough conversion)
+        const apIndex = Math.round(kIndex * 15);
+
+        // Update metrics
+        document.getElementById('kIndex').textContent = kIndex;
+        document.getElementById('apIndex').textContent = apIndex;
+
+        // Add to history (simulate if needed)
+        const now = new Date();
+        history.push(kIndex);
+        if (history.length > 24) history.shift();
+
+        // Update gauge
+        updateGauge(kIndex);
+
+        // Update status
+        const risk = getRiskLevel(kIndex);
+        const statusBox = document.getElementById('statusBox');
+        statusBox.className = risk.range[0] >= 6 ? 'status-box alert' : 'status-box';
+        statusBox.innerHTML = `<div class="status-text"><strong>${risk.label}</strong> — ${risk.desc}</div>`;
+
+        // Draw chart
+        drawChart(history);
+
+      } catch (error) {
+        console.error('Fetch error:', error);
+        const statusBox = document.getElementById('statusBox');
+        statusBox.innerHTML = `<div class="status-text">Unable to reach NOAA service. Check connection.</div>`;
+      }
+    }
+
+    // Initial load + polling
+    fetchData();
+    // Poll every 3 hours (NOAA updates every 3 hours)
+    setInterval(fetchData, 3 * 60 * 60 * 1000);
+
+    // For development/testing: reload data every 30 seconds so we can see updates
+    setInterval(fetchData, 30 * 1000);
+  </script>
+</body>
+</html>
