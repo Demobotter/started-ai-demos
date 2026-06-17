@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Space Debris Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, #0a0e1a 0%, #1a1f35 100%);
+      color: #e0e0e0;
+      min-height: 100vh;
+      padding: 2rem 1rem;
+    }
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 2rem;
+      background: rgba(10, 15, 30, 0.8);
+      border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    }
+    h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: 2.2rem;
+      margin-bottom: 0.5rem;
+      background: linear-gradient(135deg, #00d4ff 0%, #0099ff 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .subtitle {
+      font-size: 0.95rem;
+      color: #a0a0a0;
+      margin-bottom: 1.5rem;
+    }
+    .controls {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 2rem;
+      flex-wrap: wrap;
+    }
+    button {
+      padding: 0.6rem 1.2rem;
+      background: linear-gradient(135deg, #00d4ff 0%, #0099ff 100%);
+      border: none;
+      border-radius: 8px;
+      color: #0a0e1a;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-size: 0.9rem;
+    }
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0, 212, 255, 0.3);
+    }
+    button.active {
+      background: linear-gradient(135deg, #ff00ff 0%, #ff0080 100%);
+    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+    .stat-card {
+      background: rgba(0, 100, 150, 0.2);
+      border: 1px solid #00d4ff;
+      border-radius: 8px;
+      padding: 1rem;
+      text-align: center;
+    }
+    .stat-card.danger {
+      background: rgba(255, 50, 50, 0.2);
+      border-color: #ff3232;
+    }
+    .stat-value {
+      font-size: 1.8rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #00d4ff 0%, #0099ff 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .stat-card.danger .stat-value {
+      background: linear-gradient(135deg, #ff3232 0%, #ff7070 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .stat-label {
+      font-size: 0.85rem;
+      color: #a0a0a0;
+      margin-top: 0.5rem;
+    }
+    .chart {
+      background: rgba(0, 50, 100, 0.3);
+      border: 1px solid #00d4ff;
+      border-radius: 8px;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+    }
+    .chart h3 {
+      font-size: 1.1rem;
+      color: #00d4ff;
+      margin-bottom: 1rem;
+    }
+    .altitude-bar {
+      display: flex;
+      margin: 1rem 0;
+      gap: 0.5rem;
+      align-items: center;
+    }
+    .altitude-label {
+      width: 100px;
+      font-size: 0.85rem;
+      color: #a0a0a0;
+    }
+    .bar {
+      height: 30px;
+      border-radius: 4px;
+      flex: 1;
+      position: relative;
+      background: linear-gradient(90deg, #00d4ff 0%, #0099ff 100%);
+      min-width: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      padding-right: 0.5rem;
+      font-size: 0.75rem;
+      color: #0a0e1a;
+      font-weight: 600;
+    }
+    .bar.leo { background: linear-gradient(90deg, #00ff88 0%, #00dd66 100%); }
+    .bar.meo { background: linear-gradient(90deg, #ffaa00 0%, #ff8800 100%); }
+    .bar.geo { background: linear-gradient(90deg, #ff0066 0%, #dd0055 100%); }
+    .last-update {
+      font-size: 0.8rem;
+      color: #808080;
+      text-align: right;
+      margin-top: 1rem;
+    }
+    .loading {
+      text-align: center;
+      color: #a0a0a0;
+      padding: 2rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🛰️ Space Debris Tracker</h1>
+    <p class="subtitle">Real-time tracked satellites and debris in Earth orbit.</p>
+    
+    <div class="controls">
+      <button id="leoBtn" class="active">LEO (160-2000 km)</button>
+      <button id="meoBtn">MEO (2000-36000 km)</button>
+      <button id="geoBtn">GEO (36000+ km)</button>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-value" id="totalCount">0</div>
+        <div class="stat-label">Total Objects</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="totalMass">0</div>
+        <div class="stat-label">Est. Mass (tons)</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="riskScore">0</div>
+        <div class="stat-label">Risk Score</div>
+      </div>
+      <div class="stat-card danger">
+        <div class="stat-value" id="collisionRisk">0</div>
+        <div class="stat-label">Near Misses (24h)</div>
+      </div>
+    </div>
+
+    <div class="chart">
+      <h3>Distribution by Altitude</h3>
+      <div id="altitudeChart"></div>
+    </div>
+
+    <div class="last-update" id="lastUpdate"></div>
+  </div>
+
+  <script>
+    // Simulated realistic space debris data (NASA-sourced estimates)
+    // Real Space-Track requires auth; using synthetic realistic distribution based on public data
+    
+    const debrisData = {
+      leo: {
+        count: 34000,
+        debris: 23000,
+        active: 11000,
+        avgMass: 0.15,
+        collisionRisk: 8
+      },
+      meo: {
+        count: 3500,
+        debris: 2100,
+        active: 1400,
+        avgMass: 2.5,
+        collisionRisk: 2
+      },
+      geo: {
+        count: 2200,
+        debris: 800,
+        active: 1400,
+        avgMass: 1.8,
+        collisionRisk: 1
+      }
+    };
+
+    let currentRegion = 'leo';
+
+    function updateDisplay(region) {
+      currentRegion = region;
+      const data = debrisData[region];
+      
+      const totalMass = (data.count * data.avgMass).toFixed(1);
+      const riskScore = Math.round(data.count / 100 + data.collisionRisk * 3);
+      
+      document.getElementById('totalCount').textContent = data.count.toLocaleString();
+      document.getElementById('totalMass').textContent = totalMass;
+      document.getElementById('riskScore').textContent = riskScore;
+      document.getElementById('collisionRisk').textContent = data.collisionRisk;
+      
+      updateChart();
+      updateTimestamp();
+    }
+
+    function updateChart() {
+      const regions = { leo: debrisData.leo, meo: debrisData.meo, geo: debrisData.geo };
+      const max = Math.max(...Object.values(regions).map(r => r.count));
+      
+      let html = '';
+      Object.entries(regions).forEach(([key, data]) => {
+        const pct = (data.count / max) * 100;
+        const alt = key === 'leo' ? 'LEO' : key === 'meo' ? 'MEO' : 'GEO';
+        html += `
+          <div class="altitude-bar">
+            <div class="altitude-label">${alt}</div>
+            <div class="bar ${key}" style="width: ${pct}%">${data.count.toLocaleString()}</div>
+          </div>
+        `;
+      });
+      
+      document.getElementById('altitudeChart').innerHTML = html;
+    }
+
+    function updateTimestamp() {
+      const now = new Date();
+      document.getElementById('lastUpdate').textContent = `Last updated: ${now.toLocaleTimeString()} UTC (simulated real-time data)`;
+    }
+
+    // Button handlers
+    document.getElementById('leoBtn').addEventListener('click', function() {
+      document.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+      this.classList.add('active');
+      updateDisplay('leo');
+    });
+    document.getElementById('meoBtn').addEventListener('click', function() {
+      document.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+      this.classList.add('active');
+      updateDisplay('meo');
+    });
+    document.getElementById('geoBtn').addEventListener('click', function() {
+      document.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+      this.classList.add('active');
+      updateDisplay('geo');
+    });
+
+    // Init
+    updateDisplay('leo');
+  </script>
+</body>
+</html>
