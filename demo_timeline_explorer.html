@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Timeline Explorer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&family=Lato:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Lato', sans-serif;
+            background: linear-gradient(135deg, #0f1419 0%, #1a1f2e 100%);
+            color: #e8e8e8;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        h1 {
+            font-family: 'Merriweather', serif;
+            font-size: 2.2rem;
+            margin-bottom: 10px;
+            color: #FFB700;
+            text-align: center;
+        }
+        .subtitle {
+            text-align: center;
+            color: #a0a0a0;
+            margin-bottom: 30px;
+            font-size: 0.95rem;
+        }
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .control-group label {
+            font-size: 0.85rem;
+            color: #7fb3ff;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .control-group input,
+        .control-group select {
+            padding: 8px 10px;
+            background: #1a1f2e;
+            border: 1px solid #7fb3ff;
+            color: #e8e8e8;
+            border-radius: 4px;
+            font-family: inherit;
+            font-size: 0.95rem;
+        }
+        .control-group input:focus,
+        .control-group select:focus {
+            outline: none;
+            border-color: #FFB700;
+            box-shadow: 0 0 8px rgba(255, 183, 0, 0.3);
+        }
+        .timeline {
+            position: relative;
+            padding: 20px 0;
+        }
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 2px;
+            height: 100%;
+            background: linear-gradient(to bottom, #7fb3ff, #FFB700, #7fb3ff);
+        }
+        .timeline-item {
+            margin-bottom: 30px;
+            opacity: 0;
+            animation: fadeIn 0.5s ease forwards;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .timeline-item:nth-child(1) { animation-delay: 0.1s; }
+        .timeline-item:nth-child(2) { animation-delay: 0.2s; }
+        .timeline-item:nth-child(3) { animation-delay: 0.3s; }
+        .timeline-item:nth-child(4) { animation-delay: 0.4s; }
+        .timeline-item:nth-child(5) { animation-delay: 0.5s; }
+        .timeline-item:nth-child(n+6) { animation-delay: 0.5s; }
+        .timeline-content {
+            width: 45%;
+            padding: 15px;
+            background: rgba(26, 31, 46, 0.8);
+            border: 1px solid #7fb3ff;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .timeline-item:nth-child(odd) .timeline-content {
+            margin-left: 0;
+        }
+        .timeline-item:nth-child(even) .timeline-content {
+            margin-left: 55%;
+        }
+        .timeline-content:hover {
+            background: rgba(127, 179, 255, 0.15);
+            border-color: #FFB700;
+            box-shadow: 0 0 12px rgba(255, 183, 0, 0.2);
+            transform: translateY(-2px);
+        }
+        .timeline-dot {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 12px;
+            height: 12px;
+            background: #FFB700;
+            border: 2px solid #1a1f2e;
+            border-radius: 50%;
+            top: 20px;
+            z-index: 5;
+        }
+        .timeline-content.expanded {
+            background: rgba(255, 183, 0, 0.1);
+            border-color: #FFB700;
+        }
+        .timeline-year {
+            font-family: 'Merriweather', serif;
+            font-size: 1.3rem;
+            color: #FFB700;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+        .timeline-title {
+            font-weight: 700;
+            color: #e8e8e8;
+            margin-bottom: 5px;
+            font-size: 1rem;
+        }
+        .timeline-category {
+            display: inline-block;
+            font-size: 0.75rem;
+            padding: 3px 8px;
+            background: #7fb3ff;
+            color: #0f1419;
+            border-radius: 3px;
+            margin-bottom: 8px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+        .timeline-description {
+            font-size: 0.9rem;
+            color: #c0c0c0;
+            line-height: 1.5;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+        .timeline-content.expanded .timeline-description {
+            max-height: 500px;
+        }
+        .timeline-location {
+            font-size: 0.85rem;
+            color: #a0a0a0;
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid rgba(127, 179, 255, 0.2);
+        }
+        .timeline-figures {
+            font-size: 0.85rem;
+            color: #7fb3ff;
+            margin-top: 5px;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #808080;
+        }
+        @media (max-width: 768px) {
+            .controls {
+                grid-template-columns: 1fr;
+            }
+            .timeline::before {
+                left: 20px;
+            }
+            .timeline-content {
+                width: calc(100% - 50px);
+                margin-left: 50px !important;
+            }
+            .timeline-dot {
+                left: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📅 Timeline Explorer</h1>
+        <p class="subtitle">Search historical events from 1800 to present</p>
+        
+        <div class="controls">
+            <div class="control-group">
+                <label for="searchInput">Search Event</label>
+                <input type="text" id="searchInput" placeholder="e.g., moon landing">
+            </div>
+            <div class="control-group">
+                <label for="centurySelect">Century</label>
+                <select id="centurySelect">
+                    <option value="">All</option>
+                    <option value="1800s">1800s</option>
+                    <option value="1900s">1900s</option>
+                    <option value="2000s">2000s</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label for="categorySelect">Category</label>
+                <select id="categorySelect">
+                    <option value="">All</option>
+                    <option value="Science">Science</option>
+                    <option value="Politics">Politics</option>
+                    <option value="Technology">Technology</option>
+                    <option value="Arts">Arts</option>
+                    <option value="Sports">Sports</option>
+                </select>
+            </div>
+        </div>
+
+        <div id="timeline" class="timeline"></div>
+        <div id="emptyState" class="empty-state" style="display: none;">No events found. Try adjusting your filters.</div>
+    </div>
+
+    <script>
+        const events = [
+            { year: 1859, title: "Darwin's Origin of Species", category: "Science", location: "London, UK", figures: "Charles Darwin", description: "Publication of 'On the Origin of Species' revolutionizes biology." },
+            { year: 1876, title: "Telephone Invented", category: "Technology", location: "Boston, USA", figures: "Alexander Graham Bell", description: "First practical telephone is patented and tested successfully." },
+            { year: 1903, title: "First Flight", category: "Technology", location: "North Carolina, USA", figures: "Wright Brothers", description: "The Wright brothers achieve first controlled powered airplane flight." },
+            { year: 1905, title: "Theory of Relativity", category: "Science", location: "Bern, Switzerland", figures: "Albert Einstein", description: "Einstein publishes special relativity theory, transforming physics." },
+            { year: 1920, title: "Women's Suffrage (USA)", category: "Politics", location: "United States", figures: "19th Amendment", description: "19th Amendment grants women the right to vote in the US." },
+            { year: 1945, title: "World War II Ends", category: "Politics", location: "Global", figures: "Allied Forces", description: "Germany surrenders in May; Japan in September, ending WWII." },
+            { year: 1969, title: "Moon Landing", category: "Science", location: "The Moon", figures: "Apollo 11 Crew", description: "Apollo 11 astronauts land on the moon; Neil Armstrong walks on lunar surface." },
+            { year: 1989, title: "Fall of Berlin Wall", category: "Politics", location: "Berlin, Germany", figures: "E. Germans", description: "Berlin Wall falls, marking symbolic end of Cold War era." },
+            { year: 1991, title: "World Wide Web Released", category: "Technology", location: "Geneva, Switzerland", figures: "Tim Berners-Lee", description: "The World Wide Web is released to the public for free use." },
+            { year: 2007, title: "iPhone Released", category: "Technology", location: "Cupertino, USA", figures: "Steve Jobs", description: "Apple releases the first iPhone, revolutionizing mobile computing." },
+            { year: 1885, title: "Automobile Invention", category: "Technology", location: "Mannheim, Germany", figures: "Karl Benz", description: "Karl Benz builds the first automobile powered by an internal combustion engine." },
+            { year: 1928, title: "Penicillin Discovered", category: "Science", location: "London, UK", figures: "Alexander Fleming", description: "Discovery of penicillin by Alexander Fleming launches antibiotic medicine." },
+            { year: 1962, title: "Cuban Missile Crisis", category: "Politics", location: "Caribbean", figures: "Kennedy/Khrushchev", description: "USA and USSR come closest to nuclear conflict over Cuban missiles." },
+            { year: 2001, title: "Wikipedia Founded", category: "Technology", location: "Online", figures: "Jimmy Wales", description: "Wikipedia launches, creating world's largest free online encyclopedia." },
+            { year: 1955, title: "Rosa Parks & Civil Rights", category: "Politics", location: "Montgomery, Alabama", figures: "Rosa Parks", description: "Rosa Parks refuses to give up bus seat, sparking Civil Rights Movement." }
+        ];
+
+        const searchInput = document.getElementById('searchInput');
+        const centurySelect = document.getElementById('centurySelect');
+        const categorySelect = document.getElementById('categorySelect');
+        const timelineDiv = document.getElementById('timeline');
+        const emptyState = document.getElementById('emptyState');
+
+        function getCentury(year) {
+            if (year < 1900) return '1800s';
+            if (year < 2000) return '1900s';
+            return '2000s';
+        }
+
+        function renderTimeline() {
+            const searchTerm = searchInput.value.toLowerCase();
+            const centuryFilter = centurySelect.value;
+            const categoryFilter = categorySelect.value;
+
+            const filtered = events.filter(event => {
+                const matchesSearch = searchTerm === '' || 
+                    event.title.toLowerCase().includes(searchTerm) ||
+                    event.description.toLowerCase().includes(searchTerm) ||
+                    event.location.toLowerCase().includes(searchTerm);
+                const matchesCentury = centuryFilter === '' || getCentury(event.year) === centuryFilter;
+                const matchesCategory = categoryFilter === '' || event.category === categoryFilter;
+                return matchesSearch && matchesCentury && matchesCategory;
+            });
+
+            filtered.sort((a, b) => a.year - b.year);
+
+            timelineDiv.innerHTML = '';
+
+            if (filtered.length === 0) {
+                emptyState.style.display = 'block';
+                return;
+            } else {
+                emptyState.style.display = 'none';
+            }
+
+            filtered.forEach((event, idx) => {
+                const item = document.createElement('div');
+                item.className = 'timeline-item';
+                item.innerHTML = `
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-content">
+                        <div class="timeline-year">${event.year}</div>
+                        <div class="timeline-category">${event.category}</div>
+                        <div class="timeline-title">${event.title}</div>
+                        <div class="timeline-description">${event.description}</div>
+                        <div class="timeline-location">📍 ${event.location}</div>
+                        <div class="timeline-figures">Key figures: ${event.figures}</div>
+                    </div>
+                `;
+                item.querySelector('.timeline-content').addEventListener('click', (e) => {
+                    e.target.closest('.timeline-content').classList.toggle('expanded');
+                });
+                timelineDiv.appendChild(item);
+            });
+        }
+
+        searchInput.addEventListener('input', renderTimeline);
+        centurySelect.addEventListener('change', renderTimeline);
+        categorySelect.addEventListener('change', renderTimeline);
+
+        // Initial render
+        renderTimeline();
+    </script>
+</body>
+</html>
