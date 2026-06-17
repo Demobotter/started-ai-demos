@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Air Pulse — Live Air Quality</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f6f7f9; --card:#ffffff; --ink:#15181d; --muted:#6b7280;
+    --line:#e7e9ee; --accent:#2563eb; --radius:16px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--ink);
+    min-height:100vh;display:flex;justify-content:center;padding:32px 16px;line-height:1.5}
+  .wrap{width:100%;max-width:680px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    padding:28px;box-shadow:0 10px 40px rgba(20,24,29,.06)}
+  h1{font-family:'Syne',sans-serif;font-weight:800;font-size:30px;letter-spacing:-.5px;
+    display:flex;align-items:center;gap:10px}
+  .sub{color:var(--muted);font-size:14px;margin-top:4px}
+  .search{display:flex;gap:10px;margin-top:22px}
+  input{flex:1;padding:13px 16px;border:1px solid var(--line);border-radius:10px;
+    font-size:15px;font-family:inherit;outline:none}
+  input:focus{border-color:var(--accent)}
+  button{background:var(--accent);color:#fff;border:0;border-radius:10px;
+    padding:0 22px;font-weight:600;font-size:15px;cursor:pointer;font-family:inherit}
+  button:hover{background:#1d4ed8}
+  .out{margin-top:22px}
+  .loading,.error{padding:24px;text-align:center;color:var(--muted);font-size:15px}
+  .error{background:#fef2f2;color:#dc2626;border-radius:10px}
+  .spinner{display:inline-block;width:16px;height:16px;border:2px solid #d1d5db;
+    border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:8px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .aqi-hero{border-radius:14px;padding:22px;color:#fff;text-align:center;margin-bottom:18px}
+  .aqi-num{font-family:'Syne',sans-serif;font-weight:800;font-size:54px;line-height:1}
+  .aqi-label{font-weight:600;font-size:17px;margin-top:4px;opacity:.95}
+  .aqi-city{font-size:13px;opacity:.9;margin-top:8px}
+  .legend{display:flex;gap:4px;margin:14px 0 20px;font-size:10px;color:var(--muted)}
+  .legend div{flex:1;text-align:center}
+  .legend .bar{height:6px;border-radius:3px;margin-bottom:4px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+  .pcard{border:1px solid var(--line);border-radius:12px;padding:14px}
+  .pcard .name{font-size:12px;color:var(--muted);font-weight:500}
+  .pcard .val{font-family:'Syne',sans-serif;font-weight:700;font-size:22px;margin:2px 0}
+  .pcard .unit{font-size:11px;color:var(--muted)}
+  .badge{display:inline-block;font-size:10px;font-weight:600;padding:2px 8px;border-radius:20px;margin-top:8px;color:#fff}
+  .updated{text-align:center;font-size:11px;color:var(--muted);margin-top:18px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card">
+    <h1>🌍 Air Pulse</h1>
+    <div class="sub">Live air quality index + 6-pollutant breakdown, anywhere on Earth</div>
+    <div class="search">
+      <input id="city" type="text" placeholder="Enter a city…" value="London" autocomplete="off">
+      <button id="go">Search</button>
+    </div>
+    <div class="out" id="out"></div>
+  </div>
+</div>
+<script>
+(function(){
+  const $=s=>document.querySelector(s);
+  const out=$('#out'), cityInput=$('#city'), btn=$('#go');
+  let timer=null;
+
+  const BANDS=[
+    {max:50,  label:'Good',                            color:'#16a34a'},
+    {max:100, label:'Moderate',                        color:'#eab308'},
+    {max:150, label:'Unhealthy for Sensitive Groups',  color:'#f97316'},
+    {max:200, label:'Unhealthy',                       color:'#dc2626'},
+    {max:300, label:'Very Unhealthy',                  color:'#9333ea'},
+    {max:9999,label:'Hazardous',                       color:'#7f1d1d'}
+  ];
+  function band(aqi){ return BANDS.find(b=>aqi<=b.max)||BANDS[BANDS.length-1]; }
+
+  function pollStatus(key,v){
+    const t={pm2_5:[12,35,55],pm10:[54,154,254],ozone:[100,168,208],
+             nitrogen_dioxide:[40,100,200],sulphur_dioxide:[35,75,185],carbon_monoxide:[4400,9400,12400]};
+    const th=t[key]||[50,100,150];
+    if(v<=th[0]) return {label:'Good',color:'#16a34a'};
+    if(v<=th[1]) return {label:'Moderate',color:'#eab308'};
+    if(v<=th[2]) return {label:'Unhealthy',color:'#f97316'};
+    return {label:'Very Unhealthy',color:'#dc2626'};
+  }
+
+  const POLL=[
+    {key:'pm2_5',name:'PM2.5',unit:'μg/m³'},
+    {key:'pm10',name:'PM10',unit:'μg/m³'},
+    {key:'ozone',name:'O₃ Ozone',unit:'μg/m³'},
+    {key:'nitrogen_dioxide',name:'NO₂',unit:'μg/m³'},
+    {key:'sulphur_dioxide',name:'SO₂',unit:'μg/m³'},
+    {key:'carbon_monoxide',name:'CO',unit:'μg/m³'}
+  ];
+
+  async function geocode(city){
+    const r=await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=en&format=json`);
+    if(!r.ok) throw new Error('geocode HTTP '+r.status);
+    const d=await r.json();
+    if(!d.results||!d.results.length) return null;
+    const g=d.results[0];
+    return {lat:g.latitude, lon:g.longitude,
+      name:[g.name,g.admin1,g.country].filter(Boolean).join(', ')};
+  }
+
+  async function fetchAir(lat,lon){
+    const url=`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}`+
+      `&current=us_aqi,pm2_5,pm10,ozone,nitrogen_dioxide,sulphur_dioxide,carbon_monoxide`;
+    const r=await fetch(url);
+    if(!r.ok) throw new Error('air-quality HTTP '+r.status);
+    const d=await r.json();
+    if(!d.current) throw new Error('no current data');
+    return d.current;
+  }
+
+  function legendHTML(){
+    return '<div class="legend">'+BANDS.map(b=>
+      `<div><div class="bar" style="background:${b.color}"></div>${b.label.split(' ')[0]}</div>`).join('')+'</div>';
+  }
+
+  function render(place,c){
+    const aqi=Math.round(c.us_aqi);
+    const b=band(aqi);
+    let html=`<div class="aqi-hero" style="background:${b.color}">
+      <div class="aqi-num">${aqi}</div>
+      <div class="aqi-label">${b.label}</div>
+      <div class="aqi-city">${place.name}</div>
+    </div>`;
+    html+=legendHTML();
+    html+='<div class="grid">';
+    for(const p of POLL){
+      const v=c[p.key];
+      if(v==null) continue;
+      const s=pollStatus(p.key,v);
+      html+=`<div class="pcard">
+        <div class="name">${p.name}</div>
+        <div class="val">${v.toFixed(1)}</div>
+        <div class="unit">${p.unit}</div>
+        <span class="badge" style="background:${s.color}">${s.label}</span>
+      </div>`;
+    }
+    html+='</div>';
+    const t=new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    html+=`<div class="updated">Live from Open-Meteo · updated ${t} · refreshes every 60s</div>`;
+    out.innerHTML=html;
+  }
+
+  let current=null;
+  async function load(){
+    if(timer){clearInterval(timer);timer=null;}
+    const city=cityInput.value.trim();
+    if(!city) return;
+    out.innerHTML='<div class="loading"><span class="spinner"></span>Fetching live air quality…</div>';
+    try{
+      const place=await geocode(city);
+      if(!place){ out.innerHTML='<div class="error">City not found — try another name.</div>'; return; }
+      current=place;
+      const c=await fetchAir(place.lat,place.lon);
+      render(place,c);
+      timer=setInterval(async()=>{
+        try{ const c2=await fetchAir(current.lat,current.lon); render(current,c2); }catch(e){}
+      },60000);
+    }catch(err){
+      out.innerHTML=`<div class="error">Couldn’t load air quality: ${err.message}</div>`;
+    }
+  }
+
+  btn.addEventListener('click',load);
+  cityInput.addEventListener('keydown',e=>{ if(e.key==='Enter') load(); });
+  load();
+})();
+</script>
+</body>
+</html>
