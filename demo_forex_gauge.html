@@ -84,6 +84,7 @@
       align-items: baseline;
       gap: 12px;
       margin-bottom: 16px;
+      flex-wrap: wrap;
     }
     .rate {
       font-family: 'Syne', sans-serif;
@@ -135,29 +136,6 @@
       border-radius: 4px;
       transition: width 0.3s ease;
     }
-    .ohlc {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 12px;
-      margin-top: 16px;
-    }
-    .ohlc-item {
-      background: rgba(255, 255, 255, 0.04);
-      padding: 10px;
-      border-radius: 6px;
-      text-align: center;
-    }
-    .ohlc-label {
-      font-size: 0.75rem;
-      color: #888;
-      text-transform: uppercase;
-      margin-bottom: 4px;
-    }
-    .ohlc-value {
-      font-family: 'Syne', sans-serif;
-      font-weight: 600;
-      font-size: 1.1rem;
-    }
     .stats-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
@@ -206,19 +184,19 @@
   <div class="container">
     <div class="header">
       <h1>💱 Strength Meter</h1>
-      <p>Real-time forex momentum tracker</p>
+      <p>Real-time crypto momentum tracker (CoinGecko)</p>
     </div>
 
     <div class="controls">
-      <button class="pair-btn active" data-pair="EURUSD">EUR/USD</button>
-      <button class="pair-btn" data-pair="GBPUSD">GBP/USD</button>
-      <button class="pair-btn" data-pair="USDJPY">USD/JPY</button>
-      <button class="pair-btn" data-pair="AUDUSD">AUD/USD</button>
-      <button class="pair-btn" data-pair="NZDUSD">NZD/USD</button>
+      <button class="pair-btn active" data-pair="bitcoin">Bitcoin</button>
+      <button class="pair-btn" data-pair="ethereum">Ethereum</button>
+      <button class="pair-btn" data-pair="solana">Solana</button>
+      <button class="pair-btn" data-pair="ripple">Ripple</button>
+      <button class="pair-btn" data-pair="cardano">Cardano</button>
     </div>
 
     <div id="content">
-      <div class="loading">Loading real-time data from frankfurter.app...</div>
+      <div class="loading">Loading real-time data from CoinGecko...</div>
     </div>
 
     <div class="refresh-indicator">
@@ -227,23 +205,30 @@
   </div>
 
   <script>
-    const pairMapping = {
-      EURUSD: { from: 'EUR', to: 'USD' },
-      GBPUSD: { from: 'GBP', to: 'USD' },
-      USDJPY: { from: 'USD', to: 'JPY' },
-      AUDUSD: { from: 'AUD', to: 'USD' },
-      NZDUSD: { from: 'NZD', to: 'USD' }
+    const cryptoIds = {
+      bitcoin: 'bitcoin',
+      ethereum: 'ethereum',
+      solana: 'solana',
+      ripple: 'ripple',
+      cardano: 'cardano'
     };
 
-    let currentPair = 'EURUSD';
-    let historicalData = {};
+    const cryptoNames = {
+      bitcoin: 'Bitcoin',
+      ethereum: 'Ethereum',
+      solana: 'Solana',
+      ripple: 'Ripple (XRP)',
+      cardano: 'Cardano'
+    };
+
+    let currentCrypto = 'bitcoin';
     let refreshInterval;
 
     document.querySelectorAll('.pair-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         document.querySelectorAll('.pair-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
-        currentPair = btn.dataset.pair;
+        currentCrypto = btn.dataset.pair;
         updateDisplay();
       });
     });
@@ -253,57 +238,52 @@
       document.getElementById('refresh-time').textContent = now.toLocaleTimeString();
     }
 
-    async function fetchHistoricalRates() {
+    async function fetchCryptoData() {
       try {
-        const mapping = pairMapping[currentPair];
-        const url = `https://api.frankfurter.app/timeseries?from=${mapping.from}&to=${mapping.to}&precision=4`;
-        const response = await fetch(url);
-        if (!response.ok) throw new Error(`API error: ${response.status}`);
-        const data = await response.json();
-        return data.rates || {};
-      } catch (error) {
-        console.error('Fetch error:', error);
-        return {};
-      }
-    }
+        const id = cryptoIds[currentCrypto];
+        // Fetch current data + 7-day market chart
+        const [currentResp, chartResp] = await Promise.all([
+          fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${id}&vs_currencies=usd&include_market_cap=true&include_24hr_vol=true&include_24hr_change=true`),
+          fetch(`https://api.coingecko.com/api/v3/coins/${id}/market_chart?vs_currency=usd&days=7&interval=daily`)
+        ]);
 
-    async function fetchLatestRate() {
-      try {
-        const mapping = pairMapping[currentPair];
-        const url = `https://api.frankfurter.app/latest?from=${mapping.from}&to=${mapping.to}`;
-        const response = await fetch(url);
-        if (!response.ok) throw new Error(`API error: ${response.status}`);
-        const data = await response.json();
-        return data.rates ? data.rates[mapping.to] : null;
+        if (!currentResp.ok || !chartResp.ok) {
+          throw new Error(`API error: ${currentResp.status} / ${chartResp.status}`);
+        }
+
+        const current = await currentResp.json();
+        const chart = await chartResp.json();
+
+        return {
+          current: current[id],
+          prices: chart.prices.map(p => p[1])
+        };
       } catch (error) {
         console.error('Fetch error:', error);
         return null;
       }
     }
 
-    function calculateOHLC(rates) {
-      const values = Object.values(rates).filter(v => typeof v === 'number');
-      if (values.length === 0) return { open: 0, high: 0, low: 0, close: 0 };
-      const sorted = [...values].sort((a, b) => a - b);
-      return {
-        open: values[0],
-        high: Math.max(...values),
-        low: Math.min(...values),
-        close: values[values.length - 1]
-      };
-    }
-
-    function calculateStrength(rates, latestRate) {
-      const values = Object.values(rates).filter(v => typeof v === 'number');
-      if (values.length < 2) return 0;
-      const mean = values.reduce((a, b) => a + b, 0) / values.length;
-      const variance = values.reduce((sum, v) => sum + Math.pow(v - mean, 2), 0) / values.length;
+    function calculateStrength(prices, currentPrice) {
+      if (prices.length < 2) return 0;
+      const mean = prices.reduce((a, b) => a + b, 0) / prices.length;
+      const variance = prices.reduce((sum, v) => sum + Math.pow(v - mean, 2), 0) / prices.length;
       const volatility = Math.sqrt(variance);
-      const trend = latestRate > mean ? 1 : -1;
-      const trendMagnitude = Math.abs(latestRate - mean) / mean * 100;
+      const trend = currentPrice > mean ? 1 : -1;
+      const trendMagnitude = Math.abs(currentPrice - mean) / mean * 100;
       const volPct = Math.min(volatility / mean * 100 * 10, 5);
       const trendScore = Math.min(trendMagnitude / 2, 5);
       return Math.min((volPct + trendScore) / 10, 1);
+    }
+
+    function calculateOHLC(prices) {
+      const sorted = [...prices].sort((a, b) => a - b);
+      return {
+        open: prices[0],
+        high: Math.max(...prices),
+        low: Math.min(...prices),
+        close: prices[prices.length - 1]
+      };
     }
 
     async function updateDisplay() {
@@ -311,61 +291,51 @@
       content.innerHTML = '<div class="loading">Loading real-time data...</div>';
       updateTime();
 
-      const latestRate = await fetchLatestRate();
-      const rates = await fetchHistoricalRates();
-      historicalData[currentPair] = rates;
-
-      if (!latestRate) {
-        content.innerHTML = '<div class="error">Failed to fetch rates. Please try again.</div>';
+      const data = await fetchCryptoData();
+      if (!data || !data.current) {
+        content.innerHTML = '<div class="error">Failed to fetch data. Please try again.</div>';
         return;
       }
 
-      const ohlc = calculateOHLC(rates);
-      const strength = calculateStrength(rates, latestRate);
-      
-      const values = Object.values(rates).filter(v => typeof v === 'number');
-      const prevRate = values[values.length - 2] || latestRate;
-      const change = latestRate - prevRate;
-      const changePct = (change / prevRate * 100).toFixed(4);
-      const pips = (change * 10000).toFixed(1);
+      const current = data.current.usd;
+      const change24h = data.current.usd_24h_change || 0;
+      const prices = data.prices;
+      const ohlc = calculateOHLC(prices);
+      const strength = calculateStrength(prices, current);
 
       let changeBadgeClass = 'flat';
       let changeSymbol = '→';
-      if (change > 0.00001) {
+      if (change24h > 0.01) {
         changeBadgeClass = 'up';
         changeSymbol = '↑';
-      } else if (change < -0.00001) {
+      } else if (change24h < -0.01) {
         changeBadgeClass = 'down';
         changeSymbol = '↓';
       }
 
-      const pair = currentPair;
-      const mapping = pairMapping[pair];
-
       // SVG sparkline
-      const minRate = Math.min(...values);
-      const maxRate = Math.max(...values);
-      const range = maxRate - minRate || 1;
+      const minPrice = Math.min(...prices);
+      const maxPrice = Math.max(...prices);
+      const range = maxPrice - minPrice || 1;
       const svgWidth = 100;
       const svgHeight = 40;
-      const pointCount = Math.min(values.length, 50);
-      const step = Math.floor(values.length / pointCount);
       const points = [];
-      for (let i = 0; i < values.length; i += Math.max(1, step)) {
-        const x = (i / values.length) * svgWidth;
-        const y = svgHeight - ((values[i] - minRate) / range) * svgHeight;
+      for (let i = 0; i < prices.length; i++) {
+        const x = (i / (prices.length - 1)) * svgWidth;
+        const y = svgHeight - ((prices[i] - minPrice) / range) * svgHeight;
         points.push(`${x},${y}`);
       }
       const sparklineSVG = `<svg class="sparkline" viewBox="0 0 ${svgWidth} ${svgHeight}" preserveAspectRatio="none">
         <polyline points="${points.join(' ')}" fill="none" stroke="#d4af37" stroke-width="1.5" vector-effect="non-scaling-stroke"/>
       </svg>`;
 
+      const cryptoName = cryptoNames[currentCrypto];
       content.innerHTML = `
         <div class="card">
-          <div class="card-label">Live Rate</div>
+          <div class="card-label">Live Price</div>
           <div class="rate-display">
-            <div class="rate">${latestRate.toFixed(5)}</div>
-            <div class="change-badge ${changeBadgeClass}">${changeSymbol} ${Math.abs(changePct)}% (${pips} pips)</div>
+            <div class="rate">$${current.toLocaleString('en-US', { maximumFractionDigits: 2, minimumFractionDigits: 2 })}</div>
+            <div class="change-badge ${changeBadgeClass}">${changeSymbol} ${Math.abs(change24h).toFixed(2)}%</div>
           </div>
           ${sparklineSVG}
           <div class="strength-section">
@@ -380,41 +350,33 @@
         </div>
 
         <div class="card">
-          <div class="card-label">24-Hour OHLC</div>
-          <div class="ohlc">
-            <div class="ohlc-item">
-              <div class="ohlc-label">Open</div>
-              <div class="ohlc-value">${ohlc.open.toFixed(5)}</div>
-            </div>
-            <div class="ohlc-item">
-              <div class="ohlc-label">High</div>
-              <div class="ohlc-value">${ohlc.high.toFixed(5)}</div>
-            </div>
-            <div class="ohlc-item">
-              <div class="ohlc-label">Low</div>
-              <div class="ohlc-value">${ohlc.low.toFixed(5)}</div>
-            </div>
-            <div class="ohlc-item">
-              <div class="ohlc-label">Close</div>
-              <div class="ohlc-value">${ohlc.close.toFixed(5)}</div>
-            </div>
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="card-label">Statistics</div>
+          <div class="card-label">7-Day OHLC</div>
           <div class="stats-grid">
             <div class="stat-item">
+              <div class="stat-label">Open</div>
+              <div class="stat-value">$${ohlc.open.toLocaleString('en-US', { maximumFractionDigits: 2 })}</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-label">High</div>
+              <div class="stat-value">$${ohlc.high.toLocaleString('en-US', { maximumFractionDigits: 2 })}</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-label">Low</div>
+              <div class="stat-value">$${ohlc.low.toLocaleString('en-US', { maximumFractionDigits: 2 })}</div>
+            </div>
+          </div>
+          <div class="stats-grid" style="margin-top: 12px;">
+            <div class="stat-item">
+              <div class="stat-label">Close (Now)</div>
+              <div class="stat-value">$${ohlc.close.toLocaleString('en-US', { maximumFractionDigits: 2 })}</div>
+            </div>
+            <div class="stat-item">
               <div class="stat-label">Range</div>
-              <div class="stat-value">${(ohlc.high - ohlc.low).toFixed(5)}</div>
+              <div class="stat-value">$${(ohlc.high - ohlc.low).toLocaleString('en-US', { maximumFractionDigits: 2 })}</div>
             </div>
             <div class="stat-item">
-              <div class="stat-label">Volatility</div>
-              <div class="stat-value">${(Math.sqrt(Object.values(rates).reduce((s, v) => s + Math.pow(v - Object.values(rates).reduce((a, b) => a + b, 0) / Object.values(rates).length, 2), 0) / Object.values(rates).length) / Object.values(rates).reduce((a, b) => a + b, 0) * Object.values(rates).length * 100).toFixed(2)}%</div>
-            </div>
-            <div class="stat-item">
-              <div class="stat-label">Data Points</div>
-              <div class="stat-value">${Object.keys(rates).length}</div>
+              <div class="stat-label">% Move</div>
+              <div class="stat-value">${((ohlc.close - ohlc.open) / ohlc.open * 100).toFixed(2)}%</div>
             </div>
           </div>
         </div>
