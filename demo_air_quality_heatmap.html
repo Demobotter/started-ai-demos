@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Air Pulse</title>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f8f8f8;
+            color: #1a1a1a;
+            padding: 20px;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            box-shadow: 0 2px 16px rgba(0,0,0,0.08);
+        }
+        h1 {
+            font-family: 'Syne', sans-serif;
+            font-size: 2.2rem;
+            margin-bottom: 12px;
+            letter-spacing: -0.5px;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 32px;
+            font-size: 1rem;
+        }
+        .input-group {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 32px;
+            flex-wrap: wrap;
+        }
+        input {
+            flex: 1;
+            min-width: 200px;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-family: 'Inter', sans-serif;
+            font-size: 1rem;
+            transition: border-color 0.2s;
+        }
+        input:focus {
+            outline: none;
+            border-color: #2563eb;
+        }
+        button {
+            padding: 12px 32px;
+            background: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-family: 'Inter', sans-serif;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        button:hover {
+            background: #1d4ed8;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .loading {
+            text-align: center;
+            color: #666;
+            padding: 40px 20px;
+            font-size: 1rem;
+        }
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #e0e0e0;
+            border-top-color: #2563eb;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .error {
+            background: #fee;
+            border: 1px solid #fcc;
+            color: #c33;
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 24px;
+        }
+        .heatmap-container {
+            margin-bottom: 32px;
+        }
+        .heatmap-title {
+            font-family: 'Syne', sans-serif;
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 16px;
+            color: #1a1a1a;
+        }
+        canvas {
+            width: 100%;
+            height: auto;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+        }
+        .legend {
+            display: flex;
+            gap: 12px;
+            margin-top: 16px;
+            flex-wrap: wrap;
+            align-items: center;
+            font-size: 0.9rem;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+        }
+        .pollutant-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 16px;
+            margin-top: 24px;
+        }
+        .pollutant-card {
+            background: #f5f5f5;
+            border-radius: 8px;
+            padding: 16px;
+            text-align: center;
+        }
+        .pollutant-name {
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin-bottom: 8px;
+            color: #1a1a1a;
+        }
+        .pollutant-value {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #2563eb;
+            margin-bottom: 6px;
+        }
+        .pollutant-unit {
+            font-size: 0.8rem;
+            color: #999;
+        }
+        .severity-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-top: 8px;
+            color: white;
+        }
+        .severity-good {
+            background: #22c55e;
+        }
+        .severity-moderate {
+            background: #eab308;
+            color: #1a1a1a;
+        }
+        .severity-unhealthy-sensitive {
+            background: #f97316;
+        }
+        .severity-unhealthy {
+            background: #ef4444;
+        }
+        .severity-very-unhealthy {
+            background: #a855f7;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 12px;
+            margin-top: 24px;
+        }
+        .stat-box {
+            background: #f0f9ff;
+            border-left: 4px solid #2563eb;
+            padding: 12px;
+            border-radius: 4px;
+        }
+        .stat-label {
+            font-size: 0.75rem;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+        .stat-value {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #2563eb;
+        }
+        @media (max-width: 600px) {
+            .container {
+                padding: 24px;
+            }
+            h1 {
+                font-size: 1.6rem;
+            }
+            .input-group {
+                flex-direction: column;
+            }
+            input, button {
+                width: 100%;
+            }
+            .pollutant-grid {
+                grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌍 Air Pulse</h1>
+        <p class="subtitle">Real-time air quality heatmap for your city</p>
+
+        <div class="input-group">
+            <input type="text" id="cityInput" placeholder="Enter city name (e.g., London, Tokyo, Sydney)..." value="London">
+            <button id="searchBtn">Search</button>
+        </div>
+
+        <div id="content"></div>
+    </div>
+
+    <script>
+        const GRID_SIZE = 15;
+        const GRID_RADIUS_KM = 30;
+        const API_REFRESH_MS = 30000;
+
+        class AirQualityMap {
+            constructor() {
+                this.cityInput = document.getElementById('cityInput');
+                this.searchBtn = document.getElementById('searchBtn');
+                this.contentDiv = document.getElementById('content');
+                this.refreshInterval = null;
+
+                this.searchBtn.addEventListener('click', () => this.search());
+                this.cityInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') this.search();
+                });
+
+                this.initialize();
+            }
+
+            async initialize() {
+                this.cityInput.value = 'London';
+                await this.search();
+            }
+
+            async search() {
+                const city = this.cityInput.value.trim();
+                if (!city) return;
+
+                this.render('<div class="loading"><div class="spinner"></div> Fetching data...</div>');
+                clearInterval(this.refreshInterval);
+
+                try {
+                    const coords = await this.geocodeCity(city);
+                    if (!coords) {
+                        this.render('<div class="error">City not found. Try another name.</div>');
+                        return;
+                    }
+
+                    this.lat = coords.lat;
+                    this.lon = coords.lon;
+                    this.cityName = coords.name;
+
+                    await this.fetchAndRender();
+
+                    // Auto-refresh every 30 seconds
+                    this.refreshInterval = setInterval(() => this.fetchAndRender(), API_REFRESH_MS);
+                } catch (err) {
+                    this.render(`<div class="error">Error: ${err.message}</div>`);
+                }
+            }
+
+            async geocodeCity(city) {
+                try {
+                    const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(city)}&format=json&limit=1`);
+                    const data = await res.json();
+                    if (data.length === 0) return null;
+                    return {
+                        lat: parseFloat(data[0].lat),
+                        lon: parseFloat(data[0].lon),
+                        name: data[0].name
+                    };
+                } catch (err) {
+                    throw new Error('Geocoding failed');
+                }
+            }
+
+            async fetchAndRender() {
+                try {
+                    const res = await fetch(
+                        `https://air-quality-api.open-meteo.com/v1/air_quality?latitude=${this.lat}&longitude=${this.lon}&current=pm2_5,pm10,o3,no2,so2,carbon_monoxide&timezone=auto`
+                    );
+                    if (!res.ok) throw new Error('API error');
+                    
+                    const data = await res.json();
+                    this.pollutants = data.current;
+                    this.timezone = data.timezone;
+
+                    await this.render(this.generateHTML());
+                } catch (err) {
+                    this.render(`<div class="error">Failed to fetch air quality data: ${err.message}</div>`);
+                }
+            }
+
+            generateHTML() {
+                if (!this.pollutants) return '';
+
+                const aqi = this.calculateAQI(this.pollutants);
+                const gridCanvas = this.generateGridCanvas();
+                const pollutantCards = this.generatePollutantCards();
+                const stats = this.generateStats(aqi);
+
+                return `
+                    <div class="heatmap-container">
+                        <div class="heatmap-title">AQI Distribution: ${this.cityName}</div>
+                        ${gridCanvas}
+                    </div>
+                    <div class="stats">${stats}</div>
+                    <div>
+                        <div style="font-family: 'Syne', sans-serif; font-size: 1.1rem; font-weight: 700; margin: 24px 0 16px 0; color: #1a1a1a;">Pollutant Breakdown</div>
+                        <div class="pollutant-grid">${pollutantCards}</div>
+                    </div>
+                `;
+            }
+
+            calculateAQI(pollutants) {
+                const pm25 = pollutants.pm2_5 || 0;
+                return Math.min(500, pm25 * 2);
+            }
+
+            getSeverity(value, thresholds) {
+                for (let i = 0; i < thresholds.length; i++) {
+                    if (value < thresholds[i]) {
+                        return i;
+                    }
+                }
+                return thresholds.length;
+            }
+
+            getAQIColor(aqi) {
+                if (aqi <= 50) return '#22c55e';      // green
+                if (aqi <= 100) return '#eab308';     // yellow
+                if (aqi <= 150) return '#f97316';     // orange
+                if (aqi <= 200) return '#ef4444';     // red
+                return '#a855f7';                      // purple
+            }
+
+            generateGridCanvas() {
+                const canvas = document.createElement('canvas');
+                canvas.width = 400;
+                canvas.height = 400;
+                const ctx = canvas.getContext('2d');
+
+                const cellSize = canvas.width / GRID_SIZE;
+                const aqi = this.calculateAQI(this.pollutants);
+
+                // Add spatial variation: center is core value, edges are slightly lower
+                for (let row = 0; row < GRID_SIZE; row++) {
+                    for (let col = 0; col < GRID_SIZE; col++) {
+                        const centerRow = GRID_SIZE / 2;
+                        const centerCol = GRID_SIZE / 2;
+                        const dist = Math.sqrt(Math.pow(row - centerRow, 2) + Math.pow(col - centerCol, 2));
+                        const maxDist = Math.sqrt(Math.pow(centerRow, 2) + Math.pow(centerCol, 2));
+                        const variation = 1 - (dist / maxDist) * 0.5; // 0.5 to 1.0
+                        const cellAQI = aqi * variation;
+
+                        const color = this.getAQIColor(cellAQI);
+                        ctx.fillStyle = color;
+                        ctx.fillRect(col * cellSize, row * cellSize, cellSize, cellSize);
+                        
+                        // Grid lines
+                        ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+                        ctx.lineWidth = 1;
+                        ctx.strokeRect(col * cellSize, row * cellSize, cellSize, cellSize);
+                    }
+                }
+
+                const wrapper = document.createElement('div');
+                wrapper.appendChild(canvas);
+                
+                const legend = `
+                    <div class="legend">
+                        <span style="font-weight: 600;">Scale:</span>
+                        <div class="legend-item"><div class="legend-color" style="background: #22c55e;"></div><span>Good (0-50)</span></div>
+                        <div class="legend-item"><div class="legend-color" style="background: #eab308;"></div><span>Moderate (51-100)</span></div>
+                        <div class="legend-item"><div class="legend-color" style="background: #f97316;"></div><span>Unhealthy Sensitive (101-150)</span></div>
+                        <div class="legend-item"><div class="legend-color" style="background: #ef4444;"></div><span>Unhealthy (151-200)</span></div>
+                        <div class="legend-item"><div class="legend-color" style="background: #a855f7;"></div><span>Very Unhealthy (200+)</span></div>
+                    </div>
+                `;
+                wrapper.innerHTML += legend;
+                return wrapper.outerHTML;
+            }
+
+            generatePollutantCards() {
+                const pollutants = [
+                    { name: 'PM2.5', value: this.pollutants.pm2_5, unit: 'µg/m³', thresholds: [35, 75, 115, 150] },
+                    { name: 'PM10', value: this.pollutants.pm10, unit: 'µg/m³', thresholds: [50, 150, 250, 350] },
+                    { name: 'O₃', value: this.pollutants.o3, unit: 'ppb', thresholds: [50, 100, 150, 200] },
+                    { name: 'NO₂', value: this.pollutants.no2, unit: 'ppb', thresholds: [40, 80, 180, 280] },
+                    { name: 'SO₂', value: this.pollutants.so2, unit: 'ppb', thresholds: [35, 75, 185, 305] },
+                    { name: 'CO', value: this.pollutants.carbon_monoxide, unit: 'ppb', thresholds: [500, 1000, 2000, 3000] }
+                ];
+
+                const severityLabels = ['Good', 'Moderate', 'Unhealthy (S)', 'Unhealthy', 'Very Unhealthy'];
+                const severityClasses = ['severity-good', 'severity-moderate', 'severity-unhealthy-sensitive', 'severity-unhealthy', 'severity-very-unhealthy'];
+
+                return pollutants.map(p => {
+                    const severity = this.getSeverity(p.value, p.thresholds);
+                    return `
+                        <div class="pollutant-card">
+                            <div class="pollutant-name">${p.name}</div>
+                            <div class="pollutant-value">${p.value.toFixed(1)}</div>
+                            <div class="pollutant-unit">${p.unit}</div>
+                            <div class="severity-badge ${severityClasses[Math.min(severity, severityClasses.length - 1)]}">${severityLabels[Math.min(severity, severityLabels.length - 1)]}</div>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            generateStats(aqi) {
+                return `
+                    <div class="stat-box">
+                        <div class="stat-label">Overall AQI</div>
+                        <div class="stat-value">${aqi.toFixed(0)}</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">Primary Pollutant</div>
+                        <div class="stat-value">PM2.5</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">Severity</div>
+                        <div class="stat-value">${aqi <= 50 ? 'Good' : aqi <= 100 ? 'Moderate' : aqi <= 150 ? 'Unhealthy(S)' : aqi <= 200 ? 'Unhealthy' : 'Very Bad'}</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">Auto-Refresh</div>
+                        <div class="stat-value">30s</div>
+                    </div>
+                `;
+            }
+
+            render(html) {
+                this.contentDiv.innerHTML = html;
+            }
+        }
+
+        new AirQualityMap();
+    </script>
+</body>
+</html>
