@@ -161,11 +161,9 @@
       background: rgba(255, 255, 255, 0.1);
       border-radius: 4px;
       overflow: hidden;
-      position: relative;
     }
     .zone-fill {
       height: 100%;
-      background: linear-gradient(90deg, #4db8ff 0%, #7fb3ff 100%);
       display: flex;
       align-items: center;
       justify-content: flex-end;
@@ -201,9 +199,6 @@
       font-size: 0.9rem;
       color: #b0d4e8;
     }
-    .splits-table tr:hover {
-      background: rgba(77, 184, 255, 0.05);
-    }
     .error {
       color: #ff6b35;
       font-size: 0.9rem;
@@ -222,10 +217,6 @@
       }
       .results-grid {
         grid-template-columns: 1fr;
-      }
-      .zone-label {
-        width: 100px;
-        font-size: 0.75rem;
       }
     }
   </style>
@@ -247,28 +238,28 @@
         </select>
       </div>
       <div class="input-group">
-        <label for="customDist">Custom Distance (if selected)</label>
-        <input type="number" id="customDist" placeholder="e.g., 8.5" min="0.1" step="0.1">
+        <label for="customDist">Custom Miles (if selected)</label>
+        <input type="number" id="customDist" placeholder="e.g., 8.5" min="0.1" step="0.1" style="display:none;">
       </div>
     </div>
 
     <div class="input-section">
       <div class="input-group">
-        <label for="timeFormat">Known Time or Pace</label>
+        <label for="timeFormat">Know Your</label>
         <select id="timeFormat">
-          <option value="finish">Finish Time (HH:MM:SS)</option>
-          <option value="pace">Pace (MM:SS per mile)</option>
+          <option value="finish">Finish Time</option>
+          <option value="pace">Pace per Mile</option>
         </select>
       </div>
       <div class="input-group">
-        <label for="timeInput">Enter Value</label>
-        <input type="text" id="timeInput" placeholder="HH:MM:SS or MM:SS">
+        <label for="timeInput">Enter (HH:MM:SS or MM:SS)</label>
+        <input type="text" id="timeInput" placeholder="e.g., 20:35 or 1:45:22">
       </div>
     </div>
 
     <div class="button-group">
-      <button onclick="calculate()">Calculate Pace & Splits</button>
-      <button onclick="resetForm()">Clear</button>
+      <button onclick="doCalc()">Calculate</button>
+      <button onclick="doReset()">Clear</button>
     </div>
 
     <div id="errorMsg" class="error"></div>
@@ -281,19 +272,19 @@
           <div class="result-detail">per mile</div>
         </div>
         <div class="result-card">
-          <div class="result-label">Estimated Finish</div>
+          <div class="result-label">Finish Time</div>
           <div class="result-value" id="resultFinish">--</div>
-          <div class="result-detail">HH:MM:SS</div>
+          <div class="result-detail">total time</div>
         </div>
         <div class="result-card">
-          <div class="result-label">VO₂ Max Est.</div>
+          <div class="result-label">VO₂ Max Est</div>
           <div class="result-value" id="resultVO2">--</div>
           <div class="result-detail">ml/kg/min</div>
         </div>
         <div class="result-card">
-          <div class="result-label">vs World Record</div>
+          <div class="result-label">vs WR Pace</div>
           <div class="result-value" id="resultWR">--</div>
-          <div class="result-detail">% off pace</div>
+          <div class="result-detail">% difference</div>
         </div>
       </div>
 
@@ -305,171 +296,105 @@
       <div class="result-card wide-card">
         <div class="result-label">Mile-by-Mile Splits</div>
         <table class="splits-table">
-          <thead>
-            <tr>
-              <th>Mile</th>
-              <th>Pace</th>
-              <th>Elapsed Time</th>
-            </tr>
-          </thead>
-          <tbody id="splitsBody">
-          </tbody>
+          <thead><tr><th>Mile</th><th>Pace</th><th>Elapsed</th></tr></thead>
+          <tbody id="splitsBody"></tbody>
         </table>
       </div>
     </div>
   </div>
 
   <script>
-    const WR_5K = 12.51 * 60 + 35; // 12:35 in seconds
-    const WR_10K = 26.98 * 60 + 25; // 26:25
-    const WR_HALF = 58.23 * 60 + 15; // 58:15
-    const WR_FULL = 120.03 * 60 + 21; // 2:00:21
+    const WR = { 5: 755, 10: 1585, 21.0975: 3495, 42.195: 7221 };
 
-    function getWorldRecord(distanceMiles) {
-      if (distanceMiles === 5) return WR_5K;
-      if (distanceMiles === 10) return WR_10K;
-      if (distanceMiles === 21.0975) return WR_HALF;
-      if (distanceMiles === 42.195) return WR_FULL;
-      // Interpolate for custom distances
-      if (distanceMiles < 5) {
-        const ratio = distanceMiles / 5;
-        return WR_5K * ratio * 0.95;
-      }
-      return WR_FULL + (distanceMiles - 42.195) * 360;
-    }
-
-    function parseTime(str) {
-      const parts = str.trim().split(':');
-      if (parts.length === 2) {
-        return parseInt(parts[0]) * 60 + parseInt(parts[1]);
-      }
-      if (parts.length === 3) {
-        return parseInt(parts[0]) * 3600 + parseInt(parts[1]) * 60 + parseInt(parts[2]);
-      }
+    function parseTime(s) {
+      const p = s.trim().split(':');
+      if (p.length === 2) return +p[0] * 60 + +p[1];
+      if (p.length === 3) return +p[0] * 3600 + +p[1] * 60 + +p[2];
       return null;
     }
 
-    function formatTime(seconds) {
-      const h = Math.floor(seconds / 3600);
-      const m = Math.floor((seconds % 3600) / 60);
-      const s = Math.floor(seconds % 60);
-      if (h > 0) return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-      return `${m}:${String(s).padStart(2, '0')}`;
+    function fmtTime(secs) {
+      const h = Math.floor(secs / 3600);
+      const m = Math.floor((secs % 3600) / 60);
+      const s = Math.floor(secs % 60);
+      return h > 0 ? `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}` : `${m}:${String(s).padStart(2, '0')}`;
     }
 
-    function estimateVO2Max(pacePerMile) {
-      // Simplified formula from sports science
+    function vo2(pacePerMile) {
       const speed = 26.82 / (pacePerMile / 60);
-      return Math.min(80, 10.8 * 1 + 0.17 * speed * 26.82);
+      return Math.min(80, 10.8 + 0.17 * speed);
     }
 
-    function estimateMaxHR(estVO2) {
-      // Age-adjusted (assume ~30yo athlete)
-      return 190;
-    }
+    function doCalc() {
+      const err = document.getElementById('errorMsg');
+      err.style.display = 'none';
+      err.textContent = '';
 
-    function calculate() {
-      const errorEl = document.getElementById('errorMsg');
-      errorEl.style.display = 'none';
-      errorEl.textContent = '';
-
-      const distVal = document.getElementById('distance').value;
-      let distance = parseFloat(distVal);
-      if (distVal === 'custom') {
-        distance = parseFloat(document.getElementById('customDist').value);
-        if (!distance || distance <= 0) {
-          errorEl.textContent = 'Please enter a valid custom distance';
-          errorEl.style.display = 'block';
-          return;
-        }
+      let dist = parseFloat(document.getElementById('distance').value);
+      if (document.getElementById('distance').value === 'custom') {
+        dist = parseFloat(document.getElementById('customDist').value);
+        if (!dist || dist <= 0) { err.textContent = 'Invalid custom distance'; err.style.display = 'block'; return; }
       }
 
-      const timeFormat = document.getElementById('timeFormat').value;
-      const timeInput = document.getElementById('timeInput').value;
-      const timeSeconds = parseTime(timeInput);
-      if (!timeSeconds) {
-        errorEl.textContent = 'Invalid time format. Use HH:MM:SS or MM:SS';
-        errorEl.style.display = 'block';
-        return;
-      }
+      const fmt = document.getElementById('timeFormat').value;
+      const t = parseTime(document.getElementById('timeInput').value);
+      if (!t) { err.textContent = 'Invalid time format'; err.style.display = 'block'; return; }
 
-      let pacePerMile;
-      let finishTime;
-      if (timeFormat === 'finish') {
-        finishTime = timeSeconds;
-        pacePerMile = timeSeconds / distance;
+      let pace, finish;
+      if (fmt === 'finish') {
+        finish = t;
+        pace = t / dist;
       } else {
-        pacePerMile = timeSeconds;
-        finishTime = pacePerMile * distance;
+        pace = t;
+        finish = t * dist;
       }
 
-      // Calculate VO2 max estimate
-      const vo2 = estimateVO2Max(pacePerMile);
-      const maxHR = estimateMaxHR(vo2);
+      const vo2est = vo2(pace);
+      const maxHR = 190;
+      const wr = WR[dist] || (dist < 5 ? WR[5] * (dist / 5) * 0.95 : 7221 + (dist - 42.195) * 360);
+      const wrPace = wr / dist;
+      const pctOff = ((pace - wrPace) / wrPace) * 100;
 
-      // World record comparison
-      const wrPace = getWorldRecord(distance) / distance;
-      const percentOff = ((pacePerMile - wrPace) / wrPace) * 100;
+      document.getElementById('resultPace').textContent = fmtTime(pace);
+      document.getElementById('resultFinish').textContent = fmtTime(finish);
+      document.getElementById('resultVO2').textContent = vo2est.toFixed(1);
+      document.getElementById('resultWR').textContent = (pctOff > 0 ? '+' : '') + pctOff.toFixed(1) + '%';
 
-      // Training zones (percentage of max HR)
-      const aerobicZoneHR = maxHR * 0.70;
-      const thresholdZoneHR = maxHR * 0.85;
-      const anaerobicZoneHR = maxHR * 0.95;
-
-      // Training zone paces (inverse relationship: higher HR = faster pace)
-      const aerobicPace = (60 / (26.82 / (10 * vo2 / 42.8))) * 1.4;
-      const thresholdPace = pacePerMile * 0.98;
-      const anaerobicPace = pacePerMile * 0.85;
-
-      // Generate splits
-      const numMiles = Math.ceil(distance);
-      const splitsHtml = Array.from({ length: numMiles }, (_, i) => {
-        const mileNum = i + 1;
-        if (mileNum > distance) return '';
-        const elapsedSeconds = pacePerMile * mileNum;
-        return `
-          <tr>
-            <td>${mileNum}</td>
-            <td>${formatTime(pacePerMile)}</td>
-            <td>${formatTime(elapsedSeconds)}</td>
-          </tr>
-        `;
-      }).join('');
-
-      // Display results
-      document.getElementById('resultPace').textContent = formatTime(pacePerMile);
-      document.getElementById('resultFinish').textContent = formatTime(finishTime);
-      document.getElementById('resultVO2').textContent = vo2.toFixed(1);
-      document.getElementById('resultWR').textContent = percentOff > 0 ? `+${percentOff.toFixed(1)}%` : percentOff.toFixed(1) + '%';
-
-      const zonesHtml = `
+      const zones = `
         <div class="zone-bar">
           <div class="zone-label">Aerobic (70%)</div>
           <div class="zone-bar-fill">
-            <div class="zone-fill aerobic" style="width: 70%">${aerobicZoneHR.toFixed(0)} bpm</div>
+            <div class="zone-fill aerobic" style="width: 70%">${(maxHR * 0.70).toFixed(0)} bpm</div>
           </div>
         </div>
         <div class="zone-bar">
           <div class="zone-label">Threshold (85%)</div>
           <div class="zone-bar-fill">
-            <div class="zone-fill threshold" style="width: 85%">${thresholdZoneHR.toFixed(0)} bpm</div>
+            <div class="zone-fill threshold" style="width: 85%">${(maxHR * 0.85).toFixed(0)} bpm</div>
           </div>
         </div>
         <div class="zone-bar">
           <div class="zone-label">Anaerobic (95%)</div>
           <div class="zone-bar-fill">
-            <div class="zone-fill anaerobic" style="width: 95%">${anaerobicZoneHR.toFixed(0)} bpm</div>
+            <div class="zone-fill anaerobic" style="width: 95%">${(maxHR * 0.95).toFixed(0)} bpm</div>
           </div>
         </div>
       `;
 
-      document.getElementById('zonesBars').innerHTML = zonesHtml;
-      document.getElementById('splitsBody').innerHTML = splitsHtml;
+      const miles = Math.ceil(dist);
+      let splits = '';
+      for (let i = 1; i <= miles && i <= dist; i++) {
+        const elapsed = pace * i;
+        splits += `<tr><td>${i}</td><td>${fmtTime(pace)}</td><td>${fmtTime(elapsed)}</td></tr>`;
+      }
+
+      document.getElementById('zonesBars').innerHTML = zones;
+      document.getElementById('splitsBody').innerHTML = splits;
       document.getElementById('results').style.display = 'block';
       window.scrollTo({ top: document.getElementById('results').offsetTop - 100, behavior: 'smooth' });
     }
 
-    function resetForm() {
+    function doReset() {
       document.getElementById('distance').value = '5';
       document.getElementById('customDist').value = '';
       document.getElementById('timeFormat').value = 'finish';
@@ -478,12 +403,12 @@
       document.getElementById('errorMsg').style.display = 'none';
     }
 
-    document.getElementById('distance').addEventListener('change', () => {
-      document.getElementById('customDist').style.display = document.getElementById('distance').value === 'custom' ? 'block' : 'none';
+    document.getElementById('distance').addEventListener('change', (e) => {
+      document.getElementById('customDist').style.display = e.target.value === 'custom' ? 'block' : 'none';
     });
 
     document.getElementById('timeInput').addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') calculate();
+      if (e.key === 'Enter') doCalc();
     });
   </script>
 </body>
