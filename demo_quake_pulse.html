@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quake Pulse — Live Earthquake Map</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      color: #fff;
+      padding: 20px;
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+    h1 {
+      font-family: 'Syne', sans-serif;
+      font-size: 2.5rem;
+      margin-bottom: 10px;
+      text-align: center;
+    }
+    .subtitle {
+      text-align: center;
+      color: #94a3b8;
+      margin-bottom: 30px;
+      font-size: 0.95rem;
+    }
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 15px;
+      margin-bottom: 25px;
+    }
+    .stat-card {
+      background: rgba(30, 41, 59, 0.8);
+      border: 1px solid rgba(100, 150, 200, 0.2);
+      border-radius: 8px;
+      padding: 15px;
+      text-align: center;
+    }
+    .stat-label {
+      color: #7dd3fc;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+    }
+    .stat-value {
+      font-size: 2rem;
+      font-weight: 700;
+      color: #fff;
+    }
+    .stat-detail {
+      color: #cbd5e1;
+      font-size: 0.8rem;
+      margin-top: 4px;
+    }
+    .quake-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .quake-item {
+      background: rgba(30, 41, 59, 0.8);
+      border-left: 4px solid #ec4899;
+      border-radius: 4px;
+      padding: 15px;
+      display: grid;
+      grid-template-columns: 60px 1fr 1fr;
+      gap: 15px;
+      align-items: center;
+      transition: all 0.3s;
+    }
+    .quake-item:hover {
+      background: rgba(40, 50, 70, 0.9);
+      border-left-color: #f43f5e;
+    }
+    .magnitude-badge {
+      font-weight: 700;
+      text-align: center;
+      border-radius: 6px;
+      padding: 8px;
+      font-size: 1.8rem;
+    }
+    .mag-micro { background: #3b82f6; color: #fff; }
+    .mag-minor { background: #10b981; color: #fff; }
+    .mag-light { background: #f59e0b; color: #fff; }
+    .mag-moderate { background: #ef4444; color: #fff; }
+    .mag-strong { background: #dc2626; color: #fff; }
+    .mag-major { background: #991b1b; color: #fff; }
+    
+    .quake-info {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .quake-location {
+      font-weight: 600;
+      color: #fff;
+    }
+    .quake-details {
+      font-size: 0.85rem;
+      color: #cbd5e1;
+    }
+    .quake-time {
+      text-align: right;
+    }
+    .quake-time-main {
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: #7dd3fc;
+    }
+    .quake-time-ago {
+      font-size: 0.8rem;
+      color: #94a3b8;
+    }
+    .magnitude-filter {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 25px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .filter-btn {
+      padding: 8px 14px;
+      border: 1px solid rgba(100, 150, 200, 0.3);
+      background: rgba(30, 41, 59, 0.6);
+      color: #7dd3fc;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      transition: all 0.3s;
+    }
+    .filter-btn:hover {
+      border-color: #7dd3fc;
+      background: rgba(30, 41, 59, 0.9);
+    }
+    .filter-btn.active {
+      background: #7dd3fc;
+      color: #0f172a;
+      font-weight: 600;
+    }
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #7dd3fc;
+      font-size: 1.05rem;
+    }
+    .error {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: #fca5a5;
+      padding: 15px;
+      border-radius: 6px;
+      margin-top: 15px;
+    }
+    .refresh-timer {
+      text-align: center;
+      color: #475569;
+      font-size: 0.8rem;
+      margin-top: 20px;
+    }
+    @media (max-width: 600px) {
+      h1 { font-size: 1.8rem; }
+      .quake-item { grid-template-columns: 1fr; }
+      .quake-time { text-align: left; }
+      .stats-row { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>📍 Quake Pulse</h1>
+    <div class="subtitle">Last 24 hours · Real-time USGS earthquake data</div>
+
+    <div id="content">
+      <div class="loading">Fetching latest earthquakes...</div>
+    </div>
+  </div>
+
+  <script>
+    let allQuakes = [];
+    let currentFilter = 0;
+    let lastRefresh = null;
+
+    function getMagnitudeClass(mag) {
+      if (mag < 2) return 'mag-micro';
+      if (mag < 4) return 'mag-minor';
+      if (mag < 5) return 'mag-light';
+      if (mag < 6) return 'mag-moderate';
+      if (mag < 7) return 'mag-strong';
+      return 'mag-major';
+    }
+
+    function timeAgo(isoDate) {
+      const then = new Date(isoDate);
+      const now = new Date();
+      const seconds = Math.floor((now - then) / 1000);
+      
+      if (seconds < 60) return `${seconds}s ago`;
+      if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+      if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+      return `${Math.floor(seconds / 86400)}d ago`;
+    }
+
+    async function fetchQuakes() {
+      try {
+        const resp = await fetch('https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson');
+        if (!resp.ok) throw new Error('USGS API error');
+        const data = await resp.json();
+        
+        return data.features.map(f => ({
+          id: f.id,
+          mag: f.properties.mag,
+          place: f.properties.place,
+          time: f.properties.time,
+          depth: f.geometry.coordinates[2],
+          lat: f.geometry.coordinates[1],
+          lon: f.geometry.coordinates[0],
+          url: f.properties.url
+        })).sort((a, b) => b.time - a.time);
+      } catch (e) {
+        console.error('Fetch error:', e);
+        return null;
+      }
+    }
+
+    function getStats(quakes) {
+      if (quakes.length === 0) {
+        return { total: 0, avgMag: 0, maxMag: 0, significant: 0 };
+      }
+      
+      const mags = quakes.map(q => q.mag).filter(m => m !== null);
+      return {
+        total: quakes.length,
+        avgMag: (mags.reduce((a, b) => a + b, 0) / mags.length).toFixed(1),
+        maxMag: Math.max(...mags).toFixed(1),
+        significant: quakes.filter(q => q.mag >= 4.5).length
+      };
+    }
+
+    function renderContent(filtered) {
+      const stats = getStats(filtered);
+      const quakeHtml = filtered.slice(0, 50).map(q => {
+        const timeStr = new Date(q.time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        const ago = timeAgo(new Date(q.time));
+        
+        return `
+          <div class="quake-item">
+            <div class="magnitude-badge ${getMagnitudeClass(q.mag)}">
+              ${q.mag.toFixed(1)}
+            </div>
+            <div class="quake-info">
+              <div class="quake-location">${q.place}</div>
+              <div class="quake-details">
+                Depth: ${q.depth.toFixed(1)} km · Lat: ${q.lat.toFixed(2)}° · Lon: ${q.lon.toFixed(2)}°
+              </div>
+            </div>
+            <div class="quake-time">
+              <div class="quake-time-main">${timeStr}</div>
+              <div class="quake-time-ago">${ago}</div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      const magneCount = allQuakes.filter(q => q.mag < 2).length;
+      const minorCount = allQuakes.filter(q => q.mag >= 2 && q.mag < 4).length;
+      const lightCount = allQuakes.filter(q => q.mag >= 4 && q.mag < 5).length;
+
+      return `
+        <div class="stats-row">
+          <div class="stat-card">
+            <div class="stat-label">Total (24h)</div>
+            <div class="stat-value">${stats.total}</div>
+            <div class="stat-detail">All magnitudes</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Strongest</div>
+            <div class="stat-value">${stats.maxMag}</div>
+            <div class="stat-detail">Magnitude</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Average</div>
+            <div class="stat-value">${stats.avgMag}</div>
+            <div class="stat-detail">Magnitude</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Significant (4.5+)</div>
+            <div class="stat-value">${stats.significant}</div>
+            <div class="stat-detail">Major events</div>
+          </div>
+        </div>
+
+        <div class="magnitude-filter">
+          <button class="filter-btn ${currentFilter === 0 ? 'active' : ''}" onclick="setFilter(0)">All</button>
+          <button class="filter-btn ${currentFilter === 2 ? 'active' : ''}" onclick="setFilter(2)">M 2.0+</button>
+          <button class="filter-btn ${currentFilter === 3 ? 'active' : ''}" onclick="setFilter(3)">M 3.0+</button>
+          <button class="filter-btn ${currentFilter === 4.5 ? 'active' : ''}" onclick="setFilter(4.5)">M 4.5+</button>
+          <button class="filter-btn ${currentFilter === 6 ? 'active' : ''}" onclick="setFilter(6)">M 6.0+</button>
+        </div>
+
+        <div class="quake-list">
+          ${quakeHtml}
+        </div>
+
+        <div class="refresh-timer">
+          Updated: ${lastRefresh.toLocaleTimeString()} · Auto-refresh every 60s
+        </div>
+      `;
+    }
+
+    async function render() {
+      const quakes = await fetchQuakes();
+      if (!quakes) {
+        document.getElementById('content').innerHTML = '<div class="error">Failed to fetch earthquake data. Retrying...</div>';
+        return;
+      }
+
+      allQuakes = quakes;
+      lastRefresh = new Date();
+      
+      const filtered = currentFilter === 0 ? allQuakes : allQuakes.filter(q => q.mag >= currentFilter);
+      document.getElementById('content').innerHTML = renderContent(filtered);
+      
+      startCountdown();
+    }
+
+    function setFilter(minMag) {
+      currentFilter = minMag;
+      const filtered = currentFilter === 0 ? allQuakes : allQuakes.filter(q => q.mag >= currentFilter);
+      document.getElementById('content').innerHTML = renderContent(filtered);
+    }
+
+    function startCountdown() {
+      let seconds = 60;
+      const interval = setInterval(() => {
+        seconds--;
+        if (seconds <= 0) {
+          clearInterval(interval);
+          render();
+        }
+      }, 1000);
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      render();
+    });
+  </script>
+</body>
+</html>
