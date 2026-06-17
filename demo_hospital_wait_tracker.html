@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wait Time Finder</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e8eaf6 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        .header h1 {
+            font-family: 'Syne', sans-serif;
+            font-size: 2.5rem;
+            color: #1a1a2e;
+            margin-bottom: 10px;
+        }
+        .header p {
+            color: #666;
+            font-size: 1rem;
+        }
+        .search-box {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .search-input {
+            flex: 1;
+            min-width: 200px;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-family: 'Inter', sans-serif;
+        }
+        .search-input:focus {
+            outline: none;
+            border-color: #3f51b5;
+            box-shadow: 0 0 0 3px rgba(63, 81, 181, 0.1);
+        }
+        .search-btn {
+            padding: 12px 24px;
+            background: #3f51b5;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .search-btn:hover {
+            background: #303f9f;
+        }
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+            display: none;
+        }
+        .hospitals-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .hospital-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .hospital-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+        }
+        .hospital-name {
+            font-family: 'Syne', sans-serif;
+            font-size: 1.2rem;
+            margin-bottom: 8px;
+            color: #1a1a2e;
+        }
+        .wait-time {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin: 12px 0;
+            color: #3f51b5;
+        }
+        .wait-bar {
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 12px 0;
+        }
+        .wait-fill {
+            height: 100%;
+            width: 50%;
+            border-radius: 4px;
+            transition: width 0.4s ease;
+        }
+        .severity-low { background: #4caf50; }
+        .severity-med { background: #ff9800; }
+        .severity-high { background: #f44336; }
+        .wait-label {
+            font-size: 0.85rem;
+            color: #999;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .hospital-details {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid #e0e0e0;
+            font-size: 0.9rem;
+            color: #666;
+        }
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 6px 0;
+        }
+        .error {
+            background: #ffebee;
+            color: #c62828;
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        .stats {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 20px;
+        }
+        .stat-box {
+            text-align: center;
+        }
+        .stat-label {
+            font-size: 0.85rem;
+            color: #999;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+        }
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #3f51b5;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #999;
+        }
+        .empty-state p {
+            margin-bottom: 8px;
+        }
+        @media (max-width: 600px) {
+            .header h1 { font-size: 2rem; }
+            .hospitals-grid { grid-template-columns: 1fr; }
+            .search-box { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏥 Wait Time Finder</h1>
+            <p>Real-time emergency room wait times</p>
+        </div>
+
+        <div class="search-box">
+            <input type="text" class="search-input" id="cityInput" placeholder="Enter city name (e.g., New York, London, Sydney)">
+            <button class="search-btn" onclick="searchCity()">Search</button>
+        </div>
+
+        <div class="error" id="error"></div>
+        <div class="loading" id="loading">Fetching hospital data...</div>
+        <div class="stats" id="stats" style="display: none;"></div>
+        <div class="hospitals-grid" id="hospitalsGrid"></div>
+        <div class="empty-state" id="emptyState">
+            <p>📍 Enter a city name to see emergency room wait times</p>
+            <p style="font-size: 0.9rem;">Data updates every 10 minutes</p>
+        </div>
+    </div>
+
+    <script>
+        // Mock hospital network database with realistic wait times
+        const hospitalNetworks = {
+            'New York': [
+                { name: 'Mount Sinai Hospital', address: '1 Gustave Levy Pl', beds: 1171, base: 45 },
+                { name: 'NYU Langone', address: '550 First Avenue', beds: 859, base: 52 },
+                { name: 'Columbia Presbyterian', address: '622 W 168th St', beds: 745, base: 38 },
+                { name: 'Bellevue Hospital', address: '462 First Avenue', beds: 853, base: 65 },
+                { name: 'Memorial Sloan Kettering', address: '1275 York Avenue', beds: 595, base: 28 },
+            ],
+            'London': [
+                { name: 'St. Bartholomew\'s Hospital', address: 'West Smithfield', beds: 711, base: 72 },
+                { name: 'University College London Hospital', address: 'Gower Street', beds: 640, base: 48 },
+                { name: 'The Royal London Hospital', address: 'Whitechapel Road', beds: 623, base: 85 },
+                { name: 'King\'s College Hospital', address: 'Denmark Hill', beds: 732, base: 61 },
+                { name: 'Guy\'s Hospital', address: 'St Thomas Street', beds: 699, base: 55 },
+            ],
+            'Sydney': [
+                { name: 'Royal Prince Alfred Hospital', address: 'Camperdown', beds: 821, base: 44 },
+                { name: 'St Vincent\'s Hospital', address: 'Darlinghurst', beds: 466, base: 52 },
+                { name: 'Prince of Wales Hospital', address: 'Randwick', beds: 593, base: 38 },
+                { name: 'Westmead Hospital', address: 'Westmead', beds: 1057, base: 67 },
+                { name: 'Royal North Shore', address: 'St Leonards', beds: 661, base: 41 },
+            ],
+            'Toronto': [
+                { name: 'Toronto General Hospital', address: '200 Elizabeth Street', beds: 1116, base: 55 },
+                { name: 'St. Michael\'s Hospital', address: '30 Bond Street', beds: 590, base: 48 },
+                { name: 'Mount Sinai Hospital', address: '600 University Avenue', beds: 650, base: 52 },
+                { name: 'Sunnybrook Health Sciences', address: '2075 Bayview Avenue', beds: 1350, base: 38 },
+                { name: 'Hospital for Sick Children', address: '555 University Avenue', beds: 385, base: 72 },
+            ],
+            'Tokyo': [
+                { name: 'Shinjuku Medical Center', address: 'Shinjuku', beds: 1100, base: 38 },
+                { name: 'Chiyoda Central Hospital', address: 'Chiyoda', beds: 456, base: 32 },
+                { name: 'Minato City Hospital', address: 'Minato', beds: 622, base: 45 },
+                { name: 'Shibuya Metropolitan Hospital', address: 'Shibuya', beds: 521, base: 52 },
+                { name: 'Ginza Hospital', address: 'Ginza', beds: 389, base: 28 },
+            ],
+        };
+
+        let currentCity = null;
+        let refreshInterval = null;
+
+        function getWaitTime(baseTime) {
+            // Realistic variation: ±20 min, cyclical pattern
+            const cycleTime = Date.now() / 60000; // 60sec cycle
+            const variation = Math.sin(cycleTime * Math.PI) * 20;
+            return Math.max(10, Math.round(baseTime + variation + (Math.random() - 0.5) * 10));
+        }
+
+        function getSeverityClass(minutes) {
+            if (minutes < 30) return 'severity-low';
+            if (minutes < 60) return 'severity-med';
+            return 'severity-high';
+        }
+
+        function getWaitLabel(minutes) {
+            if (minutes < 30) return '✓ Short wait';
+            if (minutes < 60) return '⚠ Moderate wait';
+            return '⚠ Long wait';
+        }
+
+        function renderHospitals(hospitals) {
+            const grid = document.getElementById('hospitalsGrid');
+            grid.innerHTML = '';
+
+            hospitals.forEach(hospital => {
+                const waitTime = getWaitTime(hospital.base);
+                const severity = getSeverityClass(waitTime);
+                const fillPercent = Math.min(100, (waitTime / 120) * 100);
+
+                const card = document.createElement('div');
+                card.className = 'hospital-card';
+                card.innerHTML = `
+                    <div class="hospital-name">${hospital.name}</div>
+                    <div class="wait-time">${waitTime} min</div>
+                    <div class="wait-bar">
+                        <div class="wait-fill ${severity}" style="width: ${fillPercent}%"></div>
+                    </div>
+                    <div class="wait-label">${getWaitLabel(waitTime)}</div>
+                    <div class="hospital-details">
+                        <div class="detail-row">
+                            <span>📍 Location</span>
+                            <span>${hospital.address}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span>🛏️ Beds</span>
+                            <span>${hospital.beds} total</span>
+                        </div>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+
+            // Stats summary
+            const waitTimes = hospitals.map(h => getWaitTime(h.base));
+            const avgWait = Math.round(waitTimes.reduce((a, b) => a + b, 0) / waitTimes.length);
+            const minWait = Math.min(...waitTimes);
+            const maxWait = Math.max(...waitTimes);
+
+            const statsHtml = `
+                <div class="stat-box">
+                    <div class="stat-label">Average</div>
+                    <div class="stat-value">${avgWait} min</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Shortest</div>
+                    <div class="stat-value">${minWait} min</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Longest</div>
+                    <div class="stat-value">${maxWait} min</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Hospitals</div>
+                    <div class="stat-value">${hospitals.length}</div>
+                </div>
+            `;
+            document.getElementById('stats').innerHTML = statsHtml;
+            document.getElementById('stats').style.display = 'grid';
+        }
+
+        function searchCity() {
+            const input = document.getElementById('cityInput').value.trim();
+            if (!input) return;
+
+            const city = Object.keys(hospitalNetworks).find(
+                c => c.toLowerCase() === input.toLowerCase()
+            );
+
+            if (!city) {
+                document.getElementById('error').textContent = `❌ No hospital data for "${input}". Try: New York, London, Sydney, Toronto, or Tokyo.`;
+                document.getElementById('error').style.display = 'block';
+                document.getElementById('hospitalsGrid').innerHTML = '';
+                document.getElementById('stats').style.display = 'none';
+                document.getElementById('emptyState').style.display = 'block';
+                clearInterval(refreshInterval);
+                return;
+            }
+
+            currentCity = city;
+            document.getElementById('error').style.display = 'none';
+            document.getElementById('emptyState').style.display = 'none';
+            renderHospitals(hospitalNetworks[city]);
+
+            // Auto-refresh every 10 minutes (simulated, instant in demo)
+            if (refreshInterval) clearInterval(refreshInterval);
+            refreshInterval = setInterval(() => {
+                if (currentCity) {
+                    renderHospitals(hospitalNetworks[currentCity]);
+                }
+            }, 600000); // 10 min
+        }
+
+        // Allow Enter key
+        document.getElementById('cityInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') searchCity();
+        });
+
+        // Load Sydney on init for demo
+        window.addEventListener('load', () => {
+            document.getElementById('cityInput').value = 'Sydney';
+            searchCity();
+        });
+    </script>
+</body>
+</html>
