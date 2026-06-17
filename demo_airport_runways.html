@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Runway Status</title>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #001a4d 0%, #003d99 100%);
+            color: #fff;
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        h1 {
+            font-family: 'Syne', sans-serif;
+            font-size: 2.5em;
+            font-weight: 800;
+            margin-bottom: 8px;
+            color: #ffb700;
+        }
+        
+        .time {
+            font-size: 0.9em;
+            opacity: 0.8;
+            margin-bottom: 10px;
+        }
+        
+        .layout {
+            display: grid;
+            grid-template-columns: 280px 1fr 250px;
+            gap: 20px;
+            height: calc(100vh - 250px);
+        }
+        
+        .panel {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            overflow-y: auto;
+        }
+        
+        .left-panel {
+            grid-column: 1;
+        }
+        
+        .center-panel {
+            grid-column: 2;
+        }
+        
+        .right-panel {
+            grid-column: 3;
+        }
+        
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 0.85em;
+            text-transform: uppercase;
+            color: #ffb700;
+        }
+        
+        input[type="text"],
+        select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            font-family: 'Inter', sans-serif;
+            margin-bottom: 15px;
+            font-size: 0.9em;
+        }
+        
+        input[type="text"]::placeholder,
+        select {
+            color: rgba(255, 255, 255, 0.6);
+        }
+        
+        .runway-diagram {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.75em;
+            line-height: 1.6;
+            white-space: pre;
+            color: #4db8ff;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #ffb700;
+        }
+        
+        .notam-card {
+            background: rgba(0, 0, 0, 0.4);
+            border-left: 4px solid;
+            border-radius: 6px;
+            padding: 12px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .notam-card:hover {
+            background: rgba(0, 0, 0, 0.5);
+            transform: translateX(4px);
+        }
+        
+        .notam-card.closure {
+            border-left-color: #d32f2f;
+        }
+        
+        .notam-card.advisory {
+            border-left-color: #ffb700;
+        }
+        
+        .notam-card.normal {
+            border-left-color: #4db8ff;
+        }
+        
+        .notam-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 6px;
+            font-weight: 600;
+            font-size: 0.85em;
+        }
+        
+        .badge {
+            font-size: 1.2em;
+        }
+        
+        .notam-text {
+            font-size: 0.75em;
+            opacity: 0.8;
+            margin-bottom: 6px;
+            line-height: 1.4;
+        }
+        
+        .notam-time {
+            font-size: 0.7em;
+            opacity: 0.6;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .stats-card {
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 12px;
+        }
+        
+        .stat-label {
+            font-size: 0.7em;
+            text-transform: uppercase;
+            opacity: 0.7;
+            margin-bottom: 4px;
+        }
+        
+        .stat-value {
+            font-family: 'Syne', sans-serif;
+            font-size: 1.8em;
+            font-weight: 800;
+            color: #ffb700;
+        }
+        
+        .refresh-info {
+            font-size: 0.75em;
+            opacity: 0.6;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .error {
+            background: rgba(211, 47, 47, 0.3);
+            border: 1px solid #d32f2f;
+            border-radius: 6px;
+            padding: 12px;
+            color: #ffb700;
+            font-size: 0.85em;
+            line-height: 1.4;
+        }
+        
+        .empty {
+            text-align: center;
+            padding: 30px 10px;
+            opacity: 0.6;
+            font-size: 0.9em;
+        }
+        
+        @media (max-width: 900px) {
+            .layout {
+                grid-template-columns: 1fr;
+                height: auto;
+            }
+            
+            .left-panel,
+            .center-panel,
+            .right-panel {
+                grid-column: 1;
+            }
+            
+            h1 {
+                font-size: 2em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>✈️ Runway Status</h1>
+            <div class="time" id="time"></div>
+        </header>
+        
+        <div class="layout">
+            <!-- LEFT PANEL: Airport Picker + Runway Diagram -->
+            <div class="panel left-panel">
+                <label for="airport-input">Search Airport</label>
+                <input type="text" id="airport-input" placeholder="e.g., JFK, LAX, ORD...">
+                
+                <div id="airport-list" style="max-height: 200px; overflow-y: auto; margin-bottom: 20px; display: none;">
+                </div>
+                
+                <label>Runway Layout</label>
+                <div class="runway-diagram" id="runway-diagram">Select an airport</div>
+            </div>
+            
+            <!-- CENTER PANEL: NOTAM Cards -->
+            <div class="panel center-panel">
+                <div id="notam-container">
+                    <div class="loading">Loading runway data...</div>
+                </div>
+            </div>
+            
+            <!-- RIGHT PANEL: Stats -->
+            <div class="panel right-panel">
+                <label>Statistics</label>
+                
+                <div class="stats-card">
+                    <div class="stat-label">Active NOTAMs</div>
+                    <div class="stat-value" id="stat-total">—</div>
+                </div>
+                
+                <div class="stats-card">
+                    <div class="stat-label">Closures</div>
+                    <div class="stat-value" id="stat-closures">—</div>
+                </div>
+                
+                <div class="stats-card">
+                    <div class="stat-label">Advisories</div>
+                    <div class="stat-value" id="stat-advisories">—</div>
+                </div>
+                
+                <div class="stats-card">
+                    <div class="stat-label">Most Affected</div>
+                    <div class="stat-value" id="stat-runway" style="font-size: 1.2em;">—</div>
+                </div>
+                
+                <div class="refresh-info" id="refresh-info">
+                    Next refresh: <span id="next-refresh">5m</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Major US airports with IATA codes, names, and runway layouts
+        const AIRPORTS = [
+            { code: 'JFK', name: 'John F. Kennedy', lat: 40.6413, lon: -73.7781, runways: '04L/22R\n04R/22L\n13L/31R\n13R/31L' },
+            { code: 'LAX', name: 'Los Angeles', lat: 33.9425, lon: -118.4081, runways: '24L/06R\n24R/06L\n25L/07R\n25R/07L' },
+            { code: 'ORD', name: 'Chicago O\'Hare', lat: 41.9742, lon: -87.9073, runways: '10L/28R\n10C/28C\n10R/28L\n04L/22R\n04R/22L' },
+            { code: 'ATL', name: 'Atlanta Hartsfield', lat: 33.6407, lon: -84.4277, runways: '09L/27R\n09R/27L\n09C/27C\n10L/28R' },
+            { code: 'DFW', name: 'Dallas/Fort Worth', lat: 32.8975, lon: -97.0383, runways: '18L/36R\n18R/36L\n17L/35R\n17C/35C\n17R/35L' },
+            { code: 'SFO', name: 'San Francisco', lat: 37.6213, lon: -122.3790, runways: '01L/19R\n01R/19L\n10L/28R\n10R/28L' },
+            { code: 'SEA', name: 'Seattle-Tacoma', lat: 47.4502, lon: -122.3088, runways: '16L/34R\n16C/34C\n16R/34L' },
+            { code: 'MIA', name: 'Miami International', lat: 25.7959, lon: -80.2870, runways: '08L/26R\n08R/26L\n09/27\n12/30' },
+            { code: 'DEN', name: 'Denver International', lat: 39.8561, lon: -104.6737, runways: '17L/35R\n17R/35L\n16L/34R\n16R/34L' },
+            { code: 'BOS', name: 'Boston Logan', lat: 42.3656, lon: -71.0096, runways: '04R/22L\n04L/22R\n09/27\n14/32' },
+            { code: 'LAS', name: 'Harry Reid (Las Vegas)', lat: 36.0840, lon: -115.1537, runways: '07L/25R\n07R/25L\n01L/19R\n01R/19L' },
+            { code: 'PHX', name: 'Phoenix Sky Harbor', lat: 33.4484, lon: -112.0742, runways: '08L/26R\n08R/26L\n03L/21R\n03R/21L' }
+        ];
+        
+        let currentAirport = null;
+        let notamCache = {};
+        let refreshCountdown = 300;
+        
+        // Update clock
+        function updateTime() {
+            const now = new Date();
+            document.getElementById('time').textContent = now.toLocaleTimeString('en-US', {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: true
+            });
+        }
+        updateTime();
+        setInterval(updateTime, 1000);
+        
+        // Airport search
+        document.getElementById('airport-input').addEventListener('input', (e) => {
+            const query = e.target.value.toUpperCase();
+            const list = document.getElementById('airport-list');
+            
+            if (!query) {
+                list.style.display = 'none';
+                return;
+            }
+            
+            const matches = AIRPORTS.filter(a => 
+                a.code.includes(query) || a.name.toUpperCase().includes(query)
+            );
+            
+            if (matches.length === 0) {
+                list.style.display = 'none';
+                return;
+            }
+            
+            list.innerHTML = matches.map(a => `
+                <div style="padding: 8px; background: rgba(0,0,0,0.3); border-radius: 4px; margin-bottom: 4px; cursor: pointer; font-size: 0.85em;" onclick="selectAirport('${a.code}')">
+                    <strong>${a.code}</strong> — ${a.name}
+                </div>
+            `).join('');
+            list.style.display = 'block';
+        });
+        
+        function selectAirport(code) {
+            currentAirport = AIRPORTS.find(a => a.code === code);
+            document.getElementById('airport-input').value = currentAirport.code;
+            document.getElementById('airport-list').style.display = 'none';
+            document.getElementById('runway-diagram').textContent = currentAirport.runways;
+            fetchNOTAMs();
+        }
+        
+        // Fetch NOTAMs from FAA API
+        async function fetchNOTAMs() {
+            if (!currentAirport) {
+                document.getElementById('notam-container').innerHTML = '<div class="empty">Select an airport to view runway status</div>';
+                return;
+            }
+            
+            document.getElementById('notam-container').innerHTML = '<div class="loading">Fetching runway data...</div>';
+            
+            try {
+                const url = `https://notams.aim.faa.gov/notamSearch/search?polygon=false&lat=${currentAirport.lat}&lon=${currentAirport.lon}&radius=10`;
+                const response = await fetch(url);
+                
+                if (!response.ok) {
+                    throw new Error('Failed to fetch NOTAMs');
+                }
+                
+                const data = await response.json();
+                notamCache[currentAirport.code] = data.notams || [];
+                renderNOTAMs();
+                updateStats();
+            } catch (error) {
+                document.getElementById('notam-container').innerHTML = `
+                    <div class="error">
+                        Unable to load runway status for ${currentAirport.code}. The FAA API may be temporarily unavailable.
+                    </div>
+                `;
+            }
+        }
+        
+        function renderNOTAMs() {
+            const notams = notamCache[currentAirport.code] || [];
+            
+            if (notams.length === 0) {
+                document.getElementById('notam-container').innerHTML = `
+                    <div class="empty">✓ No active NOTAMs for ${currentAirport.code}</div>
+                `;
+                return;
+            }
+            
+            const sorted = notams.sort((a, b) => {
+                const aType = detectType(a.notamText);
+                const bType = detectType(b.notamText);
+                const priority = { closure: 0, advisory: 1, normal: 2 };
+                return priority[aType] - priority[bType];
+            });
+            
+            document.getElementById('notam-container').innerHTML = sorted.map(notam => {
+                const type = detectType(notam.notamText);
+                const badge = { closure: '🔴', advisory: '🟡', normal: '🟢' }[type];
+                const exp = formatTimeRemaining(notam.expirationTime);
+                
+                return `
+                    <div class="notam-card ${type}">
+                        <div class="notam-header">
+                            <span class="badge">${badge}</span>
+                            <span>${notam.notamId || 'NOTAM'}</span>
+                        </div>
+                        <div class="notam-text">${notam.notamText.substring(0, 80)}...</div>
+                        <div class="notam-time">Expires: ${exp}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        function detectType(text) {
+            if (!text) return 'normal';
+            const lower = text.toLowerCase();
+            if (lower.includes('closed') || lower.includes('closure')) return 'closure';
+            if (lower.includes('advisory') || lower.includes('caution')) return 'advisory';
+            return 'normal';
+        }
+        
+        function formatTimeRemaining(timestamp) {
+            if (!timestamp) return 'unknown';
+            const exp = new Date(timestamp);
+            const now = new Date();
+            const diff = Math.max(0, exp - now);
+            const mins = Math.floor(diff / 60000);
+            const hours = Math.floor(mins / 60);
+            
+            if (hours > 0) return `${hours}h ${mins % 60}m`;
+            if (mins > 0) return `${mins}m`;
+            return 'expired';
+        }
+        
+        function updateStats() {
+            const notams = notamCache[currentAirport.code] || [];
+            const closures = notams.filter(n => detectType(n.notamText) === 'closure').length;
+            const advisories = notams.filter(n => detectType(n.notamText) === 'advisory').length;
+            
+            let runwayFreq = {};
+            notams.forEach(n => {
+                const match = n.notamText.match(/RWY(\d{2}[LRC]?)/gi);
+                if (match) {
+                    match.forEach(m => {
+                        runwayFreq[m] = (runwayFreq[m] || 0) + 1;
+                    });
+                }
+            });
+            
+            const mostAffected = Object.entries(runwayFreq).length > 0
+                ? Object.entries(runwayFreq).sort((a, b) => b[1] - a[1])[0][0]
+                : '—';
+            
+            document.getElementById('stat-total').textContent = notams.length;
+            document.getElementById('stat-closures').textContent = closures;
+            document.getElementById('stat-advisories').textContent = advisories;
+            document.getElementById('stat-runway').textContent = mostAffected;
+            
+            refreshCountdown = 300;
+            updateRefreshCountdown();
+        }
+        
+        function updateRefreshCountdown() {
+            const display = refreshCountdown >= 60 
+                ? `${Math.floor(refreshCountdown / 60)}m`
+                : `${refreshCountdown}s`;
+            document.getElementById('next-refresh').textContent = display;
+        }
+        
+        // Auto-refresh every 5 minutes
+        setInterval(() => {
+            if (currentAirport) {
+                fetchNOTAMs();
+            }
+        }, 300000);
+        
+        // Refresh countdown
+        setInterval(() => {
+            refreshCountdown--;
+            updateRefreshCountdown();
+        }, 1000);
+        
+        // Initialize with default airport
+        selectAirport('JFK');
+    </script>
+</body>
+</html>
