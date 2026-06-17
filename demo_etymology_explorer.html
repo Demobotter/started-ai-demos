@@ -78,20 +78,7 @@
     button:active {
       transform: translateY(0);
     }
-    .spinner {
-      display: none;
-      width: 20px;
-      height: 20px;
-      border: 2px solid rgba(112, 232, 232, 0.3);
-      border-top-color: #70e8e8;
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-    }
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
     button:disabled { opacity: 0.6; cursor: not-allowed; }
-    button:disabled .spinner { display: inline-block; margin-right: 0.5rem; }
 
     .results {
       display: none;
@@ -114,26 +101,10 @@
       color: #70e8e8;
       margin-bottom: 0.5rem;
     }
-    .word-card .label {
-      font-size: 0.85rem;
-      color: #d4a5ff;
-      font-weight: 500;
-      margin-bottom: 1rem;
-    }
     .etymology-line {
       font-size: 0.95rem;
       line-height: 1.6;
       color: #c0c0c0;
-    }
-    .language-tag {
-      display: inline-block;
-      background: rgba(112, 232, 232, 0.15);
-      color: #70e8e8;
-      padding: 0.25rem 0.6rem;
-      border-radius: 4px;
-      font-size: 0.8rem;
-      margin: 0 0.3rem 0.3rem 0;
-      font-weight: 500;
     }
 
     .tree-container {
@@ -166,15 +137,6 @@
     }
     .tree-depth-1 { border-left-color: rgba(212, 165, 255, 0.6); }
     .tree-depth-2 { border-left-color: rgba(112, 232, 232, 0.4); font-size: 0.9rem; color: #b0b0b0; }
-    .cognate-badge {
-      display: inline-block;
-      background: rgba(212, 165, 255, 0.2);
-      color: #d4a5ff;
-      padding: 0.2rem 0.5rem;
-      border-radius: 3px;
-      font-size: 0.75rem;
-      margin-left: 0.5rem;
-    }
 
     .error {
       display: none;
@@ -199,14 +161,11 @@
 <body>
   <div class="container">
     <h1>📖 Etymology Explorer</h1>
-    <p class="subtitle">Type a word and trace its linguistic roots across centuries.</p>
+    <p class="subtitle">Trace the roots of English words through language history.</p>
     
     <div class="search-box">
-      <input type="text" id="wordInput" placeholder="Enter a word (e.g., 'philosophy', 'breakfast', 'serendipity')..." autocomplete="off">
-      <button id="searchBtn">
-        <span class="spinner"></span>
-        Trace
-      </button>
+      <input type="text" id="wordInput" placeholder="Type a word (e.g., 'philosophy', 'breakfast', 'serendipity')..." autocomplete="off">
+      <button id="searchBtn">Trace</button>
     </div>
 
     <div class="error" id="error"></div>
@@ -214,7 +173,6 @@
     <div class="results" id="results">
       <div class="word-card">
         <h2 id="currentWord"></h2>
-        <div class="label" id="posLabel"></div>
         <div class="etymology-line" id="etymologyText"></div>
         <div class="meta" id="meta"></div>
       </div>
@@ -227,7 +185,6 @@
 
   <script>
     // Wiktionary API: https://en.wiktionary.org/w/api.php
-    // Language mappings for display
     const langMap = {
       'Latin': '🇱🇹', 'Greek': '🇬🇷', 'Old English': '🏴󠁧󠁢󠁥󠁮󠁧󠁿', 'Germanic': '🇩🇪',
       'French': '🇫🇷', 'Sanskrit': '🇮🇳', 'Proto-Indo-European': '🌍', 'Middle English': '🏴󠁧󠁢󠁥󠁮󠁧󠁿',
@@ -258,12 +215,12 @@
         if (!page.extract) throw new Error(`No etymology found for "${word}"`);
         
         const extract = page.extract;
-        const etymMatch = extract.match(/Etymology[\s\S]*?(?=\n\n|$)/);
+        const etymMatch = extract.match(/Etymology[\s\S]*?(?=\n\n|=== |$)/);
         if (!etymMatch) throw new Error(`No etymology data for "${word}"`);
         
         const etymText = etymMatch[0].replace(/Etymology\n/, '').split('\n')[0];
         
-        // Parse languages mentioned (crude but effective)
+        // Extract languages mentioned
         const langs = [];
         const langRx = new RegExp(Object.keys(langMap).join('|'), 'g');
         const matches = etymText.match(langRx);
@@ -293,31 +250,33 @@
       // Build language tree
       let treeHtml = `<div class="tree-item root">Modern English: ${word}</div>`;
       langs.forEach((lang, i) => {
+        const depth = Math.min(i + 1, 2);
         treeHtml += `
-          <div class="tree-item tree-depth-${Math.min(i + 1, 2)}">
+          <div class="tree-item tree-depth-${depth}">
             ${langMap[lang] || ''} ${lang}
           </div>
         `;
       });
       treeView.innerHTML = treeHtml;
       
-      meta.innerHTML = `<strong>Languages:</strong> ${langs.join(', ') || 'Unknown'}<br><strong>Source:</strong> Wiktionary API`;
+      meta.innerHTML = `<strong>Languages:</strong> ${langs.join(', ') || 'Unknown'}<br><strong>Source:</strong> Wiktionary`;
       
       resultsEl.classList.add('show');
     }
 
     document.getElementById('searchBtn').addEventListener('click', () => {
       const word = document.getElementById('wordInput').value.trim();
-      if (word) fetchEtymology(word);
+      if (word) {
+        fetchEtymology(word);
+      } else {
+        const errorEl = document.getElementById('error');
+        errorEl.textContent = '⚠️ Please enter a word to explore.';
+        errorEl.classList.add('show');
+      }
     });
 
     document.getElementById('wordInput').addEventListener('keypress', (e) => {
       if (e.key === 'Enter') document.getElementById('searchBtn').click();
-    });
-
-    // Example on load
-    window.addEventListener('load', () => {
-      document.getElementById('wordInput').value = 'serendipity';
     });
   </script>
 </body>
