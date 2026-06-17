@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tide Window — Live Coastal Tides</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #f8f9fa;
+      color: #1a1a1a;
+      padding: 20px;
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 680px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 12px;
+      padding: 32px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    h1 {
+      font-family: 'Syne', sans-serif;
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      color: #0a5f7f;
+    }
+    .subtitle {
+      font-size: 14px;
+      color: #666;
+      margin-bottom: 24px;
+    }
+    .search-section {
+      margin-bottom: 28px;
+    }
+    .search-label {
+      display: block;
+      font-weight: 600;
+      font-size: 13px;
+      color: #333;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .search-box {
+      display: flex;
+      gap: 8px;
+    }
+    input[type="text"] {
+      flex: 1;
+      padding: 10px 12px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 14px;
+      font-family: 'Inter', sans-serif;
+    }
+    input[type="text"]:focus {
+      outline: none;
+      border-color: #0a5f7f;
+      box-shadow: 0 0 0 3px rgba(10,95,127,0.1);
+    }
+    button {
+      padding: 10px 16px;
+      background: #0a5f7f;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    button:hover {
+      background: #084758;
+    }
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    .error {
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      color: #dc2626;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      margin-bottom: 16px;
+    }
+    .loading {
+      text-align: center;
+      padding: 20px;
+      color: #666;
+      font-size: 14px;
+    }
+    .spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid #0a5f7f;
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      margin-right: 8px;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    .tide-chart {
+      width: 100%;
+      height: 220px;
+      margin-bottom: 24px;
+      border-radius: 8px;
+      background: #f0f7fb;
+    }
+    .tide-info {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .info-card {
+      background: #f0f7fb;
+      border: 1px solid #e0f0f7;
+      border-radius: 8px;
+      padding: 14px;
+    }
+    .info-label {
+      font-size: 12px;
+      color: #666;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+      font-weight: 600;
+    }
+    .info-value {
+      font-size: 18px;
+      font-weight: 700;
+      color: #0a5f7f;
+    }
+    .info-detail {
+      font-size: 12px;
+      color: #888;
+      margin-top: 4px;
+    }
+    .stats-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    .wave-card {
+      background: #f0f7fb;
+      border: 1px solid #e0f0f7;
+      border-radius: 8px;
+      padding: 14px;
+      text-align: center;
+    }
+    .wave-label {
+      font-size: 12px;
+      color: #666;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+      font-weight: 600;
+    }
+    .wave-value {
+      font-size: 20px;
+      font-weight: 700;
+      color: #0a5f7f;
+    }
+    .location-info {
+      font-size: 12px;
+      color: #888;
+      text-align: center;
+      padding: 12px;
+      background: #f9fafb;
+      border-radius: 8px;
+      margin-bottom: 16px;
+    }
+    .no-data {
+      background: #fef3c7;
+      border: 1px solid #fde68a;
+      color: #92400e;
+      padding: 16px;
+      border-radius: 8px;
+      text-align: center;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🌊 Tide Window</h1>
+    <p class="subtitle">Search a coastal city for live tide data & waves.</p>
+
+    <div class="search-section">
+      <label class="search-label">Coastal City</label>
+      <div class="search-box">
+        <input 
+          type="text" 
+          id="cityInput" 
+          placeholder="e.g., San Francisco, Sydney, Barcelona…"
+          autocomplete="off"
+        >
+        <button id="searchBtn" onclick="search()">Search</button>
+      </div>
+    </div>
+
+    <div id="content"></div>
+  </div>
+
+  <script>
+    const GEOCODING_API = 'https://geocoding-api.open-meteo.com/v1/search';
+    const MARINE_API = 'https://marine-api.open-meteo.com/v1/marine';
+
+    async function search() {
+      const city = document.getElementById('cityInput').value.trim();
+      if (!city) return;
+
+      const content = document.getElementById('content');
+      content.innerHTML = '<div class="loading"><span class="spinner"></span>Searching…</div>';
+
+      try {
+        // Step 1: Geocode the city using Open-Meteo
+        const geoRes = await fetch(`${GEOCODING_API}?name=${encodeURIComponent(city)}&count=1&language=en`);
+        if (!geoRes.ok) throw new Error('Geocoding API failed');
+        const geoData = await geoRes.json();
+
+        if (!geoData.results || geoData.results.length === 0) {
+          content.innerHTML = '<div class="error">City not found. Try a coastal city.</div>';
+          return;
+        }
+
+        const location = geoData.results[0];
+        const { latitude, longitude, name, country } = location;
+
+        content.innerHTML = '<div class="loading"><span class="spinner"></span>Fetching tide data…</div>';
+
+        // Step 2: Fetch marine data for the next 7 days
+        const marineRes = await fetch(
+          `${MARINE_API}?latitude=${latitude}&longitude=${longitude}&hourly=sea_level_height_msl,wave_height,wave_period&timezone=auto`
+        );
+        if (!marineRes.ok) throw new Error('Marine API failed');
+        const marineData = await marineRes.json();
+
+        // Check if we have coastal data
+        if (!marineData.hourly || !marineData.hourly.sea_level_height_msl) {
+          content.innerHTML = `
+            <div class="location-info">${name}, ${country}</div>
+            <div class="no-data">
+              No coastal tide data available for this location. Try a beachside city (Sydney, Miami, Venice, etc.).
+            </div>
+          `;
+          return;
+        }
+
+        renderTideData(name, country, latitude, longitude, marineData);
+      } catch (err) {
+        content.innerHTML = `<div class="error">Error: ${err.message}</div>`;
+      }
+    }
+
+    function renderTideData(name, country, lat, lng, marineData) {
+      const times = marineData.hourly.time;
+      const seaLevels = marineData.hourly.sea_level_height_msl;
+      const waveHeights = marineData.hourly.wave_height;
+      const wavePeriods = marineData.hourly.wave_period;
+
+      // Find high and low tides in next 24h
+      const now24h = times.slice(0, 24);
+      const levels24h = seaLevels.slice(0, 24);
+
+      const tideTimes = findTideTurningPoints(now24h, levels24h);
+      const nextHigh = tideTimes.high[0];
+      const nextLow = tideTimes.low[0];
+
+      // Current water level
+      const currentLevel = seaLevels[0];
+
+      // Wave stats (next 24h avg)
+      const avgWave = (waveHeights.slice(0, 24).reduce((a, b) => a + b, 0) / 24).toFixed(2);
+      const avgPeriod = (wavePeriods.slice(0, 24).reduce((a, b) => a + b, 0) / 24).toFixed(1);
+
+      // SVG chart
+      const minLevel = Math.min(...levels24h) - 0.1;
+      const maxLevel = Math.max(...levels24h) + 0.1;
+      const range = maxLevel - minLevel;
+      const chartWidth = 660;
+      const chartHeight = 200;
+
+      let pathData = '';
+      for (let i = 0; i < levels24h.length; i++) {
+        const x = (i / (levels24h.length - 1)) * (chartWidth - 40) + 20;
+        const y = chartHeight - ((levels24h[i] - minLevel) / range) * (chartHeight - 40) - 20;
+        pathData += (i === 0 ? 'M' : 'L') + x + ' ' + y;
+      }
+
+      // Now marker
+      const nowX = (chartWidth - 40) * (0 / 24) + 20;
+
+      const content = document.getElementById('content');
+      content.innerHTML = `
+        <div class="location-info">${name}, ${country} • ${lat.toFixed(2)}°N ${lng.toFixed(2)}°E</div>
+
+        <svg class="tide-chart" viewBox="0 0 700 200" preserveAspectRatio="xMidYMid meet">
+          <!-- Grid lines -->
+          <line x1="20" y1="20" x2="680" y2="20" stroke="#ddd" stroke-width="1" stroke-dasharray="2,2" opacity="0.5"/>
+          <line x1="20" y1="110" x2="680" y2="110" stroke="#ddd" stroke-width="1" stroke-dasharray="2,2" opacity="0.5"/>
+          <line x1="20" y1="180" x2="680" y2="180" stroke="#ddd" stroke-width="1" stroke-dasharray="2,2" opacity="0.5"/>
+
+          <!-- Tide curve -->
+          <path d="${pathData}" stroke="#0a5f7f" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="${pathData} L680 180 L20 180" stroke="none" fill="#0a5f7f" opacity="0.08"/>
+
+          <!-- Now marker -->
+          <circle cx="${nowX}" cy="${chartHeight - ((currentLevel - minLevel) / range) * (chartHeight - 40) - 20}" r="5" fill="#dc2626"/>
+          <line x1="${nowX}" y1="15" x2="${nowX}" y2="185" stroke="#dc2626" stroke-width="1" stroke-dasharray="3,3" opacity="0.6"/>
+          <text x="${nowX + 8}" y="12" font-size="11" fill="#dc2626" font-weight="600">NOW</text>
+
+          <!-- Axes -->
+          <line x1="20" y1="20" x2="20" y2="180" stroke="#ccc" stroke-width="1"/>
+          <line x1="20" y1="180" x2="680" y2="180" stroke="#ccc" stroke-width="1"/>
+          <text x="5" y="102" font-size="10" fill="#999">m</text>
+          <text x="670" y="195" font-size="10" fill="#999">24h</text>
+        </svg>
+
+        <div class="tide-info">
+          ${nextHigh ? `
+            <div class="info-card">
+              <div class="info-label">Next High Tide</div>
+              <div class="info-value">${nextHigh.level.toFixed(2)}m</div>
+              <div class="info-detail">${nextHigh.time}</div>
+            </div>
+          ` : '<div class="info-card"><div class="info-label">High Tide</div><div class="info-value">—</div></div>'}
+          ${nextLow ? `
+            <div class="info-card">
+              <div class="info-label">Next Low Tide</div>
+              <div class="info-value">${nextLow.level.toFixed(2)}m</div>
+              <div class="info-detail">${nextLow.time}</div>
+            </div>
+          ` : '<div class="info-card"><div class="info-label">Low Tide</div><div class="info-value">—</div></div>'}
+        </div>
+
+        <div class="stats-row">
+          <div class="info-card" style="text-align: center;">
+            <div class="info-label">Current Level</div>
+            <div class="info-value">${currentLevel.toFixed(2)}m</div>
+          </div>
+          <div class="info-card" style="text-align: center;">
+            <div class="info-label">Tidal Range (24h)</div>
+            <div class="info-value">${(maxLevel - minLevel).toFixed(2)}m</div>
+          </div>
+        </div>
+
+        <div class="stats-row">
+          <div class="wave-card">
+            <div class="wave-label">Wave Height (Avg)</div>
+            <div class="wave-value">${avgWave}m</div>
+          </div>
+          <div class="wave-card">
+            <div class="wave-label">Wave Period (Avg)</div>
+            <div class="wave-value">${avgPeriod}s</div>
+          </div>
+        </div>
+      `;
+    }
+
+    function findTideTurningPoints(times, levels) {
+      const result = { high: [], low: [] };
+      const now = new Date();
+
+      for (let i = 1; i < levels.length - 1; i++) {
+        const timeObj = new Date(times[i]);
+        if (timeObj <= now) continue; // Only future tides
+
+        // High tide: local maximum
+        if (levels[i] > levels[i - 1] && levels[i] > levels[i + 1]) {
+          result.high.push({
+            time: formatTime(timeObj),
+            level: levels[i],
+            date: timeObj
+          });
+        }
+        // Low tide: local minimum
+        if (levels[i] < levels[i - 1] && levels[i] < levels[i + 1]) {
+          result.low.push({
+            time: formatTime(timeObj),
+            level: levels[i],
+            date: timeObj
+          });
+        }
+      }
+
+      // Sort by date and keep first
+      result.high.sort((a, b) => a.date - b.date);
+      result.low.sort((a, b) => a.date - b.date);
+
+      return result;
+    }
+
+    function formatTime(date) {
+      const h = String(date.getHours()).padStart(2, '0');
+      const m = String(date.getMinutes()).padStart(2, '0');
+      return `${h}:${m}`;
+    }
+
+    // Trigger on Enter
+    document.getElementById('cityInput').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') search();
+    });
+
+    // Auto-focus
+    document.getElementById('cityInput').focus();
+  </script>
+</body>
+</html>
