@@ -474,7 +474,7 @@
       }
     };
 
-    async function searchWord() {
+    function searchWord() {
       const word = document.getElementById('wordInput').value.trim().toLowerCase();
       const timelineDiv = document.getElementById('timeline');
       const loading = document.getElementById('loading');
@@ -489,31 +489,17 @@
         return;
       }
 
-      loading.classList.add('show');
       error.classList.remove('show');
       timelineDiv.innerHTML = '';
       cognatesSection.style.display = 'none';
 
-      try {
-        // Check local database first
-        if (etymologyDB[word]) {
-          const data = etymologyDB[word];
-          renderEtymology(data);
-        } else {
-          // Try Wiktionary API for other words
-          const response = await fetch(WIKTIONARY_API + encodeURIComponent(word));
-          if (!response.ok) {
-            throw new Error('Word not found in Wiktionary');
-          }
-          const data = await response.json();
-          // Parse and render real Wiktionary data if available
-          renderFallback(word);
-        }
-      } catch (err) {
+      // Check local database
+      if (etymologyDB[word]) {
+        const data = etymologyDB[word];
+        renderEtymology(data);
+      } else {
         error.textContent = `Could not find etymology for "${word}". Try: mother, water, heart, journey, serendipity`;
         error.classList.add('show');
-      } finally {
-        loading.classList.remove('show');
       }
     }
 
@@ -555,23 +541,13 @@
       }
     }
 
-    function renderFallback(word) {
-      const timelineDiv = document.getElementById('timeline');
-      timelineDiv.innerHTML = `
-        <div class="no-data">
-          Etymology data for "${word}" not in local database.<br>
-          <small>Wiktionary API available for real linguistic data. Try: mother, water, heart, journey, serendipity</small>
-        </div>
-      `;
-    }
-
     // Enter key support
     document.getElementById('wordInput').addEventListener('keypress', (e) => {
       if (e.key === 'Enter') searchWord();
     });
 
-    // Auto-load on page load with example
-    window.addEventListener('load', () => {
+    // Auto-load on DOMContentLoaded
+    document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('wordInput').value = 'mother';
       searchWord();
     });
