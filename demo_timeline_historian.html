@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Timeline Historian</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      color: #e0e0e0;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .container { max-width: 900px; margin: 0 auto; }
+    header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: 2.8rem;
+      color: #ffd700;
+      margin-bottom: 8px;
+    }
+    .subtitle {
+      color: #a0a0a0;
+      font-size: 0.95rem;
+    }
+    .controls {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 30px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .filter-btn {
+      padding: 8px 16px;
+      background: #0f3460;
+      border: 1px solid #d4af37;
+      color: #ffd700;
+      border-radius: 4px;
+      cursor: pointer;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.9rem;
+      transition: all 0.2s;
+    }
+    .filter-btn.active {
+      background: #d4af37;
+      color: #1a1a2e;
+      font-weight: 600;
+    }
+    .filter-btn:hover { background: #1a4d7a; }
+    .timeline {
+      position: relative;
+      padding: 20px 0;
+    }
+    .timeline::before {
+      content: '';
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 3px;
+      height: 100%;
+      background: linear-gradient(180deg, #d4af37, #8b7500);
+    }
+    .timeline-event {
+      margin-bottom: 30px;
+      display: flex;
+      animation: fadeIn 0.4s ease-out;
+    }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    
+    .timeline-event:nth-child(odd) { flex-direction: row-reverse; }
+    .timeline-event-content {
+      width: 48%;
+      padding: 16px;
+      background: #0f3460;
+      border: 1px solid #d4af37;
+      border-radius: 6px;
+    }
+    .timeline-event:nth-child(odd) .timeline-event-content {
+      margin-left: auto;
+      margin-right: 2%;
+    }
+    .timeline-event:nth-child(even) .timeline-event-content {
+      margin-right: auto;
+      margin-left: 2%;
+    }
+    .timeline-marker {
+      width: 4%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      z-index: 1;
+    }
+    .dot {
+      width: 16px;
+      height: 16px;
+      background: #d4af37;
+      border: 3px solid #16213e;
+      border-radius: 50%;
+      box-shadow: 0 0 10px rgba(212, 175, 55, 0.4);
+    }
+    .year {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.3rem;
+      color: #ffd700;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+    .event-title {
+      font-size: 0.95rem;
+      color: #ffffff;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+    .event-description {
+      font-size: 0.85rem;
+      color: #c0c0c0;
+      line-height: 1.4;
+    }
+    .event-category {
+      display: inline-block;
+      margin-top: 8px;
+      padding: 3px 8px;
+      background: rgba(212, 175, 55, 0.1);
+      border: 1px solid #d4af37;
+      color: #d4af37;
+      font-size: 0.7rem;
+      border-radius: 2px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    @media (max-width: 768px) {
+      h1 { font-size: 2rem; }
+      .timeline::before { left: 20px; }
+      .timeline-event { flex-direction: column; }
+      .timeline-event:nth-child(odd) { flex-direction: column; }
+      .timeline-event-content {
+        width: 100%;
+        margin-left: 50px !important;
+        margin-right: 0 !important;
+      }
+      .timeline-marker { width: 100%; height: 40px; margin-bottom: 10px; }
+      .dot { margin-left: -44px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Timeline Historian</h1>
+      <p class="subtitle">Major events across centuries and disciplines</p>
+    </header>
+    
+    <div class="controls">
+      <button class="filter-btn active" onclick="filterCategory('all')">All Eras</button>
+      <button class="filter-btn" onclick="filterCategory('science')">Science & Tech</button>
+      <button class="filter-btn" onclick="filterCategory('politics')">Politics & War</button>
+      <button class="filter-btn" onclick="filterCategory('culture')">Culture & Art</button>
+      <button class="filter-btn" onclick="filterCategory('exploration')">Exploration</button>
+    </div>
+    
+    <div class="timeline" id="timeline"></div>
+  </div>
+
+  <script>
+    const events = [
+      {
+        year: '1440',
+        title: 'Printing Press Invented',
+        description: 'Gutenberg invents the movable type printing press, revolutionizing information distribution and literacy.',
+        category: 'science'
+      },
+      {
+        year: '1492',
+        title: 'Columbus Reaches Americas',
+        description: 'Christopher Columbus lands in the Caribbean, initiating sustained European contact with the Americas.',
+        category: 'exploration'
+      },
+      {
+        year: '1687',
+        title: 'Principia Mathematica Published',
+        description: 'Newton publishes his groundbreaking laws of motion and universal gravitation, founding classical mechanics.',
+        category: 'science'
+      },
+      {
+        year: '1789',
+        title: 'French Revolution Begins',
+        description: 'Revolution transforms France and inspires democratic movements across Europe and the world.',
+        category: 'politics'
+      },
+      {
+        year: '1859',
+        title: 'Darwin\'s Origin of Species',
+        description: 'Charles Darwin publishes his theory of evolution by natural selection, reshaping biology and philosophy.',
+        category: 'science'
+      },
+      {
+        year: '1876',
+        title: 'Telephone Invented',
+        description: 'Alexander Graham Bell patents the telephone, launching the telecommunications revolution.',
+        category: 'science'
+      },
+      {
+        year: '1903',
+        title: 'First Powered Flight',
+        description: 'Wright Brothers achieve the first sustained, powered, controlled airplane flight at Kitty Hawk.',
+        category: 'science'
+      },
+      {
+        year: '1928',
+        title: 'Penicillin Discovered',
+        description: 'Alexander Fleming discovers penicillin, the first widely used antibiotic, transforming medicine.',
+        category: 'science'
+      },
+      {
+        year: '1945',
+        title: 'World War II Ends',
+        description: 'End of the Second World War reshapes global politics and begins the nuclear age.',
+        category: 'politics'
+      },
+      {
+        year: '1969',
+        title: 'Moon Landing',
+        description: 'Apollo 11 astronauts land on the Moon, fulfilling Kennedy\'s vision and expanding human exploration.',
+        category: 'exploration'
+      },
+      {
+        year: '1989',
+        title: 'World Wide Web Invented',
+        description: 'Tim Berners-Lee invents the World Wide Web at CERN, laying the groundwork for the modern internet.',
+        category: 'science'
+      },
+      {
+        year: '1991',
+        title: 'Cold War Ends',
+        description: 'Dissolution of the Soviet Union ends the Cold War and reshapes the global order.',
+        category: 'politics'
+      },
+      {
+        year: '1997',
+        title: 'Deep Blue Defeats Kasparov',
+        description: 'IBM\'s Deep Blue becomes first computer to defeat a reigning chess world champion in a match.',
+        category: 'science'
+      },
+      {
+        year: '2003',
+        title: 'Human Genome Sequenced',
+        description: 'Completion of the Human Genome Project reveals the complete genetic blueprint of human life.',
+        category: 'science'
+      },
+      {
+        year: '2016',
+        title: 'AlphaGo Defeats Lee Sedol',
+        description: 'DeepMind\'s AlphaGo defeats world champion Lee Sedol at Go, a breakthrough in artificial intelligence.',
+        category: 'science'
+      }
+    ];
+
+    let currentFilter = 'all';
+
+    function renderTimeline(filter) {
+      const container = document.getElementById('timeline');
+      container.innerHTML = '';
+      
+      const filtered = filter === 'all' ? events : events.filter(e => e.category === filter);
+      
+      filtered.forEach(event => {
+        const html = `
+          <div class="timeline-event">
+            <div class="timeline-event-content">
+              <div class="year">${event.year}</div>
+              <div class="event-title">${event.title}</div>
+              <div class="event-description">${event.description}</div>
+              <div class="event-category">${event.category}</div>
+            </div>
+            <div class="timeline-marker">
+              <div class="dot"></div>
+            </div>
+          </div>
+        `;
+        container.innerHTML += html;
+      });
+    }
+
+    window.filterCategory = function(cat) {
+      currentFilter = cat;
+      document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+      event.target.classList.add('active');
+      renderTimeline(cat);
+    };
+
+    renderTimeline('all');
+  </script>
+</body>
+</html>
