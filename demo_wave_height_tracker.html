@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wave Height Tracker</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, #0a3d62 0%, #1a5f7a 100%);
+      color: #e8f4f8;
+      min-height: 100vh;
+      padding: 2rem;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+    }
+    .container { max-width: 800px; width: 100%; }
+    h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: 2.4rem;
+      text-align: center;
+      margin-bottom: 0.3rem;
+      color: #4dd0e1;
+    }
+    .subtitle {
+      text-align: center;
+      color: #b2dfdb;
+      margin-bottom: 2rem;
+      font-size: 0.95rem;
+    }
+    .search-box {
+      display: flex;
+      gap: 0.75rem;
+      margin-bottom: 2rem;
+    }
+    input {
+      flex: 1;
+      padding: 0.9rem 1.2rem;
+      background: #0f5a7a;
+      border: 2px solid #4dd0e1;
+      border-radius: 8px;
+      color: #e8f4f8;
+      font-family: 'Inter', sans-serif;
+      font-size: 1rem;
+    }
+    input:focus {
+      outline: none;
+      border-color: #80deea;
+    }
+    button {
+      padding: 0.9rem 2rem;
+      background: #4dd0e1;
+      border: none;
+      border-radius: 8px;
+      color: #0a3d62;
+      font-family: 'Inter', sans-serif;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    button:hover { background: #80deea; }
+    .result {
+      background: #0f5a7a;
+      border: 2px solid #4dd0e1;
+      border-radius: 12px;
+      padding: 2rem;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+    .location-header {
+      display: flex;
+      align-items: baseline;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+      border-bottom: 3px solid #4dd0e1;
+      padding-bottom: 1rem;
+    }
+    .location-header h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: 2rem;
+      color: #4dd0e1;
+    }
+    .wave-card {
+      background: linear-gradient(135deg, #0f5a7a 0%, #1a6a8a 100%);
+      border: 2px solid #4dd0e1;
+      border-radius: 10px;
+      padding: 1.8rem;
+      margin-bottom: 1.5rem;
+    }
+    .wave-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #4dd0e1;
+      margin-bottom: 1rem;
+    }
+    .wave-metric {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+      padding-bottom: 0.8rem;
+      border-bottom: 1px solid rgba(77, 208, 225, 0.2);
+    }
+    .metric-label {
+      color: #b2dfdb;
+      font-size: 0.95rem;
+    }
+    .metric-value {
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: #80deea;
+    }
+    .wave-visual {
+      position: relative;
+      height: 120px;
+      background: rgba(10, 61, 98, 0.5);
+      border-radius: 8px;
+      margin-top: 1rem;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-around;
+      padding: 1rem;
+      overflow: hidden;
+    }
+    .wave-bar {
+      width: 60%;
+      background: linear-gradient(180deg, #80deea 0%, #4dd0e1 100%);
+      border-radius: 6px;
+      transition: height 0.3s;
+      box-shadow: 0 0 20px rgba(77, 208, 225, 0.4);
+    }
+    .summary {
+      background: linear-gradient(135deg, #0f5a7a 0%, #0c4a6a 100%);
+      border-radius: 10px;
+      padding: 1.5rem;
+      text-align: center;
+      border: 1px solid #4dd0e1;
+    }
+    .summary-title {
+      font-weight: 600;
+      color: #b2dfdb;
+      margin-bottom: 0.5rem;
+      font-size: 0.95rem;
+    }
+    .summary-value {
+      font-size: 2.2rem;
+      color: #4dd0e1;
+      font-weight: 700;
+    }
+    .loading {
+      text-align: center;
+      color: #4dd0e1;
+      padding: 2rem;
+    }
+    .error {
+      color: #ff7043;
+      border-color: #ff7043;
+    }
+    @media (max-width: 600px) {
+      h1 { font-size: 1.8rem; }
+      .search-box { flex-direction: column; }
+      .location-header { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🌊 Wave Height Tracker</h1>
+    <p class="subtitle">Real-time ocean wave conditions at any coastal location</p>
+    
+    <div class="search-box">
+      <input type="text" id="locationInput" placeholder="Enter coastal city (e.g., 'Sydney', 'Honolulu', 'Cape Town')">
+      <button onclick="getWaves()">Check</button>
+    </div>
+    
+    <div id="result"></div>
+  </div>
+
+  <script>
+    const resultDiv = document.getElementById('result');
+    const locationInput = document.getElementById('locationInput');
+
+    async function getWaves() {
+      const location = locationInput.value.trim();
+      if (!location) return;
+      
+      resultDiv.innerHTML = '<div class="loading">Fetching wave data...</div>';
+      
+      try {
+        // Geocode
+        const geoResp = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(location)}&count=1&format=json`);
+        const geoData = await geoResp.json();
+        
+        if (!geoData.results || geoData.results.length === 0) {
+          resultDiv.innerHTML = `<div class="result error">Location not found. Try a coastal city.</div>`;
+          return;
+        }
+        
+        const { latitude, longitude, name, country } = geoData.results[0];
+        
+        // Fetch marine data from Open-Meteo
+        const marineResp = await fetch(
+          `https://marine-api.open-meteo.com/v1/marine?latitude=${latitude}&longitude=${longitude}&hourly=wave_height,wave_period,wind_wave_height&timezone=auto`
+        );
+        const marineData = await marineResp.json();
+        
+        if (!marineData.hourly) throw new Error('No marine data available for this location');
+        
+        const wave = marineData.hourly.wave_height?.[0] || 0;
+        const period = marineData.hourly.wave_period?.[0] || 0;
+        const windWave = marineData.hourly.wind_wave_height?.[0] || 0;
+        
+        const displayHeight = wave || windWave;
+        const displayPeriod = period || 8;
+        
+        // Condition assessment
+        let condition = 'Flat';
+        if (displayHeight < 0.5) condition = 'Flat';
+        else if (displayHeight < 1.5) condition = 'Small';
+        else if (displayHeight < 2.5) condition = 'Moderate';
+        else if (displayHeight < 4) condition = 'Good';
+        else condition = 'Large';
+        
+        resultDiv.innerHTML = `
+          <div class="result">
+            <div class="location-header">
+              <h2>${name}, ${country}</h2>
+            </div>
+            
+            <div class="wave-card">
+              <div class="wave-title">📊 Current Conditions</div>
+              <div class="wave-metric">
+                <span class="metric-label">Wave Height</span>
+                <span class="metric-value">${displayHeight.toFixed(2)} m</span>
+              </div>
+              <div class="wave-metric">
+                <span class="metric-label">Wave Period</span>
+                <span class="metric-value">${displayPeriod.toFixed(1)} s</span>
+              </div>
+              <div class="wave-metric">
+                <span class="metric-label">Wind Swell</span>
+                <span class="metric-value">${windWave.toFixed(2)} m</span>
+              </div>
+              
+              <div class="wave-visual">
+                <div class="wave-bar" style="height: ${Math.min(100, (displayHeight / 5) * 100)}%"></div>
+              </div>
+            </div>
+            
+            <div class="summary">
+              <div class="summary-title">Condition</div>
+              <div class="summary-value">${condition}</div>
+              <div style="margin-top: 0.8rem; font-size: 0.85rem; color: #b2dfdb;">
+                Ideal wave period: 10–14s for most surfers
+              </div>
+            </div>
+          </div>
+        `;
+        
+      } catch (e) {
+        resultDiv.innerHTML = `<div class="result error">Error: ${e.message}</div>`;
+      }
+    }
+
+    locationInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') getWaves();
+    });
+
+    window.addEventListener('load', () => {
+      locationInput.value = 'Sydney';
+      getWaves();
+    });
+  </script>
+</body>
+</html>
