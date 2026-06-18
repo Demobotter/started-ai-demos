@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Climate Watch</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #4da6ff 0%, #1a3a52 50%, #0f1f2e 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #f0f0f0;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        h1 {
+            font-family: 'Syne', sans-serif;
+            font-size: 2.5em;
+            font-weight: 700;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, #ffd700, #87ceeb);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .subtitle {
+            font-size: 0.95em;
+            color: #a0d8ff;
+            letter-spacing: 0.5px;
+        }
+        .controls {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .search-box {
+            display: flex;
+            gap: 8px;
+            flex: 1;
+            min-width: 250px;
+            max-width: 400px;
+            position: relative;
+        }
+        #city-input {
+            flex: 1;
+            padding: 10px 14px;
+            border: 2px solid #4da6ff;
+            border-radius: 8px;
+            background: rgba(10, 30, 50, 0.8);
+            color: #f0f0f0;
+            font-size: 0.95em;
+            transition: border-color 0.3s;
+        }
+        #city-input:focus {
+            outline: none;
+            border-color: #ffd700;
+            box-shadow: 0 0 8px rgba(255, 215, 0, 0.3);
+        }
+        #suggestions {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background: rgba(10, 30, 50, 0.95);
+            border: 1px solid #4da6ff;
+            border-radius: 8px;
+            margin-top: 4px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 100;
+            width: 100%;
+            min-width: 250px;
+        }
+        .suggestion-item {
+            padding: 8px 12px;
+            cursor: pointer;
+            border-bottom: 1px solid rgba(77, 166, 255, 0.2);
+            transition: background 0.2s;
+        }
+        .suggestion-item:hover {
+            background: rgba(77, 166, 255, 0.3);
+        }
+        .quick-buttons {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .btn {
+            padding: 9px 14px;
+            border: 1px solid #4da6ff;
+            border-radius: 8px;
+            background: rgba(77, 166, 255, 0.15);
+            color: #87ceeb;
+            font-size: 0.9em;
+            font-family: 'Inter', sans-serif;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .btn:hover {
+            background: rgba(77, 166, 255, 0.3);
+            border-color: #87ceeb;
+        }
+        .btn.active {
+            background: rgba(135, 206, 235, 0.4);
+            border-color: #ffd700;
+            color: #ffd700;
+        }
+        .refresh-info {
+            text-align: center;
+            font-size: 0.85em;
+            color: #a0d8ff;
+            margin-top: 10px;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 16px;
+            margin-bottom: 30px;
+        }
+        .card {
+            background: linear-gradient(135deg, rgba(10, 40, 70, 0.9), rgba(20, 50, 80, 0.8));
+            border: 1px solid rgba(77, 166, 255, 0.3);
+            border-radius: 12px;
+            padding: 20px;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #4da6ff, #87ceeb, #ffd700);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .card:hover {
+            border-color: rgba(135, 206, 235, 0.6);
+            box-shadow: 0 8px 20px rgba(77, 166, 255, 0.2);
+        }
+        .card:hover::before {
+            opacity: 1;
+        }
+        .city-name {
+            font-family: 'Syne', sans-serif;
+            font-size: 1.4em;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: #ffd700;
+        }
+        .temp-display {
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        .temp {
+            font-size: 2.2em;
+            font-weight: 700;
+            background: linear-gradient(135deg, #87ceeb, #ffd700);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .temp-unit {
+            font-size: 1.1em;
+            color: #a0d8ff;
+        }
+        .weather-icon {
+            font-size: 2.5em;
+            line-height: 1;
+        }
+        .condition {
+            font-size: 0.95em;
+            color: #87ceeb;
+            margin-bottom: 12px;
+            text-transform: capitalize;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+        .stat-item {
+            background: rgba(77, 166, 255, 0.1);
+            border-left: 3px solid #4da6ff;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .stat-label {
+            font-size: 0.8em;
+            color: #a0d8ff;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+        .stat-value {
+            font-size: 1.2em;
+            font-weight: 600;
+            color: #ffd700;
+        }
+        .forecast {
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid rgba(77, 166, 255, 0.2);
+        }
+        .forecast-title {
+            font-size: 0.85em;
+            color: #a0d8ff;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .sparkline-container {
+            width: 100%;
+            height: 40px;
+        }
+        .loading {
+            text-align: center;
+            color: #a0d8ff;
+            font-size: 1em;
+            padding: 20px;
+        }
+        @media (max-width: 600px) {
+            h1 { font-size: 1.8em; }
+            .grid { grid-template-columns: 1fr; }
+            .temp { font-size: 1.8em; }
+            .controls { flex-direction: column; }
+            .search-box { max-width: 100%; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🌍 Climate Watch</h1>
+            <p class="subtitle">Live global temperatures across 5 cities + your search</p>
+        </header>
+
+        <div class="controls">
+            <div class="search-box">
+                <input type="text" id="city-input" placeholder="Search any city...">
+                <div id="suggestions"></div>
+            </div>
+            <div class="quick-buttons">
+                <button class="btn active" data-city="New York">NYC</button>
+                <button class="btn" data-city="London">London</button>
+                <button class="btn" data-city="Tokyo">Tokyo</button>
+                <button class="btn" data-city="Sydney">Sydney</button>
+                <button class="btn" data-city="São Paulo">São Paulo</button>
+            </div>
+        </div>
+        <div class="refresh-info">
+            Updates every 10 minutes · Last refresh: <span id="last-update">just now</span>
+        </div>
+
+        <div class="grid" id="grid"></div>
+    </div>
+
+    <script>
+        const CITIES = {
+            'New York': { lat: 40.7128, lon: -74.0060 },
+            'London': { lat: 51.5074, lon: -0.1278 },
+            'Tokyo': { lat: 35.6762, lon: 139.6503 },
+            'Sydney': { lat: -33.8688, lon: 151.2093 },
+            'São Paulo': { lat: -23.5505, lon: -46.6333 }
+        };
+        let currentCities = [...Object.keys(CITIES)];
+        let searchCity = null;
+
+        // Weather icon mapping
+        function getWeatherIcon(code) {
+            const iconMap = {
+                0: '☀️', 1: '🌤️', 2: '⛅', 3: '☁️',
+                45: '🌫️', 48: '🌫️', 51: '🌧️', 53: '🌧️',
+                55: '⛈️', 61: '🌧️', 63: '⛈️', 65: '⛈️',
+                80: '🌧️', 81: '⛈️', 82: '⛈️', 85: '❄️',
+                95: '⛈️', 96: '⛈️', 99: '⛈️'
+            };
+            return iconMap[code] || '🌡️';
+        }
+
+        function describeWeather(code) {
+            const descriptions = {
+                0: 'Clear sky', 1: 'Mainly clear', 2: 'Partly cloudy', 3: 'Overcast',
+                45: 'Foggy', 48: 'Foggy', 51: 'Light drizzle', 53: 'Drizzle',
+                55: 'Heavy drizzle', 61: 'Slight rain', 63: 'Rain', 65: 'Heavy rain',
+                80: 'Shower', 81: 'Heavy shower', 82: 'Violent shower', 85: 'Snow',
+                95: 'Thunderstorm', 96: 'Thunderstorm', 99: 'Thunderstorm'
+            };
+            return descriptions[code] || 'Unknown';
+        }
+
+        async function fetchWeather(lat, lon, name) {
+            try {
+                const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,wind_speed_10m,uv_index&hourly=temperature_2m&timezone=auto`;
+                const res = await fetch(url);
+                if (!res.ok) throw new Error('API error');
+                const data = await res.json();
+                const current = data.current;
+                const hourly = data.hourly.temperature_2m.slice(0, 24);
+
+                return {
+                    name,
+                    temp: Math.round(current.temperature_2m),
+                    apparentTemp: Math.round(current.apparent_temperature),
+                    humidity: current.relative_humidity_2m,
+                    wind: Math.round(current.wind_speed_10m),
+                    uv: current.uv_index.toFixed(1),
+                    code: current.weather_code,
+                    icon: getWeatherIcon(current.weather_code),
+                    condition: describeWeather(current.weather_code),
+                    forecast: hourly
+                };
+            } catch (e) {
+                console.error('Weather fetch failed:', e);
+                return null;
+            }
+        }
+
+        async function searchCities(query) {
+            if (!query || query.length < 2) {
+                document.getElementById('suggestions').innerHTML = '';
+                return;
+            }
+            try {
+                const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=8&language=en&format=json`);
+                const data = await res.json();
+                const suggestions = (data.results || []).slice(0, 8);
+                document.getElementById('suggestions').innerHTML = suggestions
+                    .map(r => `<div class="suggestion-item" data-lat="${r.latitude}" data-lon="${r.longitude}" data-name="${r.name}${r.admin1 ? ', ' + r.admin1 : ''}${r.country ? ' (' + r.country + ')' : ''}">${r.name}${r.admin1 ? ', ' + r.admin1 : ''}${r.country ? ' (' + r.country + ')' : ''}</div>`)
+                    .join('');
+            } catch (e) {
+                console.error('Geocoding error:', e);
+            }
+        }
+
+        async function loadCities() {
+            const names = currentCities.slice();
+            if (searchCity) names.push(searchCity.name);
+            
+            document.getElementById('grid').innerHTML = '<div class="loading">Loading weather data...</div>';
+            const weatherData = [];
+
+            for (const name of names) {
+                const coords = CITIES[name] || searchCity?.coords;
+                if (coords) {
+                    const w = await fetchWeather(coords.lat, coords.lon, name);
+                    if (w) weatherData.push(w);
+                }
+            }
+
+            renderCards(weatherData);
+            updateTimestamp();
+            setAutoRefresh();
+        }
+
+        function renderCards(data) {
+            document.getElementById('grid').innerHTML = data.map(w => {
+                const minTemp = Math.min(...w.forecast);
+                const maxTemp = Math.max(...w.forecast);
+                const range = maxTemp - minTemp || 1;
+                const normalized = w.forecast.map(t => (t - minTemp) / range);
+                const sparklineData = normalized.map((n, i) => ({
+                    x: (i / (w.forecast.length - 1)) * 100,
+                    y: n * 30 + 5
+                }));
+                const pathD = sparklineData.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
+
+                return `
+                    <div class="card">
+                        <div class="city-name">${w.name}</div>
+                        <div class="temp-display">
+                            <span class="weather-icon">${w.icon}</span>
+                            <div>
+                                <div class="temp">${w.temp}°</div>
+                                <div class="condition">${w.condition}</div>
+                            </div>
+                        </div>
+                        <div class="stats">
+                            <div class="stat-item">
+                                <div class="stat-label">Feels Like</div>
+                                <div class="stat-value">${w.apparentTemp}°</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-label">Humidity</div>
+                                <div class="stat-value">${w.humidity}%</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-label">Wind</div>
+                                <div class="stat-value">${w.wind} km/h</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-label">UV Index</div>
+                                <div class="stat-value">${w.uv}</div>
+                            </div>
+                        </div>
+                        <div class="forecast">
+                            <div class="forecast-title">24-Hour Temperature Trend</div>
+                            <div class="sparkline-container">
+                                <svg width="100%" height="100%" viewBox="0 0 100 40" preserveAspectRatio="none">
+                                    <path d="${pathD}" stroke="#ffd700" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <path d="${pathD} L 100 40 L 0 40 Z" fill="url(#grad-${w.name.replace(/\s/g, '')})" opacity="0.3"/>
+                                    <defs>
+                                        <linearGradient id="grad-${w.name.replace(/\s/g, '')}" x1="0%" y1="0%" x2="0%" y2="100%">
+                                            <stop offset="0%" style="stop-color:#87ceeb;stop-opacity:1" />
+                                            <stop offset="100%" style="stop-color:#4da6ff;stop-opacity:0.2" />
+                                        </linearGradient>
+                                    </defs>
+                                </svg>
+                            </div>
+                            <div style="font-size: 0.8em; color: #a0d8ff; margin-top: 6px;">Low: ${Math.round(minTemp)}° · High: ${Math.round(maxTemp)}°</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function updateTimestamp() {
+            const now = new Date();
+            const hours = now.getHours();
+            const mins = String(now.getMinutes()).padStart(2, '0');
+            document.getElementById('last-update').textContent = `${hours}:${mins}`;
+        }
+
+        function setAutoRefresh() {
+            setTimeout(loadCities, 10 * 60 * 1000);
+        }
+
+        // Event listeners
+        document.getElementById('city-input').addEventListener('input', (e) => {
+            searchCities(e.target.value);
+        });
+
+        document.addEventListener('click', (e) => {
+            if (e.target.classList.contains('suggestion-item')) {
+                const name = e.target.dataset.name;
+                const lat = parseFloat(e.target.dataset.lat);
+                const lon = parseFloat(e.target.dataset.lon);
+                searchCity = { name, coords: { lat, lon } };
+                document.getElementById('city-input').value = name;
+                document.getElementById('suggestions').innerHTML = '';
+                loadCities();
+            }
+            if (e.target.classList.contains('btn')) {
+                document.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
+                const city = e.target.dataset.city;
+                currentCities = [city, ...Object.keys(CITIES).filter(c => c !== city)];
+                searchCity = null;
+                document.getElementById('city-input').value = '';
+                loadCities();
+            }
+        });
+
+        // Initial load
+        loadCities();
+    </script>
+</body>
+</html>
