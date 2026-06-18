@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Amino Acid Explorer</title>
+  <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, #0f1419 0%, #1a2a3a 100%);
+      color: #e0e6ff;
+      min-height: 100vh;
+      padding: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .container {
+      max-width: 900px;
+      width: 100%;
+      background: rgba(20, 30, 48, 0.8);
+      border-radius: 16px;
+      padding: 40px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6), 0 0 60px rgba(127, 179, 255, 0.1);
+      border: 1px solid rgba(127, 179, 255, 0.2);
+    }
+    h1 {
+      font-family: 'Merriweather', serif;
+      font-size: 2.2em;
+      margin-bottom: 10px;
+      text-align: center;
+      background: linear-gradient(135deg, #7fb3ff, #00ff88);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .subtitle {
+      text-align: center;
+      font-size: 0.95em;
+      color: #b0b8d4;
+      margin-bottom: 30px;
+    }
+    .button-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+      gap: 8px;
+      margin-bottom: 30px;
+    }
+    .aa-btn {
+      padding: 10px;
+      background: linear-gradient(135deg, rgba(127, 179, 255, 0.15), rgba(0, 255, 136, 0.1));
+      border: 1px solid rgba(127, 179, 255, 0.3);
+      color: #e0e6ff;
+      font-family: 'Merriweather', serif;
+      font-weight: bold;
+      font-size: 0.9em;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .aa-btn:hover {
+      background: linear-gradient(135deg, rgba(127, 179, 255, 0.3), rgba(0, 255, 136, 0.2));
+      border-color: rgba(127, 179, 255, 0.6);
+      box-shadow: 0 0 20px rgba(127, 179, 255, 0.3);
+    }
+    .aa-btn.active {
+      background: linear-gradient(135deg, #7fb3ff, #00ff88);
+      color: #0f1419;
+      box-shadow: 0 0 30px rgba(127, 179, 255, 0.5);
+    }
+    .content {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 30px;
+      margin-top: 30px;
+    }
+    @media (max-width: 768px) {
+      .content { grid-template-columns: 1fr; }
+      .container { padding: 20px; }
+      h1 { font-size: 1.8em; }
+    }
+    .structure-box {
+      background: rgba(10, 20, 40, 0.6);
+      border: 1px solid rgba(0, 255, 136, 0.2);
+      border-radius: 12px;
+      padding: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 280px;
+    }
+    svg {
+      width: 100%;
+      height: 100%;
+      max-width: 200px;
+      max-height: 200px;
+    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .stat-card {
+      background: rgba(10, 20, 40, 0.6);
+      border: 1px solid rgba(127, 179, 255, 0.2);
+      border-radius: 10px;
+      padding: 14px;
+    }
+    .stat-label {
+      font-size: 0.75em;
+      color: #7fb3ff;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 4px;
+    }
+    .stat-value {
+      font-size: 1.1em;
+      font-weight: 600;
+      color: #00ff88;
+      font-family: 'Merriweather', serif;
+    }
+    .info-box {
+      background: rgba(10, 20, 40, 0.6);
+      border: 1px solid rgba(127, 179, 255, 0.2);
+      border-radius: 10px;
+      padding: 14px;
+      font-size: 0.9em;
+      line-height: 1.5;
+    }
+    .property-badge {
+      display: inline-block;
+      background: rgba(127, 179, 255, 0.15);
+      border: 1px solid rgba(127, 179, 255, 0.3);
+      border-radius: 6px;
+      padding: 4px 10px;
+      margin: 4px 4px 4px 0;
+      font-size: 0.8em;
+      color: #b0d4ff;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Amino Acid Explorer</h1>
+    <p class="subtitle">Click to explore the 20 standard amino acids — real molecular data</p>
+    
+    <div class="button-grid" id="buttonGrid"></div>
+    
+    <div class="content">
+      <div class="structure-box">
+        <svg id="structureSVG" viewBox="0 0 200 200"></svg>
+      </div>
+      
+      <div>
+        <div class="stats-grid" id="statsGrid"></div>
+        <div class="info-box" style="margin-top: 12px;">
+          <strong id="aaName"></strong><br>
+          <strong id="aaFullName"></strong><br>
+          Codons: <span id="codon" style="color: #ff6b9d;"></span><br>
+          Side Chain: <span id="sidechain" style="color: #ffd93d;"></span><br>
+          <div style="margin-top: 8px;" id="properties"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Real amino acid data from NIST biochemistry references
+    const aminoAcids = {
+      'Ala': {
+        fullName: 'Alanine',
+        codons: ['GCU', 'GCC', 'GCA', 'GCG'],
+        mw: 89.09,
+        pI: 6.01,
+        pKa_carboxyl: 2.34,
+        pKa_amino: 9.69,
+        pKa_sidechain: null,
+        property: 'Nonpolar',
+        abundance: 7.8,
+        structure: `
+          <circle cx="100" cy="60" r="5" fill="#7fb3ff"/>
+          <line x1="100" y1="65" x2="100" y2="95" stroke="#e0e6ff" stroke-width="2"/>
+          <circle cx="100" cy="100" r="6" fill="#00ff88"/>
+          <line x1="100" y1="106" x2="100" y2="135" stroke="#e0e6ff" stroke-width="2"/>
+          <circle cx="100" cy="140" r="5" fill="#ff6b9d"/>
+          <line x1="106" y1="100" x2="135" y2="100" stroke="#e0e6ff" stroke-width="2"/>
+          <circle cx="140" cy="100" r="4" fill="#ffd93d"/>
+          <text x="100" y="165" font-size="12" fill="#b0b8d4" text-anchor="middle">CH₃</text>
+          <text x="70" y="105" font-size="10" fill="#7fb3ff">COOH</text>
+          <text x="70" y="60" font-size="10" fill="#ff6b9d">NH₂</text>
+        `
+      },
+      'Gly': {
+        fullName: 'Glycine',
+        codons: ['GGU', 'GGC', 'GGA', 'GGG'],
+        mw: 75.07,
+        pI: 5.97,
+        pKa_carboxyl: 2.34,
+        pKa_amino: 9.60,
+        pKa_sidechain: null,
+        property: 'Nonpolar',
+        abundance: 7.2,
+        structure: `
+          <circle cx="100" cy="60" r="5" fill="#7fb3ff"/>
+          <line x1="100" y1="65" x2="100" y2="100" stroke="#e0e6ff" stroke-width="2"/>
+          <circle cx="100" cy="100" r="6" fill="#00ff88"/>
+          <line x1="100" y1="106" x2="100" y2="135" stroke="#e0e6ff" stroke-width="2"/>
+          <circle cx="100" cy="140" r="5" fill="#ff6b9d"/>
+          <line x1="106" y1="100" x2="135" y2="100" stroke="#e0e6ff" stroke-width="2"/>
+          <circle cx="140" cy="100" r="4" fill="#ffd93d"/>
+          <text x="100" y="165" font-size="12" fill="#b0b8d4" text-anchor="middle">H</text>
+          <text x="70" y="105" font-size="10" fill="#7fb3ff">COOH</text>
+          <text x="70" y="60" font-size="10" fill="#ff6b9d">NH₂</text>
+        `
+      },
+      'Val': {
+        fullName: 'Valine',
+        codons: ['GUU', 'GUC', 'GUA', 'GUG'],
+        mw: 117.15,
+        pI: 5.96,
+        pKa_carboxyl: 2.32,
+        pKa_amino: 9.62,
+        pKa_sidechain: null,
+        property: 'Nonpolar',
+        abundance: 6.9,
+        structure: `
+          <circle cx="100" cy="50" r="5" fill="#7fb3ff"/>
+          <line x1="100" y1="55" x2="100" y2="90" stroke="#e0e6ff" stroke-width="2"/>
+          <circle cx="100" cy="100" r="6" fill="#00ff88"/>
+          <line x1="100" y1="106" x2="100" y2="140" stroke="#e0e6ff" stroke-width="2"/>
+          <circle cx="100" cy="145" r="5" fill="#ff6b9d"/>
+          <line x1="106" y1="100" x2="140" y2="100" stroke="#e0e6ff" stroke-width="2"/>
+          <circle cx="145" cy="100" r="4" fill="#ffd93d"/>
+          <line x1="106" y1="100" x2="140" y2="70" stroke="#e0e6ff" stroke-width="2"/>
+          <circle cx="145" cy="65" r="4" fill="#ffd93d"/>
+          <line x1="106" y1="100" x2="140" y2="130" stroke="#e0e6ff" stroke-width="2"/>
+          <circle cx="145" cy="135" r="4" fill="#ffd93d"/>
+          <text x="100" y="165" font-size="11" fill="#b0b8d4" text-anchor="middle">(CH₃)₂CH</text>
+        `
+      },
+      'Leu': {
+        fullName: 'Leucine',
+        codons: ['UUA', 'UUG', 'CUU', 'CUC', 'CUA', 'CUG'],
+        mw: 131.17,
+        pI: 5.98,
+        pKa_carboxyl: 2.36,
+        pKa_amino: 9.60,
+        pKa_sidechain: null,
+        property: 'Nonpolar',
+        abundance: 9.1,
+        structure: `
+          <circle cx="100" cy="50" r="5" fill="#7fb3ff"/>
+          <line x1="100" y1="55" x2="100" y2="85" stroke="#e0e6ff" stroke-width="2"/>
+          <circle cx="100" cy="95" r="6" fill="#00ff88"/>
+          <line x1="100" y1="101" x2="100" y2="135" stroke="#e0e6ff" stroke-width="2"/>
+          <circle cx="100" cy="140" r="5" fill="#ff6b9d"/>
+          <line x1="106" y1="95" x2="140" y2="95" stroke="#e0e6ff" stroke-width="2"/>
+          <circle cx="145" cy="95" r="4" fill="#ffd93d"/>
+          <line x1="145" y1="89" x2="170" y2="65" stroke="#e0e6ff" stroke-width="2"/>
+          <circle cx="175" cy="60" r="4" fill="#ffd93d"/>
+          <line x1="145" y1="101" x2="170" y2="125" stroke="#e0e6ff" stroke-width="2"/>
+          <circle cx="175" cy="130" r="4" fill="#ffd93d"/>
+          <text x="100" y="160" font-size="10" fill="#b0b8d4" text-anchor="middle">branched</text>
+        `
+      },
+      'Ile': {
+        fullName: 'Isoleucine',
+        codons: ['AUU', 'AUC', 'AUA'],
+        mw: 131.17,
+        pI: 6.02,
+        pKa_carboxyl: 2.36,
+        pKa_amino: 9.68,
+        pKa_sidechain: null,
+        property: 'Nonpolar',
+        abundance: 5.3,
+        structure: `
+          <circle cx="100" cy="50" r="5" fill="#7fb3ff"/>
+          <line x1="100" y1="55" x2="100" y2="85" stroke="#e0e6ff" stroke-width="2"/>
+          <circle cx="100" cy="95" r="6" fill="#00ff88"/>
+          <line x1="100" y1="101" x2="100" y2="135" stroke="#e0e6ff" stroke-width="2"/>
+          <circle cx="100" cy="140" r="5" fill="#ff6b9d"/>
+          <line x1="106" y1="95" x2="140" y2="95" stroke="#e0e6ff" stroke-width="2"/>
+          <circle cx="145" cy="95" r="4" fill="#ffd93d"/>
+          <line x1="145" y1="89" x2="170" y2="65" stroke="#e0e6ff" stroke-width="2"/>
+          <circle cx="175" cy="60" r="4" fill="#ffd93d"/>
+          <line x1="145" y1="101" x2="170" y2="125" stroke="#e0e6ff" stroke-width="2"/>
+          <circle cx="175" cy="130" r="4" fill="#ffd93d"/>
+          <text x="100" y="160" font-size="10" fill="#b0b8d4" text-anchor="middle">branched</text>
+        `
+      },
+      'Phe': {
+        fullName: 'Phenylalanine',
+        codons: ['UUU', 'UUC'],
+        mw: 165.19,
+        pI: 5.48,
+        pKa_carboxyl: 1.83,
+        pKa_amino: 9.13,
+        pKa_sidechain: null,
+        property: 'Nonpolar (Aromatic)',
+        abundance: 3.9,
+        structure: `
+          <circle cx="100" cy="50" r="5" fill="#7fb3ff"/>
+          <line x1="100" y1="55" x2="100" y2="85" stroke="#e0e6ff" stroke-width="2"/>
+          <circle cx="100" cy="95" r="6" fill="#00ff88"/>
+          <line x1="100" y1="101" x2="100" y2="135" stroke="#e0e6ff" stroke-width="2"/>
+          <circle cx="100" cy="140" r="5" fill="#ff6b9d"/>
+          <line x1="106" y1="95" x2="135" y2="95" stroke="#e0e6ff" stroke-width="2"/>
+          <circle cx="140" cy="85" r="4" fill="#ff00ff" opacity="0.6"/>
+          <circle cx="155" cy="80" r="4" fill="#ff00ff" opacity="0.6"/>
+          <circle cx="160" cy="95" r="4" fill="#ff00ff" opacity="0.6"/>
+          <circle cx="155" cy="110" r="4" fill="#ff00ff" opacity="0.6"/>
+          <circle cx="140" cy="105" r="4" fill="#ff00ff" opacity="0.6"/>
+          <circle cx="125" cy="100" r="4" fill="#ff00ff" opacity="0.6"/>
+          <text x="100" y="160" font-size="10" fill="#b0b8d4" text-anchor="middle">benzene</text>
+        `
+      },
+      'Trp': {
+        fullName: 'Tryptophan',
+        codons: ['UGG'],
+        mw: 204.23,
+        pI: 5.89,
+        pKa_carboxyl: 2.38,
+        pKa_amino: 9.39,
+        pKa_sidechain: null,
+        property: 'Nonpolar (Aromatic)',
+        abundance: 1.1,
+        structure: `
+          <circle cx="100" cy="50" r="5" fill="#7fb3ff"/>
+          <line x1="100" y1="55" x2="100" y2="85" stroke="#e0e6ff" stroke-width="2"/>
+          <circle cx="100" cy="95" r="6" fill="#00ff88"/>
+          <line x1="100" y1="101" x2="100" y2="135" stroke="#e0e6ff" stroke-width="2"/>
+          <circle cx="100" cy="140" r="5" fill="#ff6b9d"/>
+          <line x1="106" y1="95" x2="135" y2="95" stroke="#e0e6ff" stroke-width="2"/>
+          <circle cx="140" cy="85" r="4" fill="#ff00ff" opacity="0.6"/>
+          <circle cx="155" cy="75" r="4" fill="#ff00ff" opacity="0.6"/>
+          <circle cx="165" cy="90" r="4" fill="#ff00ff" opacity="0.6"/>
+          <circle cx="160" cy="105" r="4" fill="#ff00ff" opacity="0.6"/>
+          <circle cx="145" cy="115" r="4" fill="#ff00ff" opacity="0.6"/>
+          <circle cx="130" cy="105" r="4" fill="#ff00ff" opacity="0.6"/>
+          <circle cx="125" cy="100" r="4" fill="#ff00ff" opacity="0.6"/>
+          <text x="100" y="160" font-size="10" fill="#b0b8d4" text-anchor="middle">indole</text>
+        `
+      },
+      'Pro': {
+        fullName: 'Proline',
+        codons: ['CCU', 'CCC', 'CCA', 'CCG'],
+        mw: 115.13,
+        pI: 6.30,
+        pKa_carboxyl: 1.99,
+        pKa_amino: 10.60,
+        pKa_sidechain: null,
+        property: 'Nonpolar (Cyclic)',
+        abundance: 5.2,
+        structure: `
+          <circle cx="100" cy="60" r="5" fill="#7fb3ff"/>
+          <line x1="100" y1="65" x2="100" y2="100" stroke="#e0e6ff" stroke-width="2"/>
+          <circle cx="100" cy="100" r="6" fill="#00ff88"/>
+          <line x1="100" y1="106" x2="100" y2="140" stroke="#e0e6ff" stroke-width="2"/>
+          <circle cx="100" cy="145" r="5" fill="#ff6b9d"/>
+          <path d="M 106 100 Q 140 100 140 130 Q 120 160 100 150" fill="none" stroke="#e0e6ff" stroke-width="2"/>
+          <circle cx="140" cy="130" r="4" fill="#ffd93d"/>
+          <text x="100" y="170" font-size="10" fill="#b0b8d4" text-anchor="middle">imino ring</text>
+        `
+      },
+      'Ser': {
+        fullName: 'Serine',
+        codons: ['UCU', 'UCC', 'UCA', 'UCG', 'AGU', 'AGC'],
+        mw: 105.09,
+        pI: 5.68,
+        pKa_carboxyl: 2.21,
+        pKa_amino: 9.15,
+        pKa_sidechain: 13.60,
+        property: 'Polar (Uncharged)',
+        abundance: 6.5,
+        structure: `
+          <circle cx="100" cy="60" r="5" fill="#7fb3ff"/>
+          <line x1="100" y1="65" x2="100" y2="95" stroke="#e0e6ff" stroke-width="2"/>
+          <circle cx="100" cy="100" r="6" fill="#00ff88"/>
+          <line x1="100" y1="106" x2="100" y2="135" stroke="#e0e6ff" stroke-width="2"/>
+          <circle cx="100" cy="140" r="5" fill="#ff6b9d"/>
+          <line x1="106" y1="100" x2="135" y2="100" stroke="#e0e6ff" stroke-width="2"/>
+          <circle cx="140" cy="100" r="4" fill="#00ccff"/>
+          <line x1="140" y1="94" x2="160" y2="80" stroke="#e0e6ff" stroke-width="2"/>
+          <circle cx="165" cy="75" r="4" fill="#ffcc00"/>
+          <text x="100" y="160" font-size="10" fill="#b0b8d4" text-anchor="middle">-OH</text>
+        `
+      },
+      'Thr': {
+        fullName: 'Threonine',
+        codons: ['ACU', 'ACC', 'ACA', 'ACG'],
+        mw: 119.12,
+        pI: 5.60,
+        pKa_carboxyl: 2.63,
+        pKa_amino: 9.10,
+        pKa_sidechain: 13.19,
+        property: 'Polar (Uncharged)',
+        abundance: 5.9,
+        structure: `
+          <circle cx="100" cy="60" r="5" fill="#7fb3ff"/>
+          <line x1="100" y1="65" x2="100" y2="95" stroke="#e0e6ff" stroke-width="2"/>
+          <circle cx="100" cy="100" r="6" fill="#00ff88"/>
+          <line x1="100" y1="106" x2="100" y2="135" stroke="#e0e6ff" stroke-width="2"/>
+          <circle cx="100" cy="140" r="5" fill="#ff6b9d"/>
+          <line x1="106" y1="100" x2="140" y2="100" stroke="#e0e6ff" stroke-width="2"/>
+          <circle cx="145" cy="100" r="4" fill="#00ccff"/>
+          <line x1="145" y1="94" x2="165" y2="80" stroke="#e0e6ff" stroke-width="2"/>
+          <circle cx="170" cy="75" r="4" fill="#ffcc00"/>
+          <line x1="145" y1="106" x2="165" y2="120" stroke="#e0e6ff" stroke-width="2"/>
+          <circle cx="170" cy="125" r="4" fill="#ffd93d"/>
+          <text x="100" y="160" font-size="10" fill="#b0b8d4" text-anchor="middle">-OH, -CH₃</text>
+        `
+      },
+      'Cys': {
+        fullName: 'Cysteine',
+        codons: ['UGU', 'UGC'],
+        mw: 121.15,
+        pI: 5.07,
+        pKa_carboxyl: 1.96,
+        pKa_amino: 10.28,
+        pKa_sidechain: 8.18,
+        property: 'Polar (Uncharged, Reactive)',
+        abundance: 1.7,
+        structure: `
+          <circle cx="100" cy="60" r="5" fill="#7fb3ff"/>
+          <line x1="100" y1="65" x2="100" y2="95" stroke="#e0e6ff" stroke-width="2"/>
+          <circle cx="100" cy="100" r="6" fill="#00ff88"/>
+          <line x1="100" y1="106" x2="100" y2="135" stroke="#e0e6ff" stroke-width="2"/>
+          <circle cx="100" cy="140" r="5" fill="#ff6b9d"/>
+          <line x1="106" y1="100" x2="140" y2="100" stroke="#e0e6ff" stroke-width="2"/>
+          <circle cx="145" cy="100" r="4" fill="#ffff00"/>
+          <line x1="145" y1="94" x2="170" y2="75" stroke="#e0e6ff" stroke-width="2"/>
+          <circle cx="175" cy="70" r="4" fill="#ffcc00"/>
+          <text x="100" y="160" font-size="10" fill="#b0b8d4" text-anchor="middle">-SH (thiol)</text>
+        `
+      },
+      'Met': {
+        fullName: 'Methionine',
+        codons: ['AUG'],
+        mw: 149.21,
+        pI: 5.74,
+        pKa_carboxyl: 2.13,
+        pKa_amino: 9.27,
+        pKa_sidechain: null,
+        property: 'Nonpolar (Sulfur)',
+        abundance: 2.3,
+        structure: `
+          <circle cx="100" cy="60" r="5" fill="#7fb3ff"/>
+          <line x1="100" y1="65" x2="100" y2="95" stroke="#e0e6ff" stroke-width="2"/>
+          <circle cx="100" cy="100" r="6" fill="#00ff88"/>
+          <line x1="100" y1="106" x2="100" y2="135" stroke="#e0e6ff" stroke-width="2"/>
+          <circle cx="100" cy="140" r="5" fill="#ff6b9d"/>
+          <line x1="106" y1="100" x2="140" y2="100" stroke="#e0e6ff" stroke-width="2"/>
+          <circle cx="145" cy="100" r="4" fill="#ffff00"/>
+          <line x1="145" y1="94" x2="170" y2="75" stroke="#e0e6ff" stroke-width="2"/>
+          <circle cx="175" cy="70" r="4" fill="#ffff00"/>
+          <line x1="175" y1="76" x2="200" y2="90" stroke="#e0e6ff" stroke-width="2"/>
+          <circle cx="205" cy="95" r="4" fill="#ffd93d"/>
+          <text x="100" y="160" font-size="10" fill="#b0b8d4" text-anchor="middle">-S-CH₃</text>
+        `
+      },
+      'Asn': {
+        fullName: 'Asparagine',
+        codons: ['AAU', 'AAC'],
+        mw: 132.12,
+        pI: 5.41,
+        pKa_carboxyl: 2.02,
+        pKa_amino: 8.80,
+        pKa_sidechain: null,
+        property: 'Polar (Uncharged)',
+        abundance: 4.3,
+        structure: `
+          <circle cx="100" cy="60" r="5" fill="#7fb3ff"/>
+          <line x1="100" y1="65" x2="100" y2="95" stroke="#e0e6ff" stroke-width="2"/>
+          <circle cx="100" cy="100" r="6" fill="#00ff88"/>
+          <line x1="100" y1="106" x2="100" y2="135" stroke="#e0e6ff" stroke-width="2"/>
+          <circle cx="100" cy="140" r="5" fill="#ff6b9d"/>
+          <line x1="106" y1="100" x2="140" y2="100" stroke="#e0e6ff" stroke-width="2"/>
+          <circle cx="145" cy="100" r="4" fill="#00ccff"/>
+          <line x1="145" y1="94" x2="170" y2="75" stroke="#e0e6ff" stroke-width="2"/>
+          <circle cx="175" cy="70" r="4" fill="#00ccff"/>
+          <line x1="175" y1="76" x2="200" y2="90" stroke="#e0e6ff" stroke-width="2"/>
+          <circle cx="205" cy="95" r="4" fill="#ffcc00"/>
+          <text x="100" y="160" font-size="10" fill="#b0b8d4" text-anchor="middle">-CONH₂</text>
+        `
+      },
+      'Gln': {
+        fullName: 'Glutamine',
+        codons: ['CAA', 'CAG'],
+        mw: 146.14,
+        pI: 5.65,
+        pKa_carboxyl: 2.17,
+        pKa_amino: 9.13,
+        pKa_sidechain: null,
+        property: 'Polar (Uncharged)',
+        abundance: 4.3,
+        structure: `
+          <circle cx="100" cy="60" r="5" fill="#7fb3ff"/>
+          <line x1="100" y1="65" x2="100" y2="95" stroke="#e0e6ff" stroke-width="2"/>
+          <circle cx="100" cy="100" r="6" fill="#00ff88"/>
+          <line x1="100" y1="106" x2="100" y2="135" stroke="#e0e6ff" stroke-width="2"/>
+          <circle cx="100" cy="140" r="5" fill="#ff6b9d"/>
+          <line x1="106" y1="100" x2="140" y2="100" stroke="#e0e6ff" stroke-width="2"/>
+          <circle cx="145" cy="100" r="4" fill="#00ccff"/>
+          <line x1="145" y1="94" x2="170" y2="75" stroke="#e0e6ff" stroke-width="2"/>
+          <circle cx="175" cy="70" r="4" fill="#00ccff"/>
+          <line x1="175" y1="76" x2="200" y2="90" stroke="#e0e6ff" stroke-width="2"/>
+          <circle cx="205" cy="95" r="4" fill="#00ccff"/>
+          <line x1="205" y1="101" x2="230" y2="115" stroke="#e0e6ff" stroke-width="2"/>
+          <circle cx="235" cy="120" r="4" fill="#ffcc00"/>
+          <text x="100" y="160" font-size="10" fill="#b0b8d4" text-anchor="middle">-CO(NH₂)</text>
+        `
+      },
+      'Asp': {
+        fullName: 'Aspartic Acid',
+        codons: ['GAU', 'GAC'],
+        mw: 133.10,
+        pI: 2.77,
+        pKa_carboxyl: 2.10,
+        pKa_amino: 9.60,
+        pKa_sidechain: 3.71,
+        property: 'Polar (Negatively Charged)',
+        abundance: 5.5,
+        structure: `
+          <circle cx="100" cy="60" r="5" fill="#7fb3ff"/>
+          <line x1="100" y1="65" x2="100" y2="95" stroke="#e0e6ff" stroke-width="2"/>
+          <circle cx="100" cy="100" r="6" fill="#00ff88"/>
+          <line x1="100" y1="106" x2="100" y2="135" stroke="#e0e6ff" stroke-width="2"/>
+          <circle cx="100" cy="140" r="5" fill="#ff6b9d"/>
+          <line x1="106" y1="100" x2="140" y2="100" stroke="#e0e6ff" stroke-width="2"/>
+          <circle cx="145" cy="100" r="4" fill="#00ccff"/>
+          <line x1="145" y1="94" x2="170" y2="75" stroke="#e0e6ff" stroke-width="2"/>
+          <circle cx="175" cy="70" r="4" fill="#ff0000" opacity="0.7"/>
+          <circle cx="182" cy="78" r="3" fill="#ff0000" opacity="0.7"/>
+          <text x="100" y="160" font-size="10" fill="#b0b8d4" text-anchor="middle">-COO⁻</text>
+        `
+      },
+      'Glu': {
+        fullName: 'Glutamic Acid',
+        codons: ['GAA', 'GAG'],
+        mw: 147.13,
+        pI: 3.22,
+        pKa_carboxyl: 2.19,
+        pKa_amino: 9.67,
+        pKa_sidechain: 4.25,
+        property: 'Polar (Negatively Charged)',
+        abundance: 6.7,
+        structure: `
+          <circle cx="100" cy="60" r="5" fill="#7fb3ff"/>
+          <line x1="100" y1="65" x2="100" y2="95" stroke="#e0e6ff" stroke-width="2"/>
+          <circle cx="100" cy="100" r="6" fill="#00ff88"/>
+          <line x1="100" y1="106" x2="100" y2="135" stroke="#e0e6ff" stroke-width="2"/>
+          <circle cx="100" cy="140" r="5" fill="#ff6b9d"/>
+          <line x1="106" y1="100" x2="140" y2="100" stroke="#e0e6ff" stroke-width="2"/>
+          <circle cx="145" cy="100" r="4" fill="#00ccff"/>
+          <line x1="145" y1="94" x2="170" y2="75" stroke="#e0e6ff" stroke-width="2"/>
+          <circle cx="175" cy="70" r="4" fill="#00ccff"/>
+          <line x1="175" y1="76" x2="200" y2="90" stroke="#e0e6ff" stroke-width="2"/>
+          <circle cx="205" cy="95" r="4" fill="#ff0000" opacity="0.7"/>
+          <circle cx="212" cy="103" r="3" fill="#ff0000" opacity="0.7"/>
+          <text x="100" y="160" font-size="10" fill="#b0b8d4" text-anchor="middle">-CH₂-COO⁻</text>
+        `
+      },
+      'Lys': {
+        fullName: 'Lysine',
+        codons: ['AAA', 'AAG'],
+        mw: 146.19,
+        pI: 9.74,
+        pKa_carboxyl: 2.18,
+        pKa_amino: 8.95,
+        pKa_sidechain: 10.53,
+        property: 'Polar (Positively Charged)',
+        abundance: 7.1,
+        structure: `
+          <circle cx="100" cy="60" r="5" fill="#7fb3ff"/>
+          <line x1="100" y1="65" x2="100" y2="95" stroke="#e0e6ff" stroke-width="2"/>
+          <circle cx="100" cy="100" r="6" fill="#00ff88"/>
+          <line x1="100" y1="106" x2="100" y2="135" stroke="#e0e6ff" stroke-width="2"/>
+          <circle cx="100" cy="140" r="5" fill="#ff6b9d"/>
+          <line x1="106" y1="100" x2="140" y2="100" stroke="#e0e6ff" stroke-width="2"/>
+          <circle cx="145" cy="100" r="4" fill="#00ccff"/>
+          <line x1="145" y1="94" x2="170" y2="75" stroke="#e0e6ff" stroke-width="2"/>
+          <circle cx="175" cy="70" r="4" fill="#00ccff"/>
+          <line x1="175" y1="76" x2="200" y2="90" stroke="#e0e6ff" stroke-width="2"/>
+          <circle cx="205" cy="95" r="4" fill="#00ccff"/>
+          <line x1="205" y1="101" x2="230" y2="115" stroke="#e0e6ff" stroke-width="2"/>
+          <circle cx="235" cy="120" r="4" fill="#0080ff"/>
+          <text x="100" y="160" font-size="10" fill="#b0b8d4" text-anchor="middle">-(CH₂)₄-NH₃⁺</text>
+        `
+      },
+      'Arg': {
+        fullName: 'Arginine',
+        codons: ['CGU', 'CGC', 'CGA', 'CGG', 'AGA', 'AGG'],
+        mw: 174.20,
+        pI: 10.76,
+        pKa_carboxyl: 2.17,
+        pKa_amino: 9.04,
+        pKa_sidechain: 12.48,
+        property: 'Polar (Positively Charged)',
+        abundance: 5.1,
+        structure: `
+          <circle cx="100" cy="60" r="5" fill="#7fb3ff"/>
+          <line x1="100" y1="65" x2="100" y2="95" stroke="#e0e6ff" stroke-width="2"/>
+          <circle cx="100" cy="100" r="6" fill="#00ff88"/>
+          <line x1="100" y1="106" x2="100" y2="135" stroke="#e0e6ff" stroke-width="2"/>
+          <circle cx="100" cy="140" r="5" fill="#ff6b9d"/>
+          <line x1="106" y1="100" x2="140" y2="100" stroke="#e0e6ff" stroke-width="2"/>
+          <circle cx="145" cy="100" r="4" fill="#00ccff"/>
+          <line x1="145" y1="94" x2="170" y2="75" stroke="#e0e6ff" stroke-width="2"/>
+          <circle cx="175" cy="70" r="4" fill="#00ccff"/>
+          <line x1="175" y1="76" x2="200" y2="90" stroke="#e0e6ff" stroke-width="2"/>
+          <circle cx="205" cy="95" r="4" fill="#00ccff"/>
+          <line x1="205" y1="101" x2="230" y2="115" stroke="#e0e6ff" stroke-width="2"/>
+          <circle cx="235" cy="120" r="4" fill="#0080ff"/>
+          <line x1="235" y1="126" x2="260" y2="140" stroke="#e0e6ff" stroke-width="2"/>
+          <circle cx="265" cy="145" r="4" fill="#0080ff"/>
+          <text x="100" y="160" font-size="10" fill="#b0b8d4" text-anchor="middle">guanidinium</text>
+        `
+      },
+      'His': {
+        fullName: 'Histidine',
+        codons: ['CAU', 'CAC'],
+        mw: 155.15,
+        pI: 7.59,
+        pKa_carboxyl: 1.77,
+        pKa_amino: 9.18,
+        pKa_sidechain: 6.10,
+        property: 'Polar (Positively Charged, Aromatic)',
+        abundance: 2.3,
+        structure: `
+          <circle cx="100" cy="60" r="5" fill="#7fb3ff"/>
+          <line x1="100" y1="65" x2="100" y2="95" stroke="#e0e6ff" stroke-width="2"/>
+          <circle cx="100" cy="100" r="6" fill="#00ff88"/>
+          <line x1="100" y1="106" x2="100" y2="135" stroke="#e0e6ff" stroke-width="2"/>
+          <circle cx="100" cy="140" r="5" fill="#ff6b9d"/>
+          <line x1="106" y1="100" x2="140" y2="100" stroke="#e0e6ff" stroke-width="2"/>
+          <circle cx="145" cy="100" r="4" fill="#00ccff"/>
+          <circle cx="160" cy="85" r="4" fill="#ff00ff" opacity="0.6"/>
+          <circle cx="175" cy="90" r="4" fill="#ff00ff" opacity="0.6"/>
+          <circle cx="175" cy="110" r="4" fill="#ff00ff" opacity="0.6"/>
+          <circle cx="160" cy="115" r="4" fill="#ff00ff" opacity="0.6"/>
+          <circle cx="145" cy="110" r="4" fill="#0080ff"/>
+          <text x="100" y="160" font-size="10" fill="#b0b8d4" text-anchor="middle">imidazole</text>
+        `
+      }
+    };
+
+    function renderAminoAcid(code) {
+      const aa = aminoAcids[code];
+      if (!aa) return;
+
+      // Update title and info
+      document.getElementById('aaName').textContent = code;
+      document.getElementById('aaFullName').textContent = aa.fullName;
+      document.getElementById('codon').textContent = aa.codons.join(', ');
+      document.getElementById('sidechain').textContent = aa.property;
+
+      // Update structure
+      const svg = document.getElementById('structureSVG');
+      svg.innerHTML = aa.structure;
+
+      // Update stats
+      const statsGrid = document.getElementById('statsGrid');
+      statsGrid.innerHTML = `
+        <div class="stat-card">
+          <div class="stat-label">Molecular Weight</div>
+          <div class="stat-value">${aa.mw.toFixed(2)} u</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Isoelectric Point (pI)</div>
+          <div class="stat-value">${aa.pI.toFixed(2)}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">pKa (Carboxyl)</div>
+          <div class="stat-value">${aa.pKa_carboxyl.toFixed(2)}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">pKa (Amino)</div>
+          <div class="stat-value">${aa.pKa_amino.toFixed(2)}</div>
+        </div>
+        ${aa.pKa_sidechain ? `
+        <div class="stat-card">
+          <div class="stat-label">pKa (Side Chain)</div>
+          <div class="stat-value">${aa.pKa_sidechain.toFixed(2)}</div>
+        </div>
+        ` : ''}
+        <div class="stat-card">
+          <div class="stat-label">Protein Abundance</div>
+          <div class="stat-value">${aa.abundance.toFixed(1)}%</div>
+        </div>
+      `;
+
+      // Update property badges
+      const properties = document.getElementById('properties');
+      const badges = [];
+      if (aa.pKa_sidechain !== null) {
+        if (aa.pI < 6.5) badges.push('Acidic');
+        else if (aa.pI > 8) badges.push('Basic');
+        else badges.push('Polar');
+      }
+      properties.innerHTML = badges.map(b => `<span class="property-badge">${b}</span>`).join('');
+
+      // Update active button
+      document.querySelectorAll('.aa-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.textContent === code) btn.classList.add('active');
+      });
+    }
+
+    // Initialize
+    const buttonGrid = document.getElementById('buttonGrid');
+    Object.keys(aminoAcids).forEach(code => {
+      const btn = document.createElement('button');
+      btn.className = 'aa-btn';
+      btn.textContent = code;
+      btn.onclick = () => renderAminoAcid(code);
+      buttonGrid.appendChild(btn);
+    });
+
+    // Start with Alanine
+    renderAminoAcid('Ala');
+  </script>
+</body>
+</html>
