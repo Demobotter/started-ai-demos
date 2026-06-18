@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Periodic Science</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      color: #e0e6ed;
+      min-height: 100vh;
+      padding: 30px 20px;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+    h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: 2.8em;
+      color: #00d4ff;
+      margin-bottom: 10px;
+    }
+    .subtitle {
+      color: #a0aab8;
+      font-size: 1em;
+      margin-bottom: 20px;
+    }
+    .legend {
+      display: flex;
+      justify-content: center;
+      gap: 30px;
+      flex-wrap: wrap;
+      margin-bottom: 30px;
+      font-size: 0.9em;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .legend-box {
+      width: 20px;
+      height: 20px;
+      border-radius: 4px;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(50px, 1fr));
+      gap: 6px;
+      margin-bottom: 40px;
+    }
+    .element {
+      aspect-ratio: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      font-weight: 600;
+      font-size: 0.75em;
+      text-align: center;
+      padding: 4px;
+    }
+    .element:hover {
+      transform: scale(1.05);
+      box-shadow: 0 6px 16px rgba(0, 212, 255, 0.3);
+    }
+    .metal { background: #ff6b6b; }
+    .nonmetal { background: #4ecdc4; }
+    .metalloid { background: #95e1d3; }
+    .noble { background: #f4a261; }
+    .detail {
+      display: none;
+      background: rgba(20, 28, 45, 0.95);
+      border-radius: 12px;
+      padding: 30px;
+      border: 2px solid #00d4ff;
+      max-width: 500px;
+      margin: 0 auto;
+    }
+    .detail.show {
+      display: block;
+    }
+    .detail h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: 2.2em;
+      color: #00d4ff;
+      margin-bottom: 15px;
+    }
+    .detail-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(0, 212, 255, 0.1);
+      font-size: 0.9em;
+    }
+    .detail-row:last-child {
+      border-bottom: none;
+    }
+    .detail-label {
+      color: #a0aab8;
+      font-weight: 600;
+    }
+    .detail-value {
+      color: #ffffff;
+      text-align: right;
+    }
+    .close-btn {
+      text-align: center;
+      margin-top: 20px;
+    }
+    .close-btn button {
+      padding: 10px 20px;
+      background: #00d4ff;
+      border: none;
+      border-radius: 6px;
+      color: #1a1a2e;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .close-btn button:hover {
+      background: #00e4ff;
+      transform: translateY(-2px);
+    }
+    @media (max-width: 600px) {
+      h1 { font-size: 2em; }
+      .grid { grid-template-columns: repeat(auto-fit, minmax(40px, 1fr)); }
+      .element { font-size: 0.6em; }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Periodic Science</h1>
+    <p class="subtitle">Click any element to explore atomic properties</p>
+    <div class="legend">
+      <div class="legend-item">
+        <div class="legend-box metal"></div>
+        <span>Metal</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-box nonmetal"></div>
+        <span>Nonmetal</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-box metalloid"></div>
+        <span>Metalloid</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-box noble"></div>
+        <span>Noble Gas</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="grid" id="grid"></div>
+    <div class="detail" id="detail">
+      <h2 id="detailName"></h2>
+      <div id="detailInfo"></div>
+      <div class="close-btn">
+        <button onclick="closeDetail()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const elements = [
+      { atomic: 1, symbol: 'H', name: 'Hydrogen', type: 'nonmetal', mass: 1.008, config: '1s¹', melting: -259.16, boiling: -252.87, density: 0.08988, year: 1766 },
+      { atomic: 2, symbol: 'He', name: 'Helium', type: 'noble', mass: 4.003, config: '1s²', melting: -272.15, boiling: -268.93, density: 0.1785, year: 1868 },
+      { atomic: 3, symbol: 'Li', name: 'Lithium', type: 'metal', mass: 6.941, config: '[He] 2s¹', melting: 180.5, boiling: 1342, density: 0.534, year: 1817 },
+      { atomic: 4, symbol: 'Be', name: 'Beryllium', type: 'metal', mass: 9.012, config: '[He] 2s²', melting: 1287, boiling: 2469, density: 1.85, year: 1798 },
+      { atomic: 5, symbol: 'B', name: 'Boron', type: 'metalloid', mass: 10.81, config: '[He] 2s² 2p¹', melting: 2077, boiling: 4000, density: 2.34, year: 1808 },
+      { atomic: 6, symbol: 'C', name: 'Carbon', type: 'nonmetal', mass: 12.01, config: '[He] 2s² 2p²', melting: 3823, boiling: 4827, density: 2.26, year: 'Ancient' },
+      { atomic: 7, symbol: 'N', name: 'Nitrogen', type: 'nonmetal', mass: 14.01, config: '[He] 2s² 2p³', melting: -210.01, boiling: -195.79, density: 1.251, year: 1772 },
+      { atomic: 8, symbol: 'O', name: 'Oxygen', type: 'nonmetal', mass: 16.00, config: '[He] 2s² 2p⁴', melting: -218.79, boiling: -183.63, density: 1.429, year: 1774 },
+      { atomic: 9, symbol: 'F', name: 'Fluorine', type: 'nonmetal', mass: 19.00, config: '[He] 2s² 2p⁵', melting: -219.6, boiling: -188.1, density: 1.696, year: 1886 },
+      { atomic: 10, symbol: 'Ne', name: 'Neon', type: 'noble', mass: 20.18, config: '[He] 2s² 2p⁶', melting: -248.6, boiling: -246.05, density: 0.9, year: 1898 },
+      { atomic: 11, symbol: 'Na', name: 'Sodium', type: 'metal', mass: 22.99, config: '[Ne] 3s¹', melting: 97.8, boiling: 883, density: 0.968, year: 1807 },
+      { atomic: 12, symbol: 'Mg', name: 'Magnesium', type: 'metal', mass: 24.31, config: '[Ne] 3s²', melting: 650, boiling: 1107, density: 1.738, year: 1808 },
+      { atomic: 13, symbol: 'Al', name: 'Aluminum', type: 'metal', mass: 26.98, config: '[Ne] 3s² 3p¹', melting: 660.3, boiling: 2519, density: 2.7, year: 1825 },
+      { atomic: 14, symbol: 'Si', name: 'Silicon', type: 'metalloid', mass: 28.09, config: '[Ne] 3s² 3p²', melting: 1414, boiling: 3265, density: 2.329, year: 1823 },
+      { atomic: 15, symbol: 'P', name: 'Phosphorus', type: 'nonmetal', mass: 30.97, config: '[Ne] 3s² 3p³', melting: 44.2, boiling: 280, density: 1.82, year: 1669 },
+      { atomic: 16, symbol: 'S', name: 'Sulfur', type: 'nonmetal', mass: 32.06, config: '[Ne] 3s² 3p⁴', melting: 115.2, boiling: 445, density: 2.07, year: 'Ancient' },
+      { atomic: 17, symbol: 'Cl', name: 'Chlorine', type: 'nonmetal', mass: 35.45, config: '[Ne] 3s² 3p⁵', melting: -101.5, boiling: -34.04, density: 3.213, year: 1810 },
+      { atomic: 18, symbol: 'Ar', name: 'Argon', type: 'noble', mass: 39.95, config: '[Ne] 3s² 3p⁶', melting: -189.3, boiling: -185.8, density: 1.784, year: 1894 },
+      { atomic: 26, symbol: 'Fe', name: 'Iron', type: 'metal', mass: 55.85, config: '[Ar] 3d⁶ 4s²', melting: 1538, boiling: 2862, density: 7.874, year: 'Ancient' },
+      { atomic: 29, symbol: 'Cu', name: 'Copper', type: 'metal', mass: 63.55, config: '[Ar] 3d¹⁰ 4s¹', melting: 1084.6, boiling: 2562, density: 8.96, year: 'Ancient' },
+      { atomic: 47, symbol: 'Ag', name: 'Silver', type: 'metal', mass: 107.87, config: '[Kr] 4d¹⁰ 5s¹', melting: 961.8, boiling: 2162, density: 10.5, year: 'Ancient' },
+      { atomic: 79, symbol: 'Au', name: 'Gold', type: 'metal', mass: 196.97, config: '[Xe] 4f¹⁴ 5d¹⁰ 6s¹', melting: 1064.2, boiling: 2856, density: 19.3, year: 'Ancient' },
+      { atomic: 92, symbol: 'U', name: 'Uranium', type: 'metal', mass: 238.03, config: '[Rn] 5f³ 6d¹ 7s²', melting: 1132.3, boiling: 4131, density: 19.1, year: 1789 }
+    ];
+
+    function getClass(type) {
+      const map = { metal: 'metal', nonmetal: 'nonmetal', metalloid: 'metalloid', noble: 'noble' };
+      return map[type] || 'metal';
+    }
+
+    function renderGrid() {
+      const grid = document.getElementById('grid');
+      elements.forEach(el => {
+        const div = document.createElement('div');
+        div.className = `element ${getClass(el.type)}`;
+        div.textContent = el.symbol;
+        div.onclick = () => showDetail(el);
+        grid.appendChild(div);
+      });
+    }
+
+    function showDetail(el) {
+      document.getElementById('detailName').textContent = `${el.symbol} — ${el.name}`;
+      const info = `
+        <div class="detail-row">
+          <span class="detail-label">Atomic Number</span>
+          <span class="detail-value">${el.atomic}</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Atomic Mass</span>
+          <span class="detail-value">${el.mass} u</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Electron Config</span>
+          <span class="detail-value" style="font-size: 0.85em;">${el.config}</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Melting Point</span>
+          <span class="detail-value">${el.melting}°C</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Boiling Point</span>
+          <span class="detail-value">${el.boiling}°C</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Density</span>
+          <span class="detail-value">${el.density} g/cm³</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Discovered</span>
+          <span class="detail-value">${el.year}</span>
+        </div>
+      `;
+      document.getElementById('detailInfo').innerHTML = info;
+      document.getElementById('detail').classList.add('show');
+    }
+
+    function closeDetail() {
+      document.getElementById('detail').classList.remove('show');
+    }
+
+    renderGrid();
+  </script>
+</body>
+</html>
