@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Root Tracer</title>
+  <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, #4a5a3a 0%, #2d3a2a 50%, #1a2519 100%);
+      min-height: 100vh;
+      padding: 40px 20px;
+      color: #e8e8d0;
+    }
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+    h1 {
+      font-family: 'Merriweather', serif;
+      font-size: 3em;
+      margin-bottom: 10px;
+      color: #d4a574;
+    }
+    .subtitle {
+      font-size: 1rem;
+      color: #a8b89a;
+    }
+    .search-box {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 40px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    input[type="text"] {
+      padding: 12px 16px;
+      border: 2px solid #d4a574;
+      border-radius: 8px;
+      font-family: 'Inter', sans-serif;
+      font-size: 1rem;
+      background: rgba(212, 165, 116, 0.1);
+      color: #e8e8d0;
+      flex: 1;
+      min-width: 200px;
+      max-width: 300px;
+    }
+    input[type="text"]::placeholder { color: #a8b89a; }
+    button {
+      padding: 12px 24px;
+      background: #d4a574;
+      color: #1a2519;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: 'Inter', sans-serif;
+      font-size: 1rem;
+      transition: background 0.2s;
+    }
+    button:hover { background: #e8b89a; }
+    .quick-words {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      margin-top: 15px;
+      flex-wrap: wrap;
+    }
+    .quick-btn {
+      padding: 8px 14px;
+      background: rgba(212, 165, 116, 0.2);
+      border: 1px solid #d4a574;
+      color: #d4a574;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: all 0.2s;
+    }
+    .quick-btn:hover {
+      background: rgba(212, 165, 116, 0.4);
+      color: #e8b89a;
+    }
+    .result {
+      background: rgba(26, 37, 25, 0.8);
+      border-left: 4px solid #d4a574;
+      padding: 30px;
+      border-radius: 8px;
+      margin-bottom: 30px;
+      display: none;
+    }
+    .result.active { display: block; }
+    .word-title {
+      font-family: 'Merriweather', serif;
+      font-size: 2em;
+      color: #d4a574;
+      margin-bottom: 20px;
+    }
+    .etymology-section {
+      margin-bottom: 25px;
+    }
+    .etymology-section h3 {
+      color: #7fb3d5;
+      font-size: 1rem;
+      margin-bottom: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .definition {
+      color: #a8b89a;
+      font-style: italic;
+      margin-bottom: 15px;
+    }
+    .timeline {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .timeline-entry {
+      display: flex;
+      gap: 15px;
+      position: relative;
+      padding-left: 30px;
+    }
+    .timeline-entry::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 8px;
+      width: 12px;
+      height: 12px;
+      background: #7fb3d5;
+      border-radius: 50%;
+      border: 2px solid #1a2519;
+    }
+    .timeline-entry:not(:last-child)::after {
+      content: '';
+      position: absolute;
+      left: 5px;
+      top: 22px;
+      width: 2px;
+      height: 35px;
+      background: rgba(127, 179, 213, 0.3);
+    }
+    .era-label {
+      color: #d4a574;
+      font-weight: 600;
+      min-width: 120px;
+      font-size: 0.9rem;
+    }
+    .form {
+      color: #e8e8d0;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .form-text {
+      font-family: 'Merriweather', serif;
+      font-size: 1.1em;
+      color: #d4a574;
+    }
+    .shift-annotation {
+      font-size: 0.85em;
+      color: #7fb3d5;
+      margin-top: 5px;
+    }
+    .cognates {
+      margin-top: 25px;
+      background: rgba(212, 165, 116, 0.05);
+      padding: 20px;
+      border-radius: 8px;
+    }
+    .cognates h3 {
+      color: #7fb3d5;
+      font-size: 1rem;
+      margin-bottom: 15px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .cognate-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 12px;
+    }
+    .cognate-card {
+      background: rgba(26, 37, 25, 0.6);
+      border: 1px solid rgba(212, 165, 116, 0.3);
+      padding: 12px;
+      border-radius: 6px;
+      text-align: center;
+    }
+    .cognate-lang {
+      color: #d4a574;
+      font-weight: 600;
+      font-size: 0.9rem;
+      margin-bottom: 5px;
+    }
+    .cognate-word {
+      font-family: 'Merriweather', serif;
+      color: #e8e8d0;
+      font-size: 1rem;
+    }
+    .error {
+      color: #ff8a8a;
+      text-align: center;
+      padding: 20px;
+    }
+    .loading {
+      text-align: center;
+      color: #d4a574;
+      padding: 20px;
+    }
+    .spinner {
+      border: 3px solid rgba(212, 165, 116, 0.2);
+      border-top: 3px solid #d4a574;
+      border-radius: 50%;
+      width: 30px;
+      height: 30px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 10px;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    @media (max-width: 600px) {
+      h1 { font-size: 2em; }
+      .word-title { font-size: 1.5em; }
+      .search-box { flex-direction: column; }
+      input[type="text"] { max-width: 100%; }
+      .cognate-grid { grid-template-columns: 1fr 1fr; }
+      .timeline-entry { padding-left: 25px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🌳 Root Tracer</h1>
+      <p class="subtitle">Explore the linguistic ancestry of English words</p>
+    </header>
+
+    <div class="search-box">
+      <input type="text" id="wordInput" placeholder="Enter an English word..." value="mother">
+      <button onclick="searchWord()">Trace</button>
+    </div>
+    <div class="quick-words">
+      <button class="quick-btn" onclick="setWord('mother')">mother</button>
+      <button class="quick-btn" onclick="setWord('water')">water</button>
+      <button class="quick-btn" onclick="setWord('heart')">heart</button>
+      <button class="quick-btn" onclick="setWord('journey')">journey</button>
+      <button class="quick-btn" onclick="setWord('serendipity')">serendipity</button>
+    </div>
+
+    <div id="result" class="result">
+      <div id="resultContent"></div>
+    </div>
+  </div>
+
+  <script>
+    const etymologies = {
+      mother: {
+        definition: "A female parent or woman in relation to her children.",
+        timeline: [
+          { era: "Proto-Indo-European", form: "méh₂tēr", note: "Root meaning 'mother' in ancient language family" },
+          { era: "Proto-Germanic", form: "*mōþēr", note: "Grimm's Law: voiced *dh → voiceless þ" },
+          { era: "Old English", form: "mōdor", note: "Germanic ancestor form" },
+          { era: "Middle English", form: "moder", note: "Vowel shortening: ō → o" },
+          { era: "Modern English", form: "mother", note: "Current form with stable pronunciation" }
+        ],
+        cognates: {
+          German: "Mutter",
+          Dutch: "moeder",
+          "Old Norse": "móðir",
+          Latin: "māter",
+          Greek: "μήτηρ (mḗtēr)",
+          Sanskrit: "mātṛ"
+        }
+      },
+      water: {
+        definition: "A clear, colorless liquid forming rivers, seas, and lakes.",
+        timeline: [
+          { era: "Proto-Indo-European", form: "wódr̥", note: "Root meaning 'water' across Indo-European languages" },
+          { era: "Proto-Germanic", form: "*watōr", note: "Early Germanic form derived from PIE" },
+          { era: "Old English", form: "wæter", note: "Anglo-Saxon spelling with æ ligature" },
+          { era: "Middle English", form: "water", note: "Spelling stabilizes; pronunciation softens" },
+          { era: "Modern English", form: "water", note: "Current standard form" }
+        ],
+        cognates: {
+          German: "Wasser",
+          Dutch: "water",
+          "Old Norse": "vatn",
+          Latin: "unda",
+          Greek: "ὕδωρ (húdōr)",
+          Sanskrit: "udáka"
+        }
+      },
+      heart: {
+        definition: "The organ that pumps blood throughout the body; the center of emotion.",
+        timeline: [
+          { era: "Proto-Indo-European", form: "kérd", note: "Root meaning 'heart' or 'cardiac organ'" },
+          { era: "Proto-Germanic", form: "*hertōn", note: "Grimm's Law: k → h" },
+          { era: "Old English", form: "heorte", note: "Early Germanic form" },
+          { era: "Middle English", form: "herte", note: "Vowel simplification: eo → e" },
+          { era: "Modern English", form: "heart", note: "Current standard form" }
+        ],
+        cognates: {
+          German: "Herz",
+          Dutch: "hart",
+          "Old Norse": "hjarta",
+          Latin: "cor",
+          Greek: "κάρδια (kardía)",
+          Sanskrit: "hṛdaya"
+        }
+      },
+      journey: {
+        definition: "A trip or passage from one place to another.",
+        timeline: [
+          { era: "Old French", form: "journée", note: "From Latin 'diurnata' (day's work)" },
+          { era: "Latin", form: "diurnata", note: "From 'diurnus' (daily) + suffix -ata" },
+          { era: "Late Latin", form: "diurnus", note: "Meaning 'daily' or 'of a day'" },
+          { era: "Middle English", form: "journée", note: "Borrowed from Anglo-Norman French" },
+          { era: "Modern English", form: "journey", note: "Anglicized spelling; meaning evolved to 'a trip'" }
+        ],
+        cognates: {
+          French: "journée",
+          Spanish: "jornada",
+          Italian: "giornata",
+          Portuguese: "jornada",
+          Latin: "diurnus",
+          "Old French": "jorn"
+        }
+      },
+      serendipity: {
+        definition: "The occurrence of events by chance in a happy or beneficial way.",
+        timeline: [
+          { era: "Arabic", form: "Sarandīb", note: "Old name for the island of Ceylon (Sri Lanka)" },
+          { era: "Persian", form: "Sarandīp", note: "Persian adaptation of the Arabic toponym" },
+          { era: "English (coinage)", form: "Serendip (title)", note: "Horace Walpole reads Persian fairy tale 'The Three Princes of Serendip' (1754)" },
+          { era: "English (creation)", form: "serendipity", note: "Walpole coins 'serendipity' in a 1754 letter to describe fortunate discoveries" },
+          { era: "Modern English", form: "serendipity", note: "Established word meaning happy chance discovery" }
+        ],
+        cognates: {
+          Persian: "Sarandīp",
+          Arabic: "Sarandīb",
+          English: "serendip (archaic, place name)",
+          "Modern English": "serendipitous",
+          "Historical": "Three Princes of Serendip (tale)"
+        }
+      }
+    };
+
+    function setWord(word) {
+      document.getElementById('wordInput').value = word;
+      searchWord();
+    }
+
+    function searchWord() {
+      const word = document.getElementById('wordInput').value.toLowerCase().trim();
+      const resultDiv = document.getElementById('result');
+      const contentDiv = document.getElementById('resultContent');
+
+      if (!word) {
+        contentDiv.innerHTML = '<div class="error">Please enter a word.</div>';
+        resultDiv.classList.add('active');
+        return;
+      }
+
+      contentDiv.innerHTML = '<div class="loading"><div class="spinner"></div>Tracing etymology...</div>';
+      resultDiv.classList.add('active');
+
+      setTimeout(() => {
+        if (etymologies[word]) {
+          const ety = etymologies[word];
+          let html = `<div class="word-title">${word}</div>`;
+          html += `<div class="etymology-section"><div class="definition">${ety.definition}</div></div>`;
+          html += `<div class="etymology-section"><h3>Linguistic Ancestry</h3><div class="timeline">`;
+          
+          ety.timeline.forEach((entry, idx) => {
+            html += `
+              <div class="timeline-entry">
+                <div class="era-label">${entry.era}</div>
+                <div class="form">
+                  <div class="form-text">${entry.form}</div>
+                  <div class="shift-annotation">${entry.note}</div>
+                </div>
+              </div>
+            `;
+          });
+          
+          html += `</div></div>`;
+          html += `<div class="cognates"><h3>Cognates Across Languages</h3><div class="cognate-grid">`;
+          
+          Object.entries(ety.cognates).forEach(([lang, wordForm]) => {
+            html += `
+              <div class="cognate-card">
+                <div class="cognate-lang">${lang}</div>
+                <div class="cognate-word">${wordForm}</div>
+              </div>
+            `;
+          });
+          
+          html += `</div></div>`;
+          contentDiv.innerHTML = html;
+        } else {
+          contentDiv.innerHTML = `<div class="error">Etymology data not found for "${word}". Try: mother, water, heart, journey, or serendipity.</div>`;
+        }
+      }, 600);
+    }
+
+    // Auto-load on page load
+    window.addEventListener('load', () => {
+      searchWord();
+    });
+  </script>
+</body>
+</html>
