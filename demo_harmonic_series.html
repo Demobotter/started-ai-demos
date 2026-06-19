@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Harmonic Series</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&family=Lato:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Lato', sans-serif;
+            background: linear-gradient(135deg, #4a3728 0%, #2a2015 100%);
+            color: #fff;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            width: 100%;
+            background: #1a1a1a;
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+        }
+        h1 {
+            font-family: 'Poppins', sans-serif;
+            font-size: 28px;
+            margin-bottom: 30px;
+            text-align: center;
+            color: #c9a961;
+        }
+        .layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+        @media (max-width: 768px) {
+            .layout { grid-template-columns: 1fr; }
+            .container { padding: 20px; }
+            h1 { font-size: 22px; }
+        }
+        .panel {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        label {
+            font-weight: 500;
+            font-size: 14px;
+            color: #aaa;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #333;
+            outline: none;
+            -webkit-appearance: none;
+            accent-color: #c9a961;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #c9a961;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(201, 169, 97, 0.4);
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #c9a961;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 8px rgba(201, 169, 97, 0.4);
+        }
+        .value-display {
+            font-weight: 500;
+            color: #c9a961;
+            font-size: 15px;
+            font-family: 'Poppins', sans-serif;
+        }
+        .button-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+        }
+        @media (max-width: 768px) {
+            .button-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+        button {
+            padding: 12px 16px;
+            border: 2px solid #c9a961;
+            background: #2a2a2a;
+            color: #c9a961;
+            border-radius: 8px;
+            font-family: 'Poppins', sans-serif;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        button:hover {
+            background: #c9a961;
+            color: #1a1a1a;
+        }
+        button.active {
+            background: #c9a961;
+            color: #1a1a1a;
+        }
+        .play-button {
+            grid-column: 1 / -1;
+            padding: 16px;
+            font-size: 16px;
+            background: #c9a961;
+            color: #1a1a1a;
+            border-color: #c9a961;
+        }
+        .play-button:hover {
+            background: #e8a861;
+            border-color: #e8a861;
+        }
+        .play-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .waveform-buttons {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+        .stats-panel {
+            background: #252525;
+            border-radius: 12px;
+            padding: 16px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+        .stat-row {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .stat-value {
+            font-size: 14px;
+            color: #c9a961;
+            font-weight: 600;
+            font-family: 'Poppins', sans-serif;
+        }
+        canvas {
+            width: 100%;
+            height: 400px;
+            background: #252525;
+            border-radius: 12px;
+            display: block;
+        }
+        .spectrum-canvas {
+            height: 200px;
+            margin-top: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎵 Harmonic Series</h1>
+        
+        <div class="layout">
+            <!-- Left Panel: Controls -->
+            <div class="panel">
+                <!-- Frequency Control -->
+                <div class="control-group">
+                    <label>Fundamental Frequency</label>
+                    <input type="range" id="freqSlider" min="20" max="2000" value="110" step="1">
+                    <div class="value-display"><span id="freqValue">110</span> Hz</div>
+                </div>
+
+                <!-- Preset Buttons -->
+                <div class="control-group">
+                    <label>Quick Presets</label>
+                    <div class="button-grid">
+                        <button data-freq="27.5">A0<br>27.5 Hz</button>
+                        <button data-freq="65.41">C2<br>65.4 Hz</button>
+                        <button data-freq="130.81">C3<br>130.8 Hz</button>
+                        <button data-freq="261.63">C4<br>261.6 Hz</button>
+                        <button data-freq="440">A4<br>440 Hz</button>
+                        <button data-freq="523.25">C5<br>523.3 Hz</button>
+                        <button data-freq="1046.5">C6<br>1046.5 Hz</button>
+                        <button data-freq="2093">C7<br>2093 Hz</button>
+                    </div>
+                </div>
+
+                <!-- Waveform Selection -->
+                <div class="control-group">
+                    <label>Waveform</label>
+                    <div class="waveform-buttons">
+                        <button class="waveform-btn active" data-wave="sine">Sine</button>
+                        <button class="waveform-btn" data-wave="square">Square</button>
+                        <button class="waveform-btn" data-wave="sawtooth">Sawtooth</button>
+                    </div>
+                </div>
+
+                <!-- Harmonic Count -->
+                <div class="control-group">
+                    <label>Harmonic Count</label>
+                    <input type="range" id="harmonicSlider" min="5" max="16" value="8" step="1">
+                    <div class="value-display"><span id="harmonicValue">8</span> harmonics</div>
+                </div>
+
+                <!-- Amplitude -->
+                <div class="control-group">
+                    <label>Amplitude</label>
+                    <input type="range" id="ampSlider" min="0" max="100" value="60" step="1">
+                    <div class="value-display"><span id="ampValue">60</span>%</div>
+                </div>
+
+                <!-- Damping -->
+                <div class="control-group">
+                    <label>Harmonic Damping</label>
+                    <input type="range" id="dampSlider" min="0" max="1" value="0.3" step="0.01">
+                    <div class="value-display"><span id="dampValue">0.30</span></div>
+                </div>
+
+                <!-- Duration -->
+                <div class="control-group">
+                    <label>Duration</label>
+                    <input type="range" id="durationSlider" min="0.5" max="5" value="2" step="0.1">
+                    <div class="value-display"><span id="durationValue">2.0</span>s</div>
+                </div>
+
+                <!-- Play Button -->
+                <button class="play-button" id="playBtn">▶ PLAY</button>
+
+                <!-- Stats Panel -->
+                <div class="stats-panel">
+                    <div class="stat-row">
+                        <span class="stat-label">Note</span>
+                        <span class="stat-value" id="noteName">A2</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Wavelength</span>
+                        <span class="stat-value" id="wavelength">312 cm</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Period</span>
+                        <span class="stat-value" id="period">9.1 ms</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Brightness</span>
+                        <span class="stat-value" id="brightness">32%</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Panel: Visualizations -->
+            <div class="panel">
+                <canvas id="harmonicCanvas"></canvas>
+                <canvas id="spectrumCanvas" class="spectrum-canvas"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Audio Context
+        let audioContext;
+        let currentOscillators = [];
+        let currentGains = [];
+
+        // Initialize audio context on first interaction
+        function initAudio() {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+
+        // Get note name from frequency
+        function getNoteName(freq) {
+            const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+            const a4 = 440;
+            const c0 = a4 * Math.pow(2, -4.75);
+            const semitones = 12 * Math.log2(freq / c0);
+            const noteIndex = Math.round(semitones) % 12;
+            const octave = Math.floor((Math.round(semitones) + 12) / 12);
+            return noteNames[noteIndex] + octave;
+        }
+
+        // Update stats
+        function updateStats() {
+            const freq = parseFloat(document.getElementById('freqSlider').value);
+            const harmonicCount = parseInt(document.getElementById('harmonicSlider').value);
+            
+            // Wavelength (m) = 343 m/s / frequency
+            const wavelengthM = 343 / freq;
+            const wavelengthCm = wavelengthM * 100;
+            document.getElementById('wavelength').textContent = Math.round(wavelengthCm) + ' cm';
+            
+            // Period (ms) = 1 / frequency * 1000
+            const periodMs = (1 / freq) * 1000;
+            document.getElementById('period').textContent = periodMs.toFixed(2) + ' ms';
+            
+            // Note name
+            document.getElementById('noteName').textContent = getNoteName(freq);
+            
+            // Brightness = percentage of energy in harmonics above 3rd
+            // For simplicity: higher harmonic count = brighter
+            const brightness = Math.round((harmonicCount - 3) / 13 * 100);
+            document.getElementById('brightness').textContent = Math.max(0, brightness) + '%';
+        }
+
+        // Draw harmonic bars
+        function drawHarmonics() {
+            const canvas = document.getElementById('harmonicCanvas');
+            const ctx = canvas.getContext('2d');
+            const freq = parseFloat(document.getElementById('freqSlider').value);
+            const harmonicCount = parseInt(document.getElementById('harmonicSlider').value);
+            const damp = parseFloat(document.getElementById('dampSlider').value);
+            
+            ctx.fillStyle = '#252525';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            const barWidth = canvas.width / (harmonicCount + 1);
+            const maxHeight = canvas.height * 0.8;
+            
+            for (let i = 1; i <= harmonicCount; i++) {
+                const harmonicFreq = freq * i;
+                const damping = Math.pow(1 - damp, i - 1);
+                const height = maxHeight * damping;
+                const x = (i - 0.5) * barWidth;
+                const y = canvas.height - height;
+                
+                // Color gradient: red→orange→gold→cyan
+                let hue;
+                if (i === 1) hue = 0; // red
+                else if (i <= 3) hue = 20; // orange
+                else if (i <= 6) hue = 45; // gold
+                else hue = 180; // cyan
+                
+                const saturation = 80;
+                const lightness = 50;
+                ctx.fillStyle = `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+                ctx.fillRect(x - barWidth * 0.4, y, barWidth * 0.8, height);
+                
+                // Label
+                ctx.fillStyle = '#aaa';
+                ctx.font = '12px Lato';
+                ctx.textAlign = 'center';
+                ctx.fillText(i, x, canvas.height - 10);
+            }
+        }
+
+        // Draw spectrum (FFT simulation)
+        function drawSpectrum() {
+            const canvas = document.getElementById('spectrumCanvas');
+            const ctx = canvas.getContext('2d');
+            const freq = parseFloat(document.getElementById('freqSlider').value);
+            const harmonicCount = parseInt(document.getElementById('harmonicSlider').value);
+            const damp = parseFloat(document.getElementById('dampSlider').value);
+            
+            ctx.fillStyle = '#252525';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            const binCount = 64;
+            const binWidth = canvas.width / binCount;
+            const maxHeight = canvas.height * 0.85;
+            const maxFreq = freq * (harmonicCount + 2);
+            
+            ctx.fillStyle = '#00ffff';
+            for (let bin = 0; bin < binCount; bin++) {
+                const binFreq = (bin / binCount) * maxFreq;
+                let magnitude = 0;
+                
+                // Calculate magnitude for this frequency bin
+                for (let h = 1; h <= harmonicCount; h++) {
+                    const hFreq = freq * h;
+                    const damping = Math.pow(1 - damp, h - 1);
+                    // Gaussian window around each harmonic
+                    const delta = Math.abs(binFreq - hFreq);
+                    const sigma = freq * 0.1;
+                    const gaussian = Math.exp(-(delta * delta) / (2 * sigma * sigma));
+                    magnitude += damping * gaussian;
+                }
+                
+                const height = magnitude * maxHeight;
+                ctx.fillRect(bin * binWidth, canvas.height - height, binWidth * 0.8, height);
+            }
+            
+            // Draw frequency axis labels
+            ctx.fillStyle = '#888';
+            ctx.font = '11px Lato';
+            ctx.textAlign = 'center';
+            for (let i = 0; i <= 4; i++) {
+                const binIndex = (i / 4) * binCount;
+                const freqLabel = Math.round((i / 4) * maxFreq);
+                ctx.fillText(freqLabel + ' Hz', binIndex * binWidth, canvas.height - 2);
+            }
+        }
+
+        // Play synthesis
+        function play() {
+            initAudio();
+            
+            // Stop any existing oscillators
+            currentOscillators.forEach(osc => osc.stop());
+            currentOscillators = [];
+            currentGains = [];
+            
+            const freq = parseFloat(document.getElementById('freqSlider').value);
+            const harmonicCount = parseInt(document.getElementById('harmonicSlider').value);
+            const amplitude = parseFloat(document.getElementById('ampSlider').value) / 100;
+            const damp = parseFloat(document.getElementById('dampSlider').value);
+            const duration = parseFloat(document.getElementById('durationSlider').value);
+            const waveform = document.querySelector('.waveform-btn.active').dataset.wave;
+            
+            const masterGain = audioContext.createGain();
+            masterGain.connect(audioContext.destination);
+            masterGain.gain.setValueAtTime(amplitude, audioContext.currentTime);
+            masterGain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
+            
+            for (let i = 1; i <= harmonicCount; i++) {
+                const osc = audioContext.createOscillator();
+                osc.type = waveform;
+                osc.frequency.value = freq * i;
+                
+                const gainNode = audioContext.createGain();
+                const damping = Math.pow(1 - damp, i - 1);
+                gainNode.gain.setValueAtTime(damping / harmonicCount, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + duration);
+                
+                osc.connect(gainNode);
+                gainNode.connect(masterGain);
+                
+                osc.start(audioContext.currentTime);
+                osc.stop(audioContext.currentTime + duration);
+                
+                currentOscillators.push(osc);
+                currentGains.push(gainNode);
+            }
+        }
+
+        // Event Listeners
+        document.getElementById('freqSlider').addEventListener('input', (e) => {
+            document.getElementById('freqValue').textContent = e.target.value;
+            updateStats();
+            drawHarmonics();
+            drawSpectrum();
+        });
+
+        document.getElementById('harmonicSlider').addEventListener('input', (e) => {
+            document.getElementById('harmonicValue').textContent = e.target.value;
+            updateStats();
+            drawHarmonics();
+            drawSpectrum();
+        });
+
+        document.getElementById('ampSlider').addEventListener('input', (e) => {
+            document.getElementById('ampValue').textContent = e.target.value;
+        });
+
+        document.getElementById('dampSlider').addEventListener('input', (e) => {
+            document.getElementById('dampValue').textContent = parseFloat(e.target.value).toFixed(2);
+            drawHarmonics();
+            drawSpectrum();
+        });
+
+        document.getElementById('durationSlider').addEventListener('input', (e) => {
+            document.getElementById('durationValue').textContent = parseFloat(e.target.value).toFixed(1);
+        });
+
+        // Preset buttons
+        document.querySelectorAll('[data-freq]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.getElementById('freqSlider').value = btn.dataset.freq;
+                document.getElementById('freqValue').textContent = Math.round(btn.dataset.freq * 100) / 100;
+                updateStats();
+                drawHarmonics();
+                drawSpectrum();
+            });
+        });
+
+        // Waveform buttons
+        document.querySelectorAll('.waveform-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.waveform-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+            });
+        });
+
+        // Play button
+        document.getElementById('playBtn').addEventListener('click', play);
+
+        // Initial draw
+        updateStats();
+        drawHarmonics();
+        drawSpectrum();
+    </script>
+</body>
+</html>
