@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Resonance Tube — Sound Physics</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&family=Lato:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Lato', sans-serif;
+      background: linear-gradient(135deg, #0a0a14 0%, #1a1420 100%);
+      color: #fff;
+      overflow: hidden;
+      height: 100vh;
+    }
+    .container {
+      display: flex;
+      height: 100vh;
+      gap: 24px;
+      padding: 24px;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+    .controls-panel {
+      flex: 0 0 280px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      overflow-y: auto;
+    }
+    .canvas-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    h1 {
+      font-family: 'Poppins', sans-serif;
+      font-size: 28px;
+      font-weight: 700;
+      color: #00d9ff;
+    }
+    h2 {
+      font-family: 'Poppins', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #c4a57b;
+      margin-top: 16px;
+      margin-bottom: 12px;
+    }
+    .button-group {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    button {
+      flex: 1;
+      min-width: 60px;
+      padding: 10px 12px;
+      border: 2px solid #2a5a9e;
+      background: transparent;
+      color: #00d9ff;
+      border-radius: 6px;
+      font-family: 'Lato', sans-serif;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    button:hover {
+      background: #2a5a9e;
+      color: #fff;
+    }
+    button.active {
+      background: #2a5a9e;
+      border-color: #00d9ff;
+      color: #ffd700;
+    }
+    .slider-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    label {
+      font-size: 12px;
+      font-weight: 500;
+      color: #b0b0b0;
+      display: flex;
+      justify-content: space-between;
+    }
+    .slider-value {
+      color: #ffd700;
+      font-weight: 600;
+    }
+    input[type="range"] {
+      width: 100%;
+      height: 6px;
+      border-radius: 3px;
+      background: linear-gradient(to right, #2a5a9e, #d64545);
+      outline: none;
+      -webkit-appearance: none;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #ffd700;
+      cursor: pointer;
+      box-shadow: 0 0 8px rgba(255, 215, 0, 0.6);
+    }
+    input[type="range"]::-moz-range-thumb {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #ffd700;
+      cursor: pointer;
+      border: none;
+      box-shadow: 0 0 8px rgba(255, 215, 0, 0.6);
+    }
+    .stats-panel {
+      background: rgba(10, 10, 20, 0.8);
+      border: 1px solid #2a5a9e;
+      border-radius: 8px;
+      padding: 12px;
+      font-size: 12px;
+      gap: 8px;
+      display: flex;
+      flex-direction: column;
+    }
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .stat-label {
+      color: #b0b0b0;
+    }
+    .stat-value {
+      color: #ffd700;
+      font-weight: 600;
+      font-family: 'Poppins', sans-serif;
+    }
+    .resonance-indicator {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .resonance-label {
+      font-size: 11px;
+      color: #c4a57b;
+      font-weight: 600;
+    }
+    .resonance-bar {
+      height: 8px;
+      background: #1a1f3a;
+      border-radius: 4px;
+      overflow: hidden;
+      border: 1px solid #2a5a9e;
+    }
+    .resonance-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #2a5a9e, #2d9d5f);
+      width: 0%;
+      transition: width 0.1s;
+    }
+    canvas {
+      border: 1px solid #2a5a9e;
+      border-radius: 8px;
+      background: #0f0f1a;
+      flex: 1;
+      display: block;
+    }
+    .response-graph {
+      flex: 0 0 120px;
+      background: rgba(10, 10, 20, 0.8);
+      border: 1px solid #2a5a9e;
+      border-radius: 8px;
+      position: relative;
+    }
+    @media (max-width: 900px) {
+      .container {
+        flex-direction: column;
+      }
+      .controls-panel {
+        flex: 0 0 auto;
+      }
+      .canvas-panel {
+        flex: 1;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="controls-panel">
+      <div>
+        <h1>🎛️ Resonance Tube</h1>
+        <p style="font-size: 12px; color: #999; margin-top: 4px;">Real standing wave physics</p>
+      </div>
+
+      <div>
+        <h2>Tube Type</h2>
+        <div class="button-group">
+          <button class="tube-btn active" data-type="open-open">Open-Open</button>
+          <button class="tube-btn" data-type="open-closed">Open-Closed</button>
+          <button class="tube-btn" data-type="closed-closed">Closed-Closed</button>
+        </div>
+      </div>
+
+      <div class="slider-group">
+        <label>Tube Length <span class="slider-value" id="lengthVal">50 cm</span></label>
+        <input type="range" id="lengthSlider" min="10" max="200" value="50">
+      </div>
+
+      <div class="slider-group">
+        <label>Frequency <span class="slider-value" id="freqVal">440 Hz</span></label>
+        <input type="range" id="freqSlider" min="20" max="2000" value="440">
+      </div>
+
+      <div>
+        <h2>Harmonic Quick Jump</h2>
+        <div class="button-group">
+          <button class="harmonic-btn" data-harmonic="1">Fundamental</button>
+          <button class="harmonic-btn" data-harmonic="2">2nd</button>
+          <button class="harmonic-btn" data-harmonic="3">3rd</button>
+          <button class="harmonic-btn" data-harmonic="4">4th</button>
+          <button class="harmonic-btn" data-harmonic="5">5th</button>
+        </div>
+      </div>
+
+      <div class="stats-panel">
+        <div class="stat-row">
+          <span class="stat-label">Tube Type:</span>
+          <span class="stat-value" id="tubeTypeVal">Open-Open</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Length:</span>
+          <span class="stat-value" id="lengthStatVal">50 cm</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Frequency:</span>
+          <span class="stat-value" id="freqStatVal">440 Hz</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Wavelength:</span>
+          <span class="stat-value" id="wavelengthVal">77.5 cm</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Harmonic #:</span>
+          <span class="stat-value" id="harmonicVal">n = 0</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Nodes:</span>
+          <span class="stat-value" id="nodesVal">0</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Antinodes:</span>
+          <span class="stat-value" id="antinodesVal">0</span>
+        </div>
+      </div>
+
+      <div class="resonance-indicator">
+        <span class="resonance-label">Resonance Strength</span>
+        <div class="resonance-bar">
+          <div class="resonance-fill" id="resonanceFill"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="canvas-panel">
+      <canvas id="tubeCanvas"></canvas>
+      <canvas id="responseGraph"></canvas>
+    </div>
+  </div>
+
+  <script>
+    const SPEED_OF_SOUND = 343; // m/s at 20°C
+    const C_CM_PER_S = SPEED_OF_SOUND * 100; // convert to cm/s
+
+    let state = {
+      tubeType: 'open-open',
+      length: 50, // cm
+      frequency: 440, // Hz
+      animationPhase: 0
+    };
+
+    const canvas = document.getElementById('tubeCanvas');
+    const ctx = canvas.getContext('2d');
+    const responseCanvas = document.getElementById('responseGraph');
+    const responseCtx = responseCanvas.getContext('2d');
+
+    function resizeCanvas() {
+      canvas.width = canvas.offsetWidth;
+      canvas.height = canvas.offsetHeight;
+      responseCanvas.width = responseCanvas.offsetWidth;
+      responseCanvas.height = responseCanvas.offsetHeight;
+    }
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+
+    // Resonance frequency calculator for each tube type
+    function getResonanceFrequencies(length, tubeType) {
+      const freqs = [];
+      if (tubeType === 'open-open' || tubeType === 'closed-closed') {
+        // f = n * c / (2*L) for n = 1, 2, 3, ...
+        for (let n = 1; n <= 5; n++) {
+          freqs.push((n * C_CM_PER_S) / (2 * length));
+        }
+      } else if (tubeType === 'open-closed') {
+        // f = (2n-1) * c / (4*L) for n = 1, 2, 3, ...
+        for (let n = 1; n <= 5; n++) {
+          freqs.push(((2 * n - 1) * C_CM_PER_S) / (4 * length));
+        }
+      }
+      return freqs;
+    }
+
+    function getResonanceStrength(freq, tubeType, length) {
+      const resonances = getResonanceFrequencies(length, tubeType);
+      let minDist = Infinity;
+      for (const r of resonances) {
+        const dist = Math.abs(freq - r);
+        minDist = Math.min(minDist, dist);
+      }
+      // Strength drops off with distance; peak at resonance frequency
+      const strength = Math.max(0, 1 - (minDist / 50)); // 50 Hz tolerance
+      return Math.pow(strength, 2); // soften the curve
+    }
+
+    function getHarmonicNumber(freq, tubeType, length) {
+      const resonances = getResonanceFrequencies(length, tubeType);
+      let closest = { freq: 0, n: 0, dist: Infinity };
+      for (let i = 0; i < resonances.length; i++) {
+        const dist = Math.abs(freq - resonances[i]);
+        if (dist < closest.dist) {
+          closest = { freq: resonances[i], n: i + 1, dist };
+        }
+      }
+      return closest.dist < 50 ? closest.n : 0; // within 50 Hz
+    }
+
+    function getNodeAndAntiNodeCounts(tubeType, length) {
+      const harmonic = getHarmonicNumber(state.frequency, tubeType, length);
+      if (harmonic === 0) return { nodes: 0, antinodes: 0 };
+
+      if (tubeType === 'open-open') {
+        // n nodes at ends + (n-1) interior nodes = n nodes total per harmonic
+        // antinodes = n + 1
+        return { nodes: harmonic, antinodes: harmonic + 1 };
+      } else if (tubeType === 'open-closed') {
+        // closed end is a node, open end is antinode
+        // n-th harmonic: n nodes, n antinodes
+        return { nodes: harmonic, antinodes: harmonic };
+      } else if (tubeType === 'closed-closed') {
+        // both ends are nodes
+        // n nodes, n-1 antinodes
+        return { nodes: harmonic, antinodes: harmonic - 1 };
+      }
+      return { nodes: 0, antinodes: 0 };
+    }
+
+    function updateUI() {
+      document.getElementById('lengthVal').textContent = state.length + ' cm';
+      document.getElementById('freqVal').textContent = Math.round(state.frequency) + ' Hz';
+      document.getElementById('lengthSlider').value = state.length;
+      document.getElementById('freqSlider').value = state.frequency;
+
+      const wavelength = (C_CM_PER_S / state.frequency).toFixed(1);
+      document.getElementById('wavelengthVal').textContent = wavelength + ' cm';
+
+      document.getElementById('tubeTypeVal').textContent = 
+        state.tubeType === 'open-open' ? 'Open-Open' : 
+        state.tubeType === 'open-closed' ? 'Open-Closed' : 'Closed-Closed';
+      document.getElementById('lengthStatVal').textContent = state.length + ' cm';
+      document.getElementById('freqStatVal').textContent = Math.round(state.frequency) + ' Hz';
+
+      const harmonic = getHarmonicNumber(state.frequency, state.tubeType, state.length);
+      document.getElementById('harmonicVal').textContent = 'n = ' + harmonic;
+
+      const { nodes, antinodes } = getNodeAndAntiNodeCounts(state.tubeType, state.length);
+      document.getElementById('nodesVal').textContent = nodes;
+      document.getElementById('antinodesVal').textContent = antinodes;
+
+      const resonanceStr = getResonanceStrength(state.frequency, state.tubeType, state.length);
+      document.getElementById('resonanceFill').style.width = (resonanceStr * 100) + '%';
+    }
+
+    function drawTube() {
+      const padding = 40;
+      const tubeX = padding;
+      const tubeY = padding;
+      const tubeWidth = canvas.width - 2 * padding;
+      const tubeHeight = canvas.height - 2 * padding;
+
+      const scale = tubeWidth / state.length; // pixels per cm
+
+      // Clear canvas
+      ctx.fillStyle = '#0f0f1a';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Draw tube outline
+      const tubeTop = tubeY + 40;
+      const tubeBottom = tubeY + tubeHeight - 40;
+      const tubeCenterY = (tubeTop + tubeBottom) / 2;
+      const tubeVisualHeight = tubeBottom - tubeTop;
+
+      ctx.strokeStyle = '#c4a57b';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(tubeX, tubeTop);
+      ctx.lineTo(tubeX + tubeWidth, tubeTop);
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.moveTo(tubeX, tubeBottom);
+      ctx.lineTo(tubeX + tubeWidth, tubeBottom);
+      ctx.stroke();
+
+      // Draw end caps based on tube type
+      ctx.fillStyle = '#c4a57b';
+      if (state.tubeType === 'open-open') {
+        ctx.fillRect(tubeX - 2, tubeTop - 4, 4, tubeVisualHeight + 8);
+        ctx.fillRect(tubeX + tubeWidth - 2, tubeTop - 4, 4, tubeVisualHeight + 8);
+      } else if (state.tubeType === 'open-closed') {
+        ctx.fillRect(tubeX - 2, tubeTop - 4, 4, tubeVisualHeight + 8); // open left
+        ctx.fillRect(tubeX + tubeWidth - 4, tubeTop, 4, tubeVisualHeight); // closed right
+      } else if (state.tubeType === 'closed-closed') {
+        ctx.fillRect(tubeX - 4, tubeTop, 4, tubeVisualHeight); // closed left
+        ctx.fillRect(tubeX + tubeWidth, tubeTop, 4, tubeVisualHeight); // closed right
+      }
+
+      // Draw standing wave
+      const wavelength = C_CM_PER_S / state.frequency;
+      const waveAmplitude = tubeVisualHeight * 0.25;
+      const harmonic = getHarmonicNumber(state.frequency, state.tubeType, state.length);
+
+      // Draw fundamental frequency (blue) and harmonics (red, yellow)
+      for (let harmNum = 1; harmNum <= 3; harmNum++) {
+        let color;
+        let alpha;
+        if (harmNum === harmonic) {
+          color = '#2d9d5f'; // green for resonant harmonic
+          alpha = 0.7;
+        } else if (harmNum === 1) {
+          color = '#2a5a9e'; // blue for fundamental
+          alpha = 0.3;
+        } else {
+          color = '#d64545'; // red for higher harmonics
+          alpha = 0.2;
+        }
+
+        ctx.strokeStyle = color;
+        ctx.globalAlpha = alpha;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+
+        for (let x = 0; x <= state.length; x += 0.5) {
+          const px = tubeX + x * scale;
+          let y;
+
+          if (state.tubeType === 'open-open') {
+            // sin(n * π * x / L)
+            const arg = (harmNum * Math.PI * x) / state.length + state.animationPhase;
+            y = tubeCenterY - Math.sin(arg) * waveAmplitude;
+          } else if (state.tubeType === 'open-closed') {
+            // sin((2n-1) * π * x / (2*L))
+            const arg = (((2 * harmNum - 1) * Math.PI * x) / (2 * state.length)) + state.animationPhase;
+            y = tubeCenterY - Math.sin(arg) * waveAmplitude;
+          } else if (state.tubeType === 'closed-closed') {
+            // cos(n * π * x / L)
+            const arg = (harmNum * Math.PI * x) / state.length + state.animationPhase;
+            y = tubeCenterY - Math.cos(arg) * waveAmplitude;
+          }
+
+          if (x === 0) {
+            ctx.moveTo(px, y);
+          } else {
+            ctx.lineTo(px, y);
+          }
+        }
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+
+      // Draw nodes and antinodes for the active harmonic
+      if (harmonic > 0) {
+        const { nodes, antinodes } = getNodeAndAntiNodeCounts(state.tubeType, state.length);
+
+        // Nodes
+        ctx.fillStyle = '#00d9ff';
+        for (let i = 0; i <= nodes; i++) {
+          let nodeX;
+          if (state.tubeType === 'open-open') {
+            nodeX = state.length * i / harmonic;
+          } else if (state.tubeType === 'open-closed') {
+            nodeX = state.length * i / (2 * harmonic - 1);
+          } else {
+            nodeX = state.length * i / harmonic;
+          }
+
+          if (nodeX >= 0 && nodeX <= state.length) {
+            const px = tubeX + nodeX * scale;
+            ctx.beginPath();
+            ctx.arc(px, tubeCenterY, 4, 0, 2 * Math.PI);
+            ctx.fill();
+          }
+        }
+
+        // Antinodes
+        ctx.fillStyle = '#ffd700';
+        for (let i = 0; i < antinodes; i++) {
+          let antiNodeX;
+          if (state.tubeType === 'open-open') {
+            antiNodeX = state.length * (i + 0.5) / harmonic;
+          } else if (state.tubeType === 'open-closed') {
+            antiNodeX = state.length * (2 * i + 1) / (2 * (2 * harmonic - 1));
+          } else {
+            antiNodeX = state.length * (i + 0.5) / harmonic;
+          }
+
+          if (antiNodeX >= 0 && antiNodeX <= state.length) {
+            const px = tubeX + antiNodeX * scale;
+            ctx.beginPath();
+            ctx.arc(px, tubeCenterY, 3, 0, 2 * Math.PI);
+            ctx.fill();
+          }
+        }
+      }
+    }
+
+    function drawResponseGraph() {
+      const padding = 12;
+      const graphX = padding;
+      const graphY = padding;
+      const graphW = responseCanvas.width - 2 * padding;
+      const graphH = responseCanvas.height - 2 * padding;
+
+      // Clear
+      responseCtx.fillStyle = '#0f0f1a';
+      responseCtx.fillRect(0, 0, responseCanvas.width, responseCanvas.height);
+
+      // Border
+      responseCtx.strokeStyle = '#2a5a9e';
+      responseCtx.lineWidth = 1;
+      responseCtx.strokeRect(graphX, graphY, graphW, graphH);
+
+      // Draw resonance curve (frequency response)
+      const minFreq = 20;
+      const maxFreq = 2000;
+      const resonances = getResonanceFrequencies(state.length, state.tubeType);
+
+      // Background grid
+      responseCtx.strokeStyle = 'rgba(42, 90, 158, 0.3)';
+      responseCtx.lineWidth = 1;
+      for (let i = 1; i < 4; i++) {
+        const x = graphX + (graphW * i) / 4;
+        responseCtx.beginPath();
+        responseCtx.moveTo(x, graphY);
+        responseCtx.lineTo(x, graphY + graphH);
+        responseCtx.stroke();
+      }
+
+      // Draw resonance peaks
+      responseCtx.strokeStyle = '#2d9d5f';
+      responseCtx.lineWidth = 2;
+      responseCtx.beginPath();
+
+      for (let i = 0; i < resonances.length; i++) {
+        const freq = resonances[i];
+        if (freq >= minFreq && freq <= maxFreq) {
+          const x = graphX + ((freq - minFreq) / (maxFreq - minFreq)) * graphW;
+          const strength = 0.8;
+          const y = graphY + graphH - strength * graphH;
+
+          if (i === 0) {
+            responseCtx.moveTo(x, y);
+          } else {
+            responseCtx.lineTo(x, y);
+          }
+        }
+      }
+      responseCtx.stroke();
+
+      // Draw current frequency marker
+      responseCtx.strokeStyle = '#ffd700';
+      responseCtx.lineWidth = 2;
+      const currentX = graphX + ((state.frequency - minFreq) / (maxFreq - minFreq)) * graphW;
+      responseCtx.beginPath();
+      responseCtx.moveTo(currentX, graphY);
+      responseCtx.lineTo(currentX, graphY + graphH);
+      responseCtx.stroke();
+
+      // Labels
+      responseCtx.fillStyle = '#b0b0b0';
+      responseCtx.font = '10px Lato';
+      responseCtx.textAlign = 'center';
+      responseCtx.fillText('20 Hz', graphX, graphY + graphH + 12);
+      responseCtx.fillText('2000 Hz', graphX + graphW, graphY + graphH + 12);
+    }
+
+    function animate() {
+      state.animationPhase += 0.08;
+      drawTube();
+      drawResponseGraph();
+      requestAnimationFrame(animate);
+    }
+    animate();
+
+    // Event listeners
+    document.querySelectorAll('.tube-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        document.querySelectorAll('.tube-btn').forEach(b => b.classList.remove('active'));
+        e.target.classList.add('active');
+        state.tubeType = e.target.dataset.type;
+        updateUI();
+      });
+    });
+
+    document.getElementById('lengthSlider').addEventListener('input', (e) => {
+      state.length = parseFloat(e.target.value);
+      updateUI();
+    });
+
+    document.getElementById('freqSlider').addEventListener('input', (e) => {
+      state.frequency = parseFloat(e.target.value);
+      updateUI();
+    });
+
+    document.querySelectorAll('.harmonic-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const harmonic = parseInt(e.target.dataset.harmonic);
+        const resonances = getResonanceFrequencies(state.length, state.tubeType);
+        if (harmonic - 1 < resonances.length) {
+          state.frequency = resonances[harmonic - 1];
+          updateUI();
+        }
+      });
+    });
+
+    updateUI();
+  </script>
+</body>
+</html>
