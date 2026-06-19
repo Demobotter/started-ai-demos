@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Map Projections Visualizer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&family=Lato:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Lato', sans-serif;
+            background: linear-gradient(135deg, #00a8a8 0%, #005555 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 1200px;
+            width: 100%;
+            padding: 30px;
+        }
+        h1 {
+            font-family: 'Poppins', sans-serif;
+            color: #005555;
+            margin-bottom: 8px;
+            font-size: 28px;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 24px;
+            font-size: 14px;
+        }
+        .content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 20px;
+        }
+        .control-panel {
+            background: #f9f9f9;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #00d9ff;
+        }
+        .control-group {
+            margin-bottom: 20px;
+        }
+        .control-label {
+            font-family: 'Poppins', sans-serif;
+            font-weight: 600;
+            color: #005555;
+            font-size: 12px;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            display: block;
+        }
+        .button-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 16px;
+        }
+        button {
+            padding: 8px 14px;
+            border: 2px solid #00a8a8;
+            background: white;
+            color: #005555;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: 'Lato', sans-serif;
+            font-size: 12px;
+            font-weight: 500;
+            transition: all 0.2s;
+            flex: 1;
+            min-width: 80px;
+        }
+        button:hover { background: #e8f8f8; }
+        button.active {
+            background: #00a8a8;
+            color: white;
+            border-color: #00a8a8;
+        }
+        .slider-group {
+            margin-bottom: 16px;
+        }
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 6px;
+        }
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #ddd;
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #00a8a8;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #00a8a8;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .stats-panel {
+            background: #fff9f0;
+            padding: 16px;
+            border-radius: 8px;
+            margin-top: 16px;
+            border: 1px solid #ffd9a8;
+        }
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            margin-bottom: 8px;
+            color: #333;
+        }
+        .stat-item:last-child { margin-bottom: 0; }
+        .stat-label { font-weight: 500; color: #666; }
+        .stat-value { font-family: 'Poppins', sans-serif; font-weight: 600; color: #005555; }
+        .canvas-wrapper {
+            background: #f0f8f8;
+            border-radius: 8px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        canvas {
+            border: 2px solid #00a8a8;
+            border-radius: 6px;
+            display: block;
+            background: white;
+            cursor: crosshair;
+        }
+        .distortion-indicator {
+            font-size: 12px;
+            color: #666;
+            text-align: center;
+        }
+        .preset-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+        }
+        .preset-buttons button {
+            padding: 6px 10px;
+            font-size: 11px;
+            min-width: 65px;
+            background: white;
+            border: 1px solid #ccc;
+            color: #666;
+        }
+        .preset-buttons button:hover { background: #f0f0f0; }
+        .preset-buttons button.active {
+            background: #d4a574;
+            color: white;
+            border-color: #d4a574;
+        }
+        @media (max-width: 900px) {
+            .content { grid-template-columns: 1fr; }
+            .container { padding: 20px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🗺️ Map Projections</h1>
+        <p class="subtitle">Real projection math — watch the globe transform</p>
+        
+        <div class="content">
+            <div class="control-panel">
+                <div class="control-group">
+                    <label class="control-label">Projection Type</label>
+                    <div class="button-group">
+                        <button class="proj-btn active" data-proj="mercator">Mercator</button>
+                        <button class="proj-btn" data-proj="equirect">Equirect</button>
+                        <button class="proj-btn" data-proj="lambert">Lambert</button>
+                        <button class="proj-btn" data-proj="ortho">Ortho</button>
+                        <button class="proj-btn" data-proj="azimuth">Azimuth</button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label class="control-label">City Presets</label>
+                    <div class="preset-buttons">
+                        <button class="preset-btn" data-lat="51.5" data-lon="-0.1">London</button>
+                        <button class="preset-btn" data-lat="35.7" data-lon="139.7">Tokyo</button>
+                        <button class="preset-btn" data-lat="-33.9" data-lon="151.2">Sydney</button>
+                        <button class="preset-btn" data-lat="40.7" data-lon="-74.0">NYC</button>
+                        <button class="preset-btn" data-lat="30.0" data-lon="31.2">Cairo</button>
+                        <button class="preset-btn" data-lat="-23.5" data-lon="-46.6">São Paulo</button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <div class="slider-group">
+                        <div class="slider-label">
+                            <span>Latitude</span>
+                            <span id="latValue">0.0°</span>
+                        </div>
+                        <input type="range" id="latSlider" min="-90" max="90" value="0" step="1">
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <div class="slider-group">
+                        <div class="slider-label">
+                            <span>Longitude</span>
+                            <span id="lonValue">0.0°</span>
+                        </div>
+                        <input type="range" id="lonSlider" min="-180" max="180" value="0" step="1">
+                    </div>
+                </div>
+
+                <div class="stats-panel">
+                    <div class="control-label">Stats</div>
+                    <div class="stat-item">
+                        <span class="stat-label">Projection:</span>
+                        <span class="stat-value" id="projName">Mercator</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Latitude:</span>
+                        <span class="stat-value" id="latStat">0.0°N</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Longitude:</span>
+                        <span class="stat-value" id="lonStat">0.0°E</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Map X:</span>
+                        <span class="stat-value" id="mapX">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Map Y:</span>
+                        <span class="stat-value" id="mapY">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Area Distortion:</span>
+                        <span class="stat-value" id="distortion">1.0x</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="canvas-wrapper">
+                <canvas id="canvas" width="500" height="500"></canvas>
+                <div class="distortion-indicator">
+                    <strong>Distortion Heatmap:</strong> Green (low) → Yellow → Red (high)
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const latSlider = document.getElementById('latSlider');
+        const lonSlider = document.getElementById('lonSlider');
+        const latValue = document.getElementById('latValue');
+        const lonValue = document.getElementById('lonValue');
+
+        let currentProjection = 'mercator';
+        let currentLat = 0;
+        let currentLon = 0;
+
+        // Projection functions
+        const projections = {
+            mercator: (lat, lon) => {
+                const x = lon;
+                const y = Math.log(Math.tan(Math.PI / 4 + lat * Math.PI / 360)) / Math.PI;
+                return { x, y };
+            },
+            equirect: (lat, lon) => {
+                return { x: lon / 180, y: lat / 90 };
+            },
+            lambert: (lat, lon) => {
+                const lat1 = 30 * Math.PI / 180;
+                const lat2 = 60 * Math.PI / 180;
+                const phi = lat * Math.PI / 180;
+                const lambda = lon * Math.PI / 180;
+                const n = (Math.log(Math.cos(lat1)) - Math.log(Math.cos(lat2))) / 
+                         (Math.log(Math.tan(Math.PI/4 + lat2/2)) - Math.log(Math.tan(Math.PI/4 + lat1/2)));
+                const F = Math.cos(lat1) * Math.pow(Math.tan(Math.PI/4 + lat1/2), n) / n;
+                const rho = F / Math.pow(Math.tan(Math.PI/4 + phi/2), n);
+                const x = rho * Math.sin(n * lambda) / 100;
+                const y = -rho * Math.cos(n * lambda) / 100;
+                return { x, y };
+            },
+            ortho: (lat, lon) => {
+                const phi = lat * Math.PI / 180;
+                const lambda = lon * Math.PI / 180;
+                const x = Math.cos(phi) * Math.sin(lambda);
+                const y = Math.sin(phi);
+                return { x, y };
+            },
+            azimuth: (lat, lon) => {
+                const phi = lat * Math.PI / 180;
+                const lambda = lon * Math.PI / 180;
+                const k = Math.sqrt(2 / (1 + Math.sin(phi) * Math.sin(0) + Math.cos(phi) * Math.cos(0) * Math.cos(lambda)));
+                const x = k * Math.cos(phi) * Math.sin(lambda);
+                const y = k * (Math.cos(0) * Math.sin(phi) - Math.sin(0) * Math.cos(phi) * Math.cos(lambda));
+                return { x, y };
+            }
+        };
+
+        // Distortion calculation (simplified Tissot)
+        function getDistortion(lat, lon, proj) {
+            const eps = 0.5;
+            const p1 = projections[proj](lat, lon);
+            const p2 = projections[proj](lat + eps, lon);
+            const p3 = projections[proj](lat, lon + eps);
+            const d1 = Math.sqrt(Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2));
+            const d2 = Math.sqrt(Math.pow(p3.x - p1.x, 2) + Math.pow(p3.y - p1.y, 2));
+            return Math.max(d1, d2) / Math.max(0.01, Math.min(d1, d2));
+        }
+
+        function drawProjection() {
+            ctx.fillStyle = '#f0f8f8';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const scale = 80;
+
+            // Draw graticule
+            ctx.strokeStyle = 'rgba(0, 169, 168, 0.2)';
+            ctx.lineWidth = 1;
+            for (let lat = -80; lat <= 80; lat += 20) {
+                ctx.beginPath();
+                for (let lon = -180; lon <= 180; lon += 5) {
+                    const proj = projections[currentProjection](lat, lon);
+                    const x = centerX + proj.x * scale;
+                    const y = centerY - proj.y * scale;
+                    if (lon === -180) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.stroke();
+            }
+
+            for (let lon = -180; lon <= 180; lon += 30) {
+                ctx.beginPath();
+                for (let lat = -80; lat <= 80; lat += 5) {
+                    const proj = projections[currentProjection](lat, lon);
+                    const x = centerX + proj.x * scale;
+                    const y = centerY - proj.y * scale;
+                    if (lat === -80) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.stroke();
+            }
+
+            // Draw equator and prime meridian
+            ctx.strokeStyle = '#ff6b6b';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            for (let lon = -180; lon <= 180; lon += 2) {
+                const proj = projections[currentProjection](0, lon);
+                const x = centerX + proj.x * scale;
+                const y = centerY - proj.y * scale;
+                if (lon === -180) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+
+            // Draw distortion heatmap as small dots
+            for (let lat = -60; lat <= 60; lat += 10) {
+                for (let lon = -170; lon <= 170; lon += 20) {
+                    const distortion = getDistortion(lat, lon, currentProjection);
+                    const hue = Math.max(0, 120 - distortion * 40);
+                    ctx.fillStyle = `hsl(${hue}, 70%, 50%)`;
+                    const proj = projections[currentProjection](lat, lon);
+                    const x = centerX + proj.x * scale;
+                    const y = centerY - proj.y * scale;
+                    ctx.beginPath();
+                    ctx.arc(x, y, 2, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+
+            // Draw current location
+            const currentProj = projections[currentProjection](currentLat, currentLon);
+            const pointX = centerX + currentProj.x * scale;
+            const pointY = centerY - currentProj.y * scale;
+
+            ctx.fillStyle = '#00d9ff';
+            ctx.beginPath();
+            ctx.arc(pointX, pointY, 6, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.strokeStyle = '#005555';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(pointX, pointY, 10, 0, Math.PI * 2);
+            ctx.stroke();
+
+            updateStats();
+        }
+
+        function updateStats() {
+            document.getElementById('projName').textContent = 
+                { mercator: 'Mercator', equirect: 'Equirectangular', lambert: 'Lambert Conformal', 
+                  ortho: 'Orthographic', azimuth: 'Azimuthal Equidistant' }[currentProjection];
+            document.getElementById('latStat').textContent = 
+                `${Math.abs(currentLat).toFixed(1)}°${currentLat >= 0 ? 'N' : 'S'}`;
+            document.getElementById('lonStat').textContent = 
+                `${Math.abs(currentLon).toFixed(1)}°${currentLon >= 0 ? 'E' : 'W'}`;
+            
+            const proj = projections[currentProjection](currentLat, currentLon);
+            document.getElementById('mapX').textContent = proj.x.toFixed(2);
+            document.getElementById('mapY').textContent = proj.y.toFixed(2);
+            
+            const dist = getDistortion(currentLat, currentLon, currentProjection);
+            document.getElementById('distortion').textContent = dist.toFixed(2) + 'x';
+        }
+
+        // Event listeners
+        document.querySelectorAll('.proj-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                document.querySelectorAll('.proj-btn').forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
+                currentProjection = e.target.dataset.proj;
+                drawProjection();
+            });
+        });
+
+        document.querySelectorAll('.preset-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                currentLat = parseFloat(e.target.dataset.lat);
+                currentLon = parseFloat(e.target.dataset.lon);
+                latSlider.value = currentLat;
+                lonSlider.value = currentLon;
+                latValue.textContent = currentLat.toFixed(1) + '°';
+                lonValue.textContent = currentLon.toFixed(1) + '°';
+                drawProjection();
+            });
+        });
+
+        latSlider.addEventListener('input', (e) => {
+            currentLat = parseFloat(e.target.value);
+            latValue.textContent = currentLat.toFixed(1) + '°';
+            drawProjection();
+        });
+
+        lonSlider.addEventListener('input', (e) => {
+            currentLon = parseFloat(e.target.value);
+            lonValue.textContent = currentLon.toFixed(1) + '°';
+            drawProjection();
+        });
+
+        // Initial draw
+        drawProjection();
+    </script>
+</body>
+</html>
