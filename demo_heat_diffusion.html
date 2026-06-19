@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Heat Diffusion</title>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0f0e27 0%, #1a1f3a 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            color: #fff;
+        }
+        .container {
+            max-width: 900px;
+            width: 100%;
+            background: rgba(26, 31, 58, 0.8);
+            border-radius: 12px;
+            padding: 30px;
+            border: 1px solid rgba(255, 107, 157, 0.2);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        h1 {
+            font-family: 'Syne', sans-serif;
+            font-size: 28px;
+            margin-bottom: 30px;
+            color: #ffd93d;
+            text-align: center;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+        }
+        .control-section {
+            background: rgba(45, 27, 78, 0.3);
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 107, 157, 0.15);
+        }
+        .control-group {
+            margin-bottom: 20px;
+        }
+        .control-group label {
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+            color: #ffd93d;
+        }
+        select, input[type="range"], button {
+            width: 100%;
+            padding: 8px 12px;
+            background: rgba(77, 184, 255, 0.1);
+            border: 1px solid rgba(77, 184, 255, 0.3);
+            border-radius: 6px;
+            color: #fff;
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            cursor: pointer;
+        }
+        select:hover, input[type="range"]:hover {
+            border-color: rgba(255, 107, 157, 0.5);
+        }
+        select:focus, input[type="range"]:focus {
+            outline: none;
+            border-color: #ff6b9d;
+            box-shadow: 0 0 8px rgba(255, 107, 157, 0.3);
+        }
+        .slider-value {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 4px;
+            font-size: 12px;
+            color: #4db8ff;
+        }
+        .preset-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1fr;
+            gap: 8px;
+            margin-top: 15px;
+        }
+        button {
+            padding: 8px 10px;
+            font-size: 11px;
+            background: rgba(255, 107, 157, 0.15);
+            border: 1px solid rgba(255, 107, 157, 0.3);
+            border-radius: 6px;
+            color: #ff6b9d;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+        button:hover {
+            background: rgba(255, 107, 157, 0.3);
+            border-color: #ff6b9d;
+        }
+        button.active {
+            background: #ff6b9d;
+            color: #1a1f3a;
+            border-color: #ff6b9d;
+        }
+        .viz-section {
+            background: rgba(45, 27, 78, 0.3);
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 107, 157, 0.15);
+        }
+        canvas {
+            width: 100%;
+            height: auto;
+            border-radius: 6px;
+            display: block;
+            margin-bottom: 15px;
+            background: #0a0e27;
+        }
+        .stats-panel {
+            background: rgba(15, 14, 39, 0.5);
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid rgba(77, 184, 255, 0.2);
+            font-size: 13px;
+            line-height: 1.6;
+        }
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+        .stat-label {
+            color: #4db8ff;
+            font-weight: 500;
+        }
+        .stat-value {
+            color: #ffd93d;
+            font-weight: 600;
+            font-family: 'Syne', sans-serif;
+        }
+        .doneness-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            background: rgba(255, 107, 157, 0.2);
+            border: 1px solid #ff6b9d;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            color: #ff6b9d;
+            margin-top: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🍳 Heat Diffusion</h1>
+        
+        <div class="grid">
+            <!-- Controls -->
+            <div>
+                <div class="control-section">
+                    <div class="control-group">
+                        <label>Food Type</label>
+                        <select id="foodType">
+                            <option value="beef">Beef</option>
+                            <option value="chicken">Chicken</option>
+                            <option value="pork">Pork</option>
+                            <option value="fish">Fish</option>
+                            <option value="vegetable">Vegetable</option>
+                        </select>
+                    </div>
+
+                    <div class="control-group">
+                        <label>Surface Temperature</label>
+                        <input type="range" id="surfaceTemp" min="50" max="300" value="200">
+                        <div class="slider-value">
+                            <span id="surfaceTempVal">200</span>
+                            <span>°C</span>
+                        </div>
+                    </div>
+
+                    <div class="control-group">
+                        <label>Thickness</label>
+                        <input type="range" id="thickness" min="1" max="20" value="5" step="0.5">
+                        <div class="slider-value">
+                            <span id="thicknessVal">5.0</span>
+                            <span>cm</span>
+                        </div>
+                    </div>
+
+                    <div class="control-group">
+                        <label>Cook Time</label>
+                        <input type="range" id="cookTime" min="1" max="120" value="30">
+                        <div class="slider-value">
+                            <span id="cookTimeVal">30</span>
+                            <span>min</span>
+                        </div>
+                    </div>
+
+                    <div class="control-group">
+                        <label>Beef Doneness Presets</label>
+                        <div class="preset-buttons">
+                            <button data-preset="rare">Rare</button>
+                            <button data-preset="med-rare">Med-Rare</button>
+                            <button data-preset="medium">Medium</button>
+                            <button data-preset="well">Well-Done</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Visualization -->
+            <div>
+                <div class="viz-section">
+                    <canvas id="heatmap" width="300" height="250"></canvas>
+                    <div class="stats-panel">
+                        <div class="stat-row">
+                            <span class="stat-label">Center Temperature:</span>
+                            <span class="stat-value" id="centerTemp">25°C</span>
+                        </div>
+                        <div class="stat-row">
+                            <span class="stat-label">Doneness:</span>
+                            <span class="stat-value" id="donenessLabel">Raw</span>
+                        </div>
+                        <div id="donenessInfo"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Thermal diffusivity (cm²/min) by food type
+        const diffusivity = {
+            beef: 0.008,
+            chicken: 0.007,
+            pork: 0.0075,
+            fish: 0.009,
+            vegetable: 0.01
+        };
+
+        // Doneness thresholds for beef (Celsius)
+        const donenessBeef = {
+            rare: 52.2,
+            'med-rare': 57.2,
+            medium: 63.3,
+            well: 71.1
+        };
+
+        // Safe thresholds for other meats
+        const safeTemps = {
+            chicken: 73.9,
+            pork: 63.3,
+            fish: 62.8,
+            vegetable: Infinity
+        };
+
+        const canvas = document.getElementById('heatmap');
+        const ctx = canvas.getContext('2d');
+        const inputs = {
+            foodType: document.getElementById('foodType'),
+            surfaceTemp: document.getElementById('surfaceTemp'),
+            thickness: document.getElementById('thickness'),
+            cookTime: document.getElementById('cookTime')
+        };
+        const displays = {
+            centerTemp: document.getElementById('centerTemp'),
+            donenessLabel: document.getElementById('donenessLabel'),
+            donenessInfo: document.getElementById('donenessInfo')
+        };
+        const presetBtns = document.querySelectorAll('[data-preset]');
+
+        // Error function approximation
+        function erf(x) {
+            const a1 = 0.254829592;
+            const a2 = -0.284496736;
+            const a3 = 1.421413741;
+            const a4 = -1.453152027;
+            const a5 = 1.061405429;
+            const p = 0.3275911;
+            const sign = x < 0 ? -1 : 1;
+            x = Math.abs(x);
+            const t = 1.0 / (1.0 + p * x);
+            const t2 = t * t, t3 = t2 * t, t4 = t3 * t, t5 = t4 * t;
+            return sign * (1.0 - (((((a5 * t5) + a4 * t4) + a3 * t3) + a2 * t2) + a1 * t) * Math.exp(-x * x));
+        }
+
+        function celsiusToFahrenheit(c) { return c * 9/5 + 32; }
+
+        function calculateCenterTemp(surfaceTemp, thickness, cookTime, foodType) {
+            const alpha = diffusivity[foodType];
+            const x = thickness / 2; // center
+            const t = cookTime; // in minutes
+            const denominator = 2 * Math.sqrt(alpha * t);
+            if (denominator === 0) return 25;
+            const erfArg = x / denominator;
+            const erfVal = erf(Math.min(erfArg, 3)); // cap for numerical stability
+            return 25 + (surfaceTemp - 25) * erfVal;
+        }
+
+        function getDonenessLabel(centerTemp, foodType) {
+            if (foodType === 'beef') {
+                if (centerTemp >= donenessBeef.well) return 'Well-Done';
+                if (centerTemp >= donenessBeef.medium) return 'Medium';
+                if (centerTemp >= donenessBeef['med-rare']) return 'Med-Rare';
+                if (centerTemp >= donenessBeef.rare) return 'Rare';
+                return 'Raw';
+            }
+            const safeTemp = safeTemps[foodType];
+            if (centerTemp >= safeTemp) return 'Safe';
+            return 'Undercooked';
+        }
+
+        function drawHeatmap() {
+            const foodType = inputs.foodType.value;
+            const surfaceTemp = parseFloat(inputs.surfaceTemp.value);
+            const thickness = parseFloat(inputs.thickness.value);
+            const cookTime = parseFloat(inputs.cookTime.value);
+
+            const centerTemp = calculateCenterTemp(surfaceTemp, thickness, cookTime, foodType);
+            const cellHeight = canvas.height / 20;
+
+            for (let i = 0; i < 20; i++) {
+                const depth = (i / 20) * thickness;
+                const x = depth / thickness;
+                const denominator = 2 * Math.sqrt(diffusivity[foodType] * cookTime);
+                const erfVal = denominator > 0 ? erf(x / denominator) : 0;
+                const temp = 25 + (surfaceTemp - 25) * Math.max(0, Math.min(1, erfVal));
+                const ratio = Math.max(0, Math.min(1, (temp - 25) / (surfaceTemp - 25)));
+                
+                const hue = (1 - ratio) * 240; // blue to red
+                const color = `hsl(${hue}, 100%, 50%)`;
+                ctx.fillStyle = color;
+                ctx.fillRect(0, i * cellHeight, canvas.width, cellHeight);
+            }
+
+            // Center temp indicator
+            ctx.fillStyle = '#ffd93d';
+            ctx.beginPath();
+            ctx.arc(canvas.width / 2, canvas.height / 2, 6, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Update stats
+            displays.centerTemp.textContent = centerTemp.toFixed(1) + '°C (' + celsiusToFahrenheit(centerTemp).toFixed(0) + '°F)';
+            const donenessLabel = getDonenessLabel(centerTemp, foodType);
+            displays.donenessLabel.textContent = donenessLabel;
+
+            // Info text
+            let info = '';
+            if (foodType === 'beef') {
+                const temps = donenessBeef;
+                info = `Rare: ${temps.rare}°C | Med-Rare: ${temps['med-rare']}°C | Medium: ${temps.medium}°C | Well: ${temps.well}°C`;
+            } else if (safeTemps[foodType] !== Infinity) {
+                info = `Safe threshold: ${safeTemps[foodType]}°C`;
+            }
+            displays.donenessInfo.innerHTML = info ? `<div class="doneness-badge">${info}</div>` : '';
+        }
+
+        function update() {
+            document.getElementById('surfaceTempVal').textContent = inputs.surfaceTemp.value;
+            document.getElementById('thicknessVal').textContent = inputs.thickness.value;
+            document.getElementById('cookTimeVal').textContent = inputs.cookTime.value;
+            drawHeatmap();
+        }
+
+        // Preset handlers
+        presetBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                if (inputs.foodType.value !== 'beef') return;
+                const preset = btn.dataset.preset;
+                const targetTemp = donenessBeef[preset];
+                inputs.surfaceTemp.value = 200;
+                inputs.thickness.value = 5;
+                // Iteratively find cook time for this target
+                let cookTime = 10;
+                for (let iter = 0; iter < 10; iter++) {
+                    const centerTemp = calculateCenterTemp(200, 5, cookTime, 'beef');
+                    if (centerTemp >= targetTemp) break;
+                    cookTime += 10;
+                }
+                inputs.cookTime.value = Math.min(120, cookTime);
+                presetBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                update();
+            });
+        });
+
+        inputs.surfaceTemp.addEventListener('input', update);
+        inputs.thickness.addEventListener('input', update);
+        inputs.cookTime.addEventListener('input', update);
+        inputs.foodType.addEventListener('change', () => {
+            presetBtns.forEach(b => b.classList.remove('active'));
+            update();
+        });
+
+        // Initialize
+        drawHeatmap();
+    </script>
+</body>
+</html>
