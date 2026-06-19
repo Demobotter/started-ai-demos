@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Route Optimizer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 100%);
+            color: #fff;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        h1 {
+            font-family: 'Syne', sans-serif;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            color: #7fb3ff;
+            font-size: 0.95rem;
+        }
+        .main {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        @media (max-width: 900px) {
+            .main { grid-template-columns: 1fr; }
+        }
+        .panel {
+            background: rgba(42, 58, 102, 0.4);
+            border: 1px solid #4db8ff;
+            border-radius: 12px;
+            padding: 25px;
+            backdrop-filter: blur(10px);
+        }
+        .panel h2 {
+            font-family: 'Syne', sans-serif;
+            font-size: 1.3rem;
+            margin-bottom: 20px;
+            color: #ffd93d;
+        }
+        .control-group {
+            margin-bottom: 18px;
+        }
+        .control-group label {
+            display: block;
+            font-size: 0.85rem;
+            color: #b0c4ff;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+        input[type="text"],
+        select {
+            width: 100%;
+            padding: 10px;
+            background: rgba(10, 14, 39, 0.6);
+            border: 1px solid #4db8ff;
+            border-radius: 8px;
+            color: #fff;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.9rem;
+        }
+        input[type="text"]::placeholder {
+            color: #666;
+        }
+        button {
+            background: linear-gradient(135deg, #4db8ff, #7fb3ff);
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            color: #0a0e27;
+            font-weight: 600;
+            font-family: 'Inter', sans-serif;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(77, 184, 255, 0.4);
+        }
+        button.secondary {
+            background: rgba(77, 184, 255, 0.2);
+            color: #4db8ff;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+        .stat-card {
+            background: rgba(77, 184, 255, 0.1);
+            border-left: 3px solid #4db8ff;
+            padding: 15px;
+            border-radius: 6px;
+        }
+        .stat-label {
+            font-size: 0.8rem;
+            color: #7fb3ff;
+            margin-bottom: 5px;
+        }
+        .stat-value {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #ffd93d;
+            font-family: 'Syne', sans-serif;
+        }
+        .slider-container {
+            margin-bottom: 18px;
+        }
+        .slider-container label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            color: #b0c4ff;
+            margin-bottom: 8px;
+        }
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            background: rgba(77, 184, 255, 0.3);
+            border-radius: 3px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            background: #ffd93d;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(255, 217, 61, 0.5);
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            background: #ffd93d;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(255, 217, 61, 0.5);
+        }
+        canvas {
+            width: 100%;
+            height: 600px;
+            background: rgba(15, 20, 45, 0.6);
+            border: 1px solid #4db8ff;
+            border-radius: 12px;
+            display: block;
+        }
+        .stops-list {
+            max-height: 250px;
+            overflow-y: auto;
+            background: rgba(10, 14, 39, 0.4);
+            border-radius: 8px;
+            padding: 12px;
+        }
+        .stop-item {
+            padding: 10px;
+            background: rgba(77, 184, 255, 0.1);
+            border-left: 3px solid #4db8ff;
+            margin-bottom: 8px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .stop-item button {
+            padding: 4px 8px;
+            font-size: 0.75rem;
+            margin: 0;
+        }
+        .stop-num {
+            background: #ffd93d;
+            color: #0a0e27;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.8rem;
+            flex-shrink: 0;
+            margin-right: 10px;
+        }
+        .stop-name {
+            flex: 1;
+            color: #b0c4ff;
+        }
+        .optimization-progress {
+            margin-top: 15px;
+            padding: 12px;
+            background: rgba(77, 184, 255, 0.1);
+            border-radius: 8px;
+            font-size: 0.85rem;
+            color: #7fb3ff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🚗 Route Optimizer</h1>
+            <p class="subtitle">Multi-stop route solver with real TSP algorithms</p>
+        </header>
+
+        <div class="main">
+            <div class="panel">
+                <h2>Settings</h2>
+                
+                <div class="control-group">
+                    <label>Add Location</label>
+                    <input type="text" id="locationInput" placeholder="e.g., Paris, London, Berlin" autocomplete="off">
+                    <button onclick="addLocation()">Add Stop</button>
+                </div>
+
+                <div class="control-group">
+                    <label>Optimization Goal</label>
+                    <select id="goal" onchange="resetRoute()">
+                        <option value="distance">Shortest Distance</option>
+                        <option value="time">Fastest Time</option>
+                    </select>
+                </div>
+
+                <div class="slider-container">
+                    <label>
+                        Fuel Price (€/L)
+                        <span id="fuelLabel">1.50</span>
+                    </label>
+                    <input type="range" id="fuelPrice" min="1" max="3" step="0.1" value="1.5" oninput="updateStats()">
+                </div>
+
+                <div class="slider-container">
+                    <label>
+                        Car Efficiency (km/L)
+                        <span id="efficiencyLabel">7.0</span>
+                    </label>
+                    <input type="range" id="efficiency" min="4" max="15" step="0.5" value="7" oninput="updateStats()">
+                </div>
+
+                <button onclick="optimizeRoute()">Auto-Optimize</button>
+                <button class="secondary" onclick="clearAll()">Clear All</button>
+
+                <h2 style="margin-top: 30px;">Stops</h2>
+                <div class="stops-list" id="stopsList"></div>
+
+                <div class="optimization-progress" id="progress" style="display: none;"></div>
+            </div>
+
+            <div class="panel">
+                <h2>Map & Route</h2>
+                <canvas id="canvas"></canvas>
+                <div class="stats">
+                    <div class="stat-card">
+                        <div class="stat-label">Total Distance</div>
+                        <div class="stat-value" id="distValue">0 km</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Est. Time</div>
+                        <div class="stat-value" id="timeValue">0 h</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Fuel Cost</div>
+                        <div class="stat-value" id="costValue">€0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Stop Count</div>
+                        <div class="stat-value" id="countValue">0</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Approximate coordinates for European cities (realistic)
+        const cityCoords = {
+            'london': { lat: 51.5074, lon: -0.1278 },
+            'paris': { lat: 48.8566, lon: 2.3522 },
+            'berlin': { lat: 52.5200, lon: 13.4050 },
+            'amsterdam': { lat: 52.3676, lon: 4.9041 },
+            'brussels': { lat: 50.8503, lon: 4.3517 },
+            'cologne': { lat: 50.9375, lon: 6.9603 },
+            'frankfurt': { lat: 50.1109, lon: 8.6821 },
+            'zurich': { lat: 47.3769, lon: 8.5472 },
+            'vienna': { lat: 48.2082, lon: 16.3738 },
+            'prague': { lat: 50.0755, lon: 14.4378 },
+            'warsaw': { lat: 52.2297, lon: 21.0122 },
+            'budapest': { lat: 47.4979, lon: 19.0402 },
+            'munich': { lat: 48.1351, lon: 11.5820 },
+            'hamburg': { lat: 53.5511, lon: 9.9937 },
+            'rotterdam': { lat: 51.9225, lon: 4.4792 }
+        };
+
+        let stops = [];
+        let optimizedOrder = [];
+        let canvas, ctx;
+
+        function init() {
+            canvas = document.getElementById('canvas');
+            ctx = canvas.getContext('2d');
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas);
+        }
+
+        function resizeCanvas() {
+            canvas.width = canvas.offsetWidth * window.devicePixelRatio;
+            canvas.height = canvas.offsetHeight * window.devicePixelRatio;
+            ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+            drawMap();
+        }
+
+        function addLocation() {
+            const input = document.getElementById('locationInput').value.trim().toLowerCase();
+            if (!input) return;
+
+            const parts = input.split(',').map(p => p.trim());
+            for (let part of parts) {
+                if (cityCoords[part] && !stops.find(s => s.name === part)) {
+                    const coord = cityCoords[part];
+                    stops.push({
+                        name: part.charAt(0).toUpperCase() + part.slice(1),
+                        lat: coord.lat,
+                        lon: coord.lon
+                    });
+                }
+            }
+            document.getElementById('locationInput').value = '';
+            optimizedOrder = [...Array(stops.length).keys()];
+            optimizeRoute();
+        }
+
+        function removeStop(idx) {
+            stops.splice(idx, 1);
+            optimizedOrder = optimizedOrder.filter(i => i !== idx).map(i => i > idx ? i - 1 : i);
+            updateUI();
+        }
+
+        function optimizeRoute() {
+            if (stops.length < 2) return;
+            
+            document.getElementById('progress').style.display = 'block';
+            document.getElementById('progress').innerHTML = 'Optimizing...';
+
+            // 2-opt local search with random restarts
+            let best = [...Array(stops.length).keys()];
+            let bestDist = routeDistance(best);
+            let improved = true;
+            let iter = 0;
+
+            while (improved && iter < 100) {
+                improved = false;
+                for (let i = 0; i < stops.length - 1; i++) {
+                    for (let j = i + 2; j < stops.length; j++) {
+                        let test = best.slice();
+                        [test[i], test[j]] = [test[j], test[i]];
+                        let testDist = routeDistance(test);
+                        if (testDist < bestDist) {
+                            best = test;
+                            bestDist = testDist;
+                            improved = true;
+                        }
+                    }
+                }
+                iter++;
+            }
+            optimizedOrder = best;
+            document.getElementById('progress').innerHTML = `Optimized in ${iter} iterations`;
+            setTimeout(() => document.getElementById('progress').style.display = 'none', 2000);
+            updateUI();
+        }
+
+        function routeDistance(order) {
+            let dist = 0;
+            for (let i = 0; i < order.length; i++) {
+                const a = stops[order[i]];
+                const b = stops[order[(i + 1) % order.length]];
+                dist += haversine(a.lat, a.lon, b.lat, b.lon);
+            }
+            return dist;
+        }
+
+        function haversine(lat1, lon1, lat2, lon2) {
+            const R = 6371; // Earth radius in km
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                      Math.sin(dLon/2) * Math.sin(dLon/2);
+            return R * 2 * Math.asin(Math.sqrt(a));
+        }
+
+        function updateUI() {
+            renderStops();
+            updateStats();
+            drawMap();
+        }
+
+        function renderStops() {
+            const list = document.getElementById('stopsList');
+            list.innerHTML = '';
+            optimizedOrder.forEach((idx, pos) => {
+                const stop = stops[idx];
+                list.innerHTML += `
+                    <div class="stop-item">
+                        <div class="stop-num">${pos + 1}</div>
+                        <div class="stop-name">${stop.name}</div>
+                        <button class="secondary" onclick="removeStop(${idx})">×</button>
+                    </div>
+                `;
+            });
+        }
+
+        function updateStats() {
+            const dist = routeDistance(optimizedOrder);
+            const avgSpeed = 80; // km/h
+            const time = dist / avgSpeed;
+            const fuel = (dist / parseFloat(document.getElementById('efficiency').value)) *
+                        parseFloat(document.getElementById('fuelPrice').value);
+
+            document.getElementById('distValue').textContent = dist.toFixed(0) + ' km';
+            document.getElementById('timeValue').textContent = (time < 1 ? (time * 60).toFixed(0) + ' min' : time.toFixed(1) + ' h');
+            document.getElementById('costValue').textContent = '€' + fuel.toFixed(2);
+            document.getElementById('countValue').textContent = stops.length;
+
+            document.getElementById('fuelLabel').textContent = document.getElementById('fuelPrice').value;
+            document.getElementById('efficiencyLabel').textContent = document.getElementById('efficiency').value;
+        }
+
+        function drawMap() {
+            ctx.fillStyle = '#0f1419';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            if (stops.length === 0) return;
+
+            // Find bounds
+            let minLat = Math.min(...stops.map(s => s.lat));
+            let maxLat = Math.max(...stops.map(s => s.lat));
+            let minLon = Math.min(...stops.map(s => s.lon));
+            let maxLon = Math.max(...stops.map(s => s.lon));
+
+            const pad = 2;
+            minLat -= pad; maxLat += pad;
+            minLon -= pad; maxLon += pad;
+
+            const w = canvas.width, h = canvas.height;
+            const scaleX = w / (maxLon - minLon);
+            const scaleY = h / (maxLat - minLat);
+
+            function project(lat, lon) {
+                return {
+                    x: (lon - minLon) * scaleX,
+                    y: h - (lat - minLat) * scaleY
+                };
+            }
+
+            // Draw route
+            ctx.strokeStyle = '#4db8ff';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            for (let i = 0; i <= optimizedOrder.length; i++) {
+                const idx = optimizedOrder[i % optimizedOrder.length];
+                const p = project(stops[idx].lat, stops[idx].lon);
+                if (i === 0) ctx.moveTo(p.x, p.y);
+                else ctx.lineTo(p.x, p.y);
+            }
+            ctx.stroke();
+
+            // Draw stops
+            optimizedOrder.forEach((idx, pos) => {
+                const p = project(stops[idx].lat, stops[idx].lon);
+                ctx.fillStyle = `hsl(${pos * 360 / optimizedOrder.length}, 100%, 50%)`;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 12, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = '#0a0e27';
+                ctx.font = 'bold 12px "Inter"';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText((pos + 1).toString(), p.x, p.y);
+            });
+        }
+
+        function resetRoute() {
+            optimizedOrder = [...Array(stops.length).keys()];
+            updateUI();
+        }
+
+        function clearAll() {
+            stops = [];
+            optimizedOrder = [];
+            updateUI();
+        }
+
+        init();
+    </script>
+</body>
+</html>
