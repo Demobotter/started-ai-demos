@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phonetic Decoder</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&family=Lato:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: linear-gradient(135deg, #f5f1e8 0%, #e8f4f8 100%);
+            font-family: 'Lato', sans-serif;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        h1 {
+            font-family: 'Poppins', sans-serif;
+            font-size: 2.5em;
+            color: #1a1a1a;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            color: #666;
+            font-size: 1.1em;
+        }
+        .main {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        .panel {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+        }
+        .panel h2 {
+            font-family: 'Poppins', sans-serif;
+            font-size: 1.4em;
+            color: #1a4d7a;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        textarea {
+            width: 100%;
+            height: 120px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            padding: 10px;
+            font-family: 'Lato', sans-serif;
+            font-size: 0.95em;
+            resize: vertical;
+        }
+        textarea:focus {
+            outline: none;
+            border-color: #1a5a9e;
+        }
+        .sample-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 12px;
+        }
+        button {
+            padding: 8px 12px;
+            background: #1a4d7a;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: 'Lato', sans-serif;
+            font-size: 0.9em;
+            transition: background 0.2s;
+        }
+        button:hover {
+            background: #0d2a48;
+        }
+        .analysis-grid {
+            display: grid;
+            gap: 20px;
+        }
+        .analysis-section {
+            border-top: 2px solid #f0f0f0;
+            padding-top: 15px;
+        }
+        .analysis-section h3 {
+            font-family: 'Poppins', sans-serif;
+            font-size: 1.1em;
+            color: #1a4d7a;
+            margin-bottom: 12px;
+        }
+        .vowel-heatmap {
+            display: grid;
+            gap: 8px;
+        }
+        .word-vowels {
+            padding: 8px;
+            background: #f9f9f9;
+            border-radius: 6px;
+            font-size: 0.85em;
+            line-height: 1.4;
+        }
+        .vowel-char {
+            display: inline-block;
+            padding: 2px 4px;
+            margin: 1px;
+            border-radius: 3px;
+            color: white;
+            font-weight: bold;
+        }
+        .consonant-chart {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .cluster {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.9em;
+        }
+        .cluster-name {
+            width: 60px;
+            font-weight: bold;
+            color: #1a4d7a;
+        }
+        .cluster-bar {
+            flex: 1;
+            height: 20px;
+            background: linear-gradient(90deg, #ffd700, #ffa500);
+            border-radius: 4px;
+            position: relative;
+            overflow: hidden;
+        }
+        .cluster-count {
+            position: absolute;
+            right: 5px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 0.8em;
+            color: white;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+        }
+        .syllable-breakdown {
+            font-size: 0.9em;
+            line-height: 1.6;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+        .syllable-line {
+            padding: 6px;
+            background: #f9f9f9;
+            border-radius: 4px;
+            margin-bottom: 4px;
+        }
+        .syllable-word {
+            font-weight: bold;
+            color: #1a4d7a;
+            margin-right: 6px;
+        }
+        .syllable-pattern {
+            color: #666;
+            font-family: monospace;
+            font-size: 0.85em;
+        }
+        .frequency-histogram {
+            display: flex;
+            justify-content: space-around;
+            align-items: flex-end;
+            height: 120px;
+            gap: 2px;
+            padding: 10px 0;
+        }
+        .freq-bar {
+            flex: 1;
+            background: linear-gradient(180deg, #2a5a9e, #4db8ff);
+            border-radius: 4px 4px 0 0;
+            position: relative;
+            min-width: 12px;
+            cursor: pointer;
+        }
+        .freq-label {
+            position: absolute;
+            bottom: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.7em;
+            font-weight: bold;
+        }
+        .rhyme-groups {
+            font-size: 0.9em;
+            line-height: 1.6;
+        }
+        .rhyme-group {
+            padding: 8px;
+            background: #f0f8f0;
+            border-left: 3px solid #2d9d5f;
+            margin-bottom: 6px;
+            border-radius: 4px;
+        }
+        .rhyme-scheme {
+            color: #2d9d5f;
+            font-weight: bold;
+        }
+        .rhyme-words {
+            color: #666;
+            font-size: 0.85em;
+        }
+        .etymology-cloud {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .etymon-tag {
+            padding: 6px 12px;
+            background: #9d4da1;
+            color: white;
+            border-radius: 20px;
+            font-size: 0.85em;
+            white-space: nowrap;
+        }
+        .etymology-count {
+            font-size: 0.75em;
+            opacity: 0.9;
+        }
+        .metrics-panel {
+            background: #f9f9f9;
+            padding: 12px;
+            border-radius: 8px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-top: 15px;
+        }
+        .metric {
+            padding: 10px;
+            background: white;
+            border-radius: 6px;
+            border-left: 3px solid #1a4d7a;
+        }
+        .metric-label {
+            font-size: 0.8em;
+            color: #999;
+            margin-bottom: 4px;
+        }
+        .metric-value {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #1a4d7a;
+        }
+        .iPA-section {
+            background: #f5f5f5;
+            padding: 12px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 0.9em;
+            max-height: 100px;
+            overflow-y: auto;
+        }
+        .ipa-word {
+            padding: 4px;
+            margin-bottom: 6px;
+            background: white;
+            border-radius: 4px;
+            border-left: 3px solid #00a8cc;
+        }
+        .ipa-word-text {
+            font-weight: bold;
+            color: #1a4d7a;
+            margin-right: 8px;
+        }
+        .ipa-text {
+            color: #00a8cc;
+        }
+        @media (max-width: 1024px) {
+            .main {
+                grid-template-columns: 1fr;
+            }
+        }
+        @media (max-width: 768px) {
+            h1 { font-size: 1.8em; }
+            .main, .metrics-panel {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📚 Phonetic Decoder</h1>
+            <p class="subtitle">Real English linguistic patterns and phonetic analysis</p>
+        </header>
+
+        <div class="main">
+            <!-- LEFT PANEL: Input -->
+            <div class="panel">
+                <h2>📝 Input Text</h2>
+                <textarea id="inputText" placeholder="Paste text here or click a sample...">The quick brown fox jumps over the lazy dog.</textarea>
+                <div class="sample-buttons">
+                    <button onclick="useSample('shakespeare')">Shakespeare</button>
+                    <button onclick="useSample('scientific')">Scientific</button>
+                    <button onclick="useSample('casual')">Casual</button>
+                    <button onclick="useSample('poetry')">Poetry</button>
+                    <button onclick="useSample('technical')">Technical</button>
+                </div>
+
+                <div class="analysis-grid" style="margin-top: 25px;">
+                    <div class="analysis-section">
+                        <h3>🔤 Vowel Heatmap</h3>
+                        <div class="vowel-heatmap" id="vowelHeatmap"></div>
+                    </div>
+
+                    <div class="analysis-section">
+                        <h3>🎯 Consonant Clusters</h3>
+                        <div class="consonant-chart" id="consonantChart"></div>
+                    </div>
+
+                    <div class="analysis-section">
+                        <h3>📊 Letter Frequency</h3>
+                        <div class="frequency-histogram" id="frequencyHistogram"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RIGHT PANEL: Analysis -->
+            <div class="panel">
+                <h2>🔍 Linguistic Analysis</h2>
+
+                <div class="analysis-grid">
+                    <div class="analysis-section">
+                        <h3>🔊 Syllable Breakdown</h3>
+                        <div class="syllable-breakdown" id="syllableBreakdown"></div>
+                    </div>
+
+                    <div class="analysis-section">
+                        <h3>🎵 Rhyme Patterns</h3>
+                        <div class="rhyme-groups" id="rhymeGroups"></div>
+                    </div>
+
+                    <div class="analysis-section">
+                        <h3>🌿 Etymology Roots</h3>
+                        <div class="etymology-cloud" id="etymologyCloud"></div>
+                    </div>
+
+                    <div class="analysis-section">
+                        <h3>🔤 IPA Transcription</h3>
+                        <div class="iPA-section" id="ipaSection"></div>
+                    </div>
+
+                    <div class="metrics-panel">
+                        <div class="metric">
+                            <div class="metric-label">Phonetic Complexity</div>
+                            <div class="metric-value" id="complexityScore">0%</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-label">Avg Word Length</div>
+                            <div class="metric-value" id="avgWordLength">0</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-label">Reading Grade</div>
+                            <div class="metric-value" id="readingGrade">0</div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-label">Unique Phonemes</div>
+                            <div class="metric-value" id="uniquePhonemes">0</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Sample texts
+        const samples = {
+            shakespeare: "Shall I compare thee to a summer's day? Thou art more lovely and more temperate.",
+            scientific: "The mitochondrion synthesizes adenosine triphosphate through oxidative phosphorylation mechanisms.",
+            casual: "Hey, just wanted to let you know I'm running late. Traffic's crazy today.",
+            poetry: "In the silent depths of midnight's call, the stars align above us all.",
+            technical: "Initialize the cryptocurrency blockchain synchronization protocol with quantum-resistant encryption standards."
+        };
+
+        // Vowel colors
+        const vowelColors = {
+            'a': '#2a5a9e',
+            'e': '#00a8cc',
+            'i': '#ffd700',
+            'o': '#ff6b6b',
+            'u': '#9d4da1'
+        };
+
+        // Common consonant clusters in English
+        const consonantClusters = {
+            'str': 0, 'spr': 0, 'thr': 0, 'shr': 0, 'scr': 0,
+            'br': 0, 'cr': 0, 'dr': 0, 'fr': 0, 'gr': 0, 'pr': 0, 'tr': 0,
+            'bl': 0, 'cl': 0, 'fl': 0, 'gl': 0, 'pl': 0, 'sl': 0,
+            'st': 0, 'sp': 0, 'sk': 0, 'sm': 0, 'sn': 0, 'sw': 0
+        };
+
+        // Syllable patterns (simplified English rules)
+        function countSyllables(word) {
+            word = word.toLowerCase();
+            let count = 0;
+            const vowels = /[aeiouy]/g;
+            const matches = word.match(vowels);
+            if (matches) count = matches.length;
+            if (word.endsWith('e')) count--;
+            if (word.endsWith('le') && word.length > 2) count++;
+            return Math.max(1, count);
+        }
+
+        // Simple rhyme detection (last 2-3 characters)
+        function getPhoneticEnding(word) {
+            word = word.toLowerCase().replace(/[^a-z]/g, '');
+            if (word.length < 2) return word;
+            return word.slice(-2);
+        }
+
+        // IPA mapping (simplified)
+        const ipaMap = {
+            'a': 'æ', 'e': 'ɛ', 'i': 'i', 'o': 'ɔ', 'u': 'u',
+            'th': 'θ', 'ch': 'tʃ', 'sh': 'ʃ', 'ng': 'ŋ', 'j': 'dʒ',
+            'x': 'ks', 'z': 'z', 'zh': 'ʒ'
+        };
+
+        function toSimpleIPA(word) {
+            let ipa = word.toLowerCase();
+            ipa = ipa.replace(/th/g, 'θ').replace(/sh/g, 'ʃ').replace(/ch/g, 'tʃ');
+            ipa = ipa.replace(/ng/g, 'ŋ').replace(/j/g, 'dʒ');
+            return '/' + ipa + '/';
+        }
+
+        // Etymology prefixes/suffixes
+        const etymons = {
+            'un': 0, 're': 0, 'pre': 0, 'dis': 0, 'mis': 0,
+            'ing': 0, 'tion': 0, 'ment': 0, 'able': 0, 'less': 0,
+            'ness': 0, 'ful': 0, 'ous': 0, 'ive': 0, 'al': 0
+        };
+
+        function analyze() {
+            const text = document.getElementById('inputText').value;
+            if (!text.trim()) {
+                alert('Please enter some text');
+                return;
+            }
+
+            const words = text.toLowerCase().match(/[a-z']+/gi) || [];
+            if (words.length === 0) return;
+
+            // Vowel analysis
+            updateVowelHeatmap(words);
+
+            // Consonant clusters
+            updateConsonantChart(text);
+
+            // Syllables
+            updateSyllableBreakdown(words);
+
+            // Rhymes
+            updateRhymeGroups(words);
+
+            // Etymology
+            updateEtymology(words);
+
+            // IPA
+            updateIPA(words);
+
+            // Frequency
+            updateFrequency(text);
+
+            // Metrics
+            updateMetrics(words, text);
+        }
+
+        function updateVowelHeatmap(words) {
+            const container = document.getElementById('vowelHeatmap');
+            container.innerHTML = '';
+            
+            words.slice(0, 8).forEach(word => {
+                let html = '<div class="word-vowels"><strong>' + word + ':</strong> ';
+                [...word].forEach(char => {
+                    if ('aeiou'.includes(char)) {
+                        const color = vowelColors[char];
+                        html += `<span class="vowel-char" style="background-color: ${color}">${char}</span>`;
+                    }
+                });
+                html += '</div>';
+                container.innerHTML += html;
+            });
+        }
+
+        function updateConsonantChart(text) {
+            // Reset clusters
+            Object.keys(consonantClusters).forEach(k => consonantClusters[k] = 0);
+
+            const lower = text.toLowerCase();
+            Object.keys(consonantClusters).forEach(cluster => {
+                const regex = new RegExp(cluster, 'g');
+                consonantClusters[cluster] = (lower.match(regex) || []).length;
+            });
+
+            const container = document.getElementById('consonantChart');
+            container.innerHTML = '';
+
+            const sorted = Object.entries(consonantClusters)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 10);
+
+            const maxCount = Math.max(...sorted.map(x => x[1]), 1);
+
+            sorted.forEach(([cluster, count]) => {
+                const width = (count / maxCount) * 100;
+                const html = `
+                    <div class="cluster">
+                        <div class="cluster-name">${cluster}</div>
+                        <div class="cluster-bar" style="width: calc(100% - 70px);">
+                            <div style="width: ${width}%; height: 100%; background: linear-gradient(90deg, #ffd700, #ffa500); border-radius: 4px;"></div>
+                            <span class="cluster-count">${count}</span>
+                        </div>
+                    </div>
+                `;
+                container.innerHTML += html;
+            });
+        }
+
+        function updateSyllableBreakdown(words) {
+            const container = document.getElementById('syllableBreakdown');
+            container.innerHTML = '';
+
+            words.slice(0, 12).forEach(word => {
+                const syllableCount = countSyllables(word);
+                const pattern = syllableCount === 1 ? 'CVC' : syllableCount === 2 ? 'CV-CVC' : 'CV-CV-CV';
+                const html = `
+                    <div class="syllable-line">
+                        <span class="syllable-word">${word}</span>
+                        <span class="syllable-pattern">${syllableCount} syllables (${pattern})</span>
+                    </div>
+                `;
+                container.innerHTML += html;
+            });
+        }
+
+        function updateRhymeGroups(words) {
+            const container = document.getElementById('rhymeGroups');
+            const rhymeMap = {};
+
+            words.forEach(word => {
+                const ending = getPhoneticEnding(word);
+                if (!rhymeMap[ending]) rhymeMap[ending] = [];
+                rhymeMap[ending].push(word);
+            });
+
+            container.innerHTML = '';
+            Object.entries(rhymeMap)
+                .filter(([_, ws]) => ws.length > 1)
+                .slice(0, 5)
+                .forEach(([ending, ws]) => {
+                    const html = `
+                        <div class="rhyme-group">
+                            <div class="rhyme-scheme">Ending: -${ending}</div>
+                            <div class="rhyme-words">${ws.slice(0, 5).join(', ')}</div>
+                        </div>
+                    `;
+                    container.innerHTML += html;
+                });
+        }
+
+        function updateEtymology(words) {
+            const container = document.getElementById('etymologyCloud');
+            Object.keys(etymons).forEach(k => etymons[k] = 0);
+
+            const textLower = words.join(' ');
+            Object.keys(etymons).forEach(affix => {
+                etymons[affix] = (textLower.match(new RegExp(affix, 'g')) || []).length;
+            });
+
+            container.innerHTML = '';
+            Object.entries(etymons)
+                .filter(([_, count]) => count > 0)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 10)
+                .forEach(([affix, count]) => {
+                    const html = `<div class="etymon-tag">${affix} <span class="etymology-count">×${count}</span></div>`;
+                    container.innerHTML += html;
+                });
+        }
+
+        function updateIPA(words) {
+            const container = document.getElementById('ipaSection');
+            container.innerHTML = '';
+
+            words.slice(0, 6).forEach(word => {
+                const ipa = toSimpleIPA(word);
+                const html = `
+                    <div class="ipa-word">
+                        <span class="ipa-word-text">${word}</span>
+                        <span class="ipa-text">${ipa}</span>
+                    </div>
+                `;
+                container.innerHTML += html;
+            });
+        }
+
+        function updateFrequency(text) {
+            const container = document.getElementById('frequencyHistogram');
+            const freq = {};
+            const letters = text.toLowerCase().match(/[a-z]/g) || [];
+
+            letters.forEach(char => {
+                freq[char] = (freq[char] || 0) + 1;
+            });
+
+            container.innerHTML = '';
+            const sorted = Object.entries(freq)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 26);
+
+            const maxFreq = Math.max(...sorted.map(x => x[1]), 1);
+
+            sorted.forEach(([char, count]) => {
+                const height = (count / maxFreq) * 100;
+                const html = `
+                    <div class="freq-bar" style="height: ${height}%;" title="${char}: ${count}">
+                        <div class="freq-label">${char}</div>
+                    </div>
+                `;
+                container.innerHTML += html;
+            });
+        }
+
+        function updateMetrics(words, text) {
+            // Phonetic complexity: ratio of unique phonemes to total phonemes
+            const uniquePhonemes = new Set(text.toLowerCase().match(/[a-z]/g) || []).size;
+            const totalPhonemes = (text.match(/[a-z]/gi) || []).length;
+            const complexity = totalPhonemes > 0 ? Math.round((uniquePhonemes / 26) * 100) : 0;
+
+            // Avg word length
+            const avgLength = words.reduce((a, w) => a + w.length, 0) / words.length || 0;
+
+            // Flesch-Kincaid reading grade (simplified)
+            const syllables = words.reduce((a, w) => a + countSyllables(w), 0);
+            const grade = Math.max(0, Math.round((0.39 * words.length / words.length + 11.8 * syllables / words.length - 15.59)));
+
+            document.getElementById('complexityScore').textContent = complexity + '%';
+            document.getElementById('avgWordLength').textContent = avgLength.toFixed(1);
+            document.getElementById('readingGrade').textContent = grade;
+            document.getElementById('uniquePhonemes').textContent = uniquePhonemes;
+        }
+
+        function useSample(key) {
+            document.getElementById('inputText').value = samples[key];
+            analyze();
+        }
+
+        // Auto-analyze on input
+        document.getElementById('inputText').addEventListener('input', analyze);
+
+        // Initial analysis
+        analyze();
+    </script>
+</body>
+</html>
