@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Molecular Motion Simulator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&family=Lato:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Lato', sans-serif;
+            background: linear-gradient(135deg, #0a0a14 0%, #1a1a2e 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            color: #e0e0e0;
+        }
+        .container {
+            max-width: 1200px;
+            width: 100%;
+            background: rgba(20, 20, 35, 0.95);
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0, 217, 255, 0.1);
+        }
+        h1 {
+            font-family: 'Poppins', sans-serif;
+            font-size: 28px;
+            margin-bottom: 30px;
+            background: linear-gradient(90deg, #00d9ff, #ffd700);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        .section {
+            background: rgba(42, 42, 60, 0.5);
+            border: 1px solid rgba(0, 217, 255, 0.2);
+            border-radius: 8px;
+            padding: 20px;
+        }
+        .section h2 {
+            font-family: 'Poppins', sans-serif;
+            font-size: 16px;
+            margin-bottom: 15px;
+            color: #00d9ff;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .control-group {
+            margin-bottom: 20px;
+        }
+        .control-group label {
+            display: block;
+            font-size: 13px;
+            margin-bottom: 6px;
+            color: #b0b0d0;
+            font-weight: 500;
+        }
+        .control-group input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: linear-gradient(90deg, #2a5a9e, #ff4444);
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+        .control-group input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #ffd700;
+            cursor: pointer;
+            box-shadow: 0 0 8px rgba(255, 215, 0, 0.5);
+        }
+        .control-group input[type="range"]::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #ffd700;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 0 8px rgba(255, 215, 0, 0.5);
+        }
+        .value-display {
+            display: inline-block;
+            background: rgba(0, 217, 255, 0.1);
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-left: 8px;
+            color: #00d9ff;
+            font-weight: 600;
+        }
+        select {
+            width: 100%;
+            padding: 8px;
+            background: rgba(20, 20, 35, 0.8);
+            border: 1px solid rgba(0, 217, 255, 0.3);
+            border-radius: 4px;
+            color: #e0e0e0;
+            font-size: 13px;
+            cursor: pointer;
+        }
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        button {
+            flex: 1;
+            padding: 10px;
+            background: linear-gradient(135deg, #00d9ff, #4db8ff);
+            border: none;
+            border-radius: 6px;
+            color: #0a0a14;
+            font-weight: 600;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        button:hover {
+            box-shadow: 0 0 15px rgba(0, 217, 255, 0.5);
+            transform: translateY(-2px);
+        }
+        button:active {
+            transform: translateY(0);
+        }
+        canvas {
+            width: 100%;
+            height: 400px;
+            background: rgba(10, 10, 20, 0.8);
+            border: 1px solid rgba(0, 217, 255, 0.2);
+            border-radius: 8px;
+            display: block;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-top: 15px;
+        }
+        .stat-box {
+            background: rgba(0, 217, 255, 0.05);
+            border: 1px solid rgba(0, 217, 255, 0.15);
+            border-radius: 6px;
+            padding: 12px;
+            font-size: 12px;
+        }
+        .stat-label {
+            color: #909090;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+        .stat-value {
+            color: #ffd700;
+            font-family: 'Poppins', sans-serif;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        .histogram-container {
+            margin-top: 20px;
+        }
+        .histogram-container h3 {
+            font-size: 12px;
+            color: #00d9ff;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .histogram-canvas {
+            width: 100%;
+            height: 150px;
+            background: rgba(10, 10, 20, 0.8);
+            border: 1px solid rgba(0, 217, 255, 0.2);
+            border-radius: 6px;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>⚛️ Molecular Motion</h1>
+        <div class="grid">
+            <!-- LEFT: CONTROLS -->
+            <div>
+                <div class="section">
+                    <h2>Molecule Type</h2>
+                    <div class="control-group">
+                        <select id="moleculeType">
+                            <option value="water">Water (H₂O)</option>
+                            <option value="oxygen">Oxygen (O₂)</option>
+                            <option value="carbon">Carbon Dioxide (CO₂)</option>
+                            <option value="methane">Methane (CH₄)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h2>Thermal Control</h2>
+                    <div class="control-group">
+                        <label>Temperature <span class="value-display" id="tempValue">273 K</span></label>
+                        <input type="range" id="temperature" min="50" max="500" value="273" step="5">
+                        <small style="color: #707080; margin-top: 6px; display: block;">50–500 K (Freeze → Heat)</small>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h2>Container</h2>
+                    <div class="control-group">
+                        <label>Volume <span class="value-display" id="volValue">10 L</span></label>
+                        <input type="range" id="volume" min="2" max="20" value="10" step="1">
+                        <small style="color: #707080; margin-top: 6px; display: block;">2–20 L (Compress → Expand)</small>
+                    </div>
+                    <div class="control-group">
+                        <label>Particle Count <span class="value-display" id="particleCountValue">100</span></label>
+                        <input type="range" id="particleCount" min="30" max="300" value="100" step="10">
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h2>Simulation</h2>
+                    <div class="button-group">
+                        <button id="resetBtn">Reset</button>
+                        <button id="pauseBtn">Pause</button>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h2>Phase Region</h2>
+                    <div id="phaseIndicator" style="padding: 12px; background: rgba(45, 157, 95, 0.15); border: 1px solid rgba(45, 157, 95, 0.3); border-radius: 4px; color: #2d9d5f; font-size: 13px; font-weight: 500;">Liquid</div>
+                </div>
+            </div>
+
+            <!-- RIGHT: VISUALIZATION -->
+            <div>
+                <div class="section">
+                    <h2>Particle Motion</h2>
+                    <canvas id="motionCanvas" width="500" height="400"></canvas>
+                </div>
+
+                <div class="section stats-grid">
+                    <div class="stat-box">
+                        <div class="stat-label">Pressure</div>
+                        <div class="stat-value" id="pressureValue">1.0 atm</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">Kinetic Energy</div>
+                        <div class="stat-value" id="energyValue">0.00 eV</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">Avg Velocity</div>
+                        <div class="stat-value" id="velocityValue">0 m/s</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">Collisions/s</div>
+                        <div class="stat-value" id="collisionRate">0</div>
+                    </div>
+                </div>
+
+                <div class="section histogram-container">
+                    <h3>Maxwell-Boltzmann Distribution</h3>
+                    <canvas id="histogramCanvas" class="histogram-canvas"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Physical constants
+        const k_B = 1.38e-23; // Boltzmann constant (J/K)
+        const amu_to_kg = 1.66054e-27; // Atomic mass unit
+        const atm_to_pa = 101325; // Pressure conversion
+
+        // Molecule properties (mass in amu)
+        const molecules = {
+            water: { mass: 18, color: '#4db8ff', label: 'H₂O' },
+            oxygen: { mass: 32, color: '#00d9ff', label: 'O₂' },
+            carbon: { mass: 44, color: '#00ff88', label: 'CO₂' },
+            methane: { mass: 16, color: '#ff9800', label: 'CH₄' }
+        };
+
+        // State
+        let particles = [];
+        let moleculeType = 'water';
+        let temperature = 273; // K
+        let volume = 10; // L
+        let particleCount = 100;
+        let isPaused = false;
+        let collisionsThisFrame = 0;
+        let avgVelocity = 0;
+        let avgKineticEnergy = 0;
+        let frameCount = 0;
+
+        // Canvas
+        const canvas = document.getElementById('motionCanvas');
+        const ctx = canvas.getContext('2d');
+        const histCanvas = document.getElementById('histogramCanvas');
+        const histCtx = histCanvas.getContext('2d');
+
+        // UI Elements
+        const tempSlider = document.getElementById('temperature');
+        const volSlider = document.getElementById('volume');
+        const particleSlider = document.getElementById('particleCount');
+        const moleculeSelect = document.getElementById('moleculeType');
+        const resetBtn = document.getElementById('resetBtn');
+        const pauseBtn = document.getElementById('pauseBtn');
+
+        // Update displays
+        function updateDisplays() {
+            document.getElementById('tempValue').textContent = temperature + ' K';
+            document.getElementById('volValue').textContent = volume + ' L';
+            document.getElementById('particleCountValue').textContent = particleCount;
+
+            // Phase indicator
+            const phaseEl = document.getElementById('phaseIndicator');
+            if (temperature < 273) {
+                phaseEl.textContent = '❄️ Solid';
+                phaseEl.style.background = 'rgba(42, 90, 158, 0.15)';
+                phaseEl.style.borderColor = 'rgba(42, 90, 158, 0.3)';
+                phaseEl.style.color = '#2a5a9e';
+            } else if (temperature < 373) {
+                phaseEl.textContent = '💧 Liquid';
+                phaseEl.style.background = 'rgba(45, 157, 95, 0.15)';
+                phaseEl.style.borderColor = 'rgba(45, 157, 95, 0.3)';
+                phaseEl.style.color = '#2d9d5f';
+            } else {
+                phaseEl.textContent = '☁️ Gas';
+                phaseEl.style.background = 'rgba(255, 68, 68, 0.15)';
+                phaseEl.style.borderColor = 'rgba(255, 68, 68, 0.3)';
+                phaseEl.style.color = '#ff4444';
+            }
+        }
+
+        // Initialize particles
+        function initParticles() {
+            particles = [];
+            const mol = molecules[moleculeType];
+            const containerWidth = (volume / 10) * 300; // Scale volume to canvas
+            const containerHeight = (volume / 10) * 250;
+
+            for (let i = 0; i < particleCount; i++) {
+                const speed = Math.sqrt((3 * k_B * temperature) / (mol.mass * amu_to_kg));
+                const angle = Math.random() * Math.PI * 2;
+                const vx = Math.cos(angle) * speed * 0.001; // Scale down
+                const vy = Math.sin(angle) * speed * 0.001;
+
+                particles.push({
+                    x: Math.random() * containerWidth,
+                    y: Math.random() * containerHeight,
+                    vx: vx,
+                    vy: vy,
+                    mass: mol.mass * amu_to_kg,
+                    color: mol.color,
+                    radius: 3
+                });
+            }
+        }
+
+        // Calculate pressure using ideal gas law: P = nRT/V
+        function calculatePressure() {
+            const n = particleCount; // moles (simplified, treating each particle as 1)
+            const V = volume * 1e-3; // Convert L to m³
+            const R = 8.314; // Gas constant (J/mol·K)
+            const P = (n * R * temperature) / V / atm_to_pa;
+            return Math.max(0.1, Math.min(10, P)); // Clamp
+        }
+
+        // Update physics
+        function updateParticles() {
+            collisionsThisFrame = 0;
+            let totalKE = 0;
+            let totalV = 0;
+
+            const mol = molecules[moleculeType];
+            const containerWidth = (volume / 10) * 300;
+            const containerHeight = (volume / 10) * 250;
+
+            // Adjust velocities based on temperature
+            for (let p of particles) {
+                const targetSpeed = Math.sqrt((3 * k_B * temperature) / (mol.mass * amu_to_kg));
+                const currentSpeed = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
+                if (currentSpeed > 0) {
+                    const scale = (targetSpeed * 0.001) / currentSpeed;
+                    p.vx *= 0.95 + scale * 0.05;
+                    p.vy *= 0.95 + scale * 0.05;
+                }
+
+                // Thermal noise
+                p.vx += (Math.random() - 0.5) * 0.0001 * (temperature / 273);
+                p.vy += (Math.random() - 0.5) * 0.0001 * (temperature / 273);
+
+                // Update position
+                p.x += p.vx;
+                p.y += p.vy;
+
+                // Wall collisions
+                if (p.x - p.radius < 0) {
+                    p.x = p.radius;
+                    p.vx = Math.abs(p.vx);
+                }
+                if (p.x + p.radius > containerWidth) {
+                    p.x = containerWidth - p.radius;
+                    p.vx = -Math.abs(p.vx);
+                }
+                if (p.y - p.radius < 0) {
+                    p.y = p.radius;
+                    p.vy = Math.abs(p.vy);
+                }
+                if (p.y + p.radius > containerHeight) {
+                    p.y = containerHeight - p.radius;
+                    p.vy = -Math.abs(p.vy);
+                }
+
+                // Calculate kinetic energy and velocity
+                const speed = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
+                const ke = 0.5 * p.mass * speed * speed / (1.602e-19); // Convert to eV
+                totalKE += ke;
+                totalV += speed;
+            }
+
+            // Particle-particle collisions (simplified)
+            for (let i = 0; i < particles.length; i++) {
+                for (let j = i + 1; j < particles.length; j++) {
+                    const dx = particles[j].x - particles[i].x;
+                    const dy = particles[j].y - particles[i].y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    const minDist = particles[i].radius + particles[j].radius;
+
+                    if (dist < minDist && dist > 0) {
+                        collisionsThisFrame++;
+
+                        // Elastic collision
+                        const angle = Math.atan2(dy, dx);
+                        const sin = Math.sin(angle);
+                        const cos = Math.cos(angle);
+
+                        // Rotate velocities
+                        const vx1 = particles[i].vx * cos + particles[i].vy * sin;
+                        const vy1 = particles[i].vy * cos - particles[i].vx * sin;
+                        const vx2 = particles[j].vx * cos + particles[j].vy * sin;
+                        const vy2 = particles[j].vy * cos - particles[j].vx * sin;
+
+                        // Swap x-components (simplified elastic collision)
+                        particles[i].vx = vx2 * cos - vy1 * sin;
+                        particles[i].vy = vy1 * cos + vx2 * sin;
+                        particles[j].vx = vx1 * cos - vy2 * sin;
+                        particles[j].vy = vy2 * cos + vx1 * sin;
+
+                        // Separate particles
+                        const overlap = minDist - dist;
+                        particles[i].x -= overlap * 0.5 * cos;
+                        particles[i].y -= overlap * 0.5 * sin;
+                        particles[j].x += overlap * 0.5 * cos;
+                        particles[j].y += overlap * 0.5 * sin;
+                    }
+                }
+            }
+
+            avgKineticEnergy = totalKE / particles.length;
+            avgVelocity = totalV / particles.length;
+        }
+
+        // Draw particles
+        function drawParticles() {
+            ctx.fillStyle = 'rgba(10, 10, 20, 0.8)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            const containerWidth = (volume / 10) * 300;
+            const containerHeight = (volume / 10) * 250;
+
+            // Draw container
+            ctx.strokeStyle = 'rgba(0, 217, 255, 0.3)';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(0, 0, containerWidth, containerHeight);
+
+            // Draw particles
+            for (let p of particles) {
+                const speed = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
+                const hue = Math.max(0, Math.min(1, speed / 0.01)); // Normalize speed
+                const r = Math.floor(42 + hue * 200);
+                const g = Math.floor(180 - hue * 50);
+                const b = Math.floor(158 - hue * 100);
+
+                ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Velocity vector
+                ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, 0.4)`;
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(p.x, p.y);
+                ctx.lineTo(p.x + p.vx * 30, p.y + p.vy * 30);
+                ctx.stroke();
+            }
+
+            // Draw stats
+            ctx.fillStyle = '#00d9ff';
+            ctx.font = '12px Lato';
+            ctx.fillText(`V: ${volume.toFixed(1)} L`, 10, canvas.height - 20);
+            ctx.fillText(`T: ${temperature} K`, 10, canvas.height - 5);
+        }
+
+        // Draw histogram
+        function drawHistogram() {
+            histCtx.fillStyle = 'rgba(10, 10, 20, 0.8)';
+            histCtx.fillRect(0, 0, histCanvas.width, histCanvas.height);
+
+            // Collect velocity magnitudes
+            const speeds = particles.map(p => Math.sqrt(p.vx * p.vx + p.vy * p.vy));
+            const bins = new Array(20).fill(0);
+            const maxSpeed = Math.max(...speeds) || 0.01;
+
+            for (let speed of speeds) {
+                const bin = Math.floor((speed / maxSpeed) * 19);
+                bins[Math.min(19, Math.max(0, bin))]++;
+            }
+
+            const binHeight = histCanvas.height / 20;
+            const maxCount = Math.max(...bins, 1);
+
+            // Draw histogram bars
+            for (let i = 0; i < 20; i++) {
+                const barWidth = histCanvas.width / 20;
+                const barHeight = (bins[i] / maxCount) * (histCanvas.height - 20);
+                histCtx.fillStyle = '#00d9ff';
+                histCtx.fillRect(i * barWidth, histCanvas.height - barHeight, barWidth - 1, barHeight);
+            }
+
+            // Maxwell-Boltzmann curve (theoretical)
+            const mol = molecules[moleculeType];
+            histCtx.strokeStyle = '#ffd700';
+            histCtx.lineWidth = 2;
+            histCtx.beginPath();
+            for (let i = 0; i < histCanvas.width; i++) {
+                const v = (i / histCanvas.width) * maxSpeed;
+                const sigma2 = k_B * temperature / (mol.mass * amu_to_kg);
+                const mb = 4 * Math.PI * Math.pow(sigma2 / (2 * Math.PI), 1.5) * v * v * Math.exp(-v * v / (2 * sigma2));
+                const y = histCanvas.height - (mb / (4 * Math.PI)) * (histCanvas.height - 20);
+                if (i === 0) histCtx.moveTo(i, y);
+                else histCtx.lineTo(i, y);
+            }
+            histCtx.stroke();
+
+            // Legend
+            histCtx.fillStyle = '#00d9ff';
+            histCtx.font = '11px Lato';
+            histCtx.fillText('Measured', 5, 12);
+            histCtx.strokeStyle = '#ffd700';
+            histCtx.lineWidth = 2;
+            histCtx.beginPath();
+            histCtx.moveTo(70, 8);
+            histCtx.lineTo(85, 8);
+            histCtx.stroke();
+            histCtx.fillStyle = '#ffd700';
+            histCtx.fillText('Theory', 90, 12);
+        }
+
+        // Main animation loop
+        function animate() {
+            if (!isPaused) {
+                updateParticles();
+                frameCount++;
+            }
+
+            drawParticles();
+            drawHistogram();
+
+            // Update stats
+            const pressure = calculatePressure();
+            document.getElementById('pressureValue').textContent = pressure.toFixed(2) + ' atm';
+            document.getElementById('energyValue').textContent = avgKineticEnergy.toFixed(3) + ' eV';
+            document.getElementById('velocityValue').textContent = Math.round(avgVelocity * 1000) + ' m/s';
+            document.getElementById('collisionRate').textContent = Math.floor(collisionsThisFrame * 60); // 60 fps approx
+
+            requestAnimationFrame(animate);
+        }
+
+        // Event listeners
+        tempSlider.addEventListener('input', (e) => {
+            temperature = parseInt(e.target.value);
+            updateDisplays();
+        });
+
+        volSlider.addEventListener('input', (e) => {
+            volume = parseInt(e.target.value);
+            updateDisplays();
+        });
+
+        particleSlider.addEventListener('input', (e) => {
+            particleCount = parseInt(e.target.value);
+            initParticles();
+        });
+
+        moleculeSelect.addEventListener('change', (e) => {
+            moleculeType = e.target.value;
+            initParticles();
+        });
+
+        resetBtn.addEventListener('click', () => {
+            initParticles();
+            isPaused = false;
+            pauseBtn.textContent = 'Pause';
+        });
+
+        pauseBtn.addEventListener('click', () => {
+            isPaused = !isPaused;
+            pauseBtn.textContent = isPaused ? 'Resume' : 'Pause';
+        });
+
+        // Initialize
+        updateDisplays();
+        initParticles();
+        animate();
+    </script>
+</body>
+</html>
