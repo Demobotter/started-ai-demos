@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Solar Panel Efficiency</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&family=Lato:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Lato', sans-serif;
+            background: linear-gradient(135deg, #0a1e3a 0%, #1a2d4d 100%);
+            color: #fff;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            align-items: start;
+        }
+        @media (max-width: 900px) {
+            .container { grid-template-columns: 1fr; }
+        }
+        h1 {
+            font-family: 'Poppins', sans-serif;
+            font-size: 28px;
+            margin-bottom: 8px;
+            color: #ffd700;
+            grid-column: 1 / -1;
+        }
+        .subtitle {
+            font-size: 14px;
+            color: #00d9ff;
+            margin-bottom: 20px;
+            grid-column: 1 / -1;
+        }
+        .panel { background: rgba(10, 30, 58, 0.6); border: 1px solid #00d9ff; border-radius: 12px; padding: 20px; }
+        .control-group {
+            margin-bottom: 16px;
+        }
+        label {
+            display: block;
+            font-size: 13px;
+            color: #00d9ff;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        select, input[type="range"] {
+            width: 100%;
+            padding: 8px;
+            background: #0a1e3a;
+            color: #fff;
+            border: 1px solid #ff9800;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        input[type="range"] { padding: 0; height: 6px; }
+        .slider-value {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            color: #ffd700;
+            margin-top: 4px;
+        }
+        .preset-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 12px;
+        }
+        button {
+            padding: 8px;
+            background: #ff9800;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+        button:hover { background: #ffc107; }
+        button.active { background: #2d9d5f; }
+        canvas {
+            width: 100%;
+            height: 280px;
+            background: linear-gradient(180deg, #0a1e3a 0%, #1a2d4d 100%);
+            border-radius: 12px;
+            border: 1px solid #00d9ff;
+            margin-bottom: 16px;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-top: 20px;
+        }
+        .stat-box {
+            background: rgba(45, 157, 95, 0.2);
+            border: 1px solid #2d9d5f;
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+        }
+        .stat-label {
+            font-size: 11px;
+            color: #00d9ff;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+        .stat-value {
+            font-size: 18px;
+            color: #ffd700;
+            font-weight: 600;
+        }
+        .stat-unit {
+            font-size: 12px;
+            color: #2d9d5f;
+            margin-top: 2px;
+        }
+        .efficiency-bar {
+            width: 100%;
+            height: 20px;
+            background: #0a1e3a;
+            border: 1px solid #ff9800;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 12px;
+        }
+        .efficiency-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #e94b3c 0%, #ff9800 50%, #2d9d5f 100%);
+            width: 0%;
+            transition: width 0.3s;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>☀️ Solar Efficiency</h1>
+        <p class="subtitle">Real photovoltaic physics simulator</p>
+
+        <div class="panel">
+            <div class="control-group">
+                <label>Panel Type</label>
+                <select id="panelType">
+                    <option value="mono">Monocrystalline (21% STC)</option>
+                    <option value="poly">Polycrystalline (17% STC)</option>
+                    <option value="thin">Thin-Film (12% STC)</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label>Solar Irradiance (W/m²)</label>
+                <input type="range" id="irradiance" min="0" max="1200" value="800" step="50">
+                <div class="slider-value">
+                    <span>0</span>
+                    <span id="irradianceVal">800</span>
+                    <span>1200</span>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label>Surface Temperature (°C)</label>
+                <input type="range" id="temperature" min="0" max="80" value="25" step="2">
+                <div class="slider-value">
+                    <span>0°C</span>
+                    <span id="temperatureVal">25°C</span>
+                    <span>80°C</span>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label>Angle of Incidence (°)</label>
+                <input type="range" id="angle" min="0" max="90" value="0" step="5">
+                <div class="slider-value">
+                    <span>0°</span>
+                    <span id="angleVal">0°</span>
+                    <span>90°</span>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label>Annual Degradation (% per year)</label>
+                <input type="range" id="degradation" min="0" max="2" value="0.7" step="0.1">
+                <div class="slider-value">
+                    <span>0%</span>
+                    <span id="degradationVal">0.7%</span>
+                    <span>2%</span>
+                </div>
+            </div>
+
+            <div class="preset-buttons">
+                <button onclick="setPreset('cloudy')">Cloudy Day</button>
+                <button onclick="setPreset('summer')">Peak Summer</button>
+                <button onclick="setPreset('winter')">Winter Morning</button>
+                <button onclick="setPreset('rooftop')">Rooftop Angle</button>
+            </div>
+        </div>
+
+        <div class="panel">
+            <canvas id="canvas"></canvas>
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <div class="stat-label">Current Power</div>
+                    <div class="stat-value" id="powerOut">0</div>
+                    <div class="stat-unit">W</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Daily Energy</div>
+                    <div class="stat-value" id="dailyEnergy">0</div>
+                    <div class="stat-unit">kWh</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Efficiency</div>
+                    <div class="stat-value" id="efficiency">0</div>
+                    <div class="stat-unit">%</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Annual Yield</div>
+                    <div class="stat-value" id="annualYield">0</div>
+                    <div class="stat-unit">kWh/year</div>
+                </div>
+            </div>
+            <div style="margin-top: 16px;">
+                <label style="margin-bottom: 6px;">Efficiency Gradient</label>
+                <div class="efficiency-bar">
+                    <div class="efficiency-fill" id="efficiencyFill"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = canvas.offsetWidth * window.devicePixelRatio;
+        canvas.height = 280 * window.devicePixelRatio;
+        ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+
+        // Panel specs (STC baseline efficiency)
+        const panelSpecs = {
+            mono: { stc: 0.21, tempCoeff: -0.004, area: 2.0 },
+            poly: { stc: 0.17, tempCoeff: -0.004, area: 2.0 },
+            thin: { stc: 0.12, tempCoeff: -0.003, area: 2.0 }
+        };
+
+        function getPanelType() {
+            return document.getElementById('panelType').value;
+        }
+
+        function getIrradiance() {
+            return parseFloat(document.getElementById('irradiance').value);
+        }
+
+        function getTemperature() {
+            return parseFloat(document.getElementById('temperature').value);
+        }
+
+        function getAngle() {
+            return parseFloat(document.getElementById('angle').value);
+        }
+
+        function getDegradation() {
+            return parseFloat(document.getElementById('degradation').value);
+        }
+
+        function calculateEfficiency() {
+            const type = getPanelType();
+            const spec = panelSpecs[type];
+            const temp = getTemperature();
+            const angle = getAngle();
+
+            // STC efficiency baseline
+            let efficiency = spec.stc;
+
+            // Temperature derating (~0.4%/°C above 25°C)
+            if (temp > 25) {
+                efficiency *= (1 + spec.tempCoeff * (temp - 25));
+            }
+
+            // Cosine law for angle of incidence
+            const angleRad = angle * Math.PI / 180;
+            efficiency *= Math.cos(angleRad);
+
+            return Math.max(0, efficiency);
+        }
+
+        function calculatePower() {
+            const irradiance = getIrradiance();
+            const type = getPanelType();
+            const spec = panelSpecs[type];
+            const efficiency = calculateEfficiency();
+
+            const power = irradiance * spec.area * efficiency * 1000; // W
+            return power;
+        }
+
+        function calculateDailyEnergy() {
+            // Simplified triangular day curve (sunrise to sunset, 12h peak)
+            // Average over day = (peak power) × (4.5h equivalent peak hours)
+            const peakPower = calculatePower() / 1000; // kW
+            return (peakPower * 4.5).toFixed(2);
+        }
+
+        function calculateAnnualYield() {
+            const dailyKwh = parseFloat(calculateDailyEnergy());
+            const degradation = getDegradation() / 100;
+            // Simplified: no degradation applied to this run's calculation
+            // In reality, yield decreases each year
+            return (dailyKwh * 365).toFixed(0);
+        }
+
+        function drawCanvas() {
+            const w = canvas.width / window.devicePixelRatio;
+            const h = 280;
+
+            ctx.fillStyle = 'rgba(10, 30, 58, 0.6)';
+            ctx.fillRect(0, 0, w, h);
+
+            const irradiance = getIrradiance();
+            const angle = getAngle();
+            const temp = getTemperature();
+
+            // Draw 3-section visualization: irradiance, temperature, angle impact
+            const sectWidth = w / 3;
+
+            // Section 1: Irradiance bar
+            ctx.fillStyle = '#00d9ff';
+            ctx.font = '12px Lato';
+            ctx.textAlign = 'center';
+            ctx.fillText('Irradiance', sectWidth / 2, 20);
+            const irradBar = (irradiance / 1200) * (sectWidth - 40);
+            ctx.fillStyle = `hsl(${40 + irradiance / 1200 * 40}, 100%, 50%)`;
+            ctx.fillRect(20, 40, irradBar, 40);
+            ctx.strokeStyle = '#ffd700';
+            ctx.strokeRect(20, 40, sectWidth - 40, 40);
+            ctx.fillStyle = '#ffd700';
+            ctx.font = 'bold 14px Lato';
+            ctx.fillText(irradiance + ' W/m²', sectWidth / 2, 95);
+
+            // Section 2: Temperature bar
+            ctx.fillStyle = '#00d9ff';
+            ctx.font = '12px Lato';
+            ctx.textAlign = 'center';
+            ctx.fillText('Temperature', sectWidth * 1.5, 20);
+            const tempBar = (temp / 80) * (sectWidth - 40);
+            ctx.fillStyle = `hsl(${Math.max(0, 240 - temp * 3)}, 100%, 50%)`;
+            ctx.fillRect(20 + sectWidth, 40, tempBar, 40);
+            ctx.strokeStyle = '#ffd700';
+            ctx.strokeRect(20 + sectWidth, 40, sectWidth - 40, 40);
+            ctx.fillStyle = '#ffd700';
+            ctx.font = 'bold 14px Lato';
+            ctx.fillText(temp + '°C', sectWidth * 1.5, 95);
+
+            // Section 3: Angle loss bar
+            ctx.fillStyle = '#00d9ff';
+            ctx.font = '12px Lato';
+            ctx.textAlign = 'center';
+            ctx.fillText('Incidence', sectWidth * 2.5, 20);
+            const angleRad = angle * Math.PI / 180;
+            const angleLoss = Math.cos(angleRad);
+            const angleBar = angleLoss * (sectWidth - 40);
+            ctx.fillStyle = `hsl(${120 - angle * 0.5}, 100%, 50%)`;
+            ctx.fillRect(20 + sectWidth * 2, 40, angleBar, 40);
+            ctx.strokeStyle = '#ffd700';
+            ctx.strokeRect(20 + sectWidth * 2, 40, sectWidth - 40, 40);
+            ctx.fillStyle = '#ffd700';
+            ctx.font = 'bold 14px Lato';
+            ctx.fillText(angle + '°', sectWidth * 2.5, 95);
+
+            // Draw power output bar
+            const power = calculatePower();
+            const maxPower = 1200 * 2.0 * 0.21; // ~500W max
+            const powerBar = (power / maxPower) * (w - 40);
+            ctx.fillStyle = '#2d9d5f';
+            ctx.fillRect(20, 140, powerBar, 30);
+            ctx.strokeStyle = '#00d9ff';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(20, 140, w - 40, 30);
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold 16px Lato';
+            ctx.textAlign = 'left';
+            ctx.fillText('Power Output: ' + power.toFixed(0) + ' W', 30, 160);
+
+            // Daily energy curve (simplified)
+            ctx.strokeStyle = '#00d9ff';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(20, h - 40);
+            for (let x = 20; x < w - 20; x += 5) {
+                const hr = ((x - 20) / (w - 40)) * 12; // 0-12 hours
+                const energyFactor = Math.max(0, 1 - Math.abs(hr - 6) / 6); // Peak at noon
+                const y = h - 40 - energyFactor * 60;
+                ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+
+            ctx.fillStyle = '#ffd700';
+            ctx.font = '11px Lato';
+            ctx.textAlign = 'center';
+            ctx.fillText('Daily Energy Curve (6am-6pm)', w / 2, h - 5);
+        }
+
+        function updateStats() {
+            const power = calculatePower();
+            const efficiency = calculateEfficiency();
+            const daily = calculateDailyEnergy();
+            const annual = calculateAnnualYield();
+
+            document.getElementById('powerOut').textContent = power.toFixed(0);
+            document.getElementById('dailyEnergy').textContent = daily;
+            document.getElementById('efficiency').textContent = (efficiency * 100).toFixed(1);
+            document.getElementById('annualYield').textContent = annual;
+
+            const effPercentage = Math.min(100, (efficiency / 0.25) * 100);
+            document.getElementById('efficiencyFill').style.width = effPercentage + '%';
+
+            drawCanvas();
+        }
+
+        document.getElementById('irradiance').addEventListener('input', (e) => {
+            document.getElementById('irradianceVal').textContent = e.target.value;
+            updateStats();
+        });
+
+        document.getElementById('temperature').addEventListener('input', (e) => {
+            document.getElementById('temperatureVal').textContent = e.target.value + '°C';
+            updateStats();
+        });
+
+        document.getElementById('angle').addEventListener('input', (e) => {
+            document.getElementById('angleVal').textContent = e.target.value + '°';
+            updateStats();
+        });
+
+        document.getElementById('degradation').addEventListener('input', (e) => {
+            document.getElementById('degradationVal').textContent = e.target.value + '%';
+            updateStats();
+        });
+
+        document.getElementById('panelType').addEventListener('change', updateStats);
+
+        function setPreset(preset) {
+            const presets = {
+                cloudy: { irradiance: 300, temp: 15, angle: 0, degradation: 0.7 },
+                summer: { irradiance: 1000, temp: 60, angle: 0, degradation: 0.7 },
+                winter: { irradiance: 400, temp: 5, angle: 45, degradation: 0.7 },
+                rooftop: { irradiance: 800, temp: 30, angle: 35, degradation: 0.7 }
+            };
+
+            const p = presets[preset];
+            document.getElementById('irradiance').value = p.irradiance;
+            document.getElementById('temperature').value = p.temp;
+            document.getElementById('angle').value = p.angle;
+            document.getElementById('degradation').value = p.degradation;
+
+            document.getElementById('irradianceVal').textContent = p.irradiance;
+            document.getElementById('temperatureVal').textContent = p.temp + '°C';
+            document.getElementById('angleVal').textContent = p.angle + '°';
+            document.getElementById('degradationVal').textContent = p.degradation + '%';
+
+            updateStats();
+        }
+
+        // Initialize
+        updateStats();
+    </script>
+</body>
+</html>
