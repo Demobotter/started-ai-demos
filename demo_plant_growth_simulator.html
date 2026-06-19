@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Seedling</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&family=Lato:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Lato', sans-serif;
+            background: linear-gradient(135deg, #f5ead6 0%, #e8f5e9 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            max-width: 1200px;
+            width: 100%;
+            padding: 30px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            align-items: start;
+        }
+        @media (max-width: 900px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+        h1 {
+            font-family: 'Poppins', sans-serif;
+            font-size: 24px;
+            color: #2a1810;
+            margin-bottom: 20px;
+            grid-column: 1 / -1;
+        }
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        label {
+            font-weight: 500;
+            color: #2a1810;
+            font-size: 14px;
+        }
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #d4a574;
+            outline: none;
+            -webkit-appearance: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #2a1810;
+            cursor: pointer;
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #2a1810;
+            cursor: pointer;
+            border: none;
+        }
+        .value-display {
+            font-size: 13px;
+            color: #555;
+        }
+        .buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        button {
+            padding: 10px 16px;
+            border: none;
+            border-radius: 6px;
+            font-family: 'Poppins', sans-serif;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.3s;
+        }
+        .btn-primary {
+            background: #2d9d5f;
+            color: white;
+            flex: 1;
+            min-width: 100px;
+        }
+        .btn-primary:hover {
+            background: #248a4f;
+            transform: scale(1.02);
+        }
+        .btn-secondary {
+            background: #4db8ff;
+            color: #0a0a14;
+            flex: 1;
+            min-width: 100px;
+        }
+        .btn-secondary:hover {
+            background: #2a9cdb;
+            transform: scale(1.02);
+        }
+        .stats-panel {
+            background: #f9f9f9;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+            border-left: 4px solid #2d9d5f;
+        }
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            font-size: 13px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .stat-item:last-child {
+            border-bottom: none;
+        }
+        .stat-label {
+            color: #666;
+            font-weight: 500;
+        }
+        .stat-value {
+            color: #2a1810;
+            font-weight: 600;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+        .progress-fill {
+            height: 100%;
+            background: #2d9d5f;
+            width: 0%;
+            transition: width 0.3s;
+        }
+        .stage-badge {
+            display: inline-block;
+            background: #2d9d5f;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+        #plantCanvas {
+            background: linear-gradient(180deg, #e8f5e9 0%, #d4e8d4 100%);
+            border-radius: 8px;
+            display: block;
+            width: 100%;
+            max-width: 500px;
+            margin: 0 auto;
+            border: 2px solid #c17a5c;
+        }
+        .health-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 12px;
+            font-size: 12px;
+        }
+        .health-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+        .health-good { background: #2d9d5f; }
+        .health-warn { background: #ffc107; }
+        .health-bad { background: #ff4444; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌱 Seedling</h1>
+        
+        <div class="controls">
+            <div class="control-group">
+                <label for="sunlight">Sunlight Exposure (%)</label>
+                <input type="range" id="sunlight" min="0" max="100" value="70">
+                <div class="value-display">Photosynthesis: <span id="sunlightVal">70</span>%</div>
+            </div>
+
+            <div class="control-group">
+                <label for="water">Water Level (%)</label>
+                <input type="range" id="water" min="0" max="100" value="60">
+                <div class="value-display">Hydration: <span id="waterVal">60</span>%</div>
+            </div>
+
+            <div class="control-group">
+                <label for="nutrients">Soil Nutrients (%)</label>
+                <input type="range" id="nutrients" min="0" max="100" value="50">
+                <div class="value-display">Nutrient Level: <span id="nutrientsVal">50</span>%</div>
+            </div>
+
+            <div class="control-group">
+                <label for="speed">Growth Speed Multiplier</label>
+                <input type="range" id="speed" min="0.5" max="2" step="0.1" value="1">
+                <div class="value-display">Speed: <span id="speedVal">1.0</span>x</div>
+            </div>
+
+            <div class="buttons">
+                <button class="btn-primary" id="waterBtn">💧 Water Plant</button>
+                <button class="btn-secondary" id="fertilizeBtn">🌾 Fertilize</button>
+            </div>
+
+            <div class="stats-panel">
+                <div class="stat-item">
+                    <span class="stat-label">Current Stage</span>
+                    <span class="stat-value" id="stageLabel">Seed</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Plant Height</span>
+                    <span class="stat-value"><span id="height">2</span> cm</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Leaf Count</span>
+                    <span class="stat-value" id="leafCount">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Days Elapsed</span>
+                    <span class="stat-value"><span id="daysElapsed">0</span> d</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Photosynthesis Rate</span>
+                    <span class="stat-value"><span id="photoRate">0.0</span> μmol/m²/s</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="stageFill"></div>
+                </div>
+                <div class="stat-item" style="margin-top: 10px;">
+                    <span class="stat-label">Stage Progress</span>
+                    <span class="stat-value"><span id="stageProgress">0</span>%</span>
+                </div>
+
+                <div class="health-indicator" id="healthInd">
+                    <div class="health-dot health-good"></div>
+                    <span>Thriving</span>
+                </div>
+
+                <div class="stage-badge" id="stageBadge">Seed Germination</div>
+            </div>
+        </div>
+
+        <canvas id="plantCanvas" width="500" height="600"></canvas>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('plantCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Plant state
+        let plant = {
+            height: 2,           // cm
+            leafCount: 0,
+            flowerBuds: 0,
+            fruits: 0,
+            daysElapsed: 0,
+            stage: 0,            // 0=Seed, 1=Seedling, 2=Vegetative, 3=Flowering, 4=Fruiting
+            stageProgress: 0,    // 0-1, progress through current stage
+            water: 60,           // 0-100
+            nutrients: 50,       // 0-100
+            photosynthesisRate: 0, // μmol/m²/s (0-25)
+            tickCount: 0,
+            maxHeight: 80        // cm
+        };
+
+        // Get UI elements
+        const sunInput = document.getElementById('sunlight');
+        const waterInput = document.getElementById('water');
+        const nutrientInput = document.getElementById('nutrients');
+        const speedInput = document.getElementById('speed');
+        const waterBtn = document.getElementById('waterBtn');
+        const fertilizeBtn = document.getElementById('fertilizeBtn');
+
+        // Stage thresholds (days)
+        const stageThresholds = [0, 5, 20, 40, 60, 100];
+        const stageNames = ['Seed', 'Seedling', 'Vegetative', 'Flowering', 'Fruiting', 'Mature'];
+        const stageBadges = [
+            'Seed Germination',
+            'Seedling Growth',
+            'Vegetative Stage',
+            'Flowering Phase',
+            'Fruiting Stage',
+            'Mature Plant'
+        ];
+
+        // Update display values
+        sunInput.addEventListener('input', (e) => {
+            document.getElementById('sunlightVal').textContent = e.target.value;
+        });
+        waterInput.addEventListener('input', (e) => {
+            document.getElementById('waterVal').textContent = e.target.value;
+        });
+        nutrientInput.addEventListener('input', (e) => {
+            document.getElementById('nutrientsVal').textContent = e.target.value;
+        });
+        speedInput.addEventListener('input', (e) => {
+            document.getElementById('speedVal').textContent = e.target.value;
+        });
+
+        waterBtn.addEventListener('click', () => {
+            plant.water = Math.min(100, plant.water + 30);
+            waterBtn.style.transform = 'scale(0.95)';
+            setTimeout(() => {
+                waterBtn.style.transform = 'scale(1)';
+            }, 100);
+        });
+
+        fertilizeBtn.addEventListener('click', () => {
+            plant.nutrients = Math.min(100, plant.nutrients + 25);
+            fertilizeBtn.style.transform = 'scale(0.95)';
+            setTimeout(() => {
+                fertilizeBtn.style.transform = 'scale(1)';
+            }, 100);
+        });
+
+        function updatePlant() {
+            const sunlight = parseInt(sunInput.value) / 100;
+            const speedMult = parseFloat(speedInput.value);
+
+            // Photosynthesis rate (0-25 μmol/m²/s)
+            plant.photosynthesisRate = sunlight * 25;
+
+            // Growth multiplier based on conditions
+            let growthMult = 1;
+            if (plant.water < 20) growthMult *= 0.3;
+            else if (plant.water < 40) growthMult *= 0.7;
+            else if (plant.water > 85) growthMult *= 1.1;
+
+            if (plant.nutrients < 20) growthMult *= 0.4;
+            else if (plant.nutrients < 40) growthMult *= 0.75;
+            else if (plant.nutrients > 75) growthMult *= 1.15;
+
+            if (sunlight < 0.2) growthMult *= 0.5;
+            else if (sunlight < 0.5) growthMult *= 0.8;
+            else if (sunlight > 0.8) growthMult *= 1.2;
+
+            // Logistic growth: height grows from 0 to maxHeight with diminishing returns
+            const logisticFactor = Math.min(1, plant.daysElapsed / 50);
+            const currentMaxHeight = plant.maxHeight * logisticFactor;
+            const baseHeightGrowth = 0.01 * growthMult * speedMult;
+            
+            if (plant.height < plant.maxHeight) {
+                plant.height += baseHeightGrowth;
+            }
+
+            // Leaf count using Fibonacci-like sequence + growth stage
+            const leafsByStage = [0, 4, 12, 24, 28, 32];
+            plant.leafCount = Math.floor(leafsByStage[plant.stage]);
+            if (plant.stage >= 2) {
+                plant.leafCount += Math.floor(plant.height / 5);
+            }
+
+            // Water decays over time
+            plant.water = Math.max(0, plant.water - 0.15 * speedMult);
+
+            // Nutrients deplete with growth
+            plant.nutrients = Math.max(0, plant.nutrients - 0.08 * speedMult);
+
+            // Day progression
+            plant.tickCount++;
+            if (plant.tickCount >= 60) {
+                plant.daysElapsed++;
+                plant.tickCount = 0;
+            }
+
+            // Update stage
+            for (let i = stageThresholds.length - 1; i >= 0; i--) {
+                if (plant.daysElapsed >= stageThresholds[i]) {
+                    plant.stage = i;
+                    break;
+                }
+            }
+
+            // Stage progress (0-1)
+            const currentThreshold = stageThresholds[plant.stage];
+            const nextThreshold = stageThresholds[plant.stage + 1] || stageThresholds[stageThresholds.length - 1];
+            plant.stageProgress = Math.min(1, (plant.daysElapsed - currentThreshold) / (nextThreshold - currentThreshold));
+
+            // Flower buds and fruits
+            if (plant.stage >= 3) {
+                plant.flowerBuds = Math.floor(plant.height / 10);
+            }
+            if (plant.stage >= 4) {
+                plant.fruits = Math.floor((plant.height - 40) / 8);
+            }
+        }
+
+        function drawPlant() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const potX = canvas.width / 2;
+            const potY = canvas.height - 100;
+            const potWidth = 120;
+            const potHeight = 80;
+
+            // Draw pot
+            ctx.fillStyle = '#c17a5c';
+            ctx.beginPath();
+            ctx.ellipse(potX, potY, potWidth / 2, 20, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = '#d4916d';
+            ctx.fillRect(potX - potWidth / 2, potY, potWidth, potHeight);
+
+            // Draw soil
+            ctx.fillStyle = '#2a1810';
+            ctx.fillRect(potX - potWidth / 2, potY - 15, potWidth, 20);
+
+            // Draw stem
+            const stemX = potX;
+            const stemBaseY = potY - 20;
+            const stemTopY = stemBaseY - plant.height * 3;
+
+            ctx.strokeStyle = '#2d9d5f';
+            ctx.lineWidth = Math.max(2, plant.height / 15);
+            ctx.beginPath();
+            ctx.moveTo(stemX, stemBaseY);
+            ctx.quadraticCurveTo(stemX + 5, stemBaseY - plant.height * 1.5, stemX, stemTopY);
+            ctx.stroke();
+
+            // Draw leaves
+            ctx.fillStyle = '#4db8ff';
+            const leafSize = plant.height / 4;
+            for (let i = 0; i < plant.leafCount; i++) {
+                const angle = (i / Math.max(1, plant.leafCount)) * Math.PI * 2;
+                const leafY = stemBaseY - (plant.height * 2.5 * (i / plant.leafCount));
+                const leafX = stemX + Math.cos(angle) * plant.height / 2;
+
+                ctx.save();
+                ctx.translate(leafX, leafY);
+                ctx.rotate(angle);
+                ctx.beginPath();
+                ctx.ellipse(0, 0, leafSize / 2, leafSize, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+
+            // Draw flower buds
+            if (plant.flowerBuds > 0) {
+                ctx.fillStyle = '#ff6b9d';
+                for (let i = 0; i < plant.flowerBuds; i++) {
+                    const flowerY = stemTopY + i * 8;
+                    ctx.beginPath();
+                    ctx.arc(stemX - 15, flowerY, 6, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.beginPath();
+                    ctx.arc(stemX + 15, flowerY, 6, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+
+            // Draw fruits
+            if (plant.fruits > 0) {
+                ctx.fillStyle = '#ff4444';
+                for (let i = 0; i < plant.fruits; i++) {
+                    const fruitY = stemTopY + 50 + i * 12;
+                    ctx.beginPath();
+                    ctx.arc(stemX - 20, fruitY, 8, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.beginPath();
+                    ctx.arc(stemX + 20, fruitY, 8, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+        }
+
+        function updateStats() {
+            document.getElementById('height').textContent = Math.round(plant.height);
+            document.getElementById('leafCount').textContent = plant.leafCount;
+            document.getElementById('daysElapsed').textContent = plant.daysElapsed;
+            document.getElementById('photoRate').textContent = plant.photosynthesisRate.toFixed(1);
+            document.getElementById('stageLabel').textContent = stageNames[plant.stage];
+            document.getElementById('stageBadge').textContent = stageBadges[plant.stage];
+            document.getElementById('stageProgress').textContent = Math.round(plant.stageProgress * 100);
+            document.getElementById('stageFill').style.width = (plant.stageProgress * 100) + '%';
+
+            // Health indicator
+            const healthInd = document.getElementById('healthInd');
+            let health = 'good';
+            const avgHealth = (plant.water + plant.nutrients) / 2;
+            if (avgHealth < 30) health = 'bad';
+            else if (avgHealth < 60) health = 'warn';
+
+            const healthDot = healthInd.querySelector('.health-dot');
+            healthDot.className = 'health-dot health-' + health;
+            const healthText = { 'good': 'Thriving', 'warn': 'Stressed', 'bad': 'Critical' }[health];
+            healthInd.innerHTML = `<div class="health-dot health-${health}"></div><span>${healthText}</span>`;
+        }
+
+        function animate() {
+            updatePlant();
+            drawPlant();
+            updateStats();
+            requestAnimationFrame(animate);
+        }
+
+        animate();
+    </script>
+</body>
+</html>
