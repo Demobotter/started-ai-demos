@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bioluminescence Depth</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Lato:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Lato', sans-serif;
+      background: linear-gradient(to bottom, #0f1620, #000000);
+      color: #ffffff;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .container {
+      width: 100%;
+      max-width: 900px;
+      background: #0a0f1a;
+      border-radius: 12px;
+      padding: 40px;
+      box-shadow: 0 8px 32px rgba(0, 217, 255, 0.1);
+    }
+    h1 {
+      font-family: 'Poppins', sans-serif;
+      font-size: 2.2em;
+      margin-bottom: 10px;
+      text-align: center;
+      background: linear-gradient(135deg, #00d9ff, #00ff00);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .subtitle {
+      text-align: center;
+      color: #aaaaaa;
+      margin-bottom: 30px;
+      font-size: 0.95em;
+    }
+    .layout {
+      display: grid;
+      grid-template-columns: 1fr 2fr 1fr;
+      gap: 25px;
+      align-items: start;
+    }
+    @media (max-width: 768px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+    }
+    .controls {
+      background: rgba(10, 15, 26, 0.8);
+      border: 1px solid #2a4a6a;
+      border-radius: 8px;
+      padding: 20px;
+    }
+    .control-group {
+      margin-bottom: 20px;
+    }
+    .control-label {
+      font-family: 'Poppins', sans-serif;
+      font-weight: 600;
+      font-size: 0.85em;
+      color: #4db8ff;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      display: block;
+      margin-bottom: 8px;
+    }
+    input[type="range"] {
+      width: 100%;
+      height: 6px;
+      background: linear-gradient(to right, #001a4d, #00d9ff, #00ff00);
+      border-radius: 3px;
+      outline: none;
+      -webkit-appearance: none;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 16px;
+      height: 16px;
+      background: #00ffff;
+      border-radius: 50%;
+      cursor: pointer;
+      box-shadow: 0 0 10px rgba(0, 255, 255, 0.6);
+    }
+    input[type="range"]::-moz-range-thumb {
+      width: 16px;
+      height: 16px;
+      background: #00ffff;
+      border-radius: 50%;
+      cursor: pointer;
+      border: none;
+      box-shadow: 0 0 10px rgba(0, 255, 255, 0.6);
+    }
+    .depth-value {
+      font-family: 'Poppins', sans-serif;
+      font-weight: 700;
+      font-size: 1.8em;
+      color: #00ffff;
+      margin-top: 8px;
+      text-align: center;
+    }
+    .zone-label {
+      font-size: 0.9em;
+      color: #00ff00;
+      text-align: center;
+      margin-top: 5px;
+    }
+    .stats-panel {
+      background: rgba(51, 0, 51, 0.5);
+      border-left: 3px solid #ffd700;
+      border-radius: 4px;
+      padding: 12px;
+      margin-top: 15px;
+      font-size: 0.85em;
+    }
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      margin: 6px 0;
+      color: #cccccc;
+    }
+    .stat-label { color: #ffd700; }
+    .stat-value { font-weight: 700; color: #ffffff; }
+    .canvas-wrapper {
+      background: radial-gradient(circle at center, #000033 0%, #000000 100%);
+      border-radius: 8px;
+      overflow: hidden;
+      position: relative;
+      aspect-ratio: 2 / 1.5;
+      min-height: 350px;
+    }
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+    .info-panel {
+      background: rgba(10, 15, 26, 0.8);
+      border: 1px solid #2a4a6a;
+      border-radius: 8px;
+      padding: 20px;
+    }
+    .creature-name {
+      font-family: 'Poppins', sans-serif;
+      font-weight: 700;
+      font-size: 1.2em;
+      color: #00ffff;
+      margin-bottom: 12px;
+    }
+    .info-row {
+      font-size: 0.85em;
+      margin: 8px 0;
+      line-height: 1.5;
+      color: #cccccc;
+    }
+    .info-label { color: #00ff00; font-weight: 600; }
+    .info-value { color: #ffffff; }
+    .glow-indicator {
+      margin-top: 12px;
+      padding: 10px;
+      background: rgba(0, 255, 255, 0.1);
+      border-radius: 4px;
+      border-left: 3px solid #00ffff;
+    }
+    .glow-bar {
+      height: 6px;
+      background: #002255;
+      border-radius: 3px;
+      overflow: hidden;
+      margin-top: 6px;
+    }
+    .glow-fill {
+      height: 100%;
+      background: linear-gradient(to right, #00ffff, #00ff00);
+      border-radius: 3px;
+      transition: width 0.3s ease;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🌊 Bioluminescence Depth</h1>
+    <p class="subtitle">Dive from surface to abyssal zone and watch ocean creatures glow</p>
+
+    <div class="layout">
+      <!-- Left: Controls -->
+      <div class="controls">
+        <div class="control-group">
+          <label class="control-label">Depth (m)</label>
+          <input type="range" id="depthSlider" min="0" max="4000" value="0" step="50">
+          <div class="depth-value" id="depthDisplay">0</div>
+          <div class="zone-label" id="zoneLabel">Sunlit Zone</div>
+        </div>
+
+        <div class="stats-panel">
+          <div class="stat-row">
+            <span class="stat-label">Pressure</span>
+            <span class="stat-value" id="pressureValue">1.0 atm</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Temperature</span>
+            <span class="stat-value" id="tempValue">20°C</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Light</span>
+            <span class="stat-value" id="lightValue">100%</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Center: Canvas -->
+      <div class="canvas-wrapper">
+        <canvas id="depthCanvas"></canvas>
+      </div>
+
+      <!-- Right: Creature Info -->
+      <div class="info-panel">
+        <div class="creature-name" id="creatureName">Surface Explorer</div>
+        <div class="info-row">
+          <span class="info-label">Depth Range:</span>
+          <span class="info-value" id="depthRange">0–200m</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Bioluminescence:</span>
+          <span class="info-value" id="bioType">None (sunlit)</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Photophore Count:</span>
+          <span class="info-value" id="photophoreCount">0</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Emission Color:</span>
+          <span class="info-value" id="emissionColor">—</span>
+        </div>
+        <div class="glow-indicator">
+          <div style="font-size: 0.75em; color: #00ffff; font-weight: 600;">Glow Intensity</div>
+          <div class="glow-bar">
+            <div class="glow-fill" id="glowBar" style="width: 0%"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('depthCanvas');
+    const ctx = canvas.getContext('2d');
+    const depthSlider = document.getElementById('depthSlider');
+
+    // Responsive canvas sizing
+    function resizeCanvas() {
+      const rect = canvas.parentElement.getBoundingClientRect();
+      canvas.width = rect.width;
+      canvas.height = rect.height;
+    }
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+
+    // Creature database: depth range, characteristics, glow color
+    const creatures = [
+      { name: 'Sailfish', range: [0, 200], color: '#cccccc', bio: 'None (sunlit)', glow: 0, photophores: 0, emissionColor: '—', emoji: '🐠' },
+      { name: 'Lanternfish', range: [200, 1000], color: '#ffaa44', bio: 'Counterillumination', glow: 0.4, photophores: 35, emissionColor: 'Blue', emoji: '💫' },
+      { name: 'Hatchetfish', range: [100, 600], color: '#ff6b6b', bio: 'Counterillumination', glow: 0.35, photophores: 12, emissionColor: 'Blue', emoji: '✨' },
+      { name: 'Viperfish', range: [200, 3500], color: '#ff4444', bio: 'Lure + Photophores', glow: 0.6, photophores: 40, emissionColor: 'Green', emoji: '🦈' },
+      { name: 'Vampire Squid', range: [600, 1200], color: '#8b4789', bio: 'Bioluminescent display', glow: 0.5, photophores: 100, emissionColor: 'Blue', emoji: '🦑' },
+      { name: 'Dumbo Octopod', range: [2000, 5000], color: '#dd88ff', bio: 'Photophore arrays', glow: 0.7, photophores: 25, emissionColor: 'Cyan', emoji: '🐙' },
+      { name: 'Anglerfish', range: [1000, 4000], color: '#001a33', bio: 'Lure (bioluminescent)', glow: 0.8, photophores: 1, emissionColor: 'Green', emoji: '🪞' },
+    ];
+
+    // Get creature at current depth
+    function getCreatureAtDepth(depth) {
+      for (let c of creatures) {
+        if (depth >= c.range[0] && depth <= c.range[1]) {
+          return c;
+        }
+      }
+      return creatures[0];
+    }
+
+    // Get zone name
+    function getZoneName(depth) {
+      if (depth < 200) return 'Sunlit Zone';
+      if (depth < 1000) return 'Twilight Zone';
+      if (depth < 4000) return 'Midnight Zone';
+      return 'Hadal Zone';
+    }
+
+    // Calculate ocean parameters
+    function getOceanParams(depth) {
+      const pressure = 1 + depth / 100; // ~1 atm per 100m
+      let temp = 20 - (depth * 18) / 4000; // 20°C surface → 2°C at 4000m
+      if (temp < 2) temp = 2;
+      const lightPercent = Math.max(0, 100 * Math.exp(-depth / 800)); // Exponential light decay
+      return { pressure: pressure.toFixed(1), temp: Math.round(temp), light: Math.round(lightPercent) };
+    }
+
+    // Update UI
+    function updateUI(depth) {
+      // Depth display
+      document.getElementById('depthDisplay').textContent = depth;
+      document.getElementById('zoneLabel').textContent = getZoneName(depth);
+
+      // Ocean parameters
+      const params = getOceanParams(depth);
+      document.getElementById('pressureValue').textContent = params.pressure + ' atm';
+      document.getElementById('tempValue').textContent = params.temp + '°C';
+      document.getElementById('lightValue').textContent = params.light + '%';
+
+      // Creature info
+      const creature = getCreatureAtDepth(depth);
+      document.getElementById('creatureName').textContent = creature.name;
+      document.getElementById('depthRange').textContent = `${creature.range[0]}–${creature.range[1]}m`;
+      document.getElementById('bioType').textContent = creature.bio;
+      document.getElementById('photophoreCount').textContent = creature.photophores;
+      document.getElementById('emissionColor').textContent = creature.emissionColor;
+      document.getElementById('glowBar').style.width = (creature.glow * 100) + '%';
+    }
+
+    // Draw background and creatures
+    function draw(depth) {
+      const w = canvas.width;
+      const h = canvas.height;
+
+      // Background gradient based on depth
+      let bgGradient = ctx.createLinearGradient(0, 0, 0, h);
+      if (depth < 200) {
+        bgGradient.addColorStop(0, '#0099ff');
+        bgGradient.addColorStop(1, '#004477');
+      } else if (depth < 1000) {
+        bgGradient.addColorStop(0, '#001a4d');
+        bgGradient.addColorStop(1, '#330033');
+      } else if (depth < 4000) {
+        bgGradient.addColorStop(0, '#330033');
+        bgGradient.addColorStop(1, '#000000');
+      } else {
+        bgGradient.addColorStop(0, '#000000');
+        bgGradient.addColorStop(1, '#000000');
+      }
+      ctx.fillStyle = bgGradient;
+      ctx.fillRect(0, 0, w, h);
+
+      // Draw depth features
+      drawDepthFeatures(depth, w, h);
+
+      // Draw creature
+      drawCreature(depth, w, h);
+
+      // Depth overlay text
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+      ctx.font = '14px Lato';
+      ctx.textAlign = 'left';
+      ctx.fillText(`Depth: ${depth}m | Zone: ${getZoneName(depth)}`, 15, 25);
+    }
+
+    // Draw ocean features at different depths
+    function drawDepthFeatures(depth, w, h) {
+      ctx.globalAlpha = 0.2;
+      if (depth >= 100 && depth < 500) {
+        // Plankton clouds
+        for (let i = 0; i < 5; i++) {
+          ctx.fillStyle = '#00ffff';
+          ctx.beginPath();
+          ctx.arc(w * (0.2 + i * 0.15), h * (0.3 + Math.sin(depth / 200 + i) * 0.1), 30, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+      if (depth >= 400 && depth < 2000) {
+        // Marine snow
+        for (let i = 0; i < 15; i++) {
+          ctx.fillStyle = '#cccccc';
+          const x = w * (Math.sin(depth + i) * 0.5 + 0.5);
+          const y = h * ((i % 15) / 15);
+          ctx.fillRect(x, y, 2, 2);
+        }
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    // Draw creature at current depth
+    function drawCreature(depth, w, h) {
+      const creature = getCreatureAtDepth(depth);
+      const centerX = w * 0.5;
+      const centerY = h * 0.5;
+      const params = getOceanParams(depth);
+      const glowIntensity = creature.glow;
+
+      // Draw glow halo
+      if (glowIntensity > 0) {
+        const glowColor = creature.emissionColor === 'Blue' ? '#00ffff' : creature.emissionColor === 'Green' ? '#00ff00' : '#00d9ff';
+        ctx.globalAlpha = glowIntensity * 0.3;
+        ctx.fillStyle = glowColor;
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, 70, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+
+      // Draw creature body (simple silhouette + glow dots)
+      ctx.fillStyle = creature.color;
+      ctx.globalAlpha = 0.9;
+
+      // Fish-like body
+      ctx.beginPath();
+      ctx.ellipse(centerX, centerY, 50, 30, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Head/eye
+      ctx.beginPath();
+      ctx.arc(centerX + 35, centerY, 15, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Tail
+      ctx.beginPath();
+      ctx.moveTo(centerX - 50, centerY - 15);
+      ctx.lineTo(centerX - 80, centerY - 25);
+      ctx.lineTo(centerX - 85, centerY);
+      ctx.lineTo(centerX - 80, centerY + 25);
+      ctx.lineTo(centerX - 50, centerY + 15);
+      ctx.closePath();
+      ctx.fill();
+
+      // Draw photophores (glowing dots)
+      if (creature.photophores > 0 && glowIntensity > 0) {
+        const glowColor = creature.emissionColor === 'Blue' ? '#00ffff' : creature.emissionColor === 'Green' ? '#00ff00' : '#00d9ff';
+        ctx.fillStyle = glowColor;
+        ctx.globalAlpha = 0.8 * glowIntensity;
+        for (let i = 0; i < Math.min(5, Math.ceil(creature.photophores / 8)); i++) {
+          const px = centerX + (Math.random() - 0.5) * 60;
+          const py = centerY + (Math.random() - 0.5) * 40;
+          ctx.beginPath();
+          ctx.arc(px, py, 4, 0, Math.PI * 2);
+          ctx.fill();
+          // Glow aura
+          ctx.fillStyle = glowColor;
+          ctx.globalAlpha = 0.3 * glowIntensity;
+          ctx.beginPath();
+          ctx.arc(px, py, 8, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.globalAlpha = 0.8 * glowIntensity;
+          ctx.fillStyle = glowColor;
+        }
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    // Event listeners
+    depthSlider.addEventListener('input', (e) => {
+      const depth = parseInt(e.target.value);
+      updateUI(depth);
+      draw(depth);
+    });
+
+    // Initial draw
+    updateUI(0);
+    draw(0);
+  </script>
+</body>
+</html>
