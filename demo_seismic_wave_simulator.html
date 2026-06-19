@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Seismic Wave Simulator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Lato:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Lato', sans-serif;
+            background: linear-gradient(135deg, #0a0a14 0%, #1a1f3a 100%);
+            color: #e0e0e0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        h1 {
+            font-family: 'Poppins', sans-serif;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5rem;
+            color: #00d9ff;
+            text-shadow: 0 0 20px rgba(0, 217, 255, 0.3);
+        }
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1.2fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        .control-panel {
+            background: rgba(20, 25, 50, 0.8);
+            border: 1px solid rgba(0, 217, 255, 0.3);
+            border-radius: 12px;
+            padding: 25px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+        .control-group {
+            background: rgba(10, 10, 20, 0.6);
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 3px solid #00d9ff;
+        }
+        .control-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 0.95rem;
+            color: #4db8ff;
+        }
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #2a5a9e;
+            outline: none;
+            -webkit-appearance: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #00d9ff;
+            cursor: pointer;
+            box-shadow: 0 0 8px rgba(0, 217, 255, 0.6);
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #00d9ff;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 0 8px rgba(0, 217, 255, 0.6);
+        }
+        .value-display {
+            font-size: 0.9rem;
+            color: #ffd700;
+            margin-top: 4px;
+            font-weight: 600;
+        }
+        .button-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+        }
+        button {
+            background: rgba(0, 217, 255, 0.15);
+            border: 1px solid #00d9ff;
+            color: #4db8ff;
+            padding: 10px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+        button:hover {
+            background: #00d9ff;
+            color: #0a0a14;
+            box-shadow: 0 0 12px rgba(0, 217, 255, 0.5);
+        }
+        button.active {
+            background: #00d9ff;
+            color: #0a0a14;
+        }
+        .canvas-container {
+            background: rgba(20, 25, 50, 0.8);
+            border: 1px solid rgba(0, 217, 255, 0.3);
+            border-radius: 12px;
+            padding: 15px;
+            position: relative;
+        }
+        canvas {
+            width: 100%;
+            height: 400px;
+            border-radius: 8px;
+            background: #0a0e1a;
+            display: block;
+        }
+        .stats-panel {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 25px;
+        }
+        .stat-box {
+            background: rgba(10, 10, 20, 0.6);
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid rgba(45, 157, 95, 0.4);
+        }
+        .stat-label {
+            font-size: 0.75rem;
+            color: #2d9d5f;
+            text-transform: uppercase;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        .stat-value {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #ffd700;
+            font-family: 'Poppins', sans-serif;
+        }
+        .time-distance-graph {
+            grid-column: 1 / -1;
+            background: rgba(10, 10, 20, 0.6);
+            border: 1px solid rgba(0, 217, 255, 0.3);
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+        .time-distance-graph h3 {
+            font-size: 0.9rem;
+            color: #00d9ff;
+            margin-bottom: 10px;
+            font-family: 'Poppins', sans-serif;
+        }
+        .graph-bars {
+            display: flex;
+            align-items: flex-end;
+            gap: 8px;
+            height: 80px;
+        }
+        .graph-bar {
+            flex: 1;
+            background: linear-gradient(180deg, #00d9ff 0%, #2a5a9e 100%);
+            border-radius: 4px 4px 0 0;
+            min-height: 4px;
+            position: relative;
+            transition: all 0.1s ease;
+        }
+        .graph-bar.s-wave {
+            background: linear-gradient(180deg, #ff9800 0%, #d64545 100%);
+        }
+        .station-list {
+            grid-column: 1 / -1;
+            margin-top: 15px;
+        }
+        .station-list h3 {
+            color: #4db8ff;
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+            font-family: 'Poppins', sans-serif;
+        }
+        .station-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            font-size: 0.85rem;
+            border-bottom: 1px solid rgba(0, 217, 255, 0.1);
+        }
+        .station-name {
+            color: #2a5a9e;
+            font-weight: 600;
+        }
+        .station-pwave {
+            color: #00d9ff;
+        }
+        .station-swave {
+            color: #ff9800;
+        }
+        @media (max-width: 1000px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        .layer-diagram {
+            grid-column: 1 / -1;
+            background: rgba(10, 10, 20, 0.6);
+            border: 1px solid rgba(0, 217, 255, 0.3);
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+        .layer-diagram h3 {
+            color: #00d9ff;
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+            font-family: 'Poppins', sans-serif;
+        }
+        .earth-layers {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .earth-layer {
+            flex: 1;
+            height: 40px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: white;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+        }
+        .crust { background: #8B7355; }
+        .mantle { background: #b83c3c; }
+        .outer-core { background: #d4a574; }
+        .inner-core { background: #ffd700; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌍 Seismic Wave Simulator</h1>
+        
+        <div class="main-grid">
+            <div class="control-panel">
+                <div class="control-group">
+                    <label>Magnitude (Richter)</label>
+                    <input type="range" id="magnitudeSlider" min="1" max="9" step="0.1" value="5">
+                    <div class="value-display" id="magnitudeValue">5.0</div>
+                </div>
+
+                <div class="control-group">
+                    <label>Depth (km)</label>
+                    <input type="range" id="depthSlider" min="0" max="700" step="10" value="15">
+                    <div class="value-display" id="depthValue">15 km</div>
+                </div>
+
+                <div class="control-group">
+                    <label>Focal Mechanism</label>
+                    <div class="button-group">
+                        <button id="strikeSlipBtn" class="active">Strike-Slip</button>
+                        <button id="normalBtn">Normal</button>
+                        <button id="reverseBtn">Reverse</button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Dip Angle (°)</label>
+                    <input type="range" id="dipSlider" min="0" max="90" step="5" value="45">
+                    <div class="value-display" id="dipValue">45°</div>
+                </div>
+
+                <div class="control-group">
+                    <label>Station Count</label>
+                    <input type="range" id="stationSlider" min="3" max="12" step="1" value="6">
+                    <div class="value-display" id="stationValue">6 stations</div>
+                </div>
+
+                <button id="triggerBtn" style="grid-column: 1/-1; background: rgba(255, 100, 100, 0.2); border-color: #ff6464; color: #ff9999;">Generate Earthquake</button>
+
+                <div class="stats-panel">
+                    <div class="stat-box">
+                        <div class="stat-label">Magnitude</div>
+                        <div class="stat-value" id="statMagnitude">5.0</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">Depth</div>
+                        <div class="stat-value" id="statDepth">15 km</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">Energy Release</div>
+                        <div class="stat-value" id="statEnergy">2.0×10⁶</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">P-S Interval</div>
+                        <div class="stat-value" id="statDelta">8.6 s</div>
+                    </div>
+
+                    <div class="station-list">
+                        <h3>Seismometer Network</h3>
+                        <div id="stationListContainer"></div>
+                    </div>
+
+                    <div class="time-distance-graph">
+                        <h3>Travel Time Curve (Distance = 100 km)</h3>
+                        <div class="graph-bars" id="graphBars"></div>
+                    </div>
+
+                    <div class="layer-diagram">
+                        <h3>Earth's Layers</h3>
+                        <div class="earth-layers">
+                            <div class="earth-layer crust">Crust</div>
+                            <div class="earth-layer mantle">Mantle</div>
+                            <div class="earth-layer outer-core">Outer Core</div>
+                            <div class="earth-layer inner-core">Inner Core</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="canvas-container">
+                <canvas id="waveCanvas"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('waveCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Dynamically set canvas size
+        function resizeCanvas() {
+            const rect = canvas.parentElement.getBoundingClientRect();
+            canvas.width = rect.width - 30;
+            canvas.height = rect.height - 30;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        // State
+        let magnitude = 5;
+        let depth = 15;
+        let focalMechanism = 'strike-slip';
+        let dipAngle = 45;
+        let stationCount = 6;
+        let time = 0;
+        let isAnimating = false;
+        let stations = [];
+
+        // Real seismic velocities (km/s)
+        const P_WAVE_VELOCITY = 6.0;
+        const S_WAVE_VELOCITY = 3.5;
+
+        // Event handlers
+        document.getElementById('magnitudeSlider').addEventListener('input', (e) => {
+            magnitude = parseFloat(e.target.value);
+            document.getElementById('magnitudeValue').textContent = magnitude.toFixed(1);
+            updateStats();
+        });
+
+        document.getElementById('depthSlider').addEventListener('input', (e) => {
+            depth = parseInt(e.target.value);
+            document.getElementById('depthValue').textContent = depth + ' km';
+            updateStats();
+        });
+
+        document.getElementById('dipSlider').addEventListener('input', (e) => {
+            dipAngle = parseInt(e.target.value);
+            document.getElementById('dipValue').textContent = dipAngle + '°';
+        });
+
+        document.getElementById('stationSlider').addEventListener('input', (e) => {
+            stationCount = parseInt(e.target.value);
+            document.getElementById('stationValue').textContent = stationCount + ' stations';
+            generateStations();
+            renderStationList();
+        });
+
+        // Focal mechanism buttons
+        ['strikeSlipBtn', 'normalBtn', 'reverseBtn'].forEach(id => {
+            document.getElementById(id).addEventListener('click', (e) => {
+                document.querySelectorAll('.control-group button').forEach(btn => btn.classList.remove('active'));
+                e.target.classList.add('active');
+                focalMechanism = e.target.id.replace('Btn', '').replace(/([A-Z])/g, '-$1').toLowerCase().slice(1);
+            });
+        });
+
+        document.getElementById('triggerBtn').addEventListener('click', () => {
+            isAnimating = true;
+            time = 0;
+        });
+
+        function generateStations() {
+            stations = [];
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const radius = Math.min(canvas.width, canvas.height) / 3;
+            const angleStep = (Math.PI * 2) / stationCount;
+            
+            for (let i = 0; i < stationCount; i++) {
+                const angle = i * angleStep;
+                const x = centerX + Math.cos(angle) * radius;
+                const y = centerY + Math.sin(angle) * radius;
+                const distance = radius / 100; // in km (normalized)
+                stations.push({
+                    id: i + 1,
+                    x,
+                    y,
+                    distanceKm: distance * 100,
+                    pArrivalTime: distance / P_WAVE_VELOCITY,
+                    sArrivalTime: distance / S_WAVE_VELOCITY,
+                    currentShake: 0,
+                    direction: angle
+                });
+            }
+        }
+
+        function updateStats() {
+            document.getElementById('statMagnitude').textContent = magnitude.toFixed(1);
+            document.getElementById('statDepth').textContent = depth + ' km';
+            
+            // Energy: E = 10^(1.5*M + 4.4) joules
+            const energy = Math.pow(10, 1.5 * magnitude + 4.4);
+            const kilotons = energy / 4.184e12;
+            document.getElementById('statEnergy').textContent = (energy / 1e15).toFixed(1) + '×10¹⁵ J';
+            
+            // P-S interval at 100km
+            const deltaT = (100 / S_WAVE_VELOCITY) - (100 / P_WAVE_VELOCITY);
+            document.getElementById('statDelta').textContent = deltaT.toFixed(1) + ' s';
+            
+            updateGraphBars();
+        }
+
+        function updateGraphBars() {
+            const container = document.getElementById('graphBars');
+            container.innerHTML = '';
+            const distance100 = 100; // km
+            const pTime = distance100 / P_WAVE_VELOCITY;
+            const sTime = distance100 / S_WAVE_VELOCITY;
+            const maxTime = sTime * 1.2;
+            
+            const pBar = document.createElement('div');
+            pBar.className = 'graph-bar';
+            pBar.style.height = (pTime / maxTime * 100) + '%';
+            pBar.title = 'P-wave: ' + pTime.toFixed(1) + ' s';
+            
+            const sBar = document.createElement('div');
+            sBar.className = 'graph-bar s-wave';
+            sBar.style.height = (sTime / maxTime * 100) + '%';
+            sBar.title = 'S-wave: ' + sTime.toFixed(1) + ' s';
+            
+            container.appendChild(pBar);
+            container.appendChild(sBar);
+        }
+
+        function renderStationList() {
+            const container = document.getElementById('stationListContainer');
+            container.innerHTML = '';
+            stations.forEach(station => {
+                const item = document.createElement('div');
+                item.className = 'station-item';
+                item.innerHTML = `
+                    <span class="station-name">Station ${station.id}</span>
+                    <span class="station-pwave">P: ${station.pArrivalTime.toFixed(2)}s</span>
+                    <span class="station-swave">S: ${station.sArrivalTime.toFixed(2)}s</span>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        function draw() {
+            // Clear
+            ctx.fillStyle = '#0a0e1a';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+
+            // Draw Earth layers (simplified cross-section)
+            drawEarthLayers(centerX, centerY);
+
+            if (isAnimating) {
+                // Draw expanding wave rings
+                drawWaves(centerX, centerY);
+                
+                // Update station shaking
+                updateStations();
+                
+                // Draw stations
+                drawStations();
+                
+                time += 0.016; // ~60fps
+                
+                // Stop animation after ~10 seconds
+                if (time > 10) {
+                    isAnimating = false;
+                }
+            }
+
+            requestAnimationFrame(draw);
+        }
+
+        function drawEarthLayers(cx, cy) {
+            // Simple crust line
+            ctx.strokeStyle = 'rgba(139, 115, 85, 0.4)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(cx, cy, 40, 0, Math.PI * 2);
+            ctx.stroke();
+
+            // Mantle line
+            ctx.strokeStyle = 'rgba(184, 60, 60, 0.3)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(cx, cy, 80, 0, Math.PI * 2);
+            ctx.stroke();
+
+            // Core
+            ctx.strokeStyle = 'rgba(212, 165, 116, 0.2)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(cx, cy, 120, 0, Math.PI * 2);
+            ctx.stroke();
+        }
+
+        function drawWaves(cx, cy) {
+            const maxRadius = Math.min(canvas.width, canvas.height) / 2 - 20;
+
+            // P-wave (cyan, faster)
+            const pRadius = (time * P_WAVE_VELOCITY * 30);
+            if (pRadius < maxRadius) {
+                ctx.strokeStyle = `rgba(0, 217, 255, ${Math.max(0, 1 - time / 3)})`;
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.arc(cx, cy, pRadius, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+
+            // S-wave (orange, slower)
+            const sRadius = (time * S_WAVE_VELOCITY * 30);
+            if (sRadius < maxRadius && sRadius > 5) {
+                ctx.strokeStyle = `rgba(255, 152, 0, ${Math.max(0, 1 - (time - 1) / 3)})`;
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.arc(cx, cy, sRadius, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+
+            // Epicenter marker
+            ctx.fillStyle = '#ff6464';
+            ctx.beginPath();
+            ctx.arc(cx, cy, 6, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold 10px Poppins';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('E', cx, cy);
+        }
+
+        function updateStations() {
+            stations.forEach(station => {
+                station.currentShake = 0;
+
+                // P-wave contribution
+                if (time >= station.pArrivalTime && time < station.pArrivalTime + 0.5) {
+                    const progress = (time - station.pArrivalTime) / 0.5;
+                    station.currentShake += Math.sin(progress * Math.PI) * magnitude * 3;
+                }
+
+                // S-wave contribution (stronger)
+                if (time >= station.sArrivalTime && time < station.sArrivalTime + 0.8) {
+                    const progress = (time - station.sArrivalTime) / 0.8;
+                    station.currentShake += Math.sin(progress * Math.PI) * magnitude * 6;
+                }
+            });
+        }
+
+        function drawStations() {
+            stations.forEach(station => {
+                const shake = station.currentShake * 2;
+                const x = station.x + Math.cos(station.direction) * shake;
+                const y = station.y + Math.sin(station.direction) * shake;
+
+                // Station circle
+                ctx.fillStyle = `rgba(42, 90, 158, ${0.6 + Math.abs(station.currentShake) * 0.2})`;
+                ctx.beginPath();
+                ctx.arc(x, y, 6, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Station label
+                ctx.fillStyle = '#fff';
+                ctx.font = 'bold 10px Poppins';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(station.id, x, y);
+
+                // Shake amplitude bar
+                const barHeight = Math.abs(station.currentShake) * 10;
+                ctx.fillStyle = `rgba(0, 217, 255, ${0.5 + Math.abs(station.currentShake) * 0.3})`;
+                ctx.fillRect(x - 2, y - 15 - barHeight, 4, barHeight);
+            });
+        }
+
+        // Initialize
+        generateStations();
+        renderStationList();
+        updateStats();
+        updateGraphBars();
+        draw();
+    </script>
+</body>
+</html>
