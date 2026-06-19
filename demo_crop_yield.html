@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crop Yield Predictor</title>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0f0e27 0%, #1a1f3a 100%);
+            min-height: 100vh;
+            color: #e0e0e0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1000px;
+            width: 100%;
+            background: rgba(20, 20, 40, 0.8);
+            border-radius: 12px;
+            padding: 40px;
+            border: 1px solid rgba(77, 184, 255, 0.2);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        }
+        h1 {
+            font-family: 'Syne', sans-serif;
+            font-size: 2.2em;
+            margin-bottom: 10px;
+            color: #d4a574;
+        }
+        .subtitle {
+            color: #999;
+            margin-bottom: 30px;
+            font-size: 0.95em;
+        }
+        .layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+        @media (max-width: 768px) {
+            .layout { grid-template-columns: 1fr; }
+            .container { padding: 20px; }
+        }
+        .section { padding: 0; }
+        .section-title {
+            font-family: 'Syne', sans-serif;
+            font-size: 1.1em;
+            font-weight: 700;
+            color: #2D5016;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            font-size: 0.9em;
+            margin-bottom: 6px;
+            color: #ccc;
+            font-weight: 500;
+        }
+        select, input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid rgba(77, 184, 255, 0.3);
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.05);
+            color: #e0e0e0;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.9em;
+        }
+        input[type="range"] {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            accent-color: #4db8ff;
+            padding: 0;
+        }
+        .slider-value {
+            display: inline-block;
+            margin-left: 10px;
+            color: #4db8ff;
+            font-weight: 600;
+            min-width: 60px;
+        }
+        .crop-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+        .crop-btn {
+            padding: 10px;
+            border: 2px solid rgba(77, 184, 255, 0.3);
+            border-radius: 6px;
+            background: rgba(45, 80, 22, 0.3);
+            color: #a8d5a8;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: 'Inter', sans-serif;
+        }
+        .crop-btn:hover { border-color: #4db8ff; }
+        .crop-btn.active {
+            border-color: #D4A574;
+            background: rgba(212, 165, 116, 0.2);
+            color: #D4A574;
+        }
+        .chart-container {
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .bar-chart {
+            display: flex;
+            align-items: flex-end;
+            gap: 12px;
+            height: 180px;
+            margin-bottom: 15px;
+        }
+        .bar-item {
+            flex: 1;
+            text-align: center;
+        }
+        .bar {
+            background: linear-gradient(to top, #4db8ff, #2a7fa8);
+            border-radius: 4px;
+            width: 100%;
+            transition: all 0.3s ease;
+            min-height: 10px;
+        }
+        .bar-label {
+            font-size: 0.75em;
+            margin-top: 8px;
+            color: #999;
+            word-break: break-word;
+        }
+        .stats-panel {
+            background: rgba(77, 184, 255, 0.05);
+            border: 1px solid rgba(77, 184, 255, 0.2);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            font-size: 0.95em;
+        }
+        .stat-row:last-child { margin-bottom: 0; }
+        .stat-label { color: #999; }
+        .stat-value {
+            color: #D4A574;
+            font-weight: 700;
+            font-family: 'Syne', sans-serif;
+        }
+        .export-btn {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #2D5016 0%, #6B4423 100%);
+            border: 1px solid #D4A574;
+            border-radius: 6px;
+            color: #e0e0e0;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: 'Inter', sans-serif;
+            transition: all 0.2s;
+        }
+        .export-btn:hover {
+            background: linear-gradient(135deg, #3a6b1f 0%, #7d5429 100%);
+        }
+        .yield-meter {
+            background: linear-gradient(90deg, #d64545 0%, #ffd93d 50%, #2D5016 100%);
+            height: 20px;
+            border-radius: 10px;
+            margin: 10px 0;
+            position: relative;
+            overflow: hidden;
+        }
+        .yield-pointer {
+            position: absolute;
+            top: -4px;
+            width: 0;
+            height: 0;
+            border-left: 6px solid transparent;
+            border-right: 6px solid transparent;
+            border-top: 10px solid #fff;
+            transition: left 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌾 Harvest Forecast</h1>
+        <p class="subtitle">Select your crop and adjust soil, weather, and planting conditions to estimate yield.</p>
+        
+        <div class="layout">
+            <!-- LEFT: Controls -->
+            <div class="section">
+                <div class="section-title">Crop & Soil</div>
+                
+                <div class="form-group">
+                    <label>Crop Type</label>
+                    <div class="crop-buttons">
+                        <button class="crop-btn active" data-crop="wheat">Wheat</button>
+                        <button class="crop-btn" data-crop="corn">Corn</button>
+                        <button class="crop-btn" data-crop="rice">Rice</button>
+                        <button class="crop-btn" data-crop="soybean">Soybean</button>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>Soil pH <span class="slider-value" id="phVal">7.0</span></label>
+                    <input type="range" id="ph" min="4.5" max="8.5" step="0.1" value="7.0">
+                </div>
+                
+                <div class="form-group">
+                    <label>Nitrogen (%) <span class="slider-value" id="nVal">2.5</span></label>
+                    <input type="range" id="nitrogen" min="0.5" max="5" step="0.1" value="2.5">
+                </div>
+                
+                <div class="form-group">
+                    <label>Phosphorus (%) <span class="slider-value" id="pVal">1.0</span></label>
+                    <input type="range" id="phosphorus" min="0.1" max="3" step="0.1" value="1.0">
+                </div>
+                
+                <div class="form-group">
+                    <label>Potassium (%) <span class="slider-value" id="kVal">2.0</span></label>
+                    <input type="range" id="potassium" min="0.5" max="4" step="0.1" value="2.0">
+                </div>
+                
+                <div class="section-title" style="margin-top: 25px;">Weather & Planting</div>
+                
+                <div class="form-group">
+                    <label>Rainfall (mm/season) <span class="slider-value" id="rainVal">600</span></label>
+                    <input type="range" id="rainfall" min="200" max="1500" step="50" value="600">
+                </div>
+                
+                <div class="form-group">
+                    <label>Avg Temperature (°C) <span class="slider-value" id="tempVal">15</span></label>
+                    <input type="range" id="temperature" min="5" max="30" step="0.5" value="15">
+                </div>
+                
+                <div class="form-group">
+                    <label>Frost Days <span class="slider-value" id="frostVal">100</span></label>
+                    <input type="range" id="frostDays" min="0" max="200" step="10" value="100">
+                </div>
+                
+                <div class="form-group">
+                    <label>Planting Density (seeds/ha) <span class="slider-value" id="densityVal">250k</span></label>
+                    <input type="range" id="density" min="100000" max="500000" step="25000" value="250000">
+                </div>
+            </div>
+            
+            <!-- RIGHT: Results -->
+            <div class="section">
+                <div class="section-title">Yield Forecast</div>
+                
+                <div class="chart-container">
+                    <div class="bar-chart" id="factorChart"></div>
+                </div>
+                
+                <div class="stats-panel">
+                    <div class="stat-row">
+                        <span class="stat-label">Yield Score</span>
+                        <span class="stat-value" id="yieldScore">78</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Est. Harvest</span>
+                        <span class="stat-value" id="harvestWeight">7.8 t/ha</span>
+                    </div>
+                </div>
+                
+                <div class="yield-meter">
+                    <div class="yield-pointer" id="yieldPointer"></div>
+                </div>
+                
+                <div class="stats-panel" style="margin-top: 20px;">
+                    <div class="stat-row">
+                        <span class="stat-label">Soil Score</span>
+                        <span class="stat-value" id="soilScore">75</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Weather Score</span>
+                        <span class="stat-value" id="weatherScore">82</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Crop Match</span>
+                        <span class="stat-value" id="cropMatch">80</span>
+                    </div>
+                </div>
+                
+                <button class="export-btn" id="exportBtn">📊 Export Yield Report</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Base yields (kg/ha) from USDA/FAO data
+        const baseYields = {
+            wheat: 5500,
+            corn: 10500,
+            rice: 7200,
+            soybean: 3200
+        };
+        
+        // Ideal conditions for each crop
+        const cropOptima = {
+            wheat: { phMin: 6.0, phMax: 7.5, tempMin: 10, tempMax: 20, rainMin: 400, rainMax: 800 },
+            corn: { phMin: 5.8, phMax: 7.3, tempMin: 15, tempMax: 25, rainMin: 500, rainMax: 900 },
+            rice: { phMin: 6.0, phMax: 7.5, tempMin: 20, tempMax: 28, rainMin: 1000, rainMax: 1500 },
+            soybean: { phMin: 6.0, phMax: 7.3, tempMin: 15, tempMax: 25, rainMin: 400, rainMax: 800 }
+        };
+        
+        let currentCrop = 'wheat';
+        
+        const inputs = {
+            ph: document.getElementById('ph'),
+            nitrogen: document.getElementById('nitrogen'),
+            phosphorus: document.getElementById('phosphorus'),
+            potassium: document.getElementById('potassium'),
+            rainfall: document.getElementById('rainfall'),
+            temperature: document.getElementById('temperature'),
+            frostDays: document.getElementById('frostDays'),
+            density: document.getElementById('density')
+        };
+        
+        // Update slider values
+        Object.entries(inputs).forEach(([key, elem]) => {
+            elem.addEventListener('input', (e) => {
+                const displayKey = key === 'frostDays' ? 'frost' : key === 'density' ? 'density' : key;
+                const valElem = document.getElementById(displayKey + 'Val');
+                if (valElem) {
+                    if (key === 'density') {
+                        valElem.textContent = (parseInt(e.target.value) / 1000).toFixed(0) + 'k';
+                    } else if (key === 'rainfall') {
+                        valElem.textContent = parseInt(e.target.value);
+                    } else if (key === 'frostDays') {
+                        valElem.textContent = parseInt(e.target.value);
+                    } else if (['ph', 'nitrogen', 'phosphorus', 'potassium', 'temperature'].includes(key)) {
+                        valElem.textContent = parseFloat(e.target.value).toFixed(1);
+                    }
+                }
+                updateYield();
+            });
+        });
+        
+        // Crop selection
+        document.querySelectorAll('.crop-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                document.querySelectorAll('.crop-btn').forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
+                currentCrop = e.target.dataset.crop;
+                updateYield();
+            });
+        });
+        
+        function calcSoilScore() {
+            const ph = parseFloat(inputs.ph.value);
+            const n = parseFloat(inputs.nitrogen.value);
+            const p = parseFloat(inputs.phosphorus.value);
+            const k = parseFloat(inputs.potassium.value);
+            
+            // pH distance from ideal range (6.2-7.2)
+            const phIdeal = ph >= 6.2 && ph <= 7.2 ? 100 : Math.max(0, 100 - Math.abs(ph - 6.7) * 20);
+            
+            // Nutrient balance (optimal ~2-3% N, 0.8-1.2% P, 1.5-2.5% K)
+            const nScore = Math.max(0, 100 - Math.abs(n - 2.5) * 15);
+            const pScore = Math.max(0, 100 - Math.abs(p - 1.0) * 30);
+            const kScore = Math.max(0, 100 - Math.abs(k - 2.0) * 20);
+            
+            return Math.round((phIdeal + nScore + pScore + kScore) / 4);
+        }
+        
+        function calcWeatherScore() {
+            const temp = parseFloat(inputs.temperature.value);
+            const rain = parseFloat(inputs.rainfall.value);
+            const frost = parseFloat(inputs.frostDays.value);
+            
+            const optima = cropOptima[currentCrop];
+            
+            // Temperature range penalty
+            const tempScore = temp >= optima.tempMin && temp <= optima.tempMax 
+                ? 100 
+                : Math.max(0, 100 - Math.abs(temp - ((optima.tempMin + optima.tempMax) / 2)) * 8);
+            
+            // Rainfall range penalty
+            const rainScore = rain >= optima.rainMin && rain <= optima.rainMax 
+                ? 100 
+                : Math.max(0, 100 - Math.abs(rain - ((optima.rainMin + optima.rainMax) / 2)) / 10);
+            
+            // Frost penalty (each frost day reduces score)
+            const frostScore = Math.max(0, 100 - frost * 0.3);
+            
+            return Math.round((tempScore + rainScore + frostScore) / 3);
+        }
+        
+        function calcCropMatch() {
+            // Planting density optimality
+            const density = parseFloat(inputs.density.value);
+            const optimalDensity = 250000; // generic optimal
+            const densityScore = Math.max(0, 100 - Math.abs(density - optimalDensity) / 2500);
+            
+            return Math.round(densityScore);
+        }
+        
+        function updateYield() {
+            const soilScore = calcSoilScore();
+            const weatherScore = calcWeatherScore();
+            const cropMatch = calcCropMatch();
+            
+            // Overall yield score (weighted average)
+            const yieldScore = Math.round(soilScore * 0.4 + weatherScore * 0.4 + cropMatch * 0.2);
+            
+            // Harvest weight = base × (yield score / 100)
+            const baseYield = baseYields[currentCrop];
+            const harvestWeight = (baseYield * yieldScore / 100) / 1000; // convert to t/ha
+            
+            // Update display
+            document.getElementById('yieldScore').textContent = yieldScore;
+            document.getElementById('harvestWeight').textContent = harvestWeight.toFixed(1) + ' t/ha';
+            document.getElementById('soilScore').textContent = soilScore;
+            document.getElementById('weatherScore').textContent = weatherScore;
+            document.getElementById('cropMatch').textContent = cropMatch;
+            
+            // Update yield meter pointer
+            document.getElementById('yieldPointer').style.left = (yieldScore / 100) * 100 + '%';
+            
+            // Update factor chart
+            updateFactorChart(soilScore, weatherScore, cropMatch, yieldScore);
+        }
+        
+        function updateFactorChart(soil, weather, crop, overall) {
+            const maxScore = 100;
+            const factors = [
+                { label: 'Soil', score: soil },
+                { label: 'Weather', score: weather },
+                { label: 'Density', score: crop },
+                { label: 'Overall', score: overall }
+            ];
+            
+            const html = factors.map(f => `
+                <div class="bar-item">
+                    <div class="bar" style="height: ${(f.score / maxScore) * 150}px;"></div>
+                    <div class="bar-label">${f.label}<br><strong>${f.score}</strong></div>
+                </div>
+            `).join('');
+            
+            document.getElementById('factorChart').innerHTML = html;
+        }
+        
+        // Export button
+        document.getElementById('exportBtn').addEventListener('click', () => {
+            const yieldScore = document.getElementById('yieldScore').textContent;
+            const harvest = document.getElementById('harvestWeight').textContent;
+            const soil = document.getElementById('soilScore').textContent;
+            const weather = document.getElementById('weatherScore').textContent;
+            const crop = document.getElementById('cropMatch').textContent;
+            
+            const report = `HARVEST FORECAST REPORT\n\nCrop: ${currentCrop.toUpperCase()}\nOverall Yield Score: ${yieldScore}/100\nEstimated Harvest: ${harvest}\n\nFACTORS:\nSoil Score: ${soil}/100\nWeather Score: ${weather}/100\nPlanting Density Score: ${crop}/100\n\nSOIL CONDITIONS:\npH: ${inputs.ph.value}\nNitrogen: ${inputs.nitrogen.value}%\nPhosphorus: ${inputs.phosphorus.value}%\nPotassium: ${inputs.potassium.value}%\n\nWEATHER:\nRainfall: ${inputs.rainfall.value} mm/season\nTemperature: ${inputs.temperature.value}°C\nFrost Days: ${inputs.frostDays.value}`;
+            
+            const blob = new Blob([report], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `harvest_${currentCrop}_${new Date().toISOString().split('T')[0]}.txt`;
+            a.click();
+            URL.revokeObjectURL(url);
+        });
+        
+        // Initial render
+        updateYield();
+    </script>
+</body>
+</html>
