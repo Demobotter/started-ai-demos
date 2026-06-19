@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Synoptic Chart — Pressure Simulator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Syne', sans-serif;
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 100%);
+            color: #fff;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1000px;
+            width: 100%;
+            background: rgba(20, 24, 40, 0.8);
+            border: 1px solid rgba(77, 184, 255, 0.2);
+            border-radius: 12px;
+            padding: 24px;
+            backdrop-filter: blur(10px);
+        }
+        h1 {
+            font-size: 28px;
+            margin-bottom: 8px;
+            color: #4db8ff;
+            font-weight: 700;
+        }
+        .subtitle {
+            font-size: 13px;
+            color: #aaa;
+            margin-bottom: 20px;
+            font-family: 'Space Mono', monospace;
+        }
+        .canvas-wrapper {
+            background: rgba(10, 14, 39, 0.6);
+            border: 1px solid rgba(45, 90, 158, 0.3);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 20px;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: auto;
+            background: rgba(15, 20, 35, 0.9);
+            border-radius: 6px;
+        }
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        button {
+            background: linear-gradient(135deg, #2a5a9e 0%, #1a3a6e 100%);
+            border: 1px solid rgba(77, 184, 255, 0.4);
+            color: #fff;
+            padding: 10px 14px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: 'Syne', sans-serif;
+        }
+        button:hover {
+            background: linear-gradient(135deg, #3a7abe 0%, #2a5a9e 100%);
+            border-color: rgba(77, 184, 255, 0.7);
+            transform: translateY(-1px);
+        }
+        .sliders {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+        .slider-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .slider-label {
+            font-size: 12px;
+            color: #7fb3ff;
+            font-weight: 600;
+            font-family: 'Space Mono', monospace;
+        }
+        .slider-value {
+            font-size: 13px;
+            color: #4db8ff;
+            font-family: 'Space Mono', monospace;
+        }
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: linear-gradient(90deg, #2a5a9e 0%, #d64545 100%);
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #4db8ff;
+            cursor: pointer;
+            border: 2px solid #fff;
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #4db8ff;
+            cursor: pointer;
+            border: 2px solid #fff;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 12px;
+        }
+        .stat-card {
+            background: rgba(45, 90, 158, 0.2);
+            border: 1px solid rgba(77, 184, 255, 0.3);
+            border-radius: 6px;
+            padding: 12px;
+            text-align: center;
+        }
+        .stat-label {
+            font-size: 11px;
+            color: #aaa;
+            text-transform: uppercase;
+            font-family: 'Space Mono', monospace;
+            margin-bottom: 4px;
+        }
+        .stat-value {
+            font-size: 18px;
+            font-weight: 700;
+            color: #4db8ff;
+            font-family: 'Space Mono', monospace;
+        }
+        .legend {
+            display: flex;
+            gap: 20px;
+            margin-top: 16px;
+            flex-wrap: wrap;
+            font-size: 12px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .legend-box {
+            width: 16px;
+            height: 16px;
+            border-radius: 2px;
+        }
+        .low { background: #2a5a9e; }
+        .high { background: #d64545; }
+        .neutral { background: #4db8ff; }
+        @media (max-width: 600px) {
+            h1 { font-size: 20px; }
+            .controls { grid-template-columns: 1fr 1fr; }
+            .sliders { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌍 Synoptic Chart</h1>
+        <div class="subtitle">Real-time atmospheric pressure evolution with Coriolis dynamics</div>
+        
+        <div class="canvas-wrapper">
+            <canvas id="synopticCanvas" width="800" height="500"></canvas>
+        </div>
+
+        <div class="controls">
+            <button id="addWarmBtn">+ Warm Front</button>
+            <button id="addColdBtn">+ Cold Front</button>
+            <button id="clearBtn">Clear All</button>
+        </div>
+
+        <div class="sliders">
+            <div class="slider-group">
+                <label class="slider-label">Temperature Evolution</label>
+                <input type="range" id="tempSlider" min="0" max="100" value="50">
+                <div class="slider-value"><span id="tempValue">50</span>%</div>
+            </div>
+            <div class="slider-group">
+                <label class="slider-label">Coriolis Strength</label>
+                <input type="range" id="coriolisSlider" min="0.1" max="1" step="0.05" value="0.5">
+                <div class="slider-value"><span id="coriolisValue">0.5</span>f</div>
+            </div>
+            <div class="slider-group">
+                <label class="slider-label">Cooling Rate</label>
+                <input type="range" id="coolingSlider" min="0.01" max="0.1" step="0.01" value="0.03">
+                <div class="slider-value"><span id="coolingValue">0.03</span>/frame</div>
+            </div>
+        </div>
+
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-label">Dominant Pressure</div>
+                <div class="stat-value"><span id="pressureValue">1013</span> hPa</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Gradient Strength</div>
+                <div class="stat-value"><span id="gradientValue">2.1</span> hPa/°</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Storm Count</div>
+                <div class="stat-value"><span id="stormValue">0</span></div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">System Movement</div>
+                <div class="stat-value"><span id="movementValue">1.2</span> px/s</div>
+            </div>
+        </div>
+
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-box low"></div>
+                <span>Low Pressure (&lt;990 hPa)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-box neutral"></div>
+                <span>Normal (1000-1020 hPa)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-box high"></div>
+                <span>High Pressure (&gt;1030 hPa)</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('synopticCanvas');
+        const ctx = canvas.getContext('2d');
+        const width = 800, height = 500;
+
+        // System state
+        const systems = [];
+        let tempPhase = 0.5;
+        let coriolisStrength = 0.5;
+        let coolingRate = 0.03;
+        let frameCount = 0;
+
+        class PressureSystem {
+            constructor(x, y, type) {
+                this.x = x;
+                this.y = y;
+                this.type = type; // 'high', 'low'
+                this.intensity = 0.8;
+                this.vx = (Math.random() - 0.5) * 2;
+                this.vy = (Math.random() - 0.5) * 2;
+                this.age = 0;
+            }
+
+            update() {
+                // Coriolis deflection (simplified)
+                const angle = Math.atan2(this.vy, this.vx);
+                const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+                const newAngle = angle + coriolisStrength * 0.02;
+                this.vx = Math.cos(newAngle) * speed;
+                this.vy = Math.sin(newAngle) * speed;
+
+                // Decay
+                this.intensity = Math.max(0, this.intensity - coolingRate);
+                this.age++;
+
+                // Position
+                this.x += this.vx;
+                this.y += this.vy;
+
+                // Boundary wrap
+                if (this.x < 0) this.x = width;
+                if (this.x > width) this.x = 0;
+                if (this.y < 0) this.y = height;
+                if (this.y > height) this.y = 0;
+            }
+
+            pressure(px, py) {
+                const dx = px - this.x;
+                const dy = py - this.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                const influence = Math.exp(-dist / 80) * this.intensity;
+                return this.type === 'high' ? influence : -influence;
+            }
+        }
+
+        function getPressureAt(x, y) {
+            let p = 1013; // base pressure
+            for (let sys of systems) {
+                p += sys.pressure(x, y) * 30;
+            }
+            p += Math.sin(frameCount * 0.01 + x * 0.001) * 5; // slow global variation
+            p += (tempPhase - 0.5) * 20; // temperature effect
+            return Math.max(980, Math.min(1040, p));
+        }
+
+        function drawIsobars() {
+            const resolution = 20;
+            const levels = [980, 990, 1000, 1010, 1020, 1030, 1040];
+
+            for (let level of levels) {
+                let points = [];
+                for (let i = 0; i < width; i += resolution) {
+                    for (let j = 0; j < height; j += resolution) {
+                        const p = getPressureAt(i, j);
+                        if (Math.abs(p - level) < 5) {
+                            points.push({ x: i, y: j, p });
+                        }
+                    }
+                }
+
+                if (points.length > 0) {
+                    ctx.strokeStyle = pressureToColor(level);
+                    ctx.lineWidth = 1.5;
+                    ctx.setLineDash([3, 2]);
+                    ctx.beginPath();
+                    points.sort((a, b) => a.x - b.x);
+                    for (let i = 0; i < Math.min(points.length, 20); i++) {
+                        const p = points[i];
+                        if (i === 0) ctx.moveTo(p.x, p.y);
+                        else ctx.lineTo(p.x, p.y);
+                    }
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                }
+            }
+        }
+
+        function pressureToColor(p) {
+            if (p < 995) return '#2a5a9e';
+            if (p < 1010) return '#4db8ff';
+            if (p < 1025) return '#ffd700';
+            return '#d64545';
+        }
+
+        function drawWindBarbs() {
+            const spacing = 60;
+            for (let x = spacing; x < width; x += spacing) {
+                for (let y = spacing; y < height; y += spacing) {
+                    const p1 = getPressureAt(x - 10, y);
+                    const p2 = getPressureAt(x + 10, y);
+                    const p3 = getPressureAt(x, y - 10);
+                    const p4 = getPressureAt(x, y + 10);
+
+                    // Gradient direction (wind perpendicular to isobars)
+                    const dx = p2 - p1;
+                    const dy = p4 - p3;
+                    const grad = Math.sqrt(dx * dx + dy * dy);
+
+                    if (grad > 0.1) {
+                        const angle = Math.atan2(-dx, dy); // perpendicular
+                        const length = Math.min(grad * 3, 15);
+                        const ex = x + Math.cos(angle) * length;
+                        const ey = y + Math.sin(angle) * length;
+
+                        ctx.strokeStyle = 'rgba(77, 184, 255, 0.6)';
+                        ctx.lineWidth = 1.5;
+                        ctx.beginPath();
+                        ctx.moveTo(x, y);
+                        ctx.lineTo(ex, ey);
+                        ctx.stroke();
+
+                        // Arrowhead
+                        const ah = 4;
+                        const bx = ex - Math.cos(angle) * ah;
+                        const by = ey - Math.sin(angle) * ah;
+                        ctx.beginPath();
+                        ctx.moveTo(ex, ey);
+                        ctx.lineTo(bx - Math.sin(angle) * ah / 2, by + Math.cos(angle) * ah / 2);
+                        ctx.lineTo(bx + Math.sin(angle) * ah / 2, by - Math.cos(angle) * ah / 2);
+                        ctx.closePath();
+                        ctx.fillStyle = 'rgba(77, 184, 255, 0.6)';
+                        ctx.fill();
+                    }
+                }
+            }
+        }
+
+        function drawSystems() {
+            for (let sys of systems) {
+                const color = sys.type === 'high' ? '#d64545' : '#2a5a9e';
+                const alpha = Math.min(sys.intensity, 1);
+                ctx.fillStyle = color + Math.floor(alpha * 255).toString(16).padStart(2, '0');
+                ctx.beginPath();
+                ctx.arc(sys.x, sys.y, 40 * sys.intensity, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Label
+                ctx.fillStyle = '#fff';
+                ctx.font = 'bold 12px Syne';
+                ctx.textAlign = 'center';
+                const label = sys.type === 'high' ? 'H' : 'L';
+                ctx.fillText(label, sys.x, sys.y + 4);
+            }
+        }
+
+        function updateStats() {
+            let totalP = 0, maxGrad = 0;
+            for (let x = 0; x < width; x += 40) {
+                for (let y = 0; y < height; y += 40) {
+                    const p = getPressureAt(x, y);
+                    totalP += p;
+                    if (x + 40 < width && y + 40 < height) {
+                        const p2 = getPressureAt(x + 40, y + 40);
+                        maxGrad = Math.max(maxGrad, Math.abs(p - p2) / 40);
+                    }
+                }
+            }
+            const avgP = Math.round(totalP / ((width / 40) * (height / 40)));
+            const stormCount = systems.filter(s => s.intensity > 0.3).length;
+            const avgVel = systems.reduce((sum, s) => sum + Math.sqrt(s.vx * s.vx + s.vy * s.vy), 0) / Math.max(systems.length, 1);
+
+            document.getElementById('pressureValue').textContent = avgP;
+            document.getElementById('gradientValue').textContent = (maxGrad * 100).toFixed(1);
+            document.getElementById('stormValue').textContent = stormCount;
+            document.getElementById('movementValue').textContent = avgVel.toFixed(2);
+        }
+
+        function animate() {
+            // Clear canvas
+            ctx.fillStyle = 'rgba(15, 20, 35, 0.95)';
+            ctx.fillRect(0, 0, width, height);
+
+            // Update systems
+            for (let i = systems.length - 1; i >= 0; i--) {
+                systems[i].update();
+                if (systems[i].intensity < 0.05) systems.splice(i, 1);
+            }
+
+            // Draw isobars
+            drawIsobars();
+
+            // Draw wind barbs
+            drawWindBarbs();
+
+            // Draw systems
+            drawSystems();
+
+            // Update stats
+            updateStats();
+
+            frameCount++;
+            requestAnimationFrame(animate);
+        }
+
+        // Event listeners
+        document.getElementById('addWarmBtn').addEventListener('click', () => {
+            systems.push(new PressureSystem(Math.random() * width, Math.random() * height, 'high'));
+        });
+
+        document.getElementById('addColdBtn').addEventListener('click', () => {
+            systems.push(new PressureSystem(Math.random() * width, Math.random() * height, 'low'));
+        });
+
+        document.getElementById('clearBtn').addEventListener('click', () => {
+            systems.length = 0;
+        });
+
+        document.getElementById('tempSlider').addEventListener('input', (e) => {
+            tempPhase = parseFloat(e.target.value) / 100;
+            document.getElementById('tempValue').textContent = e.target.value;
+        });
+
+        document.getElementById('coriolisSlider').addEventListener('input', (e) => {
+            coriolisStrength = parseFloat(e.target.value);
+            document.getElementById('coriolisValue').textContent = e.target.value;
+        });
+
+        document.getElementById('coolingSlider').addEventListener('input', (e) => {
+            coolingRate = parseFloat(e.target.value);
+            document.getElementById('coolingValue').textContent = e.target.value;
+        });
+
+        // Start animation
+        animate();
+    </script>
+</body>
+</html>
