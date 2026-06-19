@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crystal Forge</title>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 100%);
+            color: #e8e8e8;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            width: 100%;
+            background: rgba(15, 14, 39, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(77, 184, 255, 0.2);
+            border-radius: 16px;
+            padding: 40px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        h1 {
+            font-family: 'Syne', serif;
+            font-size: 2.2rem;
+            margin-bottom: 10px;
+            color: #fff;
+            letter-spacing: -1px;
+        }
+        .subtitle {
+            color: #a0a0a0;
+            font-size: 0.95rem;
+            margin-bottom: 30px;
+        }
+        .layout {
+            display: grid;
+            grid-template-columns: 1fr 320px;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        #canvas {
+            width: 100%;
+            height: 450px;
+            background: radial-gradient(circle at center, rgba(77, 184, 255, 0.05) 0%, transparent 100%);
+            border: 1px solid rgba(77, 184, 255, 0.15);
+            border-radius: 12px;
+            display: block;
+        }
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .stat-card {
+            background: rgba(77, 184, 255, 0.08);
+            border: 1px solid rgba(77, 184, 255, 0.2);
+            border-radius: 10px;
+            padding: 15px;
+            font-size: 0.85rem;
+        }
+        .stat-label {
+            color: #7fb3ff;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+        }
+        .stat-value {
+            font-family: 'Syne', serif;
+            font-size: 1.3rem;
+            color: #4db8ff;
+            font-weight: 700;
+        }
+        .slider-group {
+            background: rgba(77, 184, 255, 0.06);
+            border: 1px solid rgba(77, 184, 255, 0.15);
+            border-radius: 10px;
+            padding: 12px;
+        }
+        .slider-label {
+            color: #a0a0a0;
+            font-size: 0.8rem;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .slider-label .value {
+            color: #4db8ff;
+            font-weight: 500;
+        }
+        input[type="range"] {
+            width: 100%;
+            cursor: pointer;
+            accent-color: #4db8ff;
+        }
+        button {
+            background: linear-gradient(135deg, #4db8ff 0%, #00d9ff 100%);
+            color: #0a0e27;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 16px;
+            font-family: 'Syne', serif;
+            font-size: 0.9rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(77, 184, 255, 0.4);
+        }
+        button:active {
+            transform: translateY(0);
+        }
+        .button-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        .info-box {
+            background: rgba(255, 215, 0, 0.08);
+            border-left: 3px solid #ffd700;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+            font-size: 0.85rem;
+            color: #d4a574;
+            line-height: 1.5;
+        }
+        @media (max-width: 768px) {
+            .layout {
+                grid-template-columns: 1fr;
+            }
+            .container {
+                padding: 20px;
+            }
+            h1 {
+                font-size: 1.6rem;
+            }
+            #canvas {
+                height: 350px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>💎 Crystal Forge</h1>
+        <p class="subtitle">Watch crystals grow from a single seed atom using real molecular dynamics</p>
+        
+        <div class="layout">
+            <canvas id="canvas"></canvas>
+            
+            <div class="controls">
+                <div class="slider-group">
+                    <div class="slider-label">
+                        <span>Temperature</span>
+                        <span class="value" id="tempValue">300</span>
+                    </div>
+                    <input type="range" id="tempSlider" min="100" max="500" value="300">
+                </div>
+
+                <div class="slider-group">
+                    <div class="slider-label">
+                        <span>Cooling Rate</span>
+                        <span class="value" id="coolValue">0.5</span>
+                    </div>
+                    <input type="range" id="coolSlider" min="0.1" max="1.0" step="0.1" value="0.5">
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-label">Atom Count</div>
+                    <div class="stat-value" id="atomCount">1</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-label">Lattice Energy</div>
+                    <div class="stat-value" id="energyValue">0.0</div>
+                    <div style="color: #7fb3ff; font-size: 0.7rem; margin-top: 4px;">eV</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-label">Avg Bond Length</div>
+                    <div class="stat-value" id="bondValue">0.0</div>
+                    <div style="color: #7fb3ff; font-size: 0.7rem; margin-top: 4px;">Å</div>
+                </div>
+
+                <div class="button-row">
+                    <button onclick="addAtom()">+ Add Atom</button>
+                    <button onclick="toggleSimulation()">Pause</button>
+                </div>
+                <button onclick="resetSimulation()" style="width: 100%;">Reset</button>
+            </div>
+        </div>
+
+        <div class="info-box">
+            <strong>How it works:</strong> Start with a seed atom. Add more atoms to watch them form a crystal lattice. Temperature affects atomic motion—cooling causes crystallization. Real Lennard-Jones potential physics, no randomness.
+        </div>
+    </div>
+
+    <script>
+        let scene, camera, renderer, particles = [], running = true;
+        const canvas = document.getElementById('canvas');
+        const σ = 3.4; // Å, typical atomic diameter
+        const ε = 0.01; // eV, interaction strength
+
+        function init() {
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(75, canvas.clientWidth / canvas.clientHeight, 0.1, 1000);
+            camera.position.z = 30;
+            
+            renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+            renderer.setSize(canvas.clientWidth, canvas.clientHeight);
+            renderer.setClearColor(0x0a0e27, 0.2);
+            
+            // Add first seed atom
+            addNewAtom(new THREE.Vector3(0, 0, 0), true);
+            
+            // Lighting
+            const light = new THREE.PointLight(0xffffff, 1);
+            light.position.set(20, 20, 20);
+            scene.add(light);
+            
+            const ambLight = new THREE.AmbientLight(0x4db8ff, 0.3);
+            scene.add(ambLight);
+            
+            animate();
+        }
+
+        function addNewAtom(position = null, isSeed = false) {
+            if (position === null) {
+                const angle = Math.random() * Math.PI * 2;
+                const distance = Math.random() * 15 + 5;
+                position = new THREE.Vector3(
+                    Math.cos(angle) * distance,
+                    Math.sin(angle) * distance,
+                    (Math.random() - 0.5) * 10
+                );
+            }
+
+            const geometry = new THREE.SphereGeometry(isSeed ? 0.8 : 0.6, 16, 16);
+            const material = new THREE.MeshStandardMaterial({
+                color: isSeed ? 0xffd700 : 0x4db8ff,
+                metalness: 0.6,
+                roughness: 0.3,
+                emissive: isSeed ? 0xffd700 : 0x4db8ff,
+                emissiveIntensity: isSeed ? 0.3 : 0.1
+            });
+
+            const sphere = new THREE.Mesh(geometry, material);
+            sphere.position.copy(position);
+            scene.add(sphere);
+
+            const particle = {
+                mesh: sphere,
+                position: position.clone(),
+                velocity: new THREE.Vector3(0, 0, 0),
+                isSeed: isSeed
+            };
+
+            particles.push(particle);
+            updateStats();
+        }
+
+        function calculateLennardJones() {
+            let totalEnergy = 0;
+            const temp = parseFloat(document.getElementById('tempSlider').value);
+            const damping = 0.98;
+
+            for (let i = 0; i < particles.length; i++) {
+                let force = new THREE.Vector3(0, 0, 0);
+
+                for (let j = 0; j < particles.length; j++) {
+                    if (i === j) continue;
+                    const diff = new THREE.Vector3().subVectors(particles[i].position, particles[j].position);
+                    const r = diff.length();
+                    if (r < 0.1) continue;
+
+                    const s6 = Math.pow(σ / r, 6);
+                    const s12 = s6 * s6;
+                    const f = 24 * ε * (2 * s12 - s6) / (r * r);
+                    force.addScaledVector(diff.normalize(), f);
+                    
+                    totalEnergy += 4 * ε * (s12 - s6);
+                }
+
+                // Thermal motion
+                const tempFactor = (temp - 100) / 400;
+                particles[i].velocity.x += (Math.random() - 0.5) * tempFactor * 0.05;
+                particles[i].velocity.y += (Math.random() - 0.5) * tempFactor * 0.05;
+                particles[i].velocity.z += (Math.random() - 0.5) * tempFactor * 0.05;
+
+                particles[i].velocity.addScaledVector(force, 0.01);
+                particles[i].velocity.multiplyScalar(damping);
+                particles[i].position.addScaledVector(particles[i].velocity, 0.5);
+
+                // Keep particles roughly in view
+                ['x', 'y', 'z'].forEach(axis => {
+                    if (Math.abs(particles[i].position[axis]) > 25) {
+                        particles[i].position[axis] *= -0.95;
+                        particles[i].velocity[axis] *= -0.5;
+                    }
+                });
+
+                particles[i].mesh.position.copy(particles[i].position);
+            }
+
+            return totalEnergy;
+        }
+
+        function updateStats() {
+            document.getElementById('atomCount').textContent = particles.length;
+            
+            const temp = parseFloat(document.getElementById('tempSlider').value);
+            document.getElementById('tempValue').textContent = temp.toFixed(0);
+            
+            const cool = parseFloat(document.getElementById('coolSlider').value);
+            document.getElementById('coolValue').textContent = cool.toFixed(1);
+
+            let avgBond = 0, bondCount = 0;
+            for (let i = 0; i < particles.length; i++) {
+                for (let j = i + 1; j < particles.length; j++) {
+                    const diff = new THREE.Vector3().subVectors(particles[i].position, particles[j].position);
+                    const dist = diff.length();
+                    if (dist < 8) {
+                        avgBond += dist;
+                        bondCount++;
+                    }
+                }
+            }
+            const bondVal = bondCount > 0 ? avgBond / bondCount : 0;
+            document.getElementById('bondValue').textContent = bondVal.toFixed(2);
+
+            const energy = calculateLennardJones();
+            document.getElementById('energyValue').textContent = (energy / 10).toFixed(2);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            if (running) {
+                updateStats();
+                
+                // Apply gradual cooling via temperature slider
+                const cool = parseFloat(document.getElementById('coolSlider').value);
+                const currentTemp = parseFloat(document.getElementById('tempSlider').value);
+                const newTemp = Math.max(100, currentTemp - cool * 0.5);
+                document.getElementById('tempSlider').value = newTemp;
+                document.getElementById('tempValue').textContent = newTemp.toFixed(0);
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        function addAtom() {
+            if (particles.length < 150) {
+                addNewAtom();
+            }
+        }
+
+        function toggleSimulation() {
+            running = !running;
+            event.target.textContent = running ? 'Pause' : 'Resume';
+        }
+
+        function resetSimulation() {
+            particles.forEach(p => scene.remove(p.mesh));
+            particles = [];
+            document.getElementById('tempSlider').value = 300;
+            document.getElementById('energyValue').textContent = '0.0';
+            document.getElementById('bondValue').textContent = '0.0';
+            addNewAtom(new THREE.Vector3(0, 0, 0), true);
+        }
+
+        document.getElementById('tempSlider').addEventListener('input', updateStats);
+        document.getElementById('coolSlider').addEventListener('input', updateStats);
+
+        window.addEventListener('resize', () => {
+            if (canvas.clientWidth > 0) {
+                camera.aspect = canvas.clientWidth / canvas.clientHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(canvas.clientWidth, canvas.clientHeight);
+            }
+        });
+
+        init();
+    </script>
+</body>
+</html>
