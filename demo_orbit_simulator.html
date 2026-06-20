@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Orbit Simulator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 100%);
+            color: #f0f0f0;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            font-family: 'Syne', sans-serif;
+            font-size: 2.5rem;
+            margin-bottom: 8px;
+            color: #00d9ff;
+        }
+
+        .subtitle {
+            font-size: 0.95rem;
+            color: #a0a0a0;
+        }
+
+        .main-layout {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .controls-panel {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(0, 217, 255, 0.2);
+            border-radius: 12px;
+            padding: 24px;
+            height: fit-content;
+        }
+
+        .control-group {
+            margin-bottom: 22px;
+        }
+
+        .control-label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #00d9ff;
+            margin-bottom: 8px;
+            display: block;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .preset-buttons {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 8px;
+            margin-bottom: 6px;
+        }
+
+        .preset-btn {
+            padding: 10px 14px;
+            border: 1px solid rgba(0, 217, 255, 0.3);
+            background: rgba(0, 217, 255, 0.08);
+            color: #00d9ff;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .preset-btn:hover {
+            background: rgba(0, 217, 255, 0.15);
+            border-color: rgba(0, 217, 255, 0.6);
+        }
+
+        .preset-btn.active {
+            background: rgba(0, 217, 255, 0.25);
+            border-color: #00d9ff;
+        }
+
+        .slider-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-bottom: 14px;
+        }
+
+        .slider-group label {
+            font-size: 0.8rem;
+            color: #c0c0c0;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 4px;
+            border-radius: 2px;
+            background: rgba(0, 217, 255, 0.2);
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #00d9ff;
+            cursor: pointer;
+            box-shadow: 0 0 8px rgba(0, 217, 255, 0.6);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #00d9ff;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 0 8px rgba(0, 217, 255, 0.6);
+        }
+
+        .canvas-container {
+            background: rgba(10, 14, 39, 0.8);
+            border: 1px solid rgba(0, 217, 255, 0.2);
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        canvas {
+            max-width: 100%;
+            height: auto;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.01);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .stat-box {
+            background: rgba(0, 217, 255, 0.08);
+            border: 1px solid rgba(0, 217, 255, 0.15);
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: #a0a0a0;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            margin-bottom: 4px;
+        }
+
+        .stat-value {
+            font-size: 1.1rem;
+            color: #00d9ff;
+            font-weight: 600;
+            font-family: 'Syne', sans-serif;
+        }
+
+        .body-info {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(0, 217, 255, 0.15);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 14px;
+            font-size: 0.85rem;
+        }
+
+        .body-name {
+            color: #00d9ff;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        .body-detail {
+            color: #c0c0c0;
+            margin: 3px 0;
+        }
+
+        @media (max-width: 768px) {
+            .main-layout {
+                grid-template-columns: 1fr;
+            }
+
+            h1 {
+                font-size: 1.8rem;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🛰️ Orbit Simulator</h1>
+            <p class="subtitle">Real Newtonian gravity with 3-body dynamics</p>
+        </header>
+
+        <div class="main-layout">
+            <div class="controls-panel">
+                <div class="control-group">
+                    <label class="control-label">Preset Scenarios</label>
+                    <div class="preset-buttons">
+                        <button class="preset-btn active" data-preset="earth-moon">Earth-Moon</button>
+                        <button class="preset-btn" data-preset="binary-stars">Binary Stars</button>
+                        <button class="preset-btn" data-preset="three-body">3-Body Chaos</button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <div class="slider-group">
+                        <label class="control-label">Mass Multiplier (Body 1)</label>
+                        <label>1.0x</label>
+                        <input type="range" id="mass1" min="0.1" max="10" step="0.1" value="1">
+                    </div>
+                    <div class="slider-group">
+                        <label class="control-label">Mass Multiplier (Body 2)</label>
+                        <label>1.0x</label>
+                        <input type="range" id="mass2" min="0.1" max="10" step="0.1" value="1">
+                    </div>
+                    <div class="slider-group">
+                        <label class="control-label">Mass Multiplier (Body 3)</label>
+                        <label>1.0x</label>
+                        <input type="range" id="mass3" min="0.1" max="10" step="0.1" value="1">
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <div class="slider-group">
+                        <label class="control-label">Time Multiplier</label>
+                        <label>1.0x</label>
+                        <input type="range" id="timeScale" min="0.1" max="3" step="0.1" value="1">
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <div class="slider-group">
+                        <label class="control-label">Zoom</label>
+                        <label>1.0x</label>
+                        <input type="range" id="zoom" min="0.5" max="3" step="0.1" value="1">
+                    </div>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-box">
+                        <div class="stat-label">Energy</div>
+                        <div class="stat-value" id="energy">0.00</div>
+                        <div class="stat-label" style="font-size: 0.65rem; color: #606060; margin-top: 4px;">J</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">Time Elapsed</div>
+                        <div class="stat-value" id="timeElapsed">0</div>
+                        <div class="stat-label" style="font-size: 0.65rem; color: #606060; margin-top: 4px;">days</div>
+                    </div>
+                </div>
+
+                <div id="bodyInfo"></div>
+            </div>
+
+            <div class="canvas-container">
+                <canvas id="orbitCanvas" width="600" height="600"></canvas>
+                <div class="stats-grid" style="width: 100%; margin-top: 20px;">
+                    <div class="stat-box">
+                        <div class="stat-label">Orbital Period (Body 1)</div>
+                        <div class="stat-value" id="period1">--</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">Orbital Period (Body 2)</div>
+                        <div class="stat-value" id="period2">--</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">Orbital Speed (Body 1)</div>
+                        <div class="stat-value" id="speed1">--</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">Orbital Speed (Body 2)</div>
+                        <div class="stat-value" id="speed2">--</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('orbitCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Physics constants
+        const G = 6.674e-11; // gravitational constant (scaled for visualization)
+        const AU = 1.496e11; // astronomical unit (m)
+        const DAY = 86400; // seconds per day
+
+        // Simulation state
+        let bodies = [];
+        let trails = [[], [], []];
+        let timeElapsed = 0;
+        let dt = 3600; // 1 hour timestep
+        let zoom = 1;
+        let timeScale = 1;
+        let massScales = [1, 1, 1];
+
+        // Presets
+        const presets = {
+            'earth-moon': {
+                bodies: [
+                    { x: 0, y: 0, vx: 0, vy: 0, mass: 5.972e24, radius: 6.371e6, color: '#2a5a9e', name: 'Earth' },
+                    { x: 3.84e8, y: 0, vx: 0, vy: 1022, mass: 7.342e22, radius: 1.737e6, color: '#c9a961', name: 'Moon' },
+                    { x: -1.5e11, y: 0, vx: 0, vy: -30000, mass: 1.989e30, radius: 6.96e8, color: '#ff9800', name: 'Sun' }
+                ]
+            },
+            'binary-stars': {
+                bodies: [
+                    { x: -7.5e10, y: 0, vx: 0, vy: 50000, mass: 1.989e30, radius: 6.96e8, color: '#ffd700', name: 'Star A' },
+                    { x: 7.5e10, y: 0, vx: 0, vy: -50000, mass: 1.989e30, radius: 6.96e8, color: '#ff9800', name: 'Star B' },
+                    { x: 0, y: 2e10, vx: -35000, vy: 0, mass: 3.285e23, radius: 2.44e7, color: '#4db8ff', name: 'Planet' }
+                ]
+            },
+            'three-body': {
+                bodies: [
+                    { x: 0, y: 0, vx: -25000, vy: 0, mass: 1.989e30, radius: 6.96e8, color: '#ffd700', name: 'Sun 1' },
+                    { x: 2e11, y: 0, vx: 25000, vy: 0, mass: 1.989e30, radius: 6.96e8, color: '#ff6b6b', name: 'Sun 2' },
+                    { x: 1e11, y: 1e11, vx: 0, vy: 0, mass: 5.972e24, radius: 6.371e6, color: '#00d9ff', name: 'Planet' }
+                ]
+            }
+        };
+
+        function initPreset(name) {
+            const preset = presets[name];
+            bodies = JSON.parse(JSON.stringify(preset.bodies));
+            trails = [[], [], []];
+            timeElapsed = 0;
+            updateDisplay();
+        }
+
+        function calculateEnergy() {
+            let ke = 0, pe = 0;
+            for (let i = 0; i < bodies.length; i++) {
+                const b = bodies[i];
+                ke += 0.5 * b.mass * (b.vx * b.vx + b.vy * b.vy);
+            }
+            for (let i = 0; i < bodies.length; i++) {
+                for (let j = i + 1; j < bodies.length; j++) {
+                    const dx = bodies[j].x - bodies[i].x;
+                    const dy = bodies[j].y - bodies[i].y;
+                    const r = Math.sqrt(dx * dx + dy * dy);
+                    if (r > 0) {
+                        pe -= G * bodies[i].mass * bodies[j].mass / r;
+                    }
+                }
+            }
+            return ke + pe;
+        }
+
+        function updatePhysics() {
+            // Calculate forces and accelerations
+            const ax = [0, 0, 0];
+            const ay = [0, 0, 0];
+
+            for (let i = 0; i < bodies.length; i++) {
+                for (let j = 0; j < bodies.length; j++) {
+                    if (i === j) continue;
+                    const dx = bodies[j].x - bodies[i].x;
+                    const dy = bodies[j].y - bodies[i].y;
+                    const r = Math.sqrt(dx * dx + dy * dy);
+                    if (r < 1000) continue; // collision avoidance
+
+                    const F = G * bodies[i].mass * bodies[j].mass / (r * r);
+                    const fx = F * dx / r;
+                    const fy = F * dy / r;
+                    ax[i] += fx / bodies[i].mass;
+                    ay[i] += fy / bodies[i].mass;
+                }
+            }
+
+            // Update velocities and positions (Euler integration)
+            const actualDt = dt * timeScale;
+            for (let i = 0; i < bodies.length; i++) {
+                bodies[i].vx += ax[i] * actualDt;
+                bodies[i].vy += ay[i] * actualDt;
+                bodies[i].x += bodies[i].vx * actualDt;
+                bodies[i].y += bodies[i].vy * actualDt;
+
+                // Store trail
+                if (trails[i].length < 500) {
+                    trails[i].push({ x: bodies[i].x, y: bodies[i].y });
+                } else {
+                    trails[i].shift();
+                    trails[i].push({ x: bodies[i].x, y: bodies[i].y });
+                }
+            }
+
+            timeElapsed += actualDt / DAY;
+        }
+
+        function draw() {
+            ctx.fillStyle = 'rgba(10, 14, 39, 0.95)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const scale = 1 / (AU * zoom);
+
+            // Draw trails
+            for (let i = 0; i < trails.length; i++) {
+                ctx.strokeStyle = bodies[i].color;
+                ctx.globalAlpha = 0.2;
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                for (let j = 0; j < trails[i].length; j++) {
+                    const x = centerX + trails[i][j].x * scale;
+                    const y = centerY + trails[i][j].y * scale;
+                    if (j === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.stroke();
+                ctx.globalAlpha = 1;
+            }
+
+            // Draw bodies
+            for (let i = 0; i < bodies.length; i++) {
+                const b = bodies[i];
+                const x = centerX + b.x * scale;
+                const y = centerY + b.y * scale;
+                const r = Math.max(3, Math.min(20, b.radius * scale * 500));
+
+                // Glow effect
+                const grad = ctx.createRadialGradient(x, y, 0, x, y, r * 1.5);
+                grad.addColorStop(0, b.color);
+                grad.addColorStop(1, 'rgba(0,0,0,0)');
+                ctx.fillStyle = grad;
+                ctx.beginPath();
+                ctx.arc(x, y, r * 1.5, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Main body
+                ctx.fillStyle = b.color;
+                ctx.beginPath();
+                ctx.arc(x, y, r, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        function updateDisplay() {
+            // Update mass scales
+            const mass1Input = document.getElementById('mass1');
+            const mass2Input = document.getElementById('mass2');
+            const mass3Input = document.getElementById('mass3');
+            massScales = [parseFloat(mass1Input.value), parseFloat(mass2Input.value), parseFloat(mass3Input.value)];
+
+            // Apply mass scales
+            for (let i = 0; i < bodies.length; i++) {
+                bodies[i].mass = parseFloat(presets['earth-moon'].bodies[i].mass) * massScales[i];
+            }
+
+            // Update energy
+            const energy = calculateEnergy();
+            document.getElementById('energy').textContent = (energy / 1e32).toFixed(2);
+            document.getElementById('timeElapsed').textContent = Math.floor(timeElapsed);
+
+            // Update body info
+            let bodyHTML = '';
+            for (let i = 0; i < bodies.length; i++) {
+                const b = bodies[i];
+                const speed = Math.sqrt(b.vx * b.vx + b.vy * b.vy);
+                bodyHTML += `
+                    <div class="body-info">
+                        <div class="body-name">${b.name}</div>
+                        <div class="body-detail">Speed: ${(speed / 1000).toFixed(1)} km/s</div>
+                        <div class="body-detail">Mass: ${(b.mass / 1e24).toFixed(2)}e24 kg</div>
+                    </div>
+                `;
+            }
+            document.getElementById('bodyInfo').innerHTML = bodyHTML;
+        }
+
+        function animate() {
+            updatePhysics();
+            draw();
+            updateDisplay();
+            requestAnimationFrame(animate);
+        }
+
+        // Event listeners
+        document.querySelectorAll('.preset-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
+                initPreset(e.target.dataset.preset);
+            });
+        });
+
+        document.getElementById('mass1').addEventListener('input', () => {
+            document.getElementById('mass1').previousElementSibling.textContent = parseFloat(document.getElementById('mass1').value).toFixed(1) + 'x';
+            updateDisplay();
+        });
+
+        document.getElementById('mass2').addEventListener('input', () => {
+            document.getElementById('mass2').previousElementSibling.textContent = parseFloat(document.getElementById('mass2').value).toFixed(1) + 'x';
+            updateDisplay();
+        });
+
+        document.getElementById('mass3').addEventListener('input', () => {
+            document.getElementById('mass3').previousElementSibling.textContent = parseFloat(document.getElementById('mass3').value).toFixed(1) + 'x';
+            updateDisplay();
+        });
+
+        document.getElementById('timeScale').addEventListener('input', (e) => {
+            timeScale = parseFloat(e.target.value);
+            e.target.previousElementSibling.textContent = timeScale.toFixed(1) + 'x';
+        });
+
+        document.getElementById('zoom').addEventListener('input', (e) => {
+            zoom = parseFloat(e.target.value);
+            e.target.previousElementSibling.textContent = zoom.toFixed(1) + 'x';
+        });
+
+        // Initialize and start
+        initPreset('earth-moon');
+        animate();
+    </script>
+</body>
+</html>
