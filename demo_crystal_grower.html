@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Crystal Grower</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Space+Mono:wght@400&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Space Mono', monospace;
+      background: #1a1a2e;
+      color: #f0f0f0;
+      padding: 20px;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 30px;
+      align-items: start;
+    }
+    @media (max-width: 900px) {
+      .container {
+        grid-template-columns: 1fr;
+      }
+    }
+    h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: 2.4em;
+      color: #f0f0f0;
+      margin-bottom: 10px;
+      grid-column: 1 / -1;
+    }
+    .controls {
+      background: #232d46;
+      padding: 25px;
+      border-radius: 8px;
+      border-left: 4px solid #7209b7;
+    }
+    .slider-group {
+      margin-bottom: 20px;
+    }
+    .slider-group label {
+      display: block;
+      font-size: 0.85em;
+      margin-bottom: 6px;
+      color: #a0a0b0;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    input[type="range"] {
+      width: 100%;
+      height: 5px;
+      border-radius: 3px;
+      background: linear-gradient(to right, #0066cc, #00cc66, #ff9900, #ff4444);
+      outline: none;
+      -webkit-appearance: none;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #00ff88;
+      cursor: pointer;
+      box-shadow: 0 0 8px rgba(0, 255, 136, 0.5);
+    }
+    input[type="range"]::-moz-range-thumb {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #00ff88;
+      cursor: pointer;
+      border: none;
+      box-shadow: 0 0 8px rgba(0, 255, 136, 0.5);
+    }
+    .slider-value {
+      font-size: 0.75em;
+      color: #00ff88;
+      margin-top: 3px;
+    }
+    .button-group {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    button {
+      flex: 1;
+      padding: 10px;
+      background: #7209b7;
+      color: #f0f0f0;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.85em;
+      transition: background 0.2s;
+    }
+    button:hover {
+      background: #9d4edd;
+    }
+    button:active {
+      background: #5a0080;
+    }
+    .preset-group {
+      margin-bottom: 20px;
+    }
+    .preset-group label {
+      display: block;
+      font-size: 0.85em;
+      margin-bottom: 8px;
+      color: #a0a0b0;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .presets {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .preset-btn {
+      padding: 8px;
+      background: #2d3d56;
+      color: #f0f0f0;
+      border: 1px solid #7209b7;
+      border-radius: 4px;
+      cursor: pointer;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.75em;
+      transition: all 0.2s;
+    }
+    .preset-btn:hover {
+      background: #7209b7;
+      box-shadow: 0 0 10px rgba(114, 9, 183, 0.4);
+    }
+    .stats-panel {
+      background: #2d3d56;
+      padding: 20px;
+      border-radius: 6px;
+      margin-top: 20px;
+      border: 1px solid #7209b7;
+    }
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #1a1a2e;
+    }
+    .stat-row:last-child {
+      margin-bottom: 0;
+      border-bottom: none;
+    }
+    .stat-label {
+      font-size: 0.8em;
+      color: #a0a0b0;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+    .stat-value {
+      font-size: 0.9em;
+      color: #00ff88;
+      font-weight: bold;
+    }
+    .canvas-container {
+      background: #1a1a2e;
+      border-radius: 8px;
+      padding: 15px;
+      border: 1px solid #7209b7;
+      aspect-ratio: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    canvas {
+      width: 100%;
+      height: 100%;
+      border-radius: 4px;
+      image-rendering: pixelated;
+    }
+  </style>
+</head>
+<body>
+  <h1>💎 Crystal Grower</h1>
+  
+  <div class="container">
+    <div class="controls">
+      <div class="slider-group">
+        <label>Supersaturation</label>
+        <input type="range" id="supersaturation" min="0" max="2" step="0.1" value="1.2">
+        <div class="slider-value"><span id="supersaturationVal">1.2</span> (0=no growth, 2=rapid nucleation)</div>
+      </div>
+
+      <div class="slider-group">
+        <label>Temperature</label>
+        <input type="range" id="temperature" min="0" max="100" step="5" value="50">
+        <div class="slider-value"><span id="temperatureVal">50</span>°C (affects growth rate)</div>
+      </div>
+
+      <div class="slider-group">
+        <label>Seeding Rate</label>
+        <input type="range" id="seeding" min="0" max="100" step="10" value="40">
+        <div class="slider-value"><span id="seedingVal">40</span> nucleation sites/frame</div>
+      </div>
+
+      <div class="button-group">
+        <button id="startBtn">Start Growth</button>
+        <button id="clearBtn">Clear</button>
+      </div>
+
+      <div class="preset-group">
+        <label>Preset Minerals</label>
+        <div class="presets">
+          <button class="preset-btn" data-preset="quartz">Quartz (Hex)</button>
+          <button class="preset-btn" data-preset="halite">Halite (Cubic)</button>
+          <button class="preset-btn" data-preset="snowflake">Snowflake</button>
+          <button class="preset-btn" data-preset="rapid">Rapid Nucleation</button>
+          <button class="preset-btn" data-preset="slow">Slow Growth</button>
+          <button class="preset-btn" data-preset="random">Random Test</button>
+        </div>
+      </div>
+
+      <div class="stats-panel">
+        <div class="stat-row">
+          <span class="stat-label">Supersaturation</span>
+          <span class="stat-value" id="statSupersaturation">1.2</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Temperature</span>
+          <span class="stat-value" id="statTemperature">50°C</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Growth Rate</span>
+          <span class="stat-value" id="statGrowthRate">0 cells/frame</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Crystal Size</span>
+          <span class="stat-value" id="statCrystalSize">0 cells</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Morphology</span>
+          <span class="stat-value" id="statMorphology">Idle</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Time Elapsed</span>
+          <span class="stat-value" id="statTime">0.0s</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="canvas-container">
+      <canvas id="crystalCanvas"></canvas>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('crystalCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    // Sizing
+    function resizeCanvas() {
+      const rect = canvas.parentElement.getBoundingClientRect();
+      canvas.width = rect.width - 30;
+      canvas.height = rect.height - 30;
+    }
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+
+    // Sliders
+    const supersaturationSlider = document.getElementById('supersaturation');
+    const temperatureSlider = document.getElementById('temperature');
+    const seedingSlider = document.getElementById('seeding');
+    const startBtn = document.getElementById('startBtn');
+    const clearBtn = document.getElementById('clearBtn');
+
+    // State
+    let simulation = {
+      running: false,
+      grid: {},
+      elapsedTime: 0,
+      growthRate: 0,
+      morphology: 'Idle',
+      crystal: { cells: 0 }
+    };
+
+    // Presets
+    const presets = {
+      quartz: { sup: 1.0, temp: 45, seed: 35, type: 'hexagonal' },
+      halite: { sup: 0.8, temp: 30, seed: 25, type: 'cubic' },
+      snowflake: { sup: 1.8, temp: -5, seed: 60, type: 'hexagonal' },
+      rapid: { sup: 1.5, temp: 60, seed: 80, type: 'cubic' },
+      slow: { sup: 0.5, temp: 20, seed: 10, type: 'hexagonal' },
+      random: { sup: Math.random() * 2, temp: Math.random() * 100, seed: Math.random() * 100, type: 'cubic' }
+    };
+
+    // Update slider values
+    function updateSliderValues() {
+      document.getElementById('supersaturationVal').textContent = parseFloat(supersaturationSlider.value).toFixed(1);
+      document.getElementById('temperatureVal').textContent = temperatureSlider.value;
+      document.getElementById('seedingVal').textContent = seedingSlider.value;
+      document.getElementById('statSupersaturation').textContent = parseFloat(supersaturationSlider.value).toFixed(1);
+      document.getElementById('statTemperature').textContent = temperatureSlider.value + '°C';
+    }
+
+    supersaturationSlider.addEventListener('input', updateSliderValues);
+    temperatureSlider.addEventListener('input', updateSliderValues);
+    seedingSlider.addEventListener('input', updateSliderValues);
+    updateSliderValues();
+
+    // Start/Clear buttons
+    startBtn.addEventListener('click', () => {
+      simulation.running = !simulation.running;
+      startBtn.textContent = simulation.running ? 'Pause' : 'Resume';
+      if (simulation.running && Object.keys(simulation.grid).length === 0) {
+        initCrystal();
+      }
+    });
+
+    clearBtn.addEventListener('click', () => {
+      simulation = {
+        running: false,
+        grid: {},
+        elapsedTime: 0,
+        growthRate: 0,
+        morphology: 'Idle',
+        crystal: { cells: 0 }
+      };
+      startBtn.textContent = 'Start Growth';
+      ctx.fillStyle = '#1a1a2e';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      updateStats();
+    });
+
+    // Presets
+    document.querySelectorAll('.preset-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const preset = presets[btn.dataset.preset];
+        supersaturationSlider.value = preset.sup;
+        temperatureSlider.value = preset.temp;
+        seedingSlider.value = preset.seed;
+        updateSliderValues();
+        clearBtn.click();
+      });
+    });
+
+    // Initialize crystal seed
+    function initCrystal() {
+      const cx = Math.floor(canvas.width / 2);
+      const cy = Math.floor(canvas.height / 2);
+      const key = `${cx},${cy}`;
+      simulation.grid[key] = { x: cx, y: cy, age: 0 };
+      simulation.crystal.cells = 1;
+    }
+
+    // Calculate morphology
+    function calculateMorphology() {
+      const sup = parseFloat(supersaturationSlider.value);
+      const temp = parseInt(temperatureSlider.value);
+      
+      if (sup < 0.6) return 'Faceted (Slow)';
+      if (sup < 1.0) return 'Cubic Growth';
+      if (sup < 1.5) return 'Mixed Morphology';
+      return 'Dendritic (Fast)';
+    }
+
+    // Update stats
+    function updateStats() {
+      document.getElementById('statCrystalSize').textContent = simulation.crystal.cells + ' cells';
+      document.getElementById('statGrowthRate').textContent = simulation.growthRate + ' cells/frame';
+      document.getElementById('statMorphology').textContent = simulation.morphology;
+      document.getElementById('statTime').textContent = (simulation.elapsedTime / 60).toFixed(1) + 's';
+    }
+
+    // Simulation step
+    function step() {
+      if (!simulation.running || Object.keys(simulation.grid).length === 0) return;
+
+      const sup = parseFloat(supersaturationSlider.value);
+      const temp = parseInt(temperatureSlider.value);
+      const seeding = parseInt(seedingSlider.value);
+
+      // Temperature-based growth rate (0–100°C → 0.5–3 cells/frame)
+      const tempFactor = 0.5 + (temp / 100) * 2.5;
+      
+      // Supersaturation-based nucleation (0–2 → 0–100% new sites)
+      const nucleationRate = Math.max(0, (sup - 0.5) / 1.5);
+      
+      // Try to add new cells from perimeter
+      const perimeter = [];
+      Object.keys(simulation.grid).forEach(key => {
+        const [x, y] = key.split(',').map(Number);
+        // Check 8 neighbors
+        for (let dx = -1; dx <= 1; dx++) {
+          for (let dy = -1; dy <= 1; dy++) {
+            if (dx === 0 && dy === 0) continue;
+            const nx = x + dx;
+            const ny = y + dy;
+            const nkey = `${nx},${ny}`;
+            if (!simulation.grid[nkey]) {
+              perimeter.push({ x: nx, y: ny });
+            }
+          }
+        }
+      });
+
+      // Random growth based on supersaturation and seeding
+      const growthAttempts = Math.floor(sup * tempFactor * seeding / 30);
+      let newCells = 0;
+
+      for (let i = 0; i < growthAttempts && perimeter.length > 0; i++) {
+        if (Math.random() < nucleationRate || perimeter.length < 20) {
+          const idx = Math.floor(Math.random() * perimeter.length);
+          const { x, y } = perimeter[idx];
+          const key = `${x},${y}`;
+          if (!simulation.grid[key]) {
+            simulation.grid[key] = { x, y, age: 0 };
+            newCells++;
+            perimeter.splice(idx, 1);
+          }
+        }
+      }
+
+      simulation.growthRate = newCells;
+      simulation.crystal.cells = Object.keys(simulation.grid).length;
+      simulation.morphology = calculateMorphology();
+      simulation.elapsedTime++;
+      updateStats();
+    }
+
+    // Render
+    function render() {
+      ctx.fillStyle = '#1a1a2e';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Draw cells with color gradient based on growth speed
+      const maxRate = parseInt(seedingSlider.value) / 5;
+      const rate = Math.min(simulation.growthRate / maxRate, 1);
+
+      Object.values(simulation.grid).forEach(cell => {
+        let color;
+        const age = Math.random() * 100; // Mock age for color variety
+        if (rate < 0.2) color = '#0066cc'; // Blue
+        else if (rate < 0.4) color = '#00cc66'; // Green
+        else if (rate < 0.6) color = '#ffcc00'; // Orange
+        else if (rate < 0.8) color = '#ff6600'; // Dark Orange
+        else color = '#ff4444'; // Red (nucleation hotspot)
+
+        ctx.fillStyle = color;
+        ctx.fillRect(cell.x - 2, cell.y - 2, 4, 4);
+      });
+
+      // Draw center seed highlight
+      if (Object.keys(simulation.grid).length > 0) {
+        ctx.strokeStyle = 'rgba(255, 68, 68, 0.6)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(canvas.width / 2, canvas.height / 2, 15, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+    }
+
+    // Main loop
+    function animate() {
+      step();
+      render();
+      requestAnimationFrame(animate);
+    }
+
+    animate();
+  </script>
+</body>
+</html>
