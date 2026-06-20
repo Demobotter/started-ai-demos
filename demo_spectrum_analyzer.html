@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spectrum Analyzer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Inconsolata:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inconsolata', monospace;
+            background: #1a1a1a;
+            color: #f0f0f0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        .container { max-width: 1200px; margin: 0 auto; }
+        h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.2rem;
+            margin-bottom: 30px;
+            text-align: center;
+            color: #e8d4f8;
+        }
+        .content {
+            display: grid;
+            grid-template-columns: 1fr 1.2fr;
+            gap: 30px;
+            align-items: start;
+        }
+        .controls {
+            background: #252525;
+            padding: 25px;
+            border-radius: 8px;
+            border: 1px solid #404040;
+        }
+        .control-group {
+            margin-bottom: 25px;
+        }
+        .control-label {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #b0b0b0;
+            margin-bottom: 8px;
+            display: block;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        input[type="range"] {
+            width: 100%;
+            height: 5px;
+            background: #404040;
+            border-radius: 3px;
+            outline: none;
+            accent-color: #9d4edd;
+        }
+        .wavelength-display {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #7209b7;
+            margin-top: 8px;
+            letter-spacing: 0.05em;
+        }
+        .presets {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+        button {
+            background: #3a3a3a;
+            border: 1px solid #505050;
+            color: #e0e0e0;
+            padding: 10px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: 'Inconsolata', monospace;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+        button:hover {
+            background: #4a4a4a;
+            border-color: #7209b7;
+            color: #9d4edd;
+        }
+        button.active {
+            background: #7209b7;
+            border-color: #9d4edd;
+            color: #fff;
+        }
+        .stats-box {
+            background: #2d2d2d;
+            border-left: 3px solid #7209b7;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 4px;
+        }
+        .stat-label {
+            font-size: 0.8rem;
+            color: #999;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            margin-bottom: 4px;
+        }
+        .stat-value {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #e0e0e0;
+        }
+        .color-swatch {
+            width: 100%;
+            height: 50px;
+            border-radius: 4px;
+            border: 1px solid #404040;
+            margin-top: 8px;
+        }
+        .spectrum-section {
+            background: #252525;
+            padding: 25px;
+            border-radius: 8px;
+            border: 1px solid #404040;
+        }
+        canvas {
+            width: 100%;
+            height: 250px;
+            background: #1e1e1e;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            display: block;
+        }
+        .element-info {
+            background: #2d2d2d;
+            border: 1px solid #404040;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+        .element-name {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #9d4edd;
+            margin-bottom: 8px;
+        }
+        .element-detail {
+            font-size: 0.9rem;
+            color: #b0b0b0;
+            margin-bottom: 6px;
+            line-height: 1.4;
+        }
+        .stellar-examples {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid #404040;
+            color: #a0a0a0;
+            font-size: 0.85rem;
+        }
+        @media (max-width: 900px) {
+            .content { grid-template-columns: 1fr; }
+            .presets { grid-template-columns: 1fr 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>⭐ Spectrum Analyzer</h1>
+        
+        <div class="content">
+            <!-- Left: Controls -->
+            <div class="controls">
+                <div class="control-group">
+                    <label class="control-label">Wavelength (nm)</label>
+                    <input type="range" id="wavelengthSlider" min="350" max="1000" value="550" step="5">
+                    <div class="wavelength-display" id="wavelengthDisplay">550 nm</div>
+                </div>
+
+                <div class="control-group">
+                    <label class="control-label">Stellar Presets</label>
+                    <div class="presets">
+                        <button onclick="loadPreset('sun')">The Sun</button>
+                        <button onclick="loadPreset('sirius')">Sirius</button>
+                        <button onclick="loadPreset('betelgeuse')">Betelgeuse</button>
+                        <button onclick="loadPreset('vega')">Vega</button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label class="control-label">Wavelength Details</label>
+                    <div class="stats-box">
+                        <div class="stat-label">Apparent Color</div>
+                        <div class="stat-value" id="colorName">Yellow-Green</div>
+                        <div class="color-swatch" id="colorSwatch"></div>
+                    </div>
+                    <div class="stats-box">
+                        <div class="stat-label">Dominant Element</div>
+                        <div class="stat-value" id="elementName">Iron (Fe)</div>
+                    </div>
+                    <div class="stats-box">
+                        <div class="stat-label">Formation Temp (K)</div>
+                        <div class="stat-value" id="tempRange">4000–6000</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right: Spectrum -->
+            <div class="spectrum-section">
+                <h3 style="margin-bottom: 15px; font-family: 'Playfair Display', serif; color: #e8d4f8;">Solar Spectrum</h3>
+                <canvas id="spectrumCanvas"></canvas>
+                
+                <div class="element-info" id="elementInfo">
+                    <div class="element-name" id="infoTitle">Iron (Fe)</div>
+                    <div class="element-detail" id="infoDesc">One of the most prominent absorption lines in stellar spectra.</div>
+                    <div class="stellar-examples" id="stellarEx">
+                        Observable in: The Sun, Cool Giant Stars, Iron-rich Spectra
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Fraunhofer absorption lines database (real wavelengths in nm)
+        const fraunhoferLines = [
+            { wl: 393.4, elem: 'Ca II', ion: 'doubly ionized calcium', temp: [4000, 7000], label: 'H' },
+            { wl: 396.8, elem: 'Ca II', ion: 'doubly ionized calcium', temp: [4000, 7000], label: 'K' },
+            { wl: 410.2, elem: 'Hδ', ion: 'hydrogen delta', temp: [5000, 10000], label: 'Hδ' },
+            { wl: 434.0, elem: 'Hγ', ion: 'hydrogen gamma', temp: [5000, 10000], label: 'Hγ' },
+            { wl: 486.1, elem: 'Hβ', ion: 'hydrogen beta', temp: [5000, 10000], label: 'Hβ' },
+            { wl: 589.0, elem: 'Na', ion: 'sodium', temp: [3500, 6500], label: 'D' },
+            { wl: 589.6, elem: 'Na', ion: 'sodium doublet', temp: [3500, 6500], label: 'D' },
+            { wl: 656.3, elem: 'Hα', ion: 'hydrogen alpha', temp: [4000, 9000], label: 'Hα' },
+            { wl: 686.0, elem: 'Li', ion: 'lithium', temp: [3000, 5500], label: '' },
+            { wl: 718.0, elem: 'Fe', ion: 'neutral iron', temp: [3500, 6500], label: '' },
+            { wl: 760.0, elem: 'O₂', ion: 'atmospheric oxygen', temp: [100, 50000], label: 'A' },
+            { wl: 822.0, elem: 'O₂', ion: 'atmospheric oxygen', temp: [100, 50000], label: 'B' },
+        ];
+
+        // Stellar spectrum presets: for each star, show which lines are prominent
+        const stellarPresets = {
+            sun: {
+                name: 'The Sun',
+                temp: 5778,
+                type: 'G-type Main Sequence',
+                prominent: [393.4, 396.8, 434.0, 486.1, 589.0, 656.3],
+                description: 'Our star shows classical Fraunhofer H, K, and Balmer hydrogen lines.'
+            },
+            sirius: {
+                name: 'Sirius',
+                temp: 10000,
+                type: 'A-type White Star',
+                prominent: [434.0, 486.1, 656.3],
+                description: 'Intense hydrogen Balmer series; ionized metals weak.'
+            },
+            betelgeuse: {
+                name: 'Betelgeuse',
+                temp: 3500,
+                type: 'M-type Red Giant',
+                prominent: [589.0, 718.0, 822.0],
+                description: 'Cool giant showing iron, titanium, and sodium absorption.'
+            },
+            vega: {
+                name: 'Vega',
+                temp: 9600,
+                type: 'A-type White Star',
+                prominent: [434.0, 486.1, 656.3],
+                description: 'Hot white star with dominant hydrogen and ionized metals.'
+            }
+        };
+
+        let currentPreset = null;
+
+        // Wavelength to color and name mapping
+        function wavelengthToColor(wl) {
+            let r, g, b;
+            
+            if (wl < 380 || wl > 780) return { hex: '#000000', name: 'Infrared' };
+            
+            if (wl < 450) {
+                r = Math.floor(-(wl - 440) / (440 - 380) * 255);
+                g = 0;
+                b = 255;
+                return { hex: rgbToHex(r, 0, b), name: 'Violet' };
+            } else if (wl < 495) {
+                r = 0;
+                g = Math.floor((wl - 450) / (495 - 450) * 255);
+                b = 255;
+                return { hex: rgbToHex(0, g, b), name: 'Blue' };
+            } else if (wl < 570) {
+                r = 0;
+                g = 255;
+                b = Math.floor(-(wl - 570) / (570 - 495) * 255);
+                return { hex: rgbToHex(0, 255, b), name: 'Cyan' };
+            } else if (wl < 590) {
+                r = Math.floor((wl - 570) / (590 - 570) * 255);
+                g = 255;
+                b = 0;
+                return { hex: rgbToHex(r, 255, 0), name: 'Green' };
+            } else if (wl < 620) {
+                r = 255;
+                g = Math.floor(-(wl - 620) / (620 - 590) * 255);
+                b = 0;
+                return { hex: rgbToHex(255, g, 0), name: 'Yellow' };
+            } else if (wl < 750) {
+                r = 255;
+                g = Math.floor(-(wl - 750) / (750 - 620) * 100);
+                b = 0;
+                return { hex: rgbToHex(255, g, 0), name: 'Orange-Red' };
+            } else {
+                return { hex: '#cc0000', name: 'Deep Red' };
+            }
+        }
+
+        function rgbToHex(r, g, b) {
+            return '#' + [r, g, b].map(x => Math.max(0, Math.min(255, x)).toString(16).padStart(2, '0')).join('');
+        }
+
+        // Find closest Fraunhofer line and element info
+        function findClosestLine(wl) {
+            let closest = null;
+            let minDist = Infinity;
+            
+            for (let line of fraunhoferLines) {
+                let dist = Math.abs(line.wl - wl);
+                if (dist < minDist) {
+                    minDist = dist;
+                    closest = line;
+                }
+            }
+            
+            return minDist < 50 ? closest : null;
+        }
+
+        function updateDisplay(wl) {
+            const color = wavelengthToColor(wl);
+            const line = findClosestLine(wl);
+
+            document.getElementById('wavelengthDisplay').textContent = wl + ' nm';
+            document.getElementById('colorName').textContent = color.name;
+            document.getElementById('colorSwatch').style.background = color.hex;
+
+            if (line && (!currentPreset || isLineProminentInPreset(line.wl))) {
+                document.getElementById('elementName').textContent = line.elem;
+                document.getElementById('tempRange').textContent = line.temp[0] + '–' + line.temp[1] + ' K';
+                document.getElementById('infoTitle').textContent = line.elem + ' (' + line.ion + ')';
+                document.getElementById('infoDesc').textContent = 
+                    'Ionization state: ' + line.ion + '. Strongest at ' + line.temp[0] + '–' + line.temp[1] + ' K.';
+                document.getElementById('stellarEx').innerHTML = 
+                    '<strong>Observable in:</strong> Solar spectrum, cool giants, and absorption-rich stellar types.';
+            } else {
+                document.getElementById('elementName').textContent = 'Continuum';
+                document.getElementById('tempRange').textContent = '—';
+                document.getElementById('infoTitle').textContent = 'Stellar Continuum';
+                document.getElementById('infoDesc').textContent = 'No major absorption line at this wavelength.';
+                document.getElementById('stellarEx').innerHTML = '<strong>Observable in:</strong> All stellar spectra as background radiation.';
+            }
+
+            drawSpectrum(wl);
+        }
+
+        function isLineProminentInPreset(wl) {
+            if (!currentPreset) return true;
+            return stellarPresets[currentPreset].prominent.some(p => Math.abs(p - wl) < 5);
+        }
+
+        function drawSpectrum(selectedWl) {
+            const canvas = document.getElementById('spectrumCanvas');
+            const ctx = canvas.getContext('2d');
+            const width = canvas.offsetWidth;
+            const height = canvas.offsetHeight;
+            
+            canvas.width = width;
+            canvas.height = height;
+
+            // Draw spectrum gradient background
+            const gradient = ctx.createLinearGradient(0, 0, width, 0);
+            const wlRange = [350, 1000];
+            const colors = [
+                '#4b0082', '#0000ff', '#00ffff', '#00ff00', '#ffff00', '#ff6600', '#8b0000'
+            ];
+            const stops = [0, 0.15, 0.3, 0.45, 0.6, 0.8, 1.0];
+            
+            for (let i = 0; i < stops.length; i++) {
+                gradient.addColorStop(stops[i], colors[i]);
+            }
+            
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 30, width, height - 80);
+
+            // Draw absorption lines
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 2;
+            
+            for (let line of fraunhoferLines) {
+                const x = ((line.wl - wlRange[0]) / (wlRange[1] - wlRange[0])) * width;
+                if (x >= 0 && x < width) {
+                    ctx.beginPath();
+                    ctx.moveTo(x, 30);
+                    ctx.lineTo(x, height - 50);
+                    ctx.stroke();
+                    
+                    // Label prominent lines
+                    if (line.label && line.label !== '') {
+                        ctx.fillStyle = '#999';
+                        ctx.font = 'bold 10px Inconsolata';
+                        ctx.textAlign = 'center';
+                        ctx.fillText(line.label, x, 20);
+                    }
+                }
+            }
+
+            // Draw selected wavelength indicator
+            const selectedX = ((selectedWl - wlRange[0]) / (wlRange[1] - wlRange[0])) * width;
+            ctx.strokeStyle = '#ff4444';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(selectedX, 30);
+            ctx.lineTo(selectedX, height - 50);
+            ctx.stroke();
+
+            // Draw axes
+            ctx.strokeStyle = '#666';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(0, height - 50);
+            ctx.lineTo(width, height - 50);
+            ctx.stroke();
+
+            // X-axis labels
+            ctx.fillStyle = '#999';
+            ctx.font = '10px Inconsolata';
+            ctx.textAlign = 'center';
+            for (let wl = 350; wl <= 1000; wl += 100) {
+                const x = ((wl - wlRange[0]) / (wlRange[1] - wlRange[0])) * width;
+                ctx.fillText(wl, x, height - 15);
+            }
+
+            // Y-axis label
+            ctx.fillStyle = '#666';
+            ctx.font = '9px Inconsolata';
+            ctx.textAlign = 'right';
+            ctx.fillText('Intensity', 20, 50);
+        }
+
+        function loadPreset(preset) {
+            currentPreset = preset;
+            const star = stellarPresets[preset];
+            
+            // Highlight active button
+            document.querySelectorAll('.presets button').forEach(b => b.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            // Update display with first prominent line
+            const wl = star.prominent[Math.floor(star.prominent.length / 2)];
+            document.getElementById('wavelengthSlider').value = wl;
+            updateDisplay(wl);
+            
+            // Show stellar info in element box
+            document.getElementById('infoTitle').textContent = star.name + ' (' + star.type + ')';
+            document.getElementById('infoDesc').textContent = star.description;
+            document.getElementById('stellarEx').innerHTML = 
+                '<strong>Surface Temp:</strong> ' + star.temp + ' K<br/>' +
+                '<strong>Type:</strong> ' + star.type;
+        }
+
+        // Initialize
+        document.getElementById('wavelengthSlider').addEventListener('input', (e) => {
+            currentPreset = null;
+            document.querySelectorAll('.presets button').forEach(b => b.classList.remove('active'));
+            updateDisplay(parseInt(e.target.value));
+        });
+
+        updateDisplay(550);
+    </script>
+</body>
+</html>
