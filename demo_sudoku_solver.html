@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sudoku Solver</title>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            color: #f9f9f9;
+        }
+        .container {
+            max-width: 1000px;
+            width: 100%;
+        }
+        h1 {
+            font-family: 'Syne', sans-serif;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            color: #ffd700;
+        }
+        .content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        @media (max-width: 900px) {
+            .content {
+                grid-template-columns: 1fr;
+            }
+        }
+        .board-wrapper {
+            display: flex;
+            justify-content: center;
+        }
+        .sudoku-board {
+            display: grid;
+            grid-template-columns: repeat(9, 1fr);
+            gap: 1px;
+            background: #2a2f4a;
+            padding: 4px;
+            border: 3px solid #4db8ff;
+            width: fit-content;
+            margin: 0 auto;
+        }
+        .cell {
+            width: 40px;
+            height: 40px;
+            background: #1a1f3a;
+            border: 1px solid #3a4a5a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: #f9f9f9;
+        }
+        .cell.given {
+            background: #2a3a5a;
+            color: #00d9ff;
+        }
+        .cell.solving {
+            background: #4a5a7a;
+            color: #ffd700;
+            animation: pulse 0.4s;
+        }
+        .cell.solved {
+            background: #2d5a3a;
+            color: #2dff5f;
+        }
+        .cell.conflict {
+            background: #5a2a3a;
+            color: #ff6b6b;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            padding: 20px;
+            background: rgba(42, 47, 74, 0.6);
+            border-radius: 10px;
+            border-left: 4px solid #4db8ff;
+        }
+        button {
+            padding: 12px 20px;
+            background: linear-gradient(135deg, #4db8ff, #00d9ff);
+            border: none;
+            border-radius: 6px;
+            color: #0a0e27;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(77, 184, 255, 0.3);
+        }
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .preset-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        .preset-buttons button {
+            font-size: 13px;
+            padding: 10px;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .stat-box {
+            background: rgba(77, 184, 255, 0.1);
+            padding: 12px;
+            border-radius: 6px;
+            border-left: 3px solid #4db8ff;
+            font-size: 13px;
+        }
+        .stat-label {
+            color: #a0c8ff;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .stat-value {
+            font-size: 20px;
+            font-weight: 700;
+            color: #ffd700;
+            margin-top: 4px;
+        }
+        .legend {
+            margin-top: 15px;
+            padding: 10px;
+            background: rgba(42, 47, 74, 0.4);
+            border-radius: 6px;
+            font-size: 12px;
+            line-height: 1.6;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 6px;
+        }
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 3px;
+        }
+        .speed-control {
+            margin-top: 10px;
+        }
+        .speed-label {
+            font-size: 12px;
+            color: #a0c8ff;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(77, 184, 255, 0.2);
+            outline: none;
+            -webkit-appearance: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #4db8ff;
+            cursor: pointer;
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #4db8ff;
+            cursor: pointer;
+            border: none;
+        }
+        .status-message {
+            text-align: center;
+            padding: 12px;
+            background: rgba(77, 184, 255, 0.15);
+            border-radius: 6px;
+            font-size: 13px;
+            color: #a0c8ff;
+            min-height: 18px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>⚡ Sudoku Solver</h1>
+        <div class="content">
+            <div class="board-wrapper">
+                <div class="sudoku-board" id="board"></div>
+            </div>
+            <div class="controls">
+                <div class="preset-buttons">
+                    <button onclick="loadEasy()">Easy Puzzle</button>
+                    <button onclick="loadMedium()">Medium Puzzle</button>
+                    <button onclick="loadHard()">Hard Puzzle</button>
+                    <button onclick="loadVeryHard()">Very Hard</button>
+                </div>
+                <button id="solveBtn" onclick="startSolve()" style="margin-top: 10px;">▶ Solve Puzzle</button>
+                <button onclick="resetBoard()">↻ Reset</button>
+                <button onclick="clearBoard()">Clear All</button>
+                <div class="speed-control">
+                    <div class="speed-label">Solve Speed</div>
+                    <input type="range" id="speedSlider" min="0" max="100" value="50" oninput="updateSpeed()">
+                </div>
+                <div class="stats">
+                    <div class="stat-box">
+                        <div class="stat-label">Cells Filled</div>
+                        <div class="stat-value" id="filledCount">0</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">Steps</div>
+                        <div class="stat-value" id="stepCount">0</div>
+                    </div>
+                </div>
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #2a3a5a;"></div>
+                        <span>Given clues</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #2d5a3a;"></div>
+                        <span>Solved by algorithm</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #4a5a7a;"></div>
+                        <span>Currently testing</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #5a2a3a;"></div>
+                        <span>Backtracking</span>
+                    </div>
+                </div>
+                <div class="status-message" id="statusMsg">Load a puzzle to begin</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let board = Array(81).fill(0);
+        let originalBoard = Array(81).fill(0);
+        let solveSpeed = 50;
+        let solving = false;
+        let stepCounter = 0;
+
+        const EASY = [5,3,0,0,7,0,0,0,0,6,0,0,1,9,5,0,0,0,0,9,8,0,0,0,0,6,0,8,0,0,0,6,0,0,0,3,4,0,0,8,0,3,0,0,1,7,0,0,0,2,0,0,0,6,0,6,0,0,0,0,2,8,0,0,0,0,4,1,9,0,0,5,0,0,0,0,8,0,0,7,9];
+        const MEDIUM = [0,0,0,2,6,0,7,0,1,6,0,0,0,0,0,0,0,3,0,9,0,0,0,4,0,8,0,0,0,0,0,0,0,0,0,0,3,0,0,0,0,0,0,0,7,0,0,0,0,0,0,0,0,0,0,1,0,4,0,0,0,7,0,9,0,0,0,0,0,0,0,8,7,0,5,0,3,0,0,0,0];
+        const HARD = [0,0,0,0,0,0,0,1,2,0,0,0,0,3,5,0,0,0,0,0,0,6,0,0,0,7,0,7,0,0,0,0,0,3,0,0,0,5,0,1,0,0,0,0,0,0,0,4,0,0,0,0,0,0,0,9,0,0,2,0,0,0,0,0,0,0,7,0,0,0,0,0,6,7,0,0,0,0,0,0,0];
+        const VERYHARD = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1];
+
+        function initBoard() {
+            const boardEl = document.getElementById('board');
+            boardEl.innerHTML = '';
+            for (let i = 0; i < 81; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'cell';
+                cell.id = `cell-${i}`;
+                cell.textContent = board[i] !== 0 ? board[i] : '';
+                if (originalBoard[i] !== 0) {
+                    cell.classList.add('given');
+                }
+                boardEl.appendChild(cell);
+            }
+        }
+
+        function loadEasy() { board = [...EASY]; originalBoard = [...EASY]; initBoard(); updateStats(); }
+        function loadMedium() { board = [...MEDIUM]; originalBoard = [...MEDIUM]; initBoard(); updateStats(); }
+        function loadHard() { board = [...HARD]; originalBoard = [...HARD]; initBoard(); updateStats(); }
+        function loadVeryHard() { board = [...VERYHARD]; originalBoard = [...VERYHARD]; initBoard(); updateStats(); }
+        function resetBoard() { board = [...originalBoard]; initBoard(); updateStats(); stepCounter = 0; updateSteps(); solving = false; document.getElementById('solveBtn').disabled = false; }
+        function clearBoard() { board = Array(81).fill(0); originalBoard = Array(81).fill(0); initBoard(); updateStats(); stepCounter = 0; updateSteps(); solving = false; document.getElementById('solveBtn').disabled = false; }
+        function updateSpeed() { solveSpeed = document.getElementById('speedSlider').value; }
+
+        function updateStats() {
+            const filled = board.filter(v => v !== 0).length;
+            document.getElementById('filledCount').textContent = filled;
+        }
+
+        function updateSteps() {
+            document.getElementById('stepCount').textContent = stepCounter;
+        }
+
+        function isValid(idx, num) {
+            const row = Math.floor(idx / 9);
+            const col = idx % 9;
+            for (let i = 0; i < 9; i++) {
+                if (board[row * 9 + i] === num) return false;
+                if (board[i * 9 + col] === num) return false;
+            }
+            const boxRow = Math.floor(row / 3) * 3;
+            const boxCol = Math.floor(col / 3) * 3;
+            for (let i = boxRow; i < boxRow + 3; i++) {
+                for (let j = boxCol; j < boxCol + 3; j++) {
+                    if (board[i * 9 + j] === num) return false;
+                }
+            }
+            return true;
+        }
+
+        async function solve() {
+            if (solving) return;
+            solving = true;
+            document.getElementById('solveBtn').disabled = true;
+            document.getElementById('statusMsg').textContent = 'Solving...';
+            stepCounter = 0;
+            updateSteps();
+
+            const delay = (101 - solveSpeed) * 5;
+
+            async function backtrack(idx) {
+                if (!solving) return false;
+                for (; idx < 81; idx++) {
+                    if (board[idx] === 0) break;
+                }
+                if (idx === 81) return true;
+
+                const cell = document.getElementById(`cell-${idx}`);
+                for (let num = 1; num <= 9; num++) {
+                    stepCounter++;
+                    if (stepCounter % 5 === 0) updateSteps();
+
+                    if (isValid(idx, num)) {
+                        board[idx] = num;
+                        cell.textContent = num;
+                        cell.classList.add('solving');
+                        await new Promise(r => setTimeout(r, delay));
+                        cell.classList.remove('solving');
+                        cell.classList.add('solved');
+
+                        if (await backtrack(idx + 1)) return true;
+
+                        cell.classList.remove('solved');
+                        cell.classList.add('conflict');
+                        await new Promise(r => setTimeout(r, delay / 2));
+                        cell.classList.remove('conflict');
+                        cell.textContent = '';
+                        board[idx] = 0;
+                    }
+                }
+                return false;
+            }
+
+            const found = await backtrack(0);
+            updateStats();
+            document.getElementById('statusMsg').textContent = found ? '✓ Solved!' : '✗ No solution found';
+            document.getElementById('solveBtn').disabled = false;
+            solving = false;
+        }
+
+        function startSolve() {
+            if (!board.some(v => v !== 0)) {
+                document.getElementById('statusMsg').textContent = 'Load a puzzle first';
+                return;
+            }
+            solve();
+        }
+
+        loadEasy();
+    </script>
+</body>
+</html>
