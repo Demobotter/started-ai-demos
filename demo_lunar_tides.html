@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lunar Tides</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&family=Lato:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Lato', sans-serif;
+            background: linear-gradient(135deg, #0a1420 0%, #1a2a3a 100%);
+            color: #f0f0f0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            width: 100%;
+            background: rgba(20, 30, 50, 0.95);
+            border-radius: 16px;
+            padding: 32px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+        h1 {
+            font-family: 'Poppins', sans-serif;
+            font-size: 32px;
+            margin-bottom: 24px;
+            text-align: center;
+            color: #ffd700;
+        }
+        .layout {
+            display: grid;
+            grid-template-columns: 1fr 1.2fr;
+            gap: 32px;
+            margin-bottom: 32px;
+        }
+        .left-panel { display: flex; flex-direction: column; gap: 24px; }
+        .right-panel { display: flex; flex-direction: column; gap: 24px; }
+        .section {
+            background: rgba(30, 50, 80, 0.6);
+            border-radius: 12px;
+            padding: 16px;
+            border: 1px solid rgba(77, 184, 255, 0.2);
+        }
+        .section-title {
+            font-family: 'Poppins', sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: #ffd700;
+            margin-bottom: 12px;
+        }
+        .location-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        .location-btn {
+            padding: 8px 12px;
+            border: 2px solid #4db8ff;
+            background: transparent;
+            color: #4db8ff;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        .location-btn:hover { background: rgba(77, 184, 255, 0.1); }
+        .location-btn.active {
+            background: #4db8ff;
+            color: #0a1420;
+        }
+        .slider-container {
+            margin-bottom: 16px;
+        }
+        .slider-label {
+            font-size: 12px;
+            color: #a0a0a0;
+            margin-bottom: 6px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .slider-label-val {
+            color: #ffd700;
+            font-weight: 500;
+        }
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: linear-gradient(to right, #4db8ff, #00d9ff);
+            outline: none;
+            -webkit-appearance: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #ffd700;
+            cursor: pointer;
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #ffd700;
+            cursor: pointer;
+            border: none;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+        .stat-box {
+            background: rgba(77, 184, 255, 0.05);
+            border-left: 3px solid #00d9ff;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .stat-label {
+            font-size: 11px;
+            color: #a0a0a0;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+        .stat-value {
+            font-family: 'Poppins', sans-serif;
+            font-size: 18px;
+            font-weight: 700;
+            color: #ffd700;
+        }
+        .tide-status {
+            padding: 12px;
+            border-radius: 6px;
+            text-align: center;
+            font-weight: 600;
+            margin-top: 12px;
+        }
+        .tide-status.high { background: rgba(255, 107, 107, 0.2); color: #ff6b6b; }
+        .tide-status.low { background: rgba(77, 184, 255, 0.2); color: #4db8ff; }
+        .tide-status.mid { background: rgba(45, 157, 95, 0.2); color: #2d9d5f; }
+        canvas {
+            border-radius: 8px;
+            background: #0a1420;
+            display: block;
+            width: 100%;
+            height: auto;
+        }
+        .chart-title {
+            text-align: center;
+            font-size: 12px;
+            color: #a0a0a0;
+            margin-top: 12px;
+            text-transform: uppercase;
+        }
+        @media (max-width: 900px) {
+            .layout { grid-template-columns: 1fr; }
+            .location-grid { grid-template-columns: 1fr; }
+            .stats-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>🌊 Lunar Tides</h1>
+    <div class="layout">
+        <div class="left-panel">
+            <div class="section">
+                <div class="section-title">Location</div>
+                <div class="location-grid">
+                    <button class="location-btn active" data-location="fundy">Bay of Fundy</button>
+                    <button class="location-btn" data-location="gulofmexico">Gulf of Mexico</button>
+                    <button class="location-btn" data-location="north-sea">North Sea</button>
+                    <button class="location-btn" data-location="med">Mediterranean</button>
+                    <button class="location-btn" data-location="tokyo">Tokyo Bay</button>
+                </div>
+            </div>
+            <div class="section">
+                <div class="section-title">Latitude</div>
+                <div class="slider-container">
+                    <div class="slider-label">
+                        <span>Latitude (°N)</span>
+                        <span class="slider-label-val" id="lat-val">45</span>
+                    </div>
+                    <input type="range" id="latitude-slider" min="0" max="90" value="45" step="1">
+                </div>
+            </div>
+            <div class="section">
+                <div class="section-title">Moon Distance</div>
+                <div class="slider-container">
+                    <div class="slider-label">
+                        <span>Perigee ← → Apogee</span>
+                        <span class="slider-label-val" id="distance-val">avg</span>
+                    </div>
+                    <input type="range" id="distance-slider" min="0" max="100" value="50" step="1">
+                </div>
+            </div>
+            <div class="section">
+                <div class="section-title">Stats</div>
+                <div class="stats-grid">
+                    <div class="stat-box">
+                        <div class="stat-label">Water Level</div>
+                        <div class="stat-value" id="water-level">0.0 m</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">Phase</div>
+                        <div class="stat-value" id="phase-label">—</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">Moon Dist</div>
+                        <div class="stat-value" id="moon-dist">384k km</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">Next High Tide</div>
+                        <div class="stat-value" id="next-high">—</div>
+                    </div>
+                </div>
+                <div class="tide-status mid" id="tide-status">Mid Tide</div>
+            </div>
+        </div>
+        <div class="right-panel">
+            <div class="section">
+                <div style="text-align: center; color: #a0a0a0; font-size: 12px; margin-bottom: 12px;">Moon & Earth</div>
+                <canvas id="moon-canvas" width="350" height="280"></canvas>
+            </div>
+            <div class="section">
+                <div style="text-align: center; color: #a0a0a0; font-size: 12px; margin-bottom: 12px;">24h Tide Curve</div>
+                <canvas id="tide-canvas" width="350" height="180"></canvas>
+                <div class="chart-title">Time (hours)</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Real tidal physics constants
+const LOCATIONS = {
+    'fundy': { name: 'Bay of Fundy', lat: 45.5, range: 16, phase: 0 },
+    'gulofmexico': { name: 'Gulf of Mexico', lat: 25, range: 1.3, phase: 15 },
+    'north-sea': { name: 'North Sea', lat: 54, range: 2.0, phase: -10 },
+    'med': { name: 'Mediterranean', lat: 40, range: 0.3, phase: 5 },
+    'tokyo': { name: 'Tokyo Bay', lat: 35.5, range: 1.5, phase: -5 }
+};
+
+let state = {
+    location: 'fundy',
+    latitude: 45,
+    time: 0, // hours (0-24)
+    distanceFraction: 0.5, // 0=perigee, 1=apogee
+    lunarPhaseAge: 0, // 0-29.5 days
+};
+
+function getLunarPhase(hour) {
+    // Approximate 29.5-day lunar cycle
+    return ((hour / 24) * 1.017) % 29.5;
+}
+
+function getTideAmplitude(phase, distFrac) {
+    // Base amplitude from location range
+    const loc = LOCATIONS[state.location];
+    const baseAmplitude = loc.range / 2;
+    
+    // Spring/neap modulation: lunar phase affects amplitude
+    // Full moon (phase ~0 or 29.5) and new moon (phase ~14.75) = spring tides (max)
+    // Quarter moons (phase ~7.375 or ~22.125) = neap tides (min)
+    const phaseInRun = getLunarPhase(state.time);
+    const springNaepFactor = Math.pow(Math.cos(phaseInRun * Math.PI / 14.765), 2);
+    
+    // Perigee (~356k km) vs apogee (~407k): ~10% variation
+    const distanceMod = 1 + (0.1 * (0.5 - distFrac));
+    
+    return baseAmplitude * springNaepFactor * distanceMod;
+}
+
+function getCurrentTide(hour) {
+    // M2 tidal constituent: semi-diurnal period ~12.42 hours
+    // tide = A * cos(ω*t + φ) where ω = 2π/12.42
+    const loc = LOCATIONS[state.location];
+    const amplitude = getTideAmplitude(state.time, state.distanceFraction);
+    const omega = (2 * Math.PI) / 12.42;
+    const phaseShift = (loc.phase * Math.PI) / 180;
+    const tide = amplitude * Math.cos(omega * hour + phaseShift);
+    return tide;
+}
+
+function updateControls() {
+    const loc = LOCATIONS[state.location];
+    document.getElementById('lat-val').textContent = state.latitude;
+    
+    const distKm = 356 + (407 - 356) * state.distanceFraction;
+    document.getElementById('distance-val').textContent = Math.round(distKm) + ' km';
+    document.getElementById('moon-dist').textContent = Math.round(distKm) + ' km';
+    
+    const waterLevel = getCurrentTide(state.time);
+    document.getElementById('water-level').textContent = waterLevel.toFixed(1) + ' m';
+    
+    const phaseAge = getLunarPhase(state.time);
+    const phaseNames = ['New', 'Wax C', 'First Q', 'Wax G', 'Full', 'Wane G', 'Last Q', 'Wane C'];
+    const phaseIdx = Math.round((phaseAge / 29.5) * 8) % 8;
+    document.getElementById('phase-label').textContent = phaseNames[phaseIdx];
+    
+    // Determine tide status
+    let tideStatus = 'Mid Tide';
+    let statusClass = 'mid';
+    if (waterLevel > 0.5 * (loc.range / 2)) {
+        tideStatus = 'High Tide';
+        statusClass = 'high';
+    } else if (waterLevel < -0.5 * (loc.range / 2)) {
+        tideStatus = 'Low Tide';
+        statusClass = 'low';
+    }
+    const statusEl = document.getElementById('tide-status');
+    statusEl.textContent = tideStatus;
+    statusEl.className = 'tide-status ' + statusClass;
+    
+    // Next high tide (approx 12.42 hours from now, adjusted for current phase)
+    let nextHigh = 6.21; // Half period from now
+    const nextHourVal = (state.time + nextHigh) % 24;
+    document.getElementById('next-high').textContent = Math.floor(nextHourVal) + ':' + String(Math.round((nextHourVal % 1) * 60)).padStart(2, '0');
+}
+
+function drawMoonEarth() {
+    const canvas = document.getElementById('moon-canvas');
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+    const orbitRadius = 80;
+    
+    // Moon orbit position (simplified circular)
+    const phaseAge = getLunarPhase(state.time);
+    const moonAngle = (phaseAge / 29.5) * Math.PI * 2;
+    const moonX = centerX + Math.cos(moonAngle) * orbitRadius;
+    const moonY = centerY + Math.sin(moonAngle) * orbitRadius;
+    
+    // Earth
+    ctx.fillStyle = '#2b7aa0';
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, 30, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#3d7d40';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    
+    // Tidal bulges (exaggerated for visibility)
+    const bulgeX = Math.cos(moonAngle) * 50;
+    const bulgeY = Math.sin(moonAngle) * 50;
+    ctx.fillStyle = 'rgba(77, 184, 255, 0.3)';
+    ctx.beginPath();
+    ctx.ellipse(centerX + bulgeX, centerY + bulgeY, 20, 40, moonAngle, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(centerX - bulgeX, centerY - bulgeY, 20, 40, moonAngle + Math.PI, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Moon
+    ctx.fillStyle = '#f9f9f9';
+    ctx.beginPath();
+    ctx.arc(moonX, moonY, 12, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#999';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    
+    // Moon craters
+    ctx.fillStyle = '#ccc';
+    ctx.beginPath();
+    ctx.arc(moonX - 4, moonY - 4, 2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(moonX + 3, moonY + 2, 1.5, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Orbit path
+    ctx.strokeStyle = 'rgba(77, 184, 255, 0.2)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, orbitRadius, 0, Math.PI * 2);
+    ctx.stroke();
+    
+    // Labels
+    ctx.fillStyle = '#a0a0a0';
+    ctx.font = '10px Lato';
+    ctx.textAlign = 'center';
+    ctx.fillText('Earth', centerX, centerY + 50);
+    ctx.fillText('Moon', moonX, moonY + 20);
+}
+
+function drawTideCurve() {
+    const canvas = document.getElementById('tide-canvas');
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    const loc = LOCATIONS[state.location];
+    const maxAmplitude = loc.range / 2;
+    const padding = 30;
+    const width = canvas.width - padding * 2;
+    const height = canvas.height - padding * 2;
+    const centerY = canvas.height / 2;
+    
+    // Draw axis
+    ctx.strokeStyle = 'rgba(160, 160, 160, 0.3)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(padding, centerY);
+    ctx.lineTo(canvas.width - padding, centerY);
+    ctx.stroke();
+    
+    // Draw tide curve
+    ctx.strokeStyle = '#00d9ff';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    for (let h = 0; h <= 24; h += 0.1) {
+        const tide = getCurrentTide(h);
+        const x = padding + (h / 24) * width;
+        const y = centerY - (tide / maxAmplitude) * (height / 2);
+        if (h === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+    
+    // Current position marker
+    const currentTide = getCurrentTide(state.time);
+    const currentX = padding + (state.time / 24) * width;
+    const currentY = centerY - (currentTide / maxAmplitude) * (height / 2);
+    ctx.fillStyle = '#ffd700';
+    ctx.beginPath();
+    ctx.arc(currentX, currentY, 4, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Time labels
+    ctx.fillStyle = '#a0a0a0';
+    ctx.font = '9px Lato';
+    ctx.textAlign = 'center';
+    for (let h = 0; h <= 24; h += 6) {
+        const x = padding + (h / 24) * width;
+        ctx.fillText(h + 'h', x, canvas.height - 8);
+    }
+}
+
+function animate() {
+    state.time += 0.02;
+    if (state.time >= 24) state.time -= 24;
+    
+    updateControls();
+    drawMoonEarth();
+    drawTideCurve();
+    
+    requestAnimationFrame(animate);
+}
+
+// Event listeners
+document.querySelectorAll('.location-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+        document.querySelectorAll('.location-btn').forEach(b => b.classList.remove('active'));
+        e.target.classList.add('active');
+        state.location = e.target.dataset.location;
+    });
+});
+
+document.getElementById('latitude-slider').addEventListener('input', (e) => {
+    state.latitude = parseInt(e.target.value);
+});
+
+document.getElementById('distance-slider').addEventListener('input', (e) => {
+    state.distanceFraction = parseInt(e.target.value) / 100;
+});
+
+// Start animation
+animate();
+</script>
+</body>
+</html>
