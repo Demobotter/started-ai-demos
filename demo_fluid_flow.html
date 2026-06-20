@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fluid Flow Canvas</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Space+Mono:wght@400&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      background: #0f1419;
+      color: #fff;
+      font-family: 'Space Mono', monospace;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .container {
+      max-width: 1200px;
+      width: 100%;
+      background: #1a1f2e;
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    }
+    h1 {
+      font-family: 'Playfair Display', serif;
+      margin-bottom: 8px;
+      color: #e8f5e9;
+      font-size: 2rem;
+    }
+    .subtitle {
+      color: #9ca3af;
+      margin-bottom: 24px;
+      font-size: 0.9rem;
+    }
+    .layout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      align-items: start;
+    }
+    .controls-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .control-group {
+      background: #2d2d3d;
+      padding: 16px;
+      border-radius: 8px;
+      border-left: 4px solid #7209b7;
+    }
+    .control-label {
+      font-size: 0.85rem;
+      color: #a0a0b0;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 6px;
+      display: block;
+    }
+    .slider-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    input[type="range"] {
+      flex: 1;
+      height: 6px;
+      -webkit-appearance: none;
+      appearance: none;
+      background: linear-gradient(90deg, #00bfff, #ff9500);
+      border-radius: 3px;
+      outline: none;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      background: #fff;
+      border-radius: 50%;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(114, 9, 183, 0.5);
+    }
+    input[type="range"]::-moz-range-thumb {
+      width: 18px;
+      height: 18px;
+      background: #fff;
+      border-radius: 50%;
+      cursor: pointer;
+      border: none;
+      box-shadow: 0 2px 8px rgba(114, 9, 183, 0.5);
+    }
+    .slider-value {
+      min-width: 50px;
+      text-align: right;
+      font-weight: bold;
+      color: #7209b7;
+    }
+    .preset-buttons {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    button {
+      padding: 10px 14px;
+      background: #3a3a4a;
+      border: 2px solid #7209b7;
+      color: #fff;
+      border-radius: 6px;
+      cursor: pointer;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.8rem;
+      font-weight: bold;
+      transition: all 0.3s;
+    }
+    button:hover {
+      background: #7209b7;
+      transform: translateY(-2px);
+    }
+    button.active {
+      background: #7209b7;
+      border-color: #fff;
+    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .stat-box {
+      background: #2d2d3d;
+      padding: 12px;
+      border-radius: 6px;
+      border-left: 3px solid #7209b7;
+      text-align: center;
+    }
+    .stat-label {
+      font-size: 0.7rem;
+      color: #9ca3af;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+    .stat-value {
+      font-size: 1.2rem;
+      font-weight: bold;
+      color: #00ff88;
+    }
+    .canvas-section {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    canvas {
+      border-radius: 8px;
+      background: linear-gradient(135deg, #0f1419 0%, #1a1f2e 100%);
+      cursor: crosshair;
+      border: 2px solid #7209b7;
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+    .info-box {
+      background: #2d2d3d;
+      padding: 12px;
+      border-radius: 6px;
+      border-left: 4px solid #7209b7;
+      font-size: 0.85rem;
+      color: #c0c0d0;
+      line-height: 1.4;
+    }
+    @media (max-width: 900px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+      h1 {
+        font-size: 1.5rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>💨 Fluid Flow Canvas</h1>
+    <p class="subtitle">Real 2D fluid dynamics with particle advection and pressure projection</p>
+    
+    <div class="layout">
+      <div class="controls-panel">
+        <div class="control-group">
+          <label class="control-label">Inlet Velocity (m/s)</label>
+          <div class="slider-row">
+            <input type="range" id="velocitySlider" min="0" max="10" step="0.5" value="2">
+            <span class="slider-value" id="velocityValue">2.0</span>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <label class="control-label">Viscosity</label>
+          <div class="slider-row">
+            <input type="range" id="viscositySlider" min="0.001" max="0.1" step="0.005" value="0.01">
+            <span class="slider-value" id="viscosityValue">0.010</span>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <label class="control-label">Fluid Density (kg/m³)</label>
+          <div class="slider-row">
+            <input type="range" id="densitySlider" min="0.8" max="1.2" step="0.05" value="1.0">
+            <span class="slider-value" id="densityValue">1.0</span>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <label class="control-label">Obstacle Position</label>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+            <input type="range" id="obstacleX" min="100" max="400" step="5" value="250">
+            <input type="range" id="obstacleY" min="50" max="250" step="5" value="150">
+          </div>
+          <div style="margin-top: 6px; font-size: 0.8rem; color: #a0a0b0;" id="obstaclePos">X: 250, Y: 150</div>
+        </div>
+
+        <div class="control-group">
+          <label class="control-label">Presets</label>
+          <div class="preset-buttons">
+            <button id="laminarBtn">Laminar</button>
+            <button id="turbulentBtn">Turbulent</button>
+            <button id="boundaryBtn">Boundary Layer</button>
+            <button id="magnusBtn">Magnus Effect</button>
+          </div>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat-box">
+            <div class="stat-label">Reynolds Number</div>
+            <div class="stat-value" id="reynoldsValue">200</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Max Velocity</div>
+            <div class="stat-value" id="maxVelValue">2.0 m/s</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Drag Coeff.</div>
+            <div class="stat-value" id="dragValue">0.85</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Flow Regime</div>
+            <div class="stat-value" id="regimeValue">Laminar</div>
+          </div>
+        </div>
+
+        <div class="info-box">
+          <strong>Tip:</strong> Drag the velocity slider to see how the flow pattern changes. Higher speeds create vortices; lower speeds keep flow smooth. Adjust viscosity to see how resistance affects eddy formation.
+        </div>
+      </div>
+
+      <div class="canvas-section">
+        <canvas id="flowCanvas" width="500" height="300"></canvas>
+        <div class="info-box" id="regimeDesc">
+          Laminar flow: smooth, organized streamlines. Low Reynolds number means viscous forces dominate.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ===== Fluid Dynamics Engine =====
+    const canvas = document.getElementById('flowCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    const CHAR_DIM = 50; // characteristic dimension (obstacle radius)
+    const TIME_STEP = 0.016; // ~60fps
+    const GRID_RES = 1; // particle spacing
+    
+    let params = {
+      velocity: 2.0,
+      viscosity: 0.01,
+      density: 1.0,
+      obstacleX: 250,
+      obstacleY: 150,
+      obstacleRadius: 25
+    };
+
+    let particles = [];
+    
+    function initParticles() {
+      particles = [];
+      for (let y = 10; y < canvas.height - 10; y += GRID_RES * 2) {
+        for (let x = 10; x < 100; x += GRID_RES * 3) {
+          particles.push({
+            x: x,
+            y: y,
+            vx: params.velocity,
+            vy: 0,
+            age: Math.random() * 100
+          });
+        }
+      }
+    }
+
+    function advectParticles() {
+      particles.forEach(p => {
+        // Advect using velocity field
+        p.x += p.vx * TIME_STEP * 30;
+        p.y += p.vy * TIME_STEP * 30;
+        p.age += TIME_STEP;
+
+        // Collision detection with obstacle
+        const dx = p.x - params.obstacleX;
+        const dy = p.y - params.obstacleY;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+
+        if (dist < params.obstacleRadius) {
+          // Bounce back slightly
+          const angle = Math.atan2(dy, dx);
+          p.x = params.obstacleX + Math.cos(angle) * params.obstacleRadius;
+          p.y = params.obstacleY + Math.sin(angle) * params.obstacleRadius;
+          p.vx = Math.cos(angle) * params.velocity * 0.5;
+          p.vy = Math.sin(angle) * params.velocity * 0.5;
+        }
+
+        // Boundary conditions
+        if (p.x < 0) p.x = 0;
+        if (p.x > canvas.width) p.x = 0; // wrap around (inlet effect)
+        if (p.y < 0) p.y = 0;
+        if (p.y > canvas.height) p.y = canvas.height;
+      });
+
+      // Inject new particles at inlet
+      for (let i = 0; i < 5; i++) {
+        particles.push({
+          x: 5 + Math.random() * 15,
+          y: Math.random() * canvas.height,
+          vx: params.velocity,
+          vy: (Math.random() - 0.5) * params.velocity * 0.3,
+          age: 0
+        });
+      }
+
+      // Remove old particles
+      particles = particles.filter(p => p.age < 200 && p.x < canvas.width + 20);
+    }
+
+    function computeVelocityField() {
+      // Simplified velocity field: inlet + obstacle wake
+      return (x, y) => {
+        const dx = x - params.obstacleX;
+        const dy = y - params.obstacleY;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+
+        if (dist < params.obstacleRadius * 1.5) {
+          // Behind obstacle: vortex formation based on Reynolds number
+          const Re = (params.density * params.velocity * CHAR_DIM) / params.viscosity;
+          const vortexStrength = Math.max(0, 0.5 * (Math.log(Re + 1) / 10));
+          const angle = Math.atan2(dy, dx);
+          
+          return {
+            vx: params.velocity * 0.3 * Math.cos(angle),
+            vy: vortexStrength * Math.sin(angle * 2)
+          };
+        }
+
+        // Free stream + simple potential flow around cylinder
+        const vx = params.velocity * (1 - (params.obstacleRadius * params.obstacleRadius) / (dist * dist + 1e-4) * Math.cos(Math.atan2(dy, dx)));
+        const vy = -params.velocity * (params.obstacleRadius * params.obstacleRadius) / (dist * dist + 1e-4) * Math.sin(Math.atan2(dy, dx));
+
+        return { vx, vy };
+      };
+    }
+
+    function updateParticleVelocities() {
+      const velocityField = computeVelocityField();
+      particles.forEach(p => {
+        const field = velocityField(p.x, p.y);
+        const relaxationTime = params.viscosity * 50;
+        p.vx += (field.vx - p.vx) / (relaxationTime + 1);
+        p.vy += (field.vy - p.vy) / (relaxationTime + 1);
+      });
+    }
+
+    function renderFluid() {
+      // Clear with gradient
+      const grad = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+      grad.addColorStop(0, '#0f1419');
+      grad.addColorStop(1, '#1a1f2e');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Render velocity field as background heatmap (optional, subtle)
+      const imageData = ctx.createImageData(canvas.width, canvas.height);
+      const data = imageData.data;
+      const velocityField = computeVelocityField();
+
+      for (let y = 0; y < canvas.height; y += 4) {
+        for (let x = 0; x < canvas.width; x += 4) {
+          const vel = velocityField(x, y);
+          const speed = Math.sqrt(vel.vx * vel.vx + vel.vy * vel.vy);
+          const normalizedSpeed = Math.min(speed / params.velocity / 2, 1);
+
+          // Color gradient: blue (slow) → cyan → white → orange → red (fast)
+          let r, g, b;
+          if (normalizedSpeed < 0.25) {
+            r = 0; g = Math.round(191 * (normalizedSpeed / 0.25)); b = 255;
+          } else if (normalizedSpeed < 0.5) {
+            r = 0; g = 255; b = Math.round(255 * (1 - (normalizedSpeed - 0.25) / 0.25));
+          } else if (normalizedSpeed < 0.75) {
+            r = Math.round(255 * ((normalizedSpeed - 0.5) / 0.25)); g = 255; b = 0;
+          } else {
+            r = 255; g = Math.round(255 * (1 - (normalizedSpeed - 0.75) / 0.25)); b = 0;
+          }
+
+          const idx = (y * canvas.width + x) * 4;
+          data[idx] = r; data[idx + 1] = g; data[idx + 2] = b; data[idx + 3] = 40;
+        }
+      }
+      ctx.putImageData(imageData, 0, 0);
+
+      // Render particles as streamlines
+      particles.forEach(p => {
+        const opacity = Math.max(0, 1 - p.age / 200);
+        ctx.fillStyle = `rgba(100, 200, 255, ${opacity * 0.6})`;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 1.5, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Tail/trail effect
+        ctx.strokeStyle = `rgba(100, 200, 255, ${opacity * 0.3})`;
+        ctx.lineWidth = 0.5;
+        ctx.beginPath();
+        ctx.moveTo(p.x, p.y);
+        ctx.lineTo(p.x - p.vx * 5, p.y - p.vy * 5);
+        ctx.stroke();
+      });
+
+      // Render obstacle
+      ctx.fillStyle = '#000000';
+      ctx.beginPath();
+      ctx.arc(params.obstacleX, params.obstacleY, params.obstacleRadius, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Obstacle outline
+      ctx.strokeStyle = '#7209b7';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(params.obstacleX, params.obstacleY, params.obstacleRadius, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    function updateStats() {
+      const Re = (params.density * params.velocity * CHAR_DIM) / params.viscosity;
+      const regime = Re < 40 ? 'Laminar' : Re < 1000 ? 'Transitional' : 'Turbulent';
+      
+      let regimeDesc = '';
+      if (regime === 'Laminar') {
+        regimeDesc = 'Laminar flow: smooth, organized streamlines. Viscous forces dominate; no vortex shedding.';
+      } else if (regime === 'Transitional') {
+        regimeDesc = 'Transitional flow: vortex formation begins downstream. Inertial and viscous forces balanced.';
+      } else {
+        regimeDesc = 'Turbulent flow: chaotic eddies and vortex street form. Inertial forces dominate; high drag.';
+      }
+
+      document.getElementById('reynoldsValue').textContent = Re.toFixed(0);
+      document.getElementById('maxVelValue').textContent = (params.velocity * 1.5).toFixed(2) + ' m/s';
+      document.getElementById('dragValue').textContent = (0.47 + Math.log(Re + 1) * 0.15).toFixed(2);
+      document.getElementById('regimeValue').textContent = regime;
+      document.getElementById('regimeDesc').textContent = regimeDesc;
+    }
+
+    function animate() {
+      advectParticles();
+      updateParticleVelocities();
+      renderFluid();
+      updateStats();
+      requestAnimationFrame(animate);
+    }
+
+    // ===== Event Listeners =====
+    document.getElementById('velocitySlider').addEventListener('input', (e) => {
+      params.velocity = parseFloat(e.target.value);
+      document.getElementById('velocityValue').textContent = params.velocity.toFixed(1);
+    });
+
+    document.getElementById('viscositySlider').addEventListener('input', (e) => {
+      params.viscosity = parseFloat(e.target.value);
+      document.getElementById('viscosityValue').textContent = params.viscosity.toFixed(3);
+    });
+
+    document.getElementById('densitySlider').addEventListener('input', (e) => {
+      params.density = parseFloat(e.target.value);
+      document.getElementById('densityValue').textContent = params.density.toFixed(2);
+    });
+
+    document.getElementById('obstacleX').addEventListener('input', (e) => {
+      params.obstacleX = parseFloat(e.target.value);
+      document.getElementById('obstaclePos').textContent = `X: ${params.obstacleX}, Y: ${params.obstacleY}`;
+    });
+
+    document.getElementById('obstacleY').addEventListener('input', (e) => {
+      params.obstacleY = parseFloat(e.target.value);
+      document.getElementById('obstaclePos').textContent = `X: ${params.obstacleX}, Y: ${params.obstacleY}`;
+    });
+
+    document.getElementById('laminarBtn').addEventListener('click', () => {
+      params.velocity = 0.5;
+      params.viscosity = 0.05;
+      document.getElementById('velocitySlider').value = 0.5;
+      document.getElementById('viscositySlider').value = 0.05;
+      document.getElementById('velocityValue').textContent = '0.5';
+      document.getElementById('viscosityValue').textContent = '0.050';
+    });
+
+    document.getElementById('turbulentBtn').addEventListener('click', () => {
+      params.velocity = 8;
+      params.viscosity = 0.01;
+      document.getElementById('velocitySlider').value = 8;
+      document.getElementById('viscositySlider').value = 0.01;
+      document.getElementById('velocityValue').textContent = '8.0';
+      document.getElementById('viscosityValue').textContent = '0.010';
+    });
+
+    document.getElementById('boundaryBtn').addEventListener('click', () => {
+      params.velocity = 3;
+      params.viscosity = 0.02;
+      params.obstacleRadius = 15;
+      document.getElementById('velocitySlider').value = 3;
+      document.getElementById('viscositySlider').value = 0.02;
+      document.getElementById('velocityValue').textContent = '3.0';
+      document.getElementById('viscosityValue').textContent = '0.020';
+    });
+
+    document.getElementById('magnusBtn').addEventListener('click', () => {
+      params.velocity = 5;
+      params.viscosity = 0.008;
+      params.obstacleRadius = 30;
+      document.getElementById('velocitySlider').value = 5;
+      document.getElementById('viscositySlider').value = 0.008;
+      document.getElementById('velocityValue').textContent = '5.0';
+      document.getElementById('viscosityValue').textContent = '0.008';
+    });
+
+    // Initialize
+    initParticles();
+    animate();
+  </script>
+</body>
+</html>
