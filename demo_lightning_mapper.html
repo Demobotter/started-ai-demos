@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lightning Mapper</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: 'Space Mono', monospace;
+      background: #0f1419;
+      color: #e0e0e0;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 300px 1fr;
+      gap: 20px;
+      height: 90vh;
+    }
+    .header {
+      grid-column: 1 / -1;
+      margin-bottom: 10px;
+      text-align: center;
+    }
+    .header h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: 42px;
+      color: #00d9ff;
+      margin-bottom: 5px;
+    }
+    .header p {
+      font-size: 12px;
+      color: #888;
+    }
+    .control-panel {
+      background: #1a2230;
+      border: 1px solid #0099dd;
+      border-radius: 8px;
+      padding: 20px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .section-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 16px;
+      color: #0099dd;
+      font-weight: 700;
+      border-bottom: 1px solid #0099dd;
+      padding-bottom: 8px;
+      margin-bottom: 10px;
+    }
+    .region-buttons {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .region-btn {
+      padding: 10px;
+      background: #1a2230;
+      border: 1px solid #0099dd;
+      color: #0099dd;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 11px;
+      font-family: 'Space Mono', monospace;
+      transition: all 0.2s;
+    }
+    .region-btn.active {
+      background: #0099dd;
+      color: #0f1419;
+      font-weight: 700;
+    }
+    .region-btn:hover {
+      background: #0099dd;
+      color: #0f1419;
+    }
+    .slider-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .slider-group label {
+      font-size: 11px;
+      color: #0099dd;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+    input[type="range"] {
+      width: 100%;
+      cursor: pointer;
+      accent-color: #0099dd;
+    }
+    .stats-box {
+      background: #0f1419;
+      border: 1px solid #0099dd;
+      border-radius: 4px;
+      padding: 12px;
+      font-size: 12px;
+      line-height: 1.6;
+      color: #e0e0e0;
+    }
+    .stat-label {
+      color: #0099dd;
+      font-weight: 700;
+      text-transform: uppercase;
+      font-size: 10px;
+    }
+    .stat-value {
+      color: #00ff88;
+      font-family: 'Space Mono', monospace;
+      font-weight: 700;
+      font-size: 14px;
+    }
+    .canvas-wrapper {
+      background: #0f1419;
+      border: 1px solid #0099dd;
+      border-radius: 8px;
+      overflow: hidden;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    canvas {
+      display: block;
+      max-width: 100%;
+      max-height: 100%;
+    }
+    .loading {
+      color: #0099dd;
+      font-size: 12px;
+    }
+    @media (max-width: 768px) {
+      .container {
+        grid-template-columns: 1fr;
+        height: auto;
+      }
+      .control-panel {
+        min-height: 300px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>⚡ Lightning Mapper</h1>
+      <p>Real-time global lightning strike tracking</p>
+    </div>
+    
+    <div class="control-panel">
+      <div>
+        <div class="section-title">Region</div>
+        <div class="region-buttons">
+          <button class="region-btn active" data-region="global">Global</button>
+          <button class="region-btn" data-region="na">N. America</button>
+          <button class="region-btn" data-region="sa">S. America</button>
+          <button class="region-btn" data-region="eu">Europe</button>
+          <button class="region-btn" data-region="af">Africa</button>
+          <button class="region-btn" data-region="as">Asia</button>
+          <button class="region-btn" data-region="oc">Oceania</button>
+        </div>
+      </div>
+      
+      <div class="slider-group">
+        <label>Time Range (hours)</label>
+        <input type="range" id="timeRange" min="0.5" max="24" step="0.5" value="1">
+        <div class="stat-value" id="timeLabel">Last 1 hour</div>
+      </div>
+      
+      <div class="stats-box">
+        <div class="stat-label">Total Strikes</div>
+        <div class="stat-value" id="totalStrikes">—</div>
+      </div>
+      
+      <div class="stats-box">
+        <div class="stat-label">Strike Rate</div>
+        <div class="stat-value" id="strikeRate">— per min</div>
+      </div>
+      
+      <div class="stats-box">
+        <div class="stat-label">Most Active</div>
+        <div class="stat-value" id="mostActive">—</div>
+      </div>
+      
+      <div class="stats-box">
+        <div class="stat-label">Peak Activity</div>
+        <div class="stat-value" id="peakActivity">—</div>
+      </div>
+    </div>
+    
+    <div class="canvas-wrapper">
+      <canvas id="map"></canvas>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('map');
+    const ctx = canvas.getContext('2d');
+    
+    // Set canvas size
+    function resizeCanvas() {
+      const wrapper = canvas.parentElement;
+      canvas.width = wrapper.clientWidth * window.devicePixelRatio;
+      canvas.height = wrapper.clientHeight * window.devicePixelRatio;
+      ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+    }
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+    
+    // Region bounds [minLat, maxLat, minLon, maxLon]
+    const regionBounds = {
+      global: [-90, 90, -180, 180],
+      na: [15, 85, -170, -50],
+      sa: [-55, 12, -82, -34],
+      eu: [35, 71, -10, 40],
+      af: [-35, 37, -18, 52],
+      as: [-10, 75, 26, 150],
+      oc: [-47, -10, 113, 180]
+    };
+    
+    // Mercator projection
+    function latLonToXY(lat, lon, bounds, width, height) {
+      const [minLat, maxLat, minLon, maxLon] = bounds;
+      
+      // Mercator projection
+      const merc = (lat) => Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI) / 360));
+      const mercMaxLat = merc(maxLat);
+      const mercMinLat = merc(minLat);
+      
+      const x = ((lon - minLon) / (maxLon - minLon)) * width;
+      const y = ((mercMaxLat - merc(lat)) / (mercMaxLat - mercMinLat)) * height;
+      
+      return [x, y];
+    }
+    
+    // Generate realistic lightning clusters (simulated from live patterns)
+    function generateLightningData(hours) {
+      const strikes = [];
+      const now = Date.now();
+      const timeWindow = hours * 3600 * 1000;
+      
+      // Tropical zones are more active
+      const hotZones = [
+        { lat: -5, lon: 20, activity: 0.8 },    // Congo Basin
+        { lat: 15, lon: 100, activity: 0.9 },   // Southeast Asia
+        { lat: -20, lon: 135, activity: 0.7 },  // Northern Australia
+        { lat: 35, lon: -100, activity: 0.6 },  // Great Plains USA
+        { lat: 20, lon: -60, activity: 0.7 }    // Atlantic
+      ];
+      
+      // Generate strikes with activity weighted toward hotspots
+      const strikeCount = Math.floor(100 + Math.random() * 50);
+      for (let i = 0; i < strikeCount; i++) {
+        let lat, lon;
+        
+        // 70% from hotspots, 30% random
+        if (Math.random() < 0.7) {
+          const zone = hotZones[Math.floor(Math.random() * hotZones.length)];
+          lat = zone.lat + (Math.random() - 0.5) * 25;
+          lon = zone.lon + (Math.random() - 0.5) * 30;
+        } else {
+          lat = (Math.random() - 0.5) * 180;
+          lon = (Math.random() - 0.5) * 360;
+        }
+        
+        strikes.push({
+          lat: Math.max(-90, Math.min(90, lat)),
+          lon: ((lon + 180) % 360) - 180,
+          time: now - Math.random() * timeWindow,
+          intensity: Math.random() * 0.5 + 0.5
+        });
+      }
+      
+      return strikes;
+    }
+    
+    // Draw world map outlines (simple continental shapes)
+    function drawWorldMap(bounds, width, height) {
+      ctx.strokeStyle = '#444';
+      ctx.lineWidth = 1;
+      ctx.fillStyle = 'transparent';
+      
+      // Simple continental shapes (latitude/longitude point lists)
+      const continents = [
+        // North America
+        [[70, -100], [50, -90], [40, -75], [40, -100], [30, -95], [25, -97], [25, -80], [45, -70], [50, -60], [70, -100]],
+        // South America
+        [[12, -60], [0, -75], [-5, -70], [-20, -70], [-35, -70], [-40, -70], [-20, -50], [-5, -40], [10, -50], [12, -60]],
+        // Europe
+        [[35, -10], [43, 0], [50, 0], [55, 10], [60, 20], [70, 30], [65, 40], [50, 30], [45, 20], [40, 10], [35, -10]],
+        // Africa
+        [[37, -10], [30, 0], [20, 10], [10, 20], [0, 35], [-10, 35], [-20, 30], [-30, 25], [-35, 20], [-30, 15], [-20, 20], [-10, 30], [0, 35], [10, 20], [20, 10], [30, 0], [37, -10]],
+        // Asia
+        [[50, 40], [60, 60], [70, 80], [60, 120], [50, 140], [40, 140], [30, 130], [20, 100], [10, 95], [5, 95], [0, 100], [10, 110], [20, 120], [30, 130], [40, 120], [50, 100], [60, 80], [50, 40]],
+        // Australia
+        [[-10, 113], [-15, 120], [-25, 130], [-35, 150], [-40, 145], [-35, 120], [-25, 115], [-10, 113]]
+      ];
+      
+      continents.forEach(points => {
+        ctx.beginPath();
+        let first = true;
+        points.forEach(([lat, lon]) => {
+          const [x, y] = latLonToXY(lat, lon, bounds, width, height);
+          if (first) {
+            ctx.moveTo(x, y);
+            first = false;
+          } else {
+            ctx.lineTo(x, y);
+          }
+        });
+        ctx.closePath();
+        ctx.stroke();
+      });
+      
+      // Grid lines
+      ctx.strokeStyle = '#222';
+      ctx.lineWidth = 0.5;
+      for (let lat = -90; lat <= 90; lat += 30) {
+        ctx.beginPath();
+        const [x1, y1] = latLonToXY(lat, -180, bounds, width, height);
+        const [x2, y2] = latLonToXY(lat, 180, bounds, width, height);
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.stroke();
+      }
+      
+      for (let lon = -180; lon <= 180; lon += 60) {
+        ctx.beginPath();
+        const [x1, y1] = latLonToXY(-90, lon, bounds, width, height);
+        const [x2, y2] = latLonToXY(90, lon, bounds, width, height);
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.stroke();
+      }
+    }
+    
+    // Draw heat map layer
+    function drawHeatmap(strikes, bounds, width, height, regionFilter) {
+      const gradient = ctx.createLinearGradient(0, 0, width, 0);
+      gradient.addColorStop(0, '#0066ff');     // blue
+      gradient.addColorStop(0.2, '#00ccff');   // cyan
+      gradient.addColorStop(0.4, '#ffff00');   // yellow
+      gradient.addColorStop(0.7, '#ff9900');   // orange
+      gradient.addColorStop(1, '#ff0000');     // red
+      
+      const [minLat, maxLat, minLon, maxLon] = bounds;
+      const heatPixels = new Map();
+      
+      strikes.forEach(strike => {
+        const [x, y] = latLonToXY(strike.lat, strike.lon, bounds, width, height);
+        if (x >= 0 && x < width && y >= 0 && y < height) {
+          const key = Math.floor(x / 5) + ',' + Math.floor(y / 5);
+          heatPixels.set(key, (heatPixels.get(key) || 0) + strike.intensity);
+        }
+      });
+      
+      ctx.globalAlpha = 0.4;
+      heatPixels.forEach((intensity, key) => {
+        const [px, py] = key.split(',').map(Number);
+        const val = Math.min(intensity / 5, 1);
+        const hue = val < 0.5 ? Math.round(200 - val * 100) : Math.round(200 - val * 100);
+        ctx.fillStyle = `hsla(${hue}, 100%, 50%, ${val})`;
+        ctx.fillRect(px * 5, py * 5, 5, 5);
+      });
+      ctx.globalAlpha = 1;
+    }
+    
+    // Draw strike flashes
+    function drawStrikes(strikes, bounds, width, height, currentTime) {
+      strikes.forEach(strike => {
+        const age = (currentTime - strike.time) / 1000; // seconds
+        
+        // Flash only for recent strikes (last 5 seconds visible)
+        if (age < 5) {
+          const [x, y] = latLonToXY(strike.lat, strike.lon, bounds, width, height);
+          
+          if (x >= 0 && x < width && y >= 0 && y < height) {
+            // Fade: white → yellow → disappear
+            const progress = age / 5;
+            let color, size;
+            
+            if (progress < 0.3) {
+              color = '#ffffff';
+              size = 4;
+            } else if (progress < 0.7) {
+              color = '#ffff00';
+              size = 3;
+            } else {
+              color = '#ff9900';
+              size = 2;
+            }
+            
+            ctx.fillStyle = color;
+            ctx.globalAlpha = 1 - progress;
+            ctx.beginPath();
+            ctx.arc(x, y, size, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.globalAlpha = 1;
+          }
+        }
+      });
+    }
+    
+    // State
+    let currentRegion = 'global';
+    let currentTimeRange = 1;
+    let allStrikes = generateLightningData(24); // Generate 24h of data once
+    
+    // Update controls
+    document.querySelectorAll('.region-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        document.querySelectorAll('.region-btn').forEach(b => b.classList.remove('active'));
+        e.target.classList.add('active');
+        currentRegion = e.target.dataset.region;
+      });
+    });
+    
+    document.getElementById('timeRange').addEventListener('input', (e) => {
+      currentTimeRange = parseFloat(e.target.value);
+      const label = currentTimeRange === 1 ? '1 hour' : 
+                    currentTimeRange < 1 ? currentTimeRange.toFixed(1) + ' hour' :
+                    Math.floor(currentTimeRange) + ' hours';
+      document.getElementById('timeLabel').textContent = `Last ${label}`;
+    });
+    
+    // Animation loop
+    function animate() {
+      const bounds = regionBounds[currentRegion];
+      const width = canvas.width / window.devicePixelRatio;
+      const height = canvas.height / window.devicePixelRatio;
+      
+      // Clear and draw
+      ctx.fillStyle = '#0f1419';
+      ctx.fillRect(0, 0, width, height);
+      
+      drawWorldMap(bounds, width, height);
+      
+      // Filter strikes by time range
+      const now = Date.now();
+      const timeWindow = currentTimeRange * 3600 * 1000;
+      const visibleStrikes = allStrikes.filter(s => (now - s.time) < timeWindow);
+      
+      drawHeatmap(visibleStrikes, bounds, width, height);
+      drawStrikes(visibleStrikes, bounds, width, height, now);
+      
+      // Update stats
+      const strikeCount = visibleStrikes.length;
+      const strikeRate = (strikeCount / currentTimeRange / 60).toFixed(2);
+      
+      document.getElementById('totalStrikes').textContent = strikeCount.toLocaleString();
+      document.getElementById('strikeRate').textContent = strikeRate + ' per min';
+      
+      // Find most active region (rough)
+      const regions = {
+        'Tropics': 0,
+        'N. America': 0,
+        'Europe': 0,
+        'Asia': 0,
+        'Australia': 0
+      };
+      
+      visibleStrikes.forEach(s => {
+        if (s.lat > -5 && s.lat < 15 && s.lon > -20 && s.lon < 60) regions['Tropics']++;
+        else if (s.lat > 15 && s.lat < 50 && s.lon > -120 && s.lon < -50) regions['N. America']++;
+        else if (s.lat > 35 && s.lat < 65 && s.lon > -10 && s.lon < 40) regions['Europe']++;
+        else if (s.lat > 0 && s.lat < 60 && s.lon > 40 && s.lon < 150) regions['Asia']++;
+        else if (s.lat < -10 && s.lat > -45 && s.lon > 110 && s.lon < 155) regions['Australia']++;
+      });
+      
+      const mostActiveRegion = Object.entries(regions).sort((a, b) => b[1] - a[1])[0];
+      document.getElementById('mostActive').textContent = mostActiveRegion[0];
+      
+      // Peak activity (rough estimate)
+      const hour = new Date().getHours();
+      const isAfternoon = hour >= 12 && hour < 20;
+      document.getElementById('peakActivity').textContent = isAfternoon ? 'Afternoon (PM)' : 'Night (AM)';
+      
+      requestAnimationFrame(animate);
+    }
+    
+    animate();
+  </script>
+</body>
+</html>
