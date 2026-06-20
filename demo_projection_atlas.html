@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Projection Atlas</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Space Mono', monospace;
+            background: linear-gradient(135deg, #0a1428 0%, #1a2a3a 100%);
+            color: #f5f5f5;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        .panel {
+            background: rgba(20, 30, 50, 0.8);
+            border: 1px solid #7209b7;
+            border-radius: 8px;
+            padding: 20px;
+        }
+        h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 28px;
+            margin-bottom: 20px;
+            color: #4da8da;
+        }
+        h2 {
+            font-family: 'Playfair Display', serif;
+            font-size: 18px;
+            margin-bottom: 15px;
+            color: #7209b7;
+        }
+        .projection-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+        button {
+            padding: 8px 12px;
+            background: #1a3a5c;
+            color: #4da8da;
+            border: 1px solid #7209b7;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: 'Space Mono', monospace;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+        button:hover {
+            background: #7209b7;
+            color: #f5ead6;
+        }
+        button.active {
+            background: #7209b7;
+            color: #f5ead6;
+            border-color: #4da8da;
+        }
+        .sliders {
+            margin-bottom: 15px;
+        }
+        .slider-group {
+            margin-bottom: 12px;
+        }
+        label {
+            display: block;
+            font-size: 12px;
+            color: #aaa;
+            margin-bottom: 4px;
+        }
+        input[type="range"] {
+            width: 100%;
+            cursor: pointer;
+        }
+        canvas {
+            background: #0a1428;
+            border: 1px solid #7209b7;
+            border-radius: 4px;
+            width: 100%;
+            height: 500px;
+            display: block;
+            margin-bottom: 15px;
+        }
+        .stats {
+            background: rgba(0, 0, 0, 0.5);
+            border-left: 3px solid #2d9d5f;
+            padding: 12px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        .stats-label {
+            color: #aaa;
+            font-size: 11px;
+        }
+        .stats-value {
+            color: #4da8da;
+            font-weight: bold;
+        }
+        .preset-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+        .overlay-toggle {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        input[type="checkbox"] {
+            cursor: pointer;
+        }
+        @media (max-width: 900px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+            canvas {
+                height: 400px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="panel">
+            <h1>🗺️ Projection Atlas</h1>
+            
+            <h2>Select Projection</h2>
+            <div class="projection-buttons">
+                <button class="proj-btn active" data-proj="mercator">Mercator</button>
+                <button class="proj-btn" data-proj="mollweide">Mollweide</button>
+                <button class="proj-btn" data-proj="robinson">Robinson</button>
+                <button class="proj-btn" data-proj="equirect">Equirectangular</button>
+                <button class="proj-btn" data-proj="stereographic">Stereographic</button>
+                <button class="proj-btn" data-proj="sinusoidal">Sinusoidal</button>
+                <button class="proj-btn" data-proj="azimuthal">Azimuthal Equal Area</button>
+            </div>
+
+            <h2>Presets</h2>
+            <div class="preset-buttons">
+                <button class="preset-btn" data-preset="world">Full World</button>
+                <button class="preset-btn" data-preset="polar">Polar</button>
+                <button class="preset-btn" data-preset="equator">Equator</button>
+                <button class="preset-btn" data-preset="africa">Africa</button>
+                <button class="preset-btn" data-preset="europe">Europe</button>
+            </div>
+
+            <h2>Controls</h2>
+            <div class="sliders">
+                <div class="slider-group">
+                    <label>Zoom: <span id="zoomVal">1.0</span>x</label>
+                    <input type="range" id="zoomSlider" min="1" max="4" step="0.1" value="1">
+                </div>
+                <div class="slider-group">
+                    <label>Rotation: <span id="rotVal">0</span>°</label>
+                    <input type="range" id="rotSlider" min="0" max="360" step="1" value="0">
+                </div>
+            </div>
+
+            <div class="overlay-toggle">
+                <input type="checkbox" id="overlayCheck">
+                <label for="overlayCheck" style="margin-bottom: 0;">True Size Comparison</label>
+            </div>
+
+            <h2>Projection Info</h2>
+            <div class="stats">
+                <div class="stats-label">Area Distortion</div>
+                <div class="stats-value" id="areaDist">Mercator: ~1900% (Greenland exaggerated)</div>
+            </div>
+            <div class="stats">
+                <div class="stats-label">Angular Distortion</div>
+                <div class="stats-value" id="angularDist">High near poles</div>
+            </div>
+            <div class="stats">
+                <div class="stats-label">Distances Preserved</div>
+                <div class="stats-value" id="distPreserved">Only along equator</div>
+            </div>
+            <div class="stats">
+                <div class="stats-label">Shape Preservation</div>
+                <div class="stats-value" id="shapePreserved">Excellent (conformal)</div>
+            </div>
+            <div class="stats">
+                <div class="stats-label">Primary Use</div>
+                <div class="stats-value" id="useCase">Navigation & nautical charts</div>
+            </div>
+        </div>
+
+        <div class="panel" style="display: flex; flex-direction: column;">
+            <canvas id="mapCanvas"></canvas>
+            <div id="comparisonOverlay" style="display: none; text-align: center; font-size: 13px; color: #aaa;">
+                <div style="margin-top: 10px;">
+                    <div style="display: inline-block; margin-right: 20px;">
+                        <div style="color: #4da8da; font-weight: bold;">Greenland</div>
+                        <div style="color: #f5ead6;">2.17M km²</div>
+                    </div>
+                    <div style="display: inline-block;">
+                        <div style="color: #4da8da; font-weight: bold;">Africa</div>
+                        <div style="color: #f5ead6;">30.4M km²</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('mapCanvas');
+        const ctx = canvas.getContext('2d');
+        let projectionType = 'mercator';
+        let zoom = 1;
+        let rotation = 0;
+        let showOverlay = false;
+
+        // Simplified continent data (coastline polygons by region)
+        const continents = {
+            northAmerica: [[[-100, 55], [-90, 50], [-80, 45], [-75, 40], [-70, 42], [-65, 45], [-70, 50], [-80, 55], [-90, 60], [-100, 55]]],
+            southAmerica: [[[-75, 10], [-65, 5], [-55, -10], [-45, -20], [-35, -30], [-40, -25], [-50, -15], [-60, 0], [-70, 10], [-75, 10]]],
+            europe: [[[0, 60], [15, 55], [25, 50], [20, 40], [10, 35], [-5, 40], [-10, 50], [-5, 60], [0, 60]]],
+            africa: [[[20, 35], [40, 30], [50, 20], [55, 5], [45, -10], [35, -25], [25, -30], [15, -20], [10, 0], [15, 20], [20, 35]]],
+            asia: [[[70, 55], [100, 50], [130, 45], [150, 50], [155, 60], [140, 70], [100, 70], [70, 65], [70, 55]]],
+            australia: [[[115, -10], [155, -10], [155, -45], [115, -45], [115, -10]]],
+            greenland: [[[-45, 84], [-15, 80], [-10, 70], [-35, 65], [-45, 84]]]
+        };
+
+        const projections = {
+            mercator: (lon, lat) => {
+                const x = lon;
+                const y = Math.log(Math.tan(Math.PI / 4 + lat * Math.PI / 360));
+                return [x / 180, y / 3.5];
+            },
+            mollweide: (lon, lat) => {
+                const latRad = lat * Math.PI / 180;
+                const lonRad = lon * Math.PI / 180;
+                let theta = latRad;
+                for (let i = 0; i < 3; i++) {
+                    theta = theta - (2 * theta + Math.sin(2 * theta) - Math.PI * Math.sin(latRad)) / (2 + 2 * Math.cos(2 * theta));
+                }
+                const x = (2 * Math.sqrt(2) / Math.PI) * lonRad * Math.cos(theta);
+                const y = Math.sqrt(2) * Math.sin(theta);
+                return [x, y];
+            },
+            robinson: (lon, lat) => {
+                const lonRad = lon * Math.PI / 180;
+                const latRad = lat * Math.PI / 180;
+                const coeffs = [
+                    [1, 0.9986],
+                    [5, 0.9954],
+                    [10, 0.9900],
+                    [15, 0.9822],
+                    [20, 0.9730],
+                    [25, 0.9600],
+                    [30, 0.9427],
+                    [35, 0.9216],
+                    [40, 0.8962],
+                    [45, 0.8676],
+                    [50, 0.8293],
+                    [60, 0.7986],
+                    [70, 0.7297],
+                    [80, 0.5571],
+                    [90, 0]
+                ];
+                const abslat = Math.abs(latRad * 180 / Math.PI);
+                let idx = Math.floor(abslat / 5);
+                if (idx >= coeffs.length) idx = coeffs.length - 1;
+                const coeff = coeffs[idx][1];
+                const x = (lonRad * coeff) / Math.PI;
+                const y = (latRad * 0.5124 * (latRad > 0 ? 1 : -1));
+                return [x, y];
+            },
+            equirect: (lon, lat) => {
+                return [lon / 180, lat / 90];
+            },
+            stereographic: (lon, lat) => {
+                const lonRad = lon * Math.PI / 180;
+                const latRad = lat * Math.PI / 180;
+                const k = 2 / (1 + Math.sin(latRad) * Math.cos(lonRad));
+                const x = k * Math.cos(latRad) * Math.sin(lonRad);
+                const y = k * (Math.cos(latRad) * Math.sin(latRad) - Math.sin(lonRad) * Math.sin(latRad));
+                return [x, y];
+            },
+            sinusoidal: (lon, lat) => {
+                const lonRad = lon * Math.PI / 180;
+                const latRad = lat * Math.PI / 180;
+                const x = lonRad * Math.cos(latRad) / Math.PI;
+                const y = latRad / Math.PI;
+                return [x, y];
+            },
+            azimuthal: (lon, lat) => {
+                const lonRad = lon * Math.PI / 180;
+                const latRad = lat * Math.PI / 180;
+                const k = Math.sqrt(2 / (1 + Math.cos(latRad) * Math.cos(lonRad)));
+                const x = k * Math.cos(latRad) * Math.sin(lonRad);
+                const y = k * (Math.sin(latRad));
+                return [x, y];
+            }
+        };
+
+        const projectionInfo = {
+            mercator: {
+                areaDist: 'Mercator: ~1900% (Greenland exaggerated)',
+                angularDist: 'None (angles preserved)',
+                distPreserved: 'Only along equator',
+                shapePreserved: 'Excellent (conformal)',
+                useCase: 'Navigation & nautical charts'
+            },
+            mollweide: {
+                areaDist: 'Mollweide: ~5% (area-preserving)',
+                angularDist: 'Very high away from center',
+                distPreserved: 'No',
+                shapePreserved: 'Poor (areas compensated)',
+                useCase: 'Thematic maps & data distribution'
+            },
+            robinson: {
+                areaDist: 'Robinson: ~30% (balanced)',
+                angularDist: 'Moderate',
+                distPreserved: 'No',
+                shapePreserved: 'Good (compromise)',
+                useCase: 'General-purpose world maps'
+            },
+            equirect: {
+                areaDist: 'Equirectangular: ~150% (mid-latitudes exaggerated)',
+                angularDist: 'Very high near poles',
+                distPreserved: 'Only along meridians',
+                shapePreserved: 'Terrible near poles',
+                useCase: 'Simple geographic grids'
+            },
+            stereographic: {
+                areaDist: 'Stereographic: high near edges',
+                angularDist: 'None (angles preserved)',
+                distPreserved: 'No',
+                shapePreserved: 'Excellent near center',
+                useCase: 'Polar & hemispheric views'
+            },
+            sinusoidal: {
+                areaDist: 'Sinusoidal: equal-area',
+                angularDist: 'Very high',
+                distPreserved: 'No',
+                shapePreserved: 'Poor (wavy)',
+                useCase: 'Area-preserving thematic maps'
+            },
+            azimuthal: {
+                areaDist: 'Azimuthal: equal-area',
+                angularDist: 'Very high away from center',
+                distPreserved: 'From center only',
+                shapePreserved: 'Good near center',
+                useCase: 'Polar & equatorial analysis'
+            }
+        };
+
+        function resizeCanvas() {
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+            draw();
+        }
+
+        function draw() {
+            ctx.fillStyle = '#0a1428';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            const w = canvas.width;
+            const h = canvas.height;
+            const centerX = w / 2;
+            const centerY = h / 2;
+
+            // Draw ocean
+            ctx.fillStyle = '#4da8da';
+            ctx.fillRect(0, 0, w, h);
+
+            // Draw continents
+            ctx.fillStyle = '#f5ead6';
+            ctx.strokeStyle = '#2c3e50';
+            ctx.lineWidth = 1;
+
+            Object.values(continents).forEach(continent => {
+                continent.forEach(polygon => {
+                    ctx.beginPath();
+                    let first = true;
+                    polygon.forEach(([lon, lat]) => {
+                        const [px, py] = projections[projectionType](lon, lat);
+                        const rotRad = rotation * Math.PI / 180;
+                        const rotX = px * Math.cos(rotRad) - py * Math.sin(rotRad);
+                        const rotY = px * Math.sin(rotRad) + py * Math.cos(rotRad);
+                        
+                        const x = centerX + rotX * zoom * (w / 8);
+                        const y = centerY - rotY * zoom * (h / 8);
+                        
+                        if (first) {
+                            ctx.moveTo(x, y);
+                            first = false;
+                        } else {
+                            ctx.lineTo(x, y);
+                        }
+                    });
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.stroke();
+                });
+            });
+
+            // Draw latitude/longitude grid
+            ctx.strokeStyle = '#ddd';
+            ctx.lineWidth = 0.5;
+            ctx.globalAlpha = 0.4;
+            for (let lat = -90; lat <= 90; lat += 15) {
+                ctx.beginPath();
+                for (let lon = -180; lon <= 180; lon += 5) {
+                    const [px, py] = projections[projectionType](lon, lat);
+                    const rotRad = rotation * Math.PI / 180;
+                    const rotX = px * Math.cos(rotRad) - py * Math.sin(rotRad);
+                    const rotY = px * Math.sin(rotRad) + py * Math.cos(rotRad);
+                    
+                    const x = centerX + rotX * zoom * (w / 8);
+                    const y = centerY - rotY * zoom * (h / 8);
+                    
+                    if (lon === -180) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.stroke();
+            }
+            for (let lon = -180; lon <= 180; lon += 15) {
+                ctx.beginPath();
+                for (let lat = -90; lat <= 90; lat += 5) {
+                    const [px, py] = projections[projectionType](lon, lat);
+                    const rotRad = rotation * Math.PI / 180;
+                    const rotX = px * Math.cos(rotRad) - py * Math.sin(rotRad);
+                    const rotY = px * Math.sin(rotRad) + py * Math.cos(rotRad);
+                    
+                    const x = centerX + rotX * zoom * (w / 8);
+                    const y = centerY - rotY * zoom * (h / 8);
+                    
+                    if (lat === -90) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.stroke();
+            }
+            ctx.globalAlpha = 1;
+
+            // True size comparison overlay
+            if (showOverlay) {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                ctx.fillRect(0, 0, w, h);
+                ctx.fillStyle = '#f5ead6';
+                ctx.font = '20px Playfair Display';
+                ctx.textAlign = 'center';
+                ctx.fillText('Actual Size Comparison', w / 2, 50);
+                
+                ctx.font = '14px Space Mono';
+                ctx.fillStyle = '#4da8da';
+                ctx.fillText('Greenland: 2.17M km²', w / 3, h / 2);
+                ctx.fillText('Africa: 30.4M km²', (w * 2) / 3, h / 2);
+            }
+        }
+
+        document.querySelectorAll('.proj-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                document.querySelectorAll('.proj-btn').forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
+                projectionType = e.target.dataset.proj;
+                updateInfo();
+                draw();
+            });
+        });
+
+        document.getElementById('zoomSlider').addEventListener('input', (e) => {
+            zoom = parseFloat(e.target.value);
+            document.getElementById('zoomVal').textContent = zoom.toFixed(1);
+            draw();
+        });
+
+        document.getElementById('rotSlider').addEventListener('input', (e) => {
+            rotation = parseInt(e.target.value);
+            document.getElementById('rotVal').textContent = rotation;
+            draw();
+        });
+
+        document.getElementById('overlayCheck').addEventListener('change', (e) => {
+            showOverlay = e.target.checked;
+            document.getElementById('comparisonOverlay').style.display = showOverlay ? 'block' : 'none';
+            draw();
+        });
+
+        document.querySelectorAll('.preset-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const preset = e.target.dataset.preset;
+                switch(preset) {
+                    case 'world':
+                        zoom = 1;
+                        rotation = 0;
+                        break;
+                    case 'polar':
+                        projectionType = 'stereographic';
+                        document.querySelectorAll('.proj-btn').forEach(b => {
+                            b.classList.remove('active');
+                            if(b.dataset.proj === 'stereographic') b.classList.add('active');
+                        });
+                        zoom = 1.5;
+                        rotation = 0;
+                        break;
+                    case 'equator':
+                        projectionType = 'equirect';
+                        document.querySelectorAll('.proj-btn').forEach(b => {
+                            b.classList.remove('active');
+                            if(b.dataset.proj === 'equirect') b.classList.add('active');
+                        });
+                        zoom = 1;
+                        rotation = 0;
+                        break;
+                    case 'africa':
+                        zoom = 2;
+                        rotation = -20;
+                        break;
+                    case 'europe':
+                        projectionType = 'mercator';
+                        document.querySelectorAll('.proj-btn').forEach(b => {
+                            b.classList.remove('active');
+                            if(b.dataset.proj === 'mercator') b.classList.add('active');
+                        });
+                        zoom = 1.8;
+                        rotation = 0;
+                        break;
+                }
+                document.getElementById('zoomSlider').value = zoom;
+                document.getElementById('rotSlider').value = rotation;
+                document.getElementById('zoomVal').textContent = zoom.toFixed(1);
+                document.getElementById('rotVal').textContent = rotation;
+                updateInfo();
+                draw();
+            });
+        });
+
+        function updateInfo() {
+            const info = projectionInfo[projectionType];
+            document.getElementById('areaDist').textContent = info.areaDist;
+            document.getElementById('angularDist').textContent = info.angularDist;
+            document.getElementById('distPreserved').textContent = info.distPreserved;
+            document.getElementById('shapePreserved').textContent = info.shapePreserved;
+            document.getElementById('useCase').textContent = info.useCase;
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+    </script>
+</body>
+</html>
