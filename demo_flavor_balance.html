@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flavor Balance Lab</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Open+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Open Sans', sans-serif;
+            background: linear-gradient(135deg, #fef5e7 0%, #fdf9f0 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            width: 100%;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.08);
+            padding: 40px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+                padding: 20px;
+                gap: 30px;
+            }
+        }
+        
+        h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 28px;
+            color: #1a1a1a;
+            margin-bottom: 30px;
+            grid-column: 1 / -1;
+        }
+        
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+        
+        .slider-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .slider-label {
+            font-weight: 600;
+            font-size: 14px;
+            color: #333;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .slider-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 2px;
+        }
+        
+        .slider-value {
+            font-weight: 700;
+            font-size: 13px;
+        }
+        
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #e8e8e8;
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #333;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #333;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .preset-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        
+        .preset-btn {
+            padding: 10px 14px;
+            background: #f0f0f0;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.2s;
+            text-align: left;
+        }
+        
+        .preset-btn:hover {
+            background: #e8e8e8;
+            border-color: #999;
+        }
+        
+        .visualization {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+        
+        canvas {
+            width: 100%;
+            height: 300px;
+            background: #fafafa;
+            border-radius: 8px;
+            border: 1px solid #eee;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+        
+        .stat-box {
+            background: #f9f9f9;
+            padding: 14px;
+            border-radius: 6px;
+            border: 1px solid #eee;
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+            font-weight: 600;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .stat-value {
+            font-size: 22px;
+            font-weight: 700;
+            color: #1a1a1a;
+        }
+        
+        .stat-value.text {
+            font-size: 14px;
+        }
+        
+        .profile-box {
+            background: #f9f9f9;
+            padding: 14px;
+            border-radius: 6px;
+            border: 1px solid #eee;
+            grid-column: 1 / -1;
+            font-size: 13px;
+            line-height: 1.6;
+            color: #555;
+        }
+        
+        .profile-title {
+            font-weight: 700;
+            color: #1a1a1a;
+            margin-bottom: 4px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌶️ Flavor Balance Lab</h1>
+        
+        <div class="controls">
+            <div class="slider-group">
+                <div class="slider-label">
+                    <span><span class="slider-color" style="background: #ffd700;"></span> Sweet</span>
+                    <span class="slider-value"><span id="sweet-val">50</span>%</span>
+                </div>
+                <input type="range" id="sweet" min="0" max="100" value="50">
+            </div>
+            
+            <div class="slider-group">
+                <div class="slider-label">
+                    <span><span class="slider-color" style="background: #cc3300;"></span> Salty</span>
+                    <span class="slider-value"><span id="salty-val">50</span>%</span>
+                </div>
+                <input type="range" id="salty" min="0" max="100" value="50">
+            </div>
+            
+            <div class="slider-group">
+                <div class="slider-label">
+                    <span><span class="slider-color" style="background: #00aa44;"></span> Sour</span>
+                    <span class="slider-value"><span id="sour-val">50</span>%</span>
+                </div>
+                <input type="range" id="sour" min="0" max="100" value="50">
+            </div>
+            
+            <div class="slider-group">
+                <div class="slider-label">
+                    <span><span class="slider-color" style="background: #8B4513;"></span> Bitter</span>
+                    <span class="slider-value"><span id="bitter-val">50</span>%</span>
+                </div>
+                <input type="range" id="bitter" min="0" max="100" value="50">
+            </div>
+            
+            <div class="slider-group">
+                <div class="slider-label">
+                    <span><span class="slider-color" style="background: #ff8844;"></span> Umami</span>
+                    <span class="slider-value"><span id="umami-val">50</span>%</span>
+                </div>
+                <input type="range" id="umami" min="0" max="100" value="50">
+            </div>
+            
+            <div style="border-top: 1px solid #ddd; padding-top: 16px;">
+                <div style="font-size: 12px; font-weight: 600; color: #666; margin-bottom: 10px; text-transform: uppercase;">Presets</div>
+                <div class="preset-buttons">
+                    <button class="preset-btn" data-preset="vinaigrette">Classic Vinaigrette</button>
+                    <button class="preset-btn" data-preset="umami">Umami Bomb</button>
+                    <button class="preset-btn" data-preset="sweet-sour">Sweet & Sour</button>
+                    <button class="preset-btn" data-preset="balanced">Balanced Sauce</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="visualization">
+            <canvas id="wheel"></canvas>
+            
+            <div class="stats">
+                <div class="stat-box">
+                    <div class="stat-label">Balance Score</div>
+                    <div class="stat-value"><span id="balance">75</span>%</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Profile Type</div>
+                    <div class="stat-value text"><span id="profile">Balanced</span></div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Complexity</div>
+                    <div class="stat-value"><span id="complexity">60</span>%</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Overall Harmony</div>
+                    <div class="stat-value text"><span id="harmony">Excellent</span></div>
+                </div>
+            </div>
+            
+            <div class="profile-box">
+                <div class="profile-title">Flavor Profile</div>
+                <span id="description">A well-balanced blend with sweet and umami notes rounded with subtle acidity and depth.</span>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Presets from real flavor science
+        const presets = {
+            vinaigrette: { sweet: 30, salty: 60, sour: 70, bitter: 10, umami: 40 },
+            umami: { sweet: 20, salty: 70, sour: 20, bitter: 20, umami: 85 },
+            'sweet-sour': { sweet: 75, salty: 20, sour: 60, bitter: 10, umami: 30 },
+            balanced: { sweet: 50, salty: 50, sour: 50, bitter: 30, umami: 60 }
+        };
+        
+        const canvas = document.getElementById('wheel');
+        const ctx = canvas.getContext('2d');
+        
+        // Setup canvas
+        canvas.width = canvas.offsetWidth * window.devicePixelRatio;
+        canvas.height = canvas.offsetHeight * window.devicePixelRatio;
+        ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+        
+        const centerX = canvas.width / (2 * window.devicePixelRatio);
+        const centerY = canvas.height / (2 * window.devicePixelRatio);
+        const radius = Math.min(centerX, centerY) - 40;
+        
+        // Get sliders
+        const sliders = {
+            sweet: document.getElementById('sweet'),
+            salty: document.getElementById('salty'),
+            sour: document.getElementById('sour'),
+            bitter: document.getElementById('bitter'),
+            umami: document.getElementById('umami')
+        };
+        
+        // Preset buttons
+        document.querySelectorAll('.preset-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const preset = presets[btn.dataset.preset];
+                Object.entries(preset).forEach(([taste, value]) => {
+                    sliders[taste].value = value;
+                    document.getElementById(`${taste}-val`).textContent = value;
+                });
+                update();
+            });
+        });
+        
+        // Slider updates
+        Object.values(sliders).forEach((slider, idx) => {
+            slider.addEventListener('input', () => {
+                const key = Object.keys(sliders)[idx];
+                document.getElementById(`${key}-val`).textContent = slider.value;
+                update();
+            });
+        });
+        
+        function drawWheel() {
+            ctx.clearRect(0, 0, canvas.width / window.devicePixelRatio, canvas.height / window.devicePixelRatio);
+            
+            const sweet = parseInt(sliders.sweet.value);
+            const salty = parseInt(sliders.salty.value);
+            const sour = parseInt(sliders.sour.value);
+            const bitter = parseInt(sliders.bitter.value);
+            const umami = parseInt(sliders.umami.value);
+            
+            // Draw pentagon skeleton (light gray)
+            ctx.strokeStyle = '#ddd';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            for (let i = 0; i < 5; i++) {
+                const angle = (i * 2 * Math.PI / 5) - Math.PI / 2;
+                const x = centerX + radius * Math.cos(angle);
+                const y = centerY + radius * Math.sin(angle);
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.closePath();
+            ctx.stroke();
+            
+            // Draw taste pentagon (colored, filled)
+            const tastes = [sweet, salty, sour, bitter, umami];
+            const colors = ['#ffd700', '#cc3300', '#00aa44', '#8B4513', '#ff8844'];
+            const labels = ['Sweet', 'Salty', 'Sour', 'Bitter', 'Umami'];
+            
+            ctx.fillStyle = 'rgba(255, 200, 100, 0.15)';
+            ctx.strokeStyle = '#ff8844';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            for (let i = 0; i < 5; i++) {
+                const angle = (i * 2 * Math.PI / 5) - Math.PI / 2;
+                const scale = tastes[i] / 100;
+                const x = centerX + radius * scale * Math.cos(angle);
+                const y = centerY + radius * scale * Math.sin(angle);
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+            
+            // Draw nodes + labels
+            for (let i = 0; i < 5; i++) {
+                const angle = (i * 2 * Math.PI / 5) - Math.PI / 2;
+                const x = centerX + radius * Math.cos(angle);
+                const y = centerY + radius * Math.sin(angle);
+                
+                // Node circle
+                ctx.fillStyle = colors[i];
+                ctx.beginPath();
+                ctx.arc(x, y, 6, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Label
+                const labelDist = radius + 28;
+                const labelX = centerX + labelDist * Math.cos(angle);
+                const labelY = centerY + labelDist * Math.sin(angle);
+                ctx.fillStyle = '#333';
+                ctx.font = '12px Open Sans';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(labels[i], labelX, labelY);
+            }
+            
+            // Center label
+            ctx.fillStyle = '#999';
+            ctx.font = '11px Open Sans';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('Taste Balance', centerX, centerY);
+        }
+        
+        function calculateStats() {
+            const sweet = parseInt(sliders.sweet.value);
+            const salty = parseInt(sliders.salty.value);
+            const sour = parseInt(sliders.sour.value);
+            const bitter = parseInt(sliders.bitter.value);
+            const umami = parseInt(sliders.umami.value);
+            
+            const avg = (sweet + salty + sour + bitter + umami) / 5;
+            const variance = [sweet, salty, sour, bitter, umami].reduce((sum, v) => sum + Math.pow(v - avg, 2), 0) / 5;
+            const stdDev = Math.sqrt(variance);
+            
+            // Balance: lower std dev = more balanced
+            const balance = Math.max(0, Math.min(100, 100 - stdDev * 1.5));
+            
+            // Complexity: how many tastes are non-trivial
+            const complexity = [sweet, salty, sour, bitter, umami].filter(v => v > 25).length * 20;
+            
+            // Profile type
+            const max = Math.max(sweet, salty, sour, bitter, umami);
+            const dominant = [sweet, salty, sour, bitter, umami].indexOf(max);
+            const profiles = ['Sweet-Forward', 'Salty-Savory', 'Bright & Sour', 'Bitter-Complex', 'Umami-Rich'];
+            const profile = balance > 70 ? 'Balanced' : profiles[dominant];
+            
+            // Harmony
+            let harmony = 'Good';
+            if (balance > 80) harmony = 'Excellent';
+            else if (balance < 40) harmony = 'Challenging';
+            
+            // Description
+            const descriptions = [];
+            if (sweet > 60) descriptions.push('sweet');
+            if (salty > 60) descriptions.push('savory');
+            if (sour > 60) descriptions.push('bright');
+            if (bitter > 40) descriptions.push('complex');
+            if (umami > 60) descriptions.push('rich');
+            
+            let desc = descriptions.length > 0 
+                ? `A ${descriptions.join(' and ')} blend`
+                : 'A subtle, balanced taste';
+            
+            if (sour > 50 && sweet > 50) desc = 'Sweet and sour notes create a bright, dynamic flavor.';
+            if (umami > 60 && salty > 50) desc = 'Savory umami depth with salty mineral notes.';
+            if (bitter > 30 && umami > 50) desc = 'Complex bitter and umami work together for sophistication.';
+            if (balance > 75) desc = 'A well-balanced blend where all five tastes harmonize smoothly.';
+            
+            return { balance: Math.round(balance), complexity: Math.round(complexity), profile, harmony, desc };
+        }
+        
+        function update() {
+            drawWheel();
+            const stats = calculateStats();
+            document.getElementById('balance').textContent = stats.balance;
+            document.getElementById('complexity').textContent = stats.complexity;
+            document.getElementById('profile').textContent = stats.profile;
+            document.getElementById('harmony').textContent = stats.harmony;
+            document.getElementById('description').textContent = stats.desc;
+        }
+        
+        // Initial draw
+        update();
+        
+        // Redraw on resize
+        window.addEventListener('resize', () => {
+            canvas.width = canvas.offsetWidth * window.devicePixelRatio;
+            canvas.height = canvas.offsetHeight * window.devicePixelRatio;
+            ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+            update();
+        });
+    </script>
+</body>
+</html>
