@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Watershed Lab</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&family=Lato:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Lato', sans-serif;
+            background: linear-gradient(135deg, #0a0a14 0%, #1a1f3a 100%);
+            color: #f9f9f9;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1.4fr;
+            gap: 30px;
+            align-items: start;
+        }
+        
+        .left-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .control-group {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(0, 217, 255, 0.2);
+            border-radius: 8px;
+            padding: 16px;
+        }
+        
+        .control-group h3 {
+            font-family: 'Poppins', sans-serif;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: #ffd700;
+            margin-bottom: 14px;
+            font-weight: 600;
+        }
+        
+        .slider-container {
+            margin-bottom: 14px;
+        }
+        
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            margin-bottom: 6px;
+            color: #ccc;
+        }
+        
+        input[type="range"] {
+            width: 100%;
+            height: 4px;
+            border-radius: 2px;
+            background: rgba(0, 217, 255, 0.2);
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #00d9ff;
+            cursor: pointer;
+            box-shadow: 0 0 8px rgba(0, 217, 255, 0.6);
+        }
+        
+        input[type="range"]::-moz-range-thumb {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #00d9ff;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 0 8px rgba(0, 217, 255, 0.6);
+        }
+        
+        button {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #00d9ff 0%, #0099cc 100%);
+            border: none;
+            border-radius: 6px;
+            color: #0a0a14;
+            font-family: 'Poppins', sans-serif;
+            font-weight: 600;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(0, 217, 255, 0.3);
+        }
+        
+        .stats-box {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(0, 217, 255, 0.2);
+            border-radius: 8px;
+            padding: 16px;
+        }
+        
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(0, 217, 255, 0.1);
+        }
+        
+        .stat-row:last-child {
+            border-bottom: none;
+        }
+        
+        .stat-label {
+            color: #a0e7ff;
+            font-weight: 500;
+        }
+        
+        .stat-value {
+            font-family: 'Poppins', sans-serif;
+            font-weight: 600;
+            color: #ffd700;
+        }
+        
+        canvas {
+            width: 100%;
+            height: 500px;
+            background: linear-gradient(180deg, #0a1420 0%, #1a2535 100%);
+            border: 1px solid rgba(0, 217, 255, 0.2);
+            border-radius: 8px;
+            display: block;
+        }
+        
+        .right-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        
+        h1 {
+            font-family: 'Poppins', sans-serif;
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            background: linear-gradient(90deg, #00d9ff, #ffd700);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .description {
+            font-size: 14px;
+            color: #a0e7ff;
+            line-height: 1.6;
+        }
+        
+        @media (max-width: 900px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+            
+            canvas {
+                height: 350px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="left-panel">
+            <div>
+                <h1>Watershed Lab</h1>
+                <p class="description">Real hydrological physics with water flow, infiltration, and evaporation. Watch your watershed evolve.</p>
+            </div>
+            
+            <div class="control-group">
+                <h3>Precipitation</h3>
+                <div class="slider-container">
+                    <div class="slider-label">
+                        <span>Rate (mm/hr)</span>
+                        <span id="precip-val">50</span>
+                    </div>
+                    <input type="range" id="precip" min="0" max="100" value="50">
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <h3>Temperature</h3>
+                <div class="slider-container">
+                    <div class="slider-label">
+                        <span>°C</span>
+                        <span id="temp-val">20</span>
+                    </div>
+                    <input type="range" id="temp" min="0" max="40" value="20">
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <h3>Soil Permeability</h3>
+                <div class="slider-container">
+                    <div class="slider-label">
+                        <span>%</span>
+                        <span id="perm-val">50</span>
+                    </div>
+                    <input type="range" id="permeability" min="0" max="100" value="50">
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <h3>Terrain Elevation</h3>
+                <div class="slider-container">
+                    <div class="slider-label">
+                        <span>Relative (m)</span>
+                        <span id="elev-val">0</span>
+                    </div>
+                    <input type="range" id="elevation" min="-50" max="50" value="0">
+                </div>
+            </div>
+            
+            <button id="start-btn">Start Storm</button>
+            
+            <div class="stats-box">
+                <div class="stat-row">
+                    <span class="stat-label">Total Runoff</span>
+                    <span class="stat-value" id="stat-runoff">0 mm</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Infiltration</span>
+                    <span class="stat-value" id="stat-infiltration">0 mm</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Evaporation</span>
+                    <span class="stat-value" id="stat-evaporation">0 mm</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Groundwater Depth</span>
+                    <span class="stat-value" id="stat-gwdepth">0 m</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Water Table</span>
+                    <span class="stat-value" id="stat-wt">0 m</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Saturation</span>
+                    <span class="stat-value" id="stat-sat">0%</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="right-panel">
+            <h2 style="font-family: 'Poppins'; color: #00d9ff; font-size: 16px; text-transform: uppercase; letter-spacing: 0.6px;">Terrain Visualization</h2>
+            <canvas id="watershed-canvas"></canvas>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('watershed-canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Canvas setup
+        function resizeCanvas() {
+            const rect = canvas.parentElement.getBoundingClientRect();
+            canvas.width = rect.width - 2;
+            canvas.height = 500;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+        
+        // State
+        const state = {
+            running: false,
+            time: 0,
+            runoff: 0,
+            infiltration: 0,
+            evaporation: 0,
+            groundwaterDepth: 0,
+            waterTableElevation: 0,
+            precipitation: 50,
+            temperature: 20,
+            permeability: 50,
+            elevation: 0,
+            waterParticles: []
+        };
+        
+        // Slider listeners
+        document.getElementById('precip').addEventListener('input', (e) => {
+            state.precipitation = parseFloat(e.target.value);
+            document.getElementById('precip-val').textContent = e.target.value;
+        });
+        
+        document.getElementById('temp').addEventListener('input', (e) => {
+            state.temperature = parseFloat(e.target.value);
+            document.getElementById('temp-val').textContent = e.target.value;
+        });
+        
+        document.getElementById('permeability').addEventListener('input', (e) => {
+            state.permeability = parseFloat(e.target.value);
+            document.getElementById('perm-val').textContent = e.target.value;
+        });
+        
+        document.getElementById('elevation').addEventListener('input', (e) => {
+            state.elevation = parseFloat(e.target.value);
+            document.getElementById('elev-val').textContent = e.target.value;
+        });
+        
+        document.getElementById('start-btn').addEventListener('click', () => {
+            state.running = !state.running;
+            if (state.running) {
+                state.time = 0;
+                state.runoff = 0;
+                state.infiltration = 0;
+                state.evaporation = 0;
+                state.groundwaterDepth = 0;
+                state.waterTableElevation = 0;
+                state.waterParticles = [];
+                document.getElementById('start-btn').textContent = 'Stop Storm';
+            } else {
+                document.getElementById('start-btn').textContent = 'Start Storm';
+            }
+        });
+        
+        // Hydrological physics
+        function calculateEvaporationRate() {
+            // Simplified Penman-Monteith
+            const baseEvaporation = 0.1 * (state.temperature / 30);
+            return Math.max(0, baseEvaporation);
+        }
+        
+        function calculateInfiltrationRate() {
+            // Green-Ampt simplified
+            const permFactor = state.permeability / 100;
+            const baseInfiltration = 0.3 * permFactor;
+            return baseInfiltration;
+        }
+        
+        function generateTerrainProfile() {
+            // Gaussian bumpy terrain
+            const profile = [];
+            for (let i = 0; i < 100; i++) {
+                const x = (i / 100) * canvas.width;
+                let elevation = 100 + state.elevation;
+                elevation += 40 * Math.sin(x / 100);
+                elevation += 30 * Math.sin(x / 150 + 2);
+                elevation += 20 * Math.cos(x / 50 + 5);
+                profile.push({x, elevation});
+            }
+            return profile;
+        }
+        
+        function drawTerrain(profile) {
+            // Terrain gradient (brown → green → white by elevation)
+            const ctx = canvas.getContext('2d');
+            const width = canvas.width;
+            const height = canvas.height;
+            const seaLevel = height - 120;
+            
+            // Draw terrain
+            ctx.beginPath();
+            ctx.moveTo(0, height);
+            
+            for (let p of profile) {
+                const y = seaLevel - (p.elevation / 200) * 150;
+                ctx.lineTo(p.x, y);
+            }
+            
+            ctx.lineTo(width, height);
+            ctx.closePath;
+            
+            // Gradient fill
+            const grad = ctx.createLinearGradient(0, seaLevel - 150, 0, seaLevel);
+            grad.addColorStop(0, '#8b6f47');  // Brown
+            grad.addColorStop(0.5, '#2d9d5f'); // Green
+            grad.addColorStop(1, '#d4c5a9');   // Tan
+            ctx.fillStyle = grad;
+            ctx.fill();
+            
+            // Water layer
+            ctx.fillStyle = 'rgba(26, 117, 180, 0.6)';
+            ctx.fillRect(0, seaLevel, width, height - seaLevel);
+        }
+        
+        function drawWaterParticles() {
+            for (let particle of state.waterParticles) {
+                ctx.fillStyle = `rgba(0, 217, 255, ${particle.alpha})`;
+                ctx.beginPath();
+                ctx.arc(particle.x, particle.y, 3, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+        
+        function drawGroundwater() {
+            const width = canvas.width;
+            const height = canvas.height;
+            const seaLevel = height - 120;
+            
+            // Groundwater layer visualization
+            const gwY = seaLevel + (state.groundwaterDepth / 10) * 50;
+            ctx.fillStyle = 'rgba(26, 58, 92, 0.3)';
+            ctx.fillRect(0, gwY, width, Math.min(50, height - gwY));
+            
+            // Percolation arrows
+            ctx.strokeStyle = 'rgba(160, 231, 255, 0.4)';
+            ctx.lineWidth = 1;
+            for (let i = 0; i < 8; i++) {
+                const x = (i + 0.5) * (width / 8);
+                const y = seaLevel + 5;
+                ctx.beginPath();
+                ctx.moveTo(x, y);
+                ctx.lineTo(x, y + 30);
+                ctx.stroke();
+                
+                // Arrow head
+                ctx.beginPath();
+                ctx.moveTo(x - 3, y + 25);
+                ctx.lineTo(x, y + 30);
+                ctx.lineTo(x + 3, y + 25);
+                ctx.stroke();
+            }
+        }
+        
+        function drawLabels() {
+            ctx.fillStyle = '#a0e7ff';
+            ctx.font = '11px Lato';
+            ctx.fillText(`Precip: ${state.precipitation.toFixed(0)} mm/hr`, 10, 20);
+            ctx.fillText(`Temp: ${state.temperature.toFixed(0)}°C`, 10, 35);
+            ctx.fillText(`Perm: ${state.permeability.toFixed(0)}%`, 10, 50);
+            ctx.fillText(`Water Table: ${state.waterTableElevation.toFixed(1)} m`, canvas.width - 150, 20);
+        }
+        
+        function updateStats() {
+            document.getElementById('stat-runoff').textContent = state.runoff.toFixed(1) + ' mm';
+            document.getElementById('stat-infiltration').textContent = state.infiltration.toFixed(1) + ' mm';
+            document.getElementById('stat-evaporation').textContent = state.evaporation.toFixed(1) + ' mm';
+            document.getElementById('stat-gwdepth').textContent = state.groundwaterDepth.toFixed(1) + ' m';
+            document.getElementById('stat-wt').textContent = state.waterTableElevation.toFixed(1) + ' m';
+            const totalPrecip = state.precipitation * state.time / 60;
+            const saturation = Math.min(100, ((state.infiltration + state.evaporation) / totalPrecip) * 100);
+            document.getElementById('stat-sat').textContent = saturation.toFixed(0) + '%';
+        }
+        
+        function animate() {
+            const width = canvas.width;
+            const height = canvas.height;
+            
+            // Clear
+            ctx.fillStyle = 'rgba(10, 20, 32, 0.9)';
+            ctx.fillRect(0, 0, width, height);
+            
+            // Generate terrain
+            const terrainProfile = generateTerrainProfile();
+            drawTerrain(terrainProfile);
+            
+            if (state.running) {
+                state.time += 1;
+                
+                // Hydrological processes
+                const evapRate = calculateEvaporationRate();
+                const infiltRate = calculateInfiltrationRate();
+                
+                // Water balance (conservation)
+                const precipAmount = state.precipitation / 60; // Convert to per-frame
+                state.evaporation += evapRate * 0.01;
+                state.infiltration += precipAmount * (infiltRate / 100) * (state.permeability / 100);
+                state.runoff += precipAmount * (1 - infiltRate / 100) * ((100 - state.permeability) / 100);
+                
+                // Groundwater dynamics
+                state.groundwaterDepth = Math.max(0, state.groundwaterDepth + (state.infiltration * 0.001) - (evapRate * 0.0005));
+                state.waterTableElevation = state.groundwaterDepth * 0.3;
+                
+                // Generate water particles
+                if (state.running && Math.random() < 0.3) {
+                    const startX = Math.random() * width;
+                    const slope = terrainProfile[Math.floor(startX / width * terrainProfile.length)].elevation;
+                    const velocity = Math.sqrt(2 * 9.81 * (slope / 100));
+                    
+                    state.waterParticles.push({
+                        x: startX,
+                        y: 50 + Math.random() * 20,
+                        vx: velocity * Math.cos((Math.random() - 0.5) * 0.5),
+                        vy: velocity * Math.sin(0.3 + Math.random() * 0.2),
+                        alpha: 0.8,
+                        age: 0
+                    });
+                }
+                
+                // Update particles
+                for (let p of state.waterParticles) {
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.vy += 0.3; // Gravity
+                    p.alpha *= 0.98;
+                    p.age++;
+                }
+                state.waterParticles = state.waterParticles.filter(p => p.alpha > 0.01 && p.age < 300);
+                
+                // Stop after 120 seconds
+                if (state.time > 120) {
+                    state.running = false;
+                    document.getElementById('start-btn').textContent = 'Start Storm';
+                }
+            }
+            
+            drawWaterParticles();
+            drawGroundwater();
+            drawLabels();
+            updateStats();
+            
+            requestAnimationFrame(animate);
+        }
+        
+        animate();
+    </script>
+</body>
+</html>
