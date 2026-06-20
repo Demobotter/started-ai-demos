@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Harmonic Wave Sculptor</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Space Mono', monospace;
+      background: #2a2a2a;
+      color: #f0f0f0;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 30px;
+      align-items: start;
+    }
+    @media (max-width: 900px) {
+      .container { grid-template-columns: 1fr; gap: 20px; }
+    }
+    h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: 32px;
+      margin-bottom: 30px;
+      grid-column: 1 / -1;
+      text-align: center;
+      color: #00d9ff;
+    }
+    .left-panel, .right-panel {
+      background: #1a1a1a;
+      border-radius: 12px;
+      padding: 25px;
+      border-left: 3px solid #7209b7;
+    }
+    .slider-group {
+      margin-bottom: 20px;
+      padding-bottom: 15px;
+      border-bottom: 1px solid #404040;
+    }
+    .slider-group:last-of-type {
+      border-bottom: none;
+    }
+    .slider-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      color: #aaa;
+      margin-bottom: 8px;
+    }
+    .harmonic-num {
+      font-weight: bold;
+      color: #00d9ff;
+    }
+    input[type="range"] {
+      width: 100%;
+      height: 6px;
+      background: linear-gradient(to right, #ff4444, #ffff44, #00d9ff);
+      border-radius: 3px;
+      outline: none;
+      -webkit-appearance: none;
+      appearance: none;
+      cursor: pointer;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 14px;
+      height: 14px;
+      background: #00d9ff;
+      border-radius: 50%;
+      cursor: pointer;
+      box-shadow: 0 0 8px rgba(0, 217, 255, 0.6);
+    }
+    input[type="range"]::-moz-range-thumb {
+      width: 14px;
+      height: 14px;
+      background: #00d9ff;
+      border-radius: 50%;
+      cursor: pointer;
+      border: none;
+      box-shadow: 0 0 8px rgba(0, 217, 255, 0.6);
+    }
+    .control-section {
+      margin-bottom: 25px;
+      padding: 15px;
+      background: #252525;
+      border-radius: 8px;
+      border-left: 2px solid #7209b7;
+    }
+    .control-label {
+      font-size: 12px;
+      color: #999;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 10px;
+    }
+    .preset-buttons {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-bottom: 25px;
+    }
+    button {
+      padding: 10px 12px;
+      background: #3a3a3a;
+      border: 1px solid #7209b7;
+      color: #00d9ff;
+      border-radius: 6px;
+      cursor: pointer;
+      font-family: 'Space Mono', monospace;
+      font-size: 12px;
+      font-weight: bold;
+      transition: all 0.2s;
+    }
+    button:hover {
+      background: #7209b7;
+      color: #fff;
+      box-shadow: 0 0 12px rgba(114, 9, 183, 0.5);
+    }
+    button.active {
+      background: #00d9ff;
+      color: #1a1a1a;
+      border-color: #00d9ff;
+    }
+    .play-button {
+      width: 100%;
+      padding: 12px;
+      font-size: 14px;
+      margin-bottom: 20px;
+    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 20px;
+    }
+    .stat-box {
+      background: #252525;
+      padding: 12px;
+      border-radius: 6px;
+      border-left: 2px solid #7209b7;
+    }
+    .stat-label {
+      font-size: 11px;
+      color: #888;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+    .stat-value {
+      font-size: 16px;
+      font-weight: bold;
+      color: #00d9ff;
+      font-family: 'Space Mono', monospace;
+    }
+    #waveformCanvas {
+      width: 100%;
+      height: 250px;
+      background: #0a0a0a;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      border: 1px solid #404040;
+    }
+    .description-box {
+      background: #252525;
+      padding: 15px;
+      border-radius: 8px;
+      border-left: 2px solid #7209b7;
+      margin-bottom: 20px;
+      font-size: 13px;
+      line-height: 1.5;
+      color: #ddd;
+    }
+    .harmonic-breakdown {
+      background: #252525;
+      padding: 15px;
+      border-radius: 8px;
+      border-left: 2px solid #7209b7;
+    }
+    .harmonic-list {
+      font-size: 12px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    .harmonic-item {
+      padding: 6px 0;
+      border-bottom: 1px solid #3a3a3a;
+      display: flex;
+      justify-content: space-between;
+    }
+    .harmonic-item:last-child {
+      border-bottom: none;
+    }
+    .harmonic-freq {
+      color: #888;
+    }
+    .harmonic-bar {
+      display: inline-block;
+      height: 4px;
+      background: #00d9ff;
+      border-radius: 2px;
+      margin-left: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎵 Harmonic Wave Sculptor</h1>
+
+    <div class="left-panel">
+      <div class="control-label">Fundamental Frequency</div>
+      <div class="slider-group">
+        <div class="slider-label">
+          <span>200 Hz</span>
+          <span id="freqDisplay" class="harmonic-num">440 Hz (A4)</span>
+          <span>880 Hz</span>
+        </div>
+        <input type="range" id="fundamentalSlider" min="200" max="880" value="440" step="1">
+      </div>
+
+      <div class="control-section">
+        <div class="control-label">Harmonic Amplitudes</div>
+        <div id="sliderContainer"></div>
+      </div>
+
+      <div class="control-section">
+        <div class="control-label">Presets</div>
+        <div class="preset-buttons">
+          <button onclick="loadPreset('sine')">Sine</button>
+          <button onclick="loadPreset('square')">Square</button>
+          <button onclick="loadPreset('sawtooth')">Sawtooth</button>
+          <button onclick="loadPreset('triangle')">Triangle</button>
+        </div>
+      </div>
+
+      <button class="play-button" onclick="playTone()">▶ Play Tone (2 sec)</button>
+
+      <div class="stats-grid">
+        <div class="stat-box">
+          <div class="stat-label">Harmonic Content</div>
+          <div class="stat-value" id="harmonicContent">0%</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Timbre</div>
+          <div class="stat-value" id="timbreLabel">Pure</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">RMS Amplitude</div>
+          <div class="stat-value" id="rmsValue">0.00</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Peak Frequency</div>
+          <div class="stat-value" id="peakFreq">440 Hz</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="right-panel">
+      <div class="control-label">Waveform (Real-Time)</div>
+      <canvas id="waveformCanvas"></canvas>
+
+      <div class="description-box" id="timbreDescription">
+        Drag sliders to modify harmonics. Watch the waveform change as you add overtones.
+      </div>
+
+      <div class="harmonic-breakdown">
+        <div class="control-label">Active Harmonics</div>
+        <div class="harmonic-list" id="harmonicList"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const fundamentalSlider = document.getElementById('fundamentalSlider');
+    const sliderContainer = document.getElementById('sliderContainer');
+    const waveformCanvas = document.getElementById('waveformCanvas');
+    const ctx = waveformCanvas.getContext('2d');
+    const playButton = document.querySelector('.play-button');
+
+    // Resize canvas to match display size
+    function resizeCanvas() {
+      const rect = waveformCanvas.getBoundingClientRect();
+      waveformCanvas.width = rect.width;
+      waveformCanvas.height = rect.height;
+    }
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+
+    // Initialize harmonics (1-9)
+    const harmonics = {};
+    for (let i = 1; i <= 9; i++) {
+      harmonics[i] = 0;
+    }
+
+    // Create sliders
+    function createSliders() {
+      sliderContainer.innerHTML = '';
+      for (let i = 1; i <= 9; i++) {
+        const fund = parseFloat(fundamentalSlider.value);
+        const freq = i * fund;
+        const div = document.createElement('div');
+        div.className = 'slider-group';
+        div.innerHTML = `
+          <div class="slider-label">
+            <span class="harmonic-num">H${i}</span>
+            <span>${freq.toFixed(0)} Hz</span>
+            <span id="val${i}" style="color: #00d9ff;">0%</span>
+          </div>
+          <input type="range" id="harmonic${i}" min="0" max="100" value="${harmonics[i]}" step="1">
+        `;
+        sliderContainer.appendChild(div);
+
+        const slider = div.querySelector(`#harmonic${i}`);
+        slider.addEventListener('input', (e) => {
+          harmonics[i] = parseInt(e.target.value);
+          document.getElementById(`val${i}`).textContent = harmonics[i] + '%';
+          updateVisualization();
+        });
+      }
+    }
+    createSliders();
+
+    fundamentalSlider.addEventListener('input', () => {
+      document.getElementById('freqDisplay').textContent = Math.round(fundamentalSlider.value) + ' Hz (A4)';
+      createSliders();
+      updateVisualization();
+    });
+
+    // Synthesis function: compute waveform value at time t
+    function synthesize(t, fundamental) {
+      let value = 0;
+      for (let i = 1; i <= 9; i++) {
+        const amplitude = harmonics[i] / 100;
+        const freq = i * fundamental;
+        value += amplitude * Math.sin(2 * Math.PI * freq * t);
+      }
+      return value;
+    }
+
+    // Draw waveform
+    function drawWaveform() {
+      const fundamental = parseFloat(fundamentalSlider.value);
+      const width = waveformCanvas.width;
+      const height = waveformCanvas.height;
+      const centerY = height / 2;
+      const timePerPixel = 0.005; // 5ms per pixel → ~200ms window
+
+      // Clear with grid
+      ctx.fillStyle = '#0a0a0a';
+      ctx.fillRect(0, 0, width, height);
+
+      // Draw grid
+      ctx.strokeStyle = '#2a2a2a';
+      ctx.lineWidth = 0.5;
+      for (let i = 0; i < width; i += 40) {
+        ctx.beginPath();
+        ctx.moveTo(i, 0);
+        ctx.lineTo(i, height);
+        ctx.stroke();
+      }
+      for (let i = 0; i < height; i += 25) {
+        ctx.beginPath();
+        ctx.moveTo(0, i);
+        ctx.lineTo(width, i);
+        ctx.stroke();
+      }
+
+      // Draw zero line
+      ctx.strokeStyle = '#7209b7';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(0, centerY);
+      ctx.lineTo(width, centerY);
+      ctx.stroke();
+
+      // Draw waveform
+      ctx.strokeStyle = '#00d9ff';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      for (let x = 0; x < width; x++) {
+        const t = x * timePerPixel;
+        const y = synthesize(t, fundamental);
+        const screenY = centerY - (y * (height / 2.5));
+        if (x === 0) ctx.moveTo(x, screenY);
+        else ctx.lineTo(x, screenY);
+      }
+      ctx.stroke();
+
+      // Draw peak indicators
+      ctx.fillStyle = 'rgba(0, 217, 255, 0.3)';
+      ctx.fillRect(0, centerY - (height / 2.5), width, height / 2.5);
+      ctx.fillRect(0, centerY, width, height / 2.5);
+    }
+
+    // Calculate stats
+    function calculateStats() {
+      const fundamental = parseFloat(fundamentalSlider.value);
+      let totalAmplitude = 0;
+      let harmonicCount = 0;
+      let peakHarmonic = 1;
+      let peakAmp = 0;
+
+      for (let i = 1; i <= 9; i++) {
+        const amp = harmonics[i] / 100;
+        totalAmplitude += amp;
+        if (amp > 0) harmonicCount++;
+        if (amp > peakAmp) {
+          peakAmp = amp;
+          peakHarmonic = i;
+        }
+      }
+
+      // Normalize harmonic content to percentage
+      const maxPossible = 9; // sum of 9 harmonics at 100%
+      const harmonicPercent = Math.round((totalAmplitude / maxPossible) * 100);
+
+      // Calculate RMS (rough approximation)
+      let rms = 0;
+      for (let i = 1; i <= 9; i++) {
+        const amp = harmonics[i] / 100;
+        rms += (amp * amp) / 2;
+      }
+      rms = Math.sqrt(rms);
+
+      // Determine timbre
+      let timbre = 'Pure';
+      if (harmonicCount === 0) timbre = 'Silent';
+      else if (harmonicCount <= 2) timbre = 'Pure';
+      else if (harmonicCount <= 4) timbre = 'Bright';
+      else if (harmonicCount <= 6) timbre = 'Rich';
+      else timbre = 'Buzzy';
+
+      // Update displays
+      document.getElementById('harmonicContent').textContent = harmonicPercent + '%';
+      document.getElementById('timbreLabel').textContent = timbre;
+      document.getElementById('rmsValue').textContent = rms.toFixed(2);
+      document.getElementById('peakFreq').textContent = (fundamental * peakHarmonic).toFixed(0) + ' Hz';
+
+      // Description
+      const descriptions = {
+        'Pure': 'A single pure tone with minimal overtones — like a tuning fork or whistle.',
+        'Bright': 'Several odd harmonics creating a crisp, clear tone — like a clarinet or electric guitar.',
+        'Rich': 'A balanced mix of harmonics producing warmth — like a violin or acoustic guitar.',
+        'Buzzy': 'Many harmonics across the spectrum creating a rough, buzzy texture — like a sawtooth or harsh buzzer.'
+      };
+      document.getElementById('timbreDescription').textContent = descriptions[timbre];
+
+      // Update harmonic list
+      const list = document.getElementById('harmonicList');
+      list.innerHTML = '';
+      for (let i = 1; i <= 9; i++) {
+        if (harmonics[i] > 0) {
+          const amp = harmonics[i] / 100;
+          const freq = fundamental * i;
+          const div = document.createElement('div');
+          div.className = 'harmonic-item';
+          const barWidth = amp * 60;
+          div.innerHTML = `
+            <span>H${i} <span class="harmonic-freq">(${freq.toFixed(0)} Hz)</span></span>
+            <span style="flex-grow: 1; text-align: right;">
+              <span class="harmonic-bar" style="width: ${barWidth}px;"></span>
+            </span>
+          `;
+          list.appendChild(div);
+        }
+      }
+      if (list.innerHTML === '') {
+        list.innerHTML = '<div style="color: #666; font-size: 12px;">No harmonics active</div>';
+      }
+    }
+
+    function updateVisualization() {
+      drawWaveform();
+      calculateStats();
+    }
+
+    // Presets
+    function loadPreset(type) {
+      for (let i = 1; i <= 9; i++) harmonics[i] = 0;
+
+      if (type === 'sine') {
+        harmonics[1] = 100;
+      } else if (type === 'square') {
+        // Odd harmonics: 1, 3, 5, 7, 9 with decreasing amplitude
+        harmonics[1] = 100;
+        harmonics[3] = 33;
+        harmonics[5] = 20;
+        harmonics[7] = 14;
+        harmonics[9] = 11;
+      } else if (type === 'sawtooth') {
+        // All harmonics at equal amplitude
+        for (let i = 1; i <= 9; i++) harmonics[i] = 100;
+      } else if (type === 'triangle') {
+        // Odd harmonics with steeper rolloff
+        harmonics[1] = 100;
+        harmonics[3] = 11;
+        harmonics[5] = 4;
+        harmonics[7] = 2;
+        harmonics[9] = 1;
+      }
+
+      // Update UI
+      for (let i = 1; i <= 9; i++) {
+        const slider = document.getElementById(`harmonic${i}`);
+        if (slider) {
+          slider.value = harmonics[i];
+          document.getElementById(`val${i}`).textContent = harmonics[i] + '%';
+        }
+      }
+      updateVisualization();
+    }
+
+    // Play tone using Web Audio API
+    function playTone() {
+      const fundamental = parseFloat(fundamentalSlider.value);
+      const duration = 2; // seconds
+      const sampleRate = 44100;
+
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      const now = audioContext.currentTime;
+      const endTime = now + duration;
+
+      // Create oscillators for each harmonic
+      for (let i = 1; i <= 9; i++) {
+        if (harmonics[i] > 0) {
+          const osc = audioContext.createOscillator();
+          const gain = audioContext.createGain();
+
+          osc.frequency.value = fundamental * i;
+          osc.type = 'sine';
+
+          gain.gain.setValueAtTime((harmonics[i] / 100) * 0.15, now); // 0.15 = max gain per harmonic for safety
+          gain.gain.linearRampToValueAtTime(0, endTime); // fade out
+
+          osc.connect(gain);
+          gain.connect(audioContext.destination);
+
+          osc.start(now);
+          osc.stop(endTime);
+        }
+      }
+
+      playButton.textContent = '⏸ Playing...';
+      setTimeout(() => {
+        playButton.textContent = '▶ Play Tone (2 sec)';
+      }, duration * 1000);
+    }
+
+    // Initial draw
+    updateVisualization();
+  </script>
+</body>
+</html>
