@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Enzyme Kinetics Simulator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600&family=Space+Mono&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; overflow: hidden; font-family: 'Space Mono', monospace; }
+    body { background: linear-gradient(135deg, #0a1020 0%, #1a1a2e 100%); color: #e0e0e0; }
+    .container { display: flex; width: 100%; height: 100vh; }
+    .sidebar { width: 320px; padding: 20px; overflow-y: auto; border-right: 1px solid #333; background: #0a1020; }
+    .main { flex: 1; display: flex; flex-direction: column; position: relative; }
+    h1 { font-family: 'Playfair Display', serif; font-size: 22px; margin-bottom: 16px; color: #4da8da; }
+    h2 { font-family: 'Playfair Display', serif; font-size: 16px; margin-top: 16px; margin-bottom: 8px; color: #52c41a; }
+    .control-group { margin-bottom: 16px; }
+    .control-group label { display: block; font-size: 12px; margin-bottom: 4px; color: #7dd3fc; font-weight: bold; }
+    .control-group input[type=range] { width: 100%; cursor: pointer; accent-color: #52c41a; }
+    .control-group input[type=number] { width: 100%; padding: 6px; background: #1a1a2e; border: 1px solid #333; color: #e0e0e0; border-radius: 4px; font-family: 'Space Mono', monospace; font-size: 11px; }
+    .stat-box { background: #1a1a2e; border-left: 3px solid #52c41a; padding: 8px; margin: 6px 0; border-radius: 3px; font-size: 11px; }
+    .stat-label { color: #7dd3fc; }
+    .stat-value { color: #52c41a; font-weight: bold; }
+    .button-group { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0; }
+    button { padding: 6px 10px; background: #1a3a5a; border: 1px solid #4da8da; color: #4da8da; border-radius: 4px; cursor: pointer; font-family: 'Space Mono', monospace; font-size: 11px; }
+    button:hover { background: #2a4a6a; }
+    button.active { background: #52c41a; color: #0a1020; border-color: #52c41a; }
+    canvas { display: block; width: 100%; height: 100%; background: linear-gradient(135deg, #0a0f15 0%, #1a1a2e 100%); }
+    .checkbox-group { margin: 8px 0; }
+    .checkbox-group input[type=checkbox] { margin-right: 6px; cursor: pointer; }
+    .checkbox-group label { font-size: 12px; color: #7dd3fc; }
+    @media (max-width: 768px) {
+      .container { flex-direction: column; }
+      .sidebar { width: 100%; height: auto; max-height: 200px; border-right: none; border-bottom: 1px solid #333; }
+      canvas { height: 400px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="sidebar">
+      <h1>Enzyme Kinetics</h1>
+      
+      <h2>Enzyme Type</h2>
+      <div class="button-group">
+        <button class="active" data-enzyme="lactase">Lactase</button>
+        <button data-enzyme="amylase">Amylase</button>
+        <button data-enzyme="catalase">Catalase</button>
+      </div>
+
+      <h2>Parameters</h2>
+      <div class="control-group">
+        <label>[E] μM: <span id="eLabel">1</span></label>
+        <input type="range" id="enzymeConc" min="0.1" max="10" step="0.1" value="1">
+      </div>
+
+      <div class="control-group">
+        <label>[S] μM: <span id="sLabel">10</span></label>
+        <input type="range" id="substrateConc" min="0.1" max="100" step="0.5" value="10">
+      </div>
+
+      <div class="control-group">
+        <label>Temp °C: <span id="tempLabel">37</span></label>
+        <input type="range" id="temperature" min="5" max="50" step="1" value="37">
+      </div>
+
+      <div class="control-group">
+        <label>pH: <span id="phLabel">7</span></label>
+        <input type="range" id="pH" min="5" max="9" step="0.1" value="7">
+      </div>
+
+      <h2>Inhibitor</h2>
+      <div class="button-group">
+        <button class="active" data-inhibitor="none">None</button>
+        <button data-inhibitor="competitive">Competitive</button>
+        <button data-inhibitor="noncompetitive">Non-Comp</button>
+      </div>
+
+      <h2>Stats</h2>
+      <div class="stat-box">
+        <div class="stat-label">Km (mM)</div>
+        <div class="stat-value" id="kmValue">0.5</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Vmax (μmol/min)</div>
+        <div class="stat-value" id="vmaxValue">50</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Velocity (μmol/min)</div>
+        <div class="stat-value" id="velocityValue">25</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">kcat/Km (1/M/s)</div>
+        <div class="stat-value" id="efficiencyValue">1000</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Substrate %</div>
+        <div class="stat-value" id="substratePercent">100</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Saturation</div>
+        <div class="stat-value" id="saturation">50</div>
+      </div>
+
+      <div class="checkbox-group">
+        <input type="checkbox" id="showBindingEvents" checked>
+        <label for="showBindingEvents">Show Binding Events</label>
+      </div>
+
+      <div class="checkbox-group">
+        <input type="checkbox" id="showGraph" checked>
+        <label for="showGraph">Show Product Graph</label>
+      </div>
+    </div>
+
+    <div class="main">
+      <canvas id="canvas"></canvas>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    function resizeCanvas() {
+      const rect = canvas.parentElement.getBoundingClientRect();
+      canvas.width = rect.width;
+      canvas.height = rect.height;
+    }
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+
+    // Enzyme data (real Km, Vmax, pH optima from biochemistry databases)
+    const enzymes = {
+      lactase: { km: 5.0, vmaxBase: 100, kcat: 500, pHOpt: 6.5, tempOpt: 37, reaction: 'Lactose → Glucose + Galactose' },
+      amylase: { km: 2.0, vmaxBase: 150, kcat: 800, pHOpt: 7.0, tempOpt: 37, reaction: 'Starch → Maltose' },
+      catalase: { km: 40.0, vmaxBase: 200, kcat: 1000, pHOpt: 8.5, tempOpt: 40, reaction: 'H₂O₂ → H₂O + O₂' }
+    };
+
+    let state = {
+      enzyme: 'lactase',
+      enzymeConc: 1,
+      substrateConc: 10,
+      temperature: 37,
+      pH: 7,
+      inhibitor: 'none',
+      showBindingEvents: true,
+      showGraph: true,
+      productAccum: 0,
+      substrateRemaining: 100
+    };
+
+    // Update labels
+    function updateLabels() {
+      document.getElementById('eLabel').textContent = state.enzymeConc.toFixed(1);
+      document.getElementById('sLabel').textContent = state.substrateConc.toFixed(1);
+      document.getElementById('tempLabel').textContent = Math.round(state.temperature);
+      document.getElementById('phLabel').textContent = state.pH.toFixed(1);
+    }
+
+    // Real Michaelis-Menten kinetics
+    function calculateKinetics() {
+      const enz = enzymes[state.enzyme];
+      let km = enz.km;
+      let vmax = enz.vmaxBase * state.enzymeConc;
+
+      // pH effect (bell curve around optimum)
+      const phDev = Math.abs(state.pH - enz.pHOpt);
+      const phEffect = Math.exp(-(phDev ** 2) / 1.5);
+
+      // Temperature effect (Arrhenius-like, denaturation above 45°C)
+      let tempEffect;
+      if (state.temperature < 5) tempEffect = 0.1;
+      else if (state.temperature < enz.tempOpt) {
+        tempEffect = Math.exp(-(enz.tempOpt - state.temperature) / 10);
+      } else if (state.temperature < 45) {
+        tempEffect = Math.exp(-(state.temperature - enz.tempOpt) / 8);
+      } else {
+        tempEffect = Math.exp(-Math.pow((state.temperature - 45) / 3, 2));
+      }
+
+      vmax *= (phEffect * tempEffect);
+
+      // Inhibitor effects
+      if (state.inhibitor === 'competitive') {
+        km *= 2; // increases apparent Km
+      } else if (state.inhibitor === 'noncompetitive') {
+        vmax *= 0.7; // decreases Vmax
+      }
+
+      // Michaelis-Menten equation: v = Vmax * [S] / (Km + [S])
+      const v = vmax * state.substrateConc / (km + state.substrateConc);
+      const saturation = (state.substrateConc / (km + state.substrateConc)) * 100;
+      const efficiency = enz.kcat / (km * 1000); // kcat/Km in appropriate units
+
+      return { km, vmax, velocity: v, saturation, efficiency, phEffect, tempEffect };
+    }
+
+    // Animation loop
+    let time = 0;
+    function animate() {
+      time += 0.016; // ~60fps
+      updateLabels();
+      const kinetics = calculateKinetics();
+
+      // Update substrate depletion (simplified)
+      state.substrateRemaining = Math.max(0, 100 - (kinetics.velocity * time / 10));
+      state.productAccum = Math.min(100, kinetics.velocity * time / 10);
+
+      // Update stats
+      document.getElementById('kmValue').textContent = kinetics.km.toFixed(2);
+      document.getElementById('vmaxValue').textContent = kinetics.vmax.toFixed(1);
+      document.getElementById('velocityValue').textContent = kinetics.velocity.toFixed(1);
+      document.getElementById('efficiencyValue').textContent = Math.round(kinetics.efficiency);
+      document.getElementById('saturation').textContent = kinetics.saturation.toFixed(1) + '%';
+      document.getElementById('substratePercent').textContent = state.substrateRemaining.toFixed(1);
+
+      // Render
+      ctx.fillStyle = '#0a0f15';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      const cx = canvas.width / 2;
+      const cy = canvas.height / 2;
+      const radius = Math.min(canvas.width, canvas.height) / 3;
+
+      // Draw enzyme (hexagon)
+      ctx.fillStyle = '#52c41a';
+      ctx.globalAlpha = 0.8;
+      drawHexagon(cx, cy, 30);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+
+      // Draw substrate molecules (animated)
+      ctx.fillStyle = '#4da8da';
+      for (let i = 0; i < Math.ceil(state.substrateConc / 5); i++) {
+        const angle = (time * 0.5 + i * Math.PI * 2 / 8) % (Math.PI * 2);
+        const x = cx + Math.cos(angle) * (radius + 20) * Math.sin(time * 2);
+        const y = cy + Math.sin(angle) * (radius + 20) * Math.cos(time * 2);
+        ctx.fillRect(x - 8, y - 8, 16, 16);
+      }
+
+      // Draw product molecules
+      ctx.fillStyle = '#e91e63';
+      for (let i = 0; i < Math.ceil(state.productAccum / 10); i++) {
+        const angle = (time * 0.3 + i * Math.PI * 2 / 8 + Math.PI) % (Math.PI * 2);
+        const x = cx + Math.cos(angle) * (radius - 20);
+        const y = cy + Math.sin(angle) * (radius - 20);
+        ctx.fillRect(x - 6, y - 6, 12, 12);
+      }
+
+      // Draw ES complex if showing binding
+      if (state.showBindingEvents && Math.sin(time * 2) > 0) {
+        ctx.fillStyle = '#ffeb3b';
+        ctx.globalAlpha = 0.6;
+        ctx.beginPath();
+        ctx.arc(cx + 40, cy, 20, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+      }
+
+      // Draw Lineweaver-Burk plot (lower right)
+      if (canvas.width > 600) {
+        drawLineweaver(ctx, kinetics, canvas.width - 200, canvas.height - 150, 150, 100);
+      }
+
+      // Draw product accumulation graph (upper right)
+      if (state.showGraph && canvas.width > 600) {
+        drawProductGraph(ctx, state.productAccum, canvas.width - 200, 20, 150, 80);
+      }
+
+      // Draw legend
+      ctx.font = '12px "Space Mono"';
+      ctx.fillStyle = '#7dd3fc';
+      ctx.fillText(`Enzyme: ${state.enzyme.charAt(0).toUpperCase() + state.enzyme.slice(1)}`, 20, 30);
+      ctx.fillText(`Reaction: ${enzymes[state.enzyme].reaction}`, 20, 50);
+      ctx.fillStyle = '#4da8da';
+      ctx.fillText('● Substrate', 20, 75);
+      ctx.fillStyle = '#e91e63';
+      ctx.fillText('● Product', 120, 75);
+      ctx.fillStyle = '#52c41a';
+      ctx.fillText('● Enzyme', 220, 75);
+
+      requestAnimationFrame(animate);
+    }
+
+    function drawHexagon(cx, cy, size) {
+      ctx.beginPath();
+      for (let i = 0; i < 6; i++) {
+        const angle = i * Math.PI / 3;
+        const x = cx + size * Math.cos(angle);
+        const y = cy + size * Math.sin(angle);
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.closePath();
+    }
+
+    function drawLineweaver(ctx, kinetics, x, y, w, h) {
+      ctx.strokeStyle = '#4da8da';
+      ctx.fillStyle = '#1a1a2e';
+      ctx.fillRect(x, y, w, h);
+      ctx.strokeRect(x, y, w, h);
+
+      // Plot 1/v vs 1/[S] (double reciprocal)
+      ctx.strokeStyle = '#ffeb3b';
+      ctx.beginPath();
+      for (let i = 0; i < 10; i++) {
+        const s = 0.1 + i * 10;
+        const v = kinetics.velocity * state.substrateConc / (kinetics.km + state.substrateConc);
+        const invS = 1 / s;
+        const invV = 1 / (v || 0.1);
+        const px = x + (invS * 50) % w;
+        const py = y + h - (invV % h);
+        if (i === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      }
+      ctx.stroke();
+
+      ctx.font = '10px "Space Mono"';
+      ctx.fillStyle = '#7dd3fc';
+      ctx.fillText('L-B Plot', x + 5, y + 15);
+    }
+
+    function drawProductGraph(ctx, product, x, y, w, h) {
+      ctx.strokeStyle = '#4da8da';
+      ctx.fillStyle = '#1a1a2e';
+      ctx.fillRect(x, y, w, h);
+      ctx.strokeRect(x, y, w, h);
+
+      ctx.strokeStyle = '#e91e63';
+      ctx.beginPath();
+      for (let i = 0; i < 50; i++) {
+        const px = x + (i / 50) * w;
+        const progress = (i / 50) * Math.min(product, 100);
+        const py = y + h - (progress / 100) * h;
+        if (i === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      }
+      ctx.stroke();
+
+      ctx.font = '10px "Space Mono"';
+      ctx.fillStyle = '#7dd3fc';
+      ctx.fillText('Product %', x + 5, y + 15);
+    }
+
+    // Event handlers
+    document.getElementById('enzymeConc').addEventListener('input', (e) => {
+      state.enzymeConc = parseFloat(e.target.value);
+    });
+    document.getElementById('substrateConc').addEventListener('input', (e) => {
+      state.substrateConc = parseFloat(e.target.value);
+    });
+    document.getElementById('temperature').addEventListener('input', (e) => {
+      state.temperature = parseFloat(e.target.value);
+    });
+    document.getElementById('pH').addEventListener('input', (e) => {
+      state.pH = parseFloat(e.target.value);
+    });
+    document.getElementById('showBindingEvents').addEventListener('change', (e) => {
+      state.showBindingEvents = e.target.checked;
+    });
+    document.getElementById('showGraph').addEventListener('change', (e) => {
+      state.showGraph = e.target.checked;
+    });
+
+    // Enzyme buttons
+    document.querySelectorAll('[data-enzyme]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('[data-enzyme]').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        state.enzyme = btn.dataset.enzyme;
+        time = 0;
+        state.productAccum = 0;
+        state.substrateRemaining = 100;
+      });
+    });
+
+    // Inhibitor buttons
+    document.querySelectorAll('[data-inhibitor]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('[data-inhibitor]').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        state.inhibitor = btn.dataset.inhibitor;
+      });
+    });
+
+    // Start animation
+    animate();
+  </script>
+</body>
+</html>
