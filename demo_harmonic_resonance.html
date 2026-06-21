@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Harmonic Resonance Lab</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Space+Mono:wght@400&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Space Mono', monospace;
+            background: #1a1a2e;
+            color: #e0e0e0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            background: #16213e;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        }
+        h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 28px;
+            margin-bottom: 8px;
+            color: #7dd3fc;
+            text-align: center;
+        }
+        .subtitle {
+            text-align: center;
+            color: #4da8da;
+            margin-bottom: 30px;
+            font-size: 13px;
+        }
+        .main-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            align-items: start;
+        }
+        @media (max-width: 900px) {
+            .main-layout { grid-template-columns: 1fr; }
+        }
+
+        /* Canvas */
+        canvas {
+            width: 100%;
+            height: 400px;
+            border: 1px solid #333;
+            border-radius: 8px;
+            background: #0a0f15;
+            display: block;
+        }
+
+        /* Controls */
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .control-group {
+            background: #0f1729;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 3px solid #4da8da;
+        }
+
+        .control-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 12px;
+            color: #7dd3fc;
+            font-weight: bold;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 4px;
+            border-radius: 2px;
+            background: #1a3a5a;
+            outline: none;
+            -webkit-appearance: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #00d4ff;
+            cursor: pointer;
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #00d4ff;
+            cursor: pointer;
+            border: none;
+        }
+
+        .value-display {
+            display: inline-block;
+            background: #1a3a5a;
+            padding: 4px 8px;
+            border-radius: 4px;
+            margin-left: 8px;
+            font-size: 11px;
+            color: #00d4ff;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            flex: 1;
+            padding: 10px;
+            background: #2d5a7b;
+            border: 1px solid #4da8da;
+            color: #7dd3fc;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: 'Space Mono', monospace;
+            font-size: 11px;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+
+        button:hover {
+            background: #4da8da;
+            color: #0a0f15;
+        }
+
+        button.active {
+            background: #00d4ff;
+            color: #0a0f15;
+            border-color: #00d4ff;
+        }
+
+        .action-button {
+            background: #2d9d5f;
+            border-color: #2d9d5f;
+            color: #e0e0e0;
+        }
+
+        .action-button:hover {
+            background: #3fb070;
+            border-color: #3fb070;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+            accent-color: #00d4ff;
+        }
+
+        /* Stats */
+        .stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .stat-box {
+            background: #0a1428;
+            padding: 12px;
+            border-radius: 6px;
+            border-left: 3px solid #2d9d5f;
+        }
+
+        .stat-label {
+            font-size: 10px;
+            color: #888;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+
+        .stat-value {
+            font-family: 'Playfair Display', serif;
+            font-size: 18px;
+            color: #00d4ff;
+            font-weight: bold;
+        }
+
+        /* Graph */
+        .graph-container {
+            background: #0a1428;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            border: 1px solid #333;
+        }
+
+        .graph-label {
+            font-size: 11px;
+            color: #888;
+            margin-bottom: 8px;
+        }
+
+        canvas.graph {
+            width: 100%;
+            height: 120px;
+            border-radius: 4px;
+            background: #0f1729;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎵 Harmonic Resonance Lab</h1>
+        <p class="subtitle">Watch a string vibrate with real wave physics, overtones, and acoustic damping</p>
+
+        <div class="main-layout">
+            <!-- Canvas on left (larger on desktop) -->
+            <div>
+                <canvas id="stringCanvas" width="600" height="400"></canvas>
+                <div class="graph-container">
+                    <div class="graph-label">Frequency Domain (Harmonic Spectrum)</div>
+                    <canvas id="freqCanvas" width="600" height="120" class="graph"></canvas>
+                </div>
+            </div>
+
+            <!-- Controls on right -->
+            <div class="controls">
+                <!-- Frequency -->
+                <div class="control-group">
+                    <label>Fundamental Frequency
+                        <span class="value-display" id="freqValue">220 Hz</span>
+                    </label>
+                    <input type="range" id="freqSlider" min="20" max="2000" value="220" step="1">
+                </div>
+
+                <!-- Length -->
+                <div class="control-group">
+                    <label>String Length
+                        <span class="value-display" id="lengthValue">1.0 m</span>
+                    </label>
+                    <input type="range" id="lengthSlider" min="0.3" max="2.0" value="1.0" step="0.1">
+                </div>
+
+                <!-- Material -->
+                <div class="control-group">
+                    <label>Material</label>
+                    <div class="button-group">
+                        <button class="active" data-material="steel">Steel</button>
+                        <button data-material="nylon">Nylon</button>
+                        <button data-material="gut">Gut</button>
+                    </div>
+                </div>
+
+                <!-- Harmonics -->
+                <div class="control-group">
+                    <label>Active Harmonics</label>
+                    <div class="button-group">
+                        <button class="harmonic-btn active" data-harmonic="1">1st</button>
+                        <button class="harmonic-btn" data-harmonic="2">2nd</button>
+                        <button class="harmonic-btn" data-harmonic="3">3rd</button>
+                        <button class="harmonic-btn" data-harmonic="4">4th</button>
+                        <button class="harmonic-btn" data-harmonic="5">5th</button>
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="control-group">
+                    <button class="action-button" id="pluckBtn">↓ Pluck String</button>
+                </div>
+
+                <!-- Checkbox -->
+                <div class="control-group">
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="damping" checked>
+                        <label for="damping" style="margin: 0; color: #7dd3fc;">Show Damping</label>
+                    </div>
+                    <div class="checkbox-group" style="margin-top: 8px;">
+                        <input type="checkbox" id="grid">
+                        <label for="grid" style="margin: 0; color: #7dd3fc;">Show Grid</label>
+                    </div>
+                </div>
+
+                <!-- Stats -->
+                <div style="background: #0f1729; padding: 15px; border-radius: 8px; border-left: 3px solid #4da8da;">
+                    <div class="stats">
+                        <div class="stat-box">
+                            <div class="stat-label">Period</div>
+                            <div class="stat-value" id="periodValue">4.5 ms</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-label">Wavelength</div>
+                            <div class="stat-value" id="wavelengthValue">1.56 m</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-label">Wave Speed</div>
+                            <div class="stat-value" id="speedValue">344 m/s</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-label">Q Factor</div>
+                            <div class="stat-value" id="qValue">12.5</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Constants
+        const MATERIALS = {
+            steel:  { color: '#a89968', density: 7850, damping: 0.002, waveSpeed: 500 },
+            nylon:  { color: '#d4a574', density: 1140, damping: 0.01, waveSpeed: 300 },
+            gut:    { color: '#8b7355', density: 1300, damping: 0.015, waveSpeed: 280 }
+        };
+
+        // State
+        let state = {
+            frequency: 220,
+            length: 1.0,
+            material: 'steel',
+            activeHarmonics: new Set([1]),
+            damping: true,
+            grid: false,
+            plucking: false,
+            pluckProgress: 0,
+            time: 0,
+            amplitude: 50
+        };
+
+        // DOM Elements
+        const canvas = document.getElementById('stringCanvas');
+        const ctx = canvas.getContext('2d');
+        const freqCanvas = document.getElementById('freqCanvas');
+        const freqCtx = freqCanvas.getContext('2d');
+        const freqSlider = document.getElementById('freqSlider');
+        const lengthSlider = document.getElementById('lengthSlider');
+        const pluckBtn = document.getElementById('pluckBtn');
+        const freqValue = document.getElementById('freqValue');
+        const lengthValue = document.getElementById('lengthValue');
+        const periodValue = document.getElementById('periodValue');
+        const wavelengthValue = document.getElementById('wavelengthValue');
+        const speedValue = document.getElementById('speedValue');
+        const qValue = document.getElementById('qValue');
+
+        // Event Listeners
+        freqSlider.addEventListener('input', (e) => {
+            state.frequency = parseFloat(e.target.value);
+            updateStats();
+        });
+
+        lengthSlider.addEventListener('input', (e) => {
+            state.length = parseFloat(e.target.value);
+            updateStats();
+        });
+
+        document.querySelectorAll('[data-material]').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                document.querySelectorAll('[data-material]').forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
+                state.material = e.target.dataset.material;
+                updateStats();
+            });
+        });
+
+        document.querySelectorAll('.harmonic-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const h = parseInt(e.target.dataset.harmonic);
+                if (state.activeHarmonics.has(h)) {
+                    if (state.activeHarmonics.size > 1) {
+                        state.activeHarmonics.delete(h);
+                        e.target.classList.remove('active');
+                    }
+                } else {
+                    state.activeHarmonics.add(h);
+                    e.target.classList.add('active');
+                }
+            });
+        });
+
+        pluckBtn.addEventListener('click', () => {
+            state.plucking = true;
+            state.pluckProgress = 0;
+        });
+
+        document.getElementById('damping').addEventListener('change', (e) => {
+            state.damping = e.target.checked;
+        });
+
+        document.getElementById('grid').addEventListener('change', (e) => {
+            state.grid = e.target.checked;
+        });
+
+        // Physics
+        function getStringY(x, t) {
+            // x in [0, length], returns displacement in pixels
+            let y = 0;
+            const mat = MATERIALS[state.material];
+            const speed = mat.waveSpeed;
+
+            for (const harmonic of state.activeHarmonics) {
+                const freq = state.frequency * harmonic;
+                const wavelength = 2 * state.length / harmonic;
+                const k = (2 * Math.PI) / wavelength;
+                
+                // Standing wave: sin(kx) * cos(wt)
+                const spatialPart = Math.sin(k * x);
+                
+                // Temporal part with damping
+                let temporalPart = Math.cos(2 * Math.PI * freq * t);
+                if (state.damping) {
+                    const decayFactor = Math.exp(-mat.damping * t * harmonic);
+                    temporalPart *= decayFactor;
+                }
+
+                // Amplitude reduces with harmonic number
+                const amp = state.amplitude / (harmonic * harmonic);
+                y += amp * spatialPart * temporalPart;
+            }
+
+            // Pluck envelope (triangular initial condition)
+            if (state.plucking) {
+                const decay = Math.exp(-state.pluckProgress);
+                y *= decay;
+                state.pluckProgress += 0.02;
+                if (state.pluckProgress > 5) {
+                    state.plucking = false;
+                }
+            }
+
+            return y;
+        }
+
+        function updateStats() {
+            const mat = MATERIALS[state.material];
+            const period = 1 / state.frequency * 1000; // ms
+            const wavelength = 2 * state.length; // For fundamental
+            const speed = mat.waveSpeed;
+            const q = 1 / (mat.damping * 10);
+
+            freqValue.textContent = state.frequency.toFixed(0) + ' Hz';
+            lengthValue.textContent = state.length.toFixed(1) + ' m';
+            periodValue.textContent = period.toFixed(1) + ' ms';
+            wavelengthValue.textContent = (wavelength).toFixed(2) + ' m';
+            speedValue.textContent = speed.toFixed(0) + ' m/s';
+            qValue.textContent = q.toFixed(1);
+        }
+
+        function drawString(t) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const mat = MATERIALS[state.material];
+
+            // Grid
+            if (state.grid) {
+                ctx.strokeStyle = '#333';
+                ctx.lineWidth = 0.5;
+                for (let i = 1; i < 4; i++) {
+                    const x = (canvas.width / 4) * i;
+                    ctx.beginPath();
+                    ctx.moveTo(x, 0);
+                    ctx.lineTo(x, canvas.height);
+                    ctx.stroke();
+                }
+            }
+
+            // Draw string
+            ctx.strokeStyle = mat.color;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+
+            const padding = 50;
+            const graphWidth = canvas.width - 2 * padding;
+
+            for (let px = 0; px <= graphWidth; px += 2) {
+                const x = (px / graphWidth) * state.length;
+                const y = getStringY(x, t);
+                const screenY = canvas.height / 2 - y;
+                const screenX = padding + px;
+
+                if (px === 0) {
+                    ctx.moveTo(screenX, screenY);
+                } else {
+                    ctx.lineTo(screenX, screenY);
+                }
+            }
+
+            ctx.stroke();
+
+            // End points
+            ctx.fillStyle = '#ff00aa';
+            ctx.beginPath();
+            ctx.arc(padding, canvas.height / 2, 4, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(canvas.width - padding, canvas.height / 2, 4, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Rest line
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([4, 4]);
+            ctx.beginPath();
+            ctx.moveTo(padding, canvas.height / 2);
+            ctx.lineTo(canvas.width - padding, canvas.height / 2);
+            ctx.stroke();
+            ctx.setLineDash([]);
+        }
+
+        function drawFrequencyDomain(t) {
+            freqCtx.clearRect(0, 0, freqCanvas.width, freqCanvas.height);
+
+            // Background
+            freqCtx.fillStyle = '#0f1729';
+            freqCtx.fillRect(0, 0, freqCanvas.width, freqCanvas.height);
+
+            // Draw peaks for each active harmonic
+            const mat = MATERIALS[state.material];
+            const maxHarmonic = 10;
+            const barWidth = freqCanvas.width / maxHarmonic;
+
+            for (let h = 1; h <= maxHarmonic; h++) {
+                const freq = state.frequency * h;
+                const isActive = state.activeHarmonics.has(h);
+                
+                // Amplitude decreases with harmonic number
+                let amp = 1 / (h * h);
+                if (state.damping && state.plucking === false) {
+                    amp *= Math.exp(-mat.damping * state.time * h);
+                }
+
+                const barHeight = amp * (freqCanvas.height * 0.8);
+                const x = (h - 1) * barWidth;
+                const y = freqCanvas.height - barHeight;
+
+                // Color based on active
+                freqCtx.fillStyle = isActive ? '#00d4ff' : '#4da8da';
+                freqCtx.fillRect(x + 2, y, barWidth - 4, barHeight);
+
+                // Labels for first 5
+                if (h <= 5) {
+                    freqCtx.fillStyle = '#888';
+                    freqCtx.font = '10px Space Mono';
+                    freqCtx.textAlign = 'center';
+                    freqCtx.fillText(h + 'f', x + barWidth / 2, freqCanvas.height - 2);
+                }
+            }
+        }
+
+        function animate() {
+            state.time += 0.016; // ~60 FPS
+            updateStats();
+            drawString(state.time);
+            drawFrequencyDomain(state.time);
+            requestAnimationFrame(animate);
+        }
+
+        // Initial stats and start animation
+        updateStats();
+        animate();
+    </script>
+</body>
+</html>
