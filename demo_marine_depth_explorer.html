@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Marine Depth Explorer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Space+Mono:wght@400&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Space Mono', monospace;
+            background: #0a0f15;
+            color: #e0e0e0;
+            display: flex;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+        
+        .container {
+            display: flex;
+            width: 100%;
+            height: 100vh;
+        }
+        
+        .sidebar {
+            width: 280px;
+            background: linear-gradient(180deg, #0f1620 0%, #0a0f15 100%);
+            border-right: 1px solid #1a2332;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .header {
+            font-family: 'Playfair Display', serif;
+            font-size: 18px;
+            font-weight: 700;
+            color: #4da8da;
+            margin-bottom: 10px;
+        }
+        
+        .depth-control {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .depth-slider {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #1a3a5a;
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+        
+        .depth-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #4da8da;
+            cursor: pointer;
+            box-shadow: 0 0 8px rgba(77, 168, 218, 0.6);
+        }
+        
+        .depth-slider::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #4da8da;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 0 8px rgba(77, 168, 218, 0.6);
+        }
+        
+        .depth-value {
+            font-size: 14px;
+            color: #7dd3fc;
+            text-align: center;
+        }
+        
+        .stat-box {
+            background: rgba(77, 168, 218, 0.08);
+            border-left: 3px solid #4da8da;
+            padding: 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            line-height: 1.6;
+        }
+        
+        .stat-label {
+            color: #7dd3fc;
+            font-weight: bold;
+        }
+        
+        .stat-value {
+            color: #e0e0e0;
+            margin-left: 4px;
+        }
+        
+        .species-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        
+        .species-btn {
+            padding: 8px 12px;
+            background: rgba(77, 168, 218, 0.1);
+            border: 1px solid #1a3a5a;
+            border-radius: 4px;
+            color: #7dd3fc;
+            cursor: pointer;
+            font-size: 11px;
+            font-family: 'Space Mono', monospace;
+            transition: all 0.2s;
+        }
+        
+        .species-btn:hover {
+            background: rgba(77, 168, 218, 0.2);
+            border-color: #4da8da;
+        }
+        
+        .species-btn.active {
+            background: #4da8da;
+            color: #0a0f15;
+            border-color: #4da8da;
+        }
+        
+        .toggles {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .toggle-btn {
+            padding: 8px 12px;
+            background: rgba(45, 157, 95, 0.1);
+            border: 1px solid #1a3a5a;
+            border-radius: 4px;
+            color: #7dd3fc;
+            cursor: pointer;
+            font-size: 11px;
+            font-family: 'Space Mono', monospace;
+            transition: all 0.2s;
+        }
+        
+        .toggle-btn:hover {
+            background: rgba(45, 157, 95, 0.2);
+            border-color: #2d9d5f;
+        }
+        
+        .toggle-btn.active {
+            background: #2d9d5f;
+            color: #0a0f15;
+            border-color: #2d9d5f;
+        }
+        
+        .canvas-container {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #0a0f15 0%, #0f1620 100%);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        canvas {
+            max-width: 100%;
+            max-height: 100%;
+            display: block;
+        }
+        
+        .species-info {
+            position: absolute;
+            bottom: 20px;
+            left: 300px;
+            right: 20px;
+            background: rgba(10, 15, 21, 0.9);
+            border: 1px solid #1a3a5a;
+            border-left: 3px solid #4da8da;
+            padding: 16px;
+            border-radius: 4px;
+            font-size: 12px;
+            line-height: 1.6;
+            max-width: 400px;
+            display: none;
+        }
+        
+        .species-info.active {
+            display: block;
+        }
+        
+        .species-name {
+            font-family: 'Playfair Display', serif;
+            font-size: 16px;
+            color: #4da8da;
+            margin-bottom: 8px;
+        }
+        
+        .scrollable {
+            overflow-y: auto;
+        }
+        
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 100%;
+                height: auto;
+                border-right: none;
+                border-bottom: 1px solid #1a2332;
+                overflow-y: visible;
+            }
+            
+            .container {
+                flex-direction: column;
+            }
+            
+            .canvas-container {
+                height: 60vh;
+            }
+            
+            .species-info {
+                left: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar scrollable">
+            <div class="header">🌊 Depth Explorer</div>
+            
+            <div class="depth-control">
+                <div style="font-size: 11px; color: #7dd3fc;">Depth Slider (0–11,000m)</div>
+                <input type="range" id="depthSlider" class="depth-slider" min="0" max="11000" value="0" step="100">
+                <div class="depth-value" id="depthValue">0m</div>
+            </div>
+            
+            <div class="stat-box">
+                <div><span class="stat-label">Zone:</span><span class="stat-value" id="zoneName">Epipelagic</span></div>
+                <div><span class="stat-label">Temp:</span><span class="stat-value" id="tempValue">25°C</span></div>
+                <div><span class="stat-label">Pressure:</span><span class="stat-value" id="pressureValue">1 atm</span></div>
+                <div><span class="stat-label">Light:</span><span class="stat-value" id="lightValue">100%</span></div>
+            </div>
+            
+            <div>
+                <div style="font-size: 11px; color: #7dd3fc; margin-bottom: 8px;">Species</div>
+                <div class="species-buttons">
+                    <button class="species-btn" data-species="clownfish">🐠 Clownfish</button>
+                    <button class="species-btn" data-species="tuna">🐟 Tuna</button>
+                    <button class="species-btn" data-species="dolphin">🐬 Dolphin</button>
+                    <button class="species-btn" data-species="anglerfish">🪔 Anglerfish</button>
+                    <button class="species-btn" data-species="vampire_squid">🦑 Vampire Squid</button>
+                    <button class="species-btn" data-species="giant_squid">🦑 Giant Squid</button>
+                    <button class="species-btn" data-species="dumbo_octopus">🐙 Dumbo Octopus</button>
+                    <button class="species-btn" data-species="tripod_fish">🐟 Tripod Fish</button>
+                    <button class="species-btn" data-species="yeti_crab">🦀 Yeti Crab</button>
+                </div>
+            </div>
+            
+            <div class="toggles">
+                <button class="toggle-btn" id="allSpeciesBtn">Show All Species</button>
+                <button class="toggle-btn" id="graphBtn">Pressure/Temp Graph</button>
+            </div>
+        </div>
+        
+        <div class="canvas-container">
+            <canvas id="oceanCanvas"></canvas>
+            <div class="species-info" id="speciesInfo">
+                <div class="species-name" id="infoName"></div>
+                <div id="infoDetails"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('oceanCanvas');
+        const ctx = canvas.getContext('2d');
+        const depthSlider = document.getElementById('depthSlider');
+        const speciesButtons = document.querySelectorAll('.species-btn');
+        const allSpeciesBtn = document.getElementById('allSpeciesBtn');
+        const graphBtn = document.getElementById('graphBtn');
+        
+        let currentDepth = 0;
+        let selectedSpecies = null;
+        let showAllSpecies = false;
+        let showGraph = false;
+        let animationTime = 0;
+        
+        // Species data: depth range (min-max meters), temp range (°C), pressure tolerance (atm), description
+        const speciesData = {
+            clownfish: {
+                name: 'Clownfish',
+                depth: [0, 60],
+                temp: [24, 28],
+                pressure: [1, 7],
+                color: '#ff6600',
+                description: 'Lives in coral reefs with symbiotic anemones. Specialized mucus coating prevents anemone sting.'
+            },
+            tuna: {
+                name: 'Tuna',
+                depth: [0, 250],
+                temp: [15, 30],
+                pressure: [1, 25],
+                color: '#cccccc',
+                description: 'Warm-blooded fish capable of long-distance migration. Can reach depths of 250m.'
+            },
+            dolphin: {
+                name: 'Dolphin',
+                depth: [0, 300],
+                temp: [10, 30],
+                pressure: [1, 30],
+                color: '#888888',
+                description: 'Intelligent marine mammal using echolocation. Air-breathing, must surface regularly.'
+            },
+            anglerfish: {
+                name: 'Anglerfish',
+                depth: [600, 3000],
+                temp: [2, 10],
+                pressure: [60, 300],
+                color: '#222222',
+                description: 'Extreme sexual dimorphism. Females use bioluminescent lure for hunting in darkness.'
+            },
+            vampire_squid: {
+                name: 'Vampire Squid',
+                depth: [800, 2500],
+                temp: [3, 9],
+                pressure: [80, 250],
+                color: '#8b0000',
+                description: 'Deep-sea cephalopod with bioluminescent organs. Can turn itself "inside-out" when threatened.'
+            },
+            giant_squid: {
+                name: 'Giant Squid',
+                depth: [600, 3000],
+                temp: [2, 8],
+                pressure: [60, 300],
+                color: '#4a0080',
+                description: 'Largest invertebrate on Earth. Hunted by sperm whales in the deep sea.'
+            },
+            dumbo_octopus: {
+                name: 'Dumbo Octopus',
+                depth: [2000, 6700],
+                temp: [1, 4],
+                pressure: [200, 670],
+                color: '#ff69b4',
+                description: 'Named for ear-like fins. Most abundant megafauna on the ocean floor.'
+            },
+            tripod_fish: {
+                name: 'Tripod Fish',
+                depth: [2000, 6500],
+                temp: [1, 4],
+                pressure: [200, 650],
+                color: '#a0522d',
+                description: 'Uses elongated fin rays as tripod legs to rest on seafloor. Faces into current.'
+            },
+            yeti_crab: {
+                name: 'Yeti Crab',
+                depth: [2400, 3000],
+                temp: [0, 2],
+                pressure: [240, 300],
+                color: '#ffffff',
+                description: 'Discovered 2011 at hydrothermal vents. Hairy claws cultivate bacterial gardens.'
+            }
+        };
+        
+        function resizeCanvas() {
+            const container = canvas.parentElement;
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+        }
+        
+        function getZoneInfo(depth) {
+            if (depth < 200) return { name: 'Epipelagic', temp: 25 - (depth / 200) * 10, light: 100 - (depth / 200) * 100 };
+            if (depth < 1000) return { name: 'Mesopelagic', temp: 15 - ((depth - 200) / 800) * 10, light: 1 };
+            if (depth < 6000) return { name: 'Bathypelagic', temp: 5 - ((depth - 1000) / 5000) * 3, light: 0 };
+            return { name: 'Hadopelagic', temp: 2, light: 0 };
+        }
+        
+        function getPressure(depth) {
+            return 1 + (depth / 10000) * 1000;
+        }
+        
+        function drawOcean() {
+            const width = canvas.width;
+            const height = canvas.height;
+            
+            // Background gradient based on depth
+            const zoneInfo = getZoneInfo(currentDepth);
+            let bgColor;
+            if (currentDepth < 200) bgColor = '#00d4ff';
+            else if (currentDepth < 1000) bgColor = '#4da8da';
+            else if (currentDepth < 6000) bgColor = '#1a3a5a';
+            else bgColor = '#0a0f15';
+            
+            ctx.fillStyle = bgColor;
+            ctx.fillRect(0, 0, width, height);
+            
+            // Depth grid lines
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 1;
+            const gridInterval = 1000;
+            const zeroLineY = height * 0.2;
+            const pixelsPerMeter = (height * 0.6) / 11000;
+            
+            for (let d = 0; d <= 11000; d += gridInterval) {
+                const y = zeroLineY + d * pixelsPerMeter;
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(width * 0.7, y);
+                ctx.stroke();
+                
+                ctx.fillStyle = '#555';
+                ctx.font = '10px Space Mono';
+                ctx.fillText(d + 'm', width * 0.7 + 10, y + 4);
+            }
+            
+            // Draw animated creatures
+            animationTime += 0.05;
+            const visibleSpecies = showAllSpecies ? 
+                Object.entries(speciesData).filter(([key, sp]) => 
+                    sp.depth[0] <= currentDepth && currentDepth <= sp.depth[1]
+                ) :
+                selectedSpecies ? [[selectedSpecies, speciesData[selectedSpecies]]] : [];
+            
+            visibleSpecies.forEach(([key, sp], idx) => {
+                const x = (width * 0.3) + (idx % 3) * 80 + Math.sin(animationTime + idx) * 30;
+                const y = zeroLineY + (currentDepth * pixelsPerMeter) + Math.cos(animationTime * 0.7 + idx) * 20;
+                
+                ctx.fillStyle = sp.color;
+                ctx.beginPath();
+                ctx.arc(x, y, 8, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Glow effect for bioluminescent species
+                if (['anglerfish', 'vampire_squid', 'giant_squid'].includes(key) && currentDepth > 600) {
+                    ctx.fillStyle = 'rgba(255, 255, 0, 0.3)';
+                    ctx.beginPath();
+                    ctx.arc(x, y, 20, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            });
+            
+            // Draw pressure/temperature graph overlay if enabled
+            if (showGraph) {
+                drawGraph(width, height, zeroLineY, pixelsPerMeter);
+            }
+        }
+        
+        function drawGraph(width, height, zeroLineY, pixelsPerMeter) {
+            ctx.fillStyle = 'rgba(10, 15, 21, 0.7)';
+            ctx.fillRect(width * 0.7, height * 0.1, width * 0.25, height * 0.4);
+            ctx.strokeStyle = '#4da8da';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(width * 0.7, height * 0.1, width * 0.25, height * 0.4);
+            
+            // Pressure curve (simplified)
+            ctx.strokeStyle = '#ff0000';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            for (let d = 0; d <= 11000; d += 100) {
+                const x = width * 0.7 + (d / 11000) * width * 0.25;
+                const pressure = getPressure(d);
+                const normPressure = Math.min(pressure / 1000, 1);
+                const y = height * 0.1 + (height * 0.4) * (1 - normPressure);
+                if (d === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+            
+            ctx.fillStyle = '#7dd3fc';
+            ctx.font = '10px Space Mono';
+            ctx.fillText('Pressure', width * 0.72, height * 0.12);
+        }
+        
+        function updateStats() {
+            const zoneInfo = getZoneInfo(currentDepth);
+            const pressure = getPressure(currentDepth);
+            const light = Math.max(0, 100 - (currentDepth / 200) * 100);
+            
+            document.getElementById('depthValue').textContent = currentDepth + 'm';
+            document.getElementById('zoneName').textContent = zoneInfo.name;
+            document.getElementById('tempValue').textContent = Math.round(zoneInfo.temp) + '°C';
+            document.getElementById('pressureValue').textContent = Math.round(pressure) + ' atm';
+            document.getElementById('lightValue').textContent = Math.round(light) + '%';
+        }
+        
+        function showSpeciesInfo(speciesKey) {
+            const sp = speciesData[speciesKey];
+            const infoDiv = document.getElementById('speciesInfo');
+            
+            if (!sp) {
+                infoDiv.classList.remove('active');
+                return;
+            }
+            
+            document.getElementById('infoName').textContent = sp.name;
+            document.getElementById('infoDetails').innerHTML = `
+                <div><span style="color: #7dd3fc;">Depth:</span> ${sp.depth[0]}-${sp.depth[1]}m</div>
+                <div><span style="color: #7dd3fc;">Temp:</span> ${sp.temp[0]}-${sp.temp[1]}°C</div>
+                <div><span style="color: #7dd3fc;">Max Pressure:</span> ${sp.pressure[1]} atm</div>
+                <div style="margin-top: 8px; font-style: italic;">${sp.description}</div>
+            `;
+            infoDiv.classList.add('active');
+        }
+        
+        depthSlider.addEventListener('input', (e) => {
+            currentDepth = parseInt(e.target.value);
+            updateStats();
+        });
+        
+        speciesButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                speciesButtons.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                selectedSpecies = btn.dataset.species;
+                showAllSpecies = false;
+                allSpeciesBtn.classList.remove('active');
+                showSpeciesInfo(selectedSpecies);
+            });
+        });
+        
+        allSpeciesBtn.addEventListener('click', () => {
+            allSpeciesBtn.classList.toggle('active');
+            showAllSpecies = allSpeciesBtn.classList.contains('active');
+            speciesButtons.forEach(b => b.classList.remove('active'));
+            selectedSpecies = null;
+            document.getElementById('speciesInfo').classList.remove('active');
+        });
+        
+        graphBtn.addEventListener('click', () => {
+            graphBtn.classList.toggle('active');
+            showGraph = graphBtn.classList.contains('active');
+        });
+        
+        function animate() {
+            resizeCanvas();
+            drawOcean();
+            requestAnimationFrame(animate);
+        }
+        
+        updateStats();
+        animate();
+    </script>
+</body>
+</html>
