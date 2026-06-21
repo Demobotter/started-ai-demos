@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cloud Classifier</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Space+Mono:wght@400&display=swap" rel="stylesheet" />
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: 'Space Mono', monospace;
+      background: linear-gradient(180deg, #87CEEB 0%, #E0F6FF 100%);
+      color: #333;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .container {
+      display: flex;
+      gap: 20px;
+      max-width: 1400px;
+      width: 100%;
+      background: white;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    }
+    .sidebar {
+      width: 320px;
+      padding: 24px;
+      background: #f9f9f9;
+      border-right: 1px solid #ddd;
+      overflow-y: auto;
+      max-height: 90vh;
+    }
+    .canvas-area {
+      flex: 1;
+      position: relative;
+      min-height: 600px;
+    }
+    h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: 28px;
+      margin-bottom: 20px;
+      color: #0a0e27;
+    }
+    h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: 18px;
+      margin: 16px 0 8px 0;
+      color: #0a3a5a;
+    }
+    .control-group {
+      margin-bottom: 20px;
+    }
+    label {
+      display: block;
+      font-size: 12px;
+      font-weight: bold;
+      color: #666;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    input[type="range"] {
+      width: 100%;
+      height: 6px;
+      border-radius: 3px;
+      background: #ddd;
+      outline: none;
+      -webkit-appearance: none;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #4da8da;
+      cursor: pointer;
+    }
+    input[type="range"]::-moz-range-thumb {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #4da8da;
+      cursor: pointer;
+      border: none;
+    }
+    .value-display {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 4px;
+      font-size: 13px;
+    }
+    .value-display .val {
+      font-weight: bold;
+      color: #0a0e27;
+    }
+    .cloud-buttons {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 12px;
+    }
+    .cloud-btn {
+      padding: 8px 10px;
+      border: 2px solid #ddd;
+      background: white;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 11px;
+      font-family: 'Space Mono', monospace;
+      transition: all 0.2s;
+      color: #333;
+      font-weight: bold;
+    }
+    .cloud-btn:hover {
+      border-color: #4da8da;
+      background: #f0f8ff;
+    }
+    .cloud-btn.active {
+      background: #4da8da;
+      color: white;
+      border-color: #4da8da;
+      box-shadow: 0 4px 8px rgba(77, 168, 218, 0.3);
+    }
+    .stats-panel {
+      background: white;
+      border: 2px solid #4da8da;
+      border-radius: 8px;
+      padding: 14px;
+      margin-top: 20px;
+    }
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      margin-bottom: 6px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid #eee;
+    }
+    .stat-row:last-child {
+      border-bottom: none;
+      margin-bottom: 0;
+      padding-bottom: 0;
+    }
+    .stat-label {
+      color: #666;
+      font-weight: bold;
+    }
+    .stat-value {
+      color: #0a0e27;
+      font-weight: bold;
+    }
+    .toggle-group {
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid #ddd;
+    }
+    .toggle-btn {
+      width: 100%;
+      padding: 10px;
+      background: white;
+      border: 2px solid #52c41a;
+      color: #52c41a;
+      border-radius: 6px;
+      cursor: pointer;
+      font-family: 'Space Mono', monospace;
+      font-weight: bold;
+      font-size: 12px;
+      transition: all 0.2s;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .toggle-btn.active {
+      background: #52c41a;
+      color: white;
+    }
+    .toggle-btn:hover {
+      opacity: 0.8;
+    }
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="sidebar">
+      <h1>☁️ Cloud Classifier</h1>
+
+      <div class="control-group">
+        <h2>Atmosphere Controls</h2>
+        <label for="tempSlider">Temperature</label>
+        <input type="range" id="tempSlider" min="-50" max="30" value="20" />
+        <div class="value-display">
+          <span class="val" id="tempVal">20°C</span>
+          <span style="font-size: 11px; color: #999;">−50 to +30°C</span>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <label for="humiditySlider">Humidity</label>
+        <input type="range" id="humiditySlider" min="0" max="100" value="60" />
+        <div class="value-display">
+          <span class="val" id="humidityVal">60%</span>
+          <span style="font-size: 11px; color: #999;">0 to 100%</span>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <label for="altitudeSlider">Altitude</label>
+        <input type="range" id="altitudeSlider" min="0" max="15" value="2" step="0.1" />
+        <div class="value-display">
+          <span class="val" id="altitudeVal">2.0 km</span>
+          <span style="font-size: 11px; color: #999;">0 to 15 km</span>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <h2>Select Cloud Type</h2>
+        <div class="cloud-buttons">
+          <button class="cloud-btn" data-type="cumulus">Cumulus</button>
+          <button class="cloud-btn" data-type="cirrus">Cirrus</button>
+          <button class="cloud-btn" data-type="stratus">Stratus</button>
+          <button class="cloud-btn" data-type="cumulonimbus">Cumulonimbus</button>
+          <button class="cloud-btn" data-type="altocumulus">Altocumulus</button>
+          <button class="cloud-btn" data-type="altostratus">Altostratus</button>
+          <button class="cloud-btn" data-type="stratocumulus">Stratocumulus</button>
+          <button class="cloud-btn" data-type="nimbostratus">Nimbostratus</button>
+          <button class="cloud-btn" data-type="cirrocumulus">Cirrocumulus</button>
+          <button class="cloud-btn" data-type="fog">Fog</button>
+        </div>
+      </div>
+
+      <div class="stats-panel">
+        <div class="stat-row">
+          <span class="stat-label">Cloud Type</span>
+          <span class="stat-value" id="cloudName">Cumulus</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Altitude Range</span>
+          <span class="stat-value" id="altRange">1–2 km</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Temperature</span>
+          <span class="stat-value" id="cloudTemp">~18°C</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Weather</span>
+          <span class="stat-value" id="cloudWeather">Fair</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Precipitation</span>
+          <span class="stat-value" id="precipitation">None</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Dew Point</span>
+          <span class="stat-value" id="dewPoint">8°C</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">LCL</span>
+          <span class="stat-value" id="lcl">1.2 km</span>
+        </div>
+      </div>
+
+      <div class="toggle-group">
+        <button class="toggle-btn" id="forecastToggle">📡 Satellite View</button>
+      </div>
+    </div>
+
+    <div class="canvas-area">
+      <canvas id="atmosphereCanvas"></canvas>
+    </div>
+  </div>
+
+  <script>
+    const cloudData = {
+      cumulus: {
+        name: "Cumulus",
+        altMin: 1, altMax: 2,
+        weather: "Fair",
+        precipitation: "None",
+        color: "#ffffff",
+        shape: "puffy"
+      },
+      cirrus: {
+        name: "Cirrus",
+        altMin: 10, altMax: 13,
+        weather: "Fair (may precede rain)",
+        precipitation: "None",
+        color: "#f5f5f5",
+        shape: "wispy"
+      },
+      stratus: {
+        name: "Stratus",
+        altMin: 0, altMax: 0.5,
+        weather: "Overcast, drizzle",
+        precipitation: "Drizzle",
+        color: "#d0d0d0",
+        shape: "layered"
+      },
+      cumulonimbus: {
+        name: "Cumulonimbus",
+        altMin: 0, altMax: 16,
+        weather: "Thunderstorms",
+        precipitation: "Heavy rain, hail",
+        color: "#4a4a4a",
+        shape: "towering"
+      },
+      altocumulus: {
+        name: "Altocumulus",
+        altMin: 2, altMax: 6,
+        weather: "Fair, possible showers",
+        precipitation: "Possible",
+        color: "#e8e8e8",
+        shape: "patchy"
+      },
+      altostratus: {
+        name: "Altostratus",
+        altMin: 2, altMax: 6,
+        weather: "Continuous overcast",
+        precipitation: "Rare",
+        color: "#bfbfbf",
+        shape: "layered"
+      },
+      stratocumulus: {
+        name: "Stratocumulus",
+        altMin: 1, altMax: 3,
+        weather: "Fair to overcast",
+        precipitation: "Rare",
+        color: "#d8d8d8",
+        shape: "lumpy"
+      },
+      nimbostratus: {
+        name: "Nimbostratus",
+        altMin: 0.5, altMax: 2,
+        weather: "Steady rain/snow",
+        precipitation: "Continuous rain/snow",
+        color: "#6a6a6a",
+        shape: "dark"
+      },
+      cirrocumulus: {
+        name: "Cirrocumulus",
+        altMin: 10, altMax: 13,
+        weather: "Fair to change",
+        precipitation: "None",
+        color: "#efefef",
+        shape: "rippled"
+      },
+      fog: {
+        name: "Fog",
+        altMin: 0, altMax: 0.1,
+        weather: "Low visibility",
+        precipitation: "Drizzle",
+        color: "#b8b8b8",
+        shape: "dense"
+      }
+    };
+
+    const elements = {
+      tempSlider: document.getElementById("tempSlider"),
+      humiditySlider: document.getElementById("humiditySlider"),
+      altitudeSlider: document.getElementById("altitudeSlider"),
+      canvas: document.getElementById("atmosphereCanvas"),
+      tempVal: document.getElementById("tempVal"),
+      humidityVal: document.getElementById("humidityVal"),
+      altitudeVal: document.getElementById("altitudeVal"),
+      cloudName: document.getElementById("cloudName"),
+      altRange: document.getElementById("altRange"),
+      cloudTemp: document.getElementById("cloudTemp"),
+      cloudWeather: document.getElementById("cloudWeather"),
+      precipitation: document.getElementById("precipitation"),
+      dewPoint: document.getElementById("dewPoint"),
+      lcl: document.getElementById("lcl"),
+      forecastToggle: document.getElementById("forecastToggle"),
+      cloudButtons: document.querySelectorAll(".cloud-btn")
+    };
+
+    const ctx = elements.canvas.getContext("2d");
+    let selectedCloud = "cumulus";
+    let forecastMode = false;
+
+    function resizeCanvas() {
+      const rect = elements.canvas.parentElement.getBoundingClientRect();
+      elements.canvas.width = rect.width;
+      elements.canvas.height = rect.height;
+    }
+
+    function dewPointMagnus(temp, humidity) {
+      const a = 17.27;
+      const b = 237.7;
+      const alpha = ((a * temp) / (b + temp)) + Math.log(humidity / 100);
+      return (b * alpha) / (a - alpha);
+    }
+
+    function lcl(temp, dewpt) {
+      return ((temp - dewpt) / 2.5) + 0.125 * (temp - dewpt) * (temp - dewpt);
+    }
+
+    function temperatureAtAltitude(seaLevelTemp, altitudeKm) {
+      return seaLevelTemp - 6.5 * altitudeKm;
+    }
+
+    function updateDisplay() {
+      const temp = parseFloat(elements.tempSlider.value);
+      const humidity = parseFloat(elements.humiditySlider.value);
+      const altitude = parseFloat(elements.altitudeSlider.value);
+
+      elements.tempVal.textContent = temp + "°C";
+      elements.humidityVal.textContent = humidity + "%";
+      elements.altitudeVal.textContent = altitude.toFixed(1) + " km";
+
+      const dp = dewPointMagnus(temp, humidity);
+      const lclVal = lcl(temp, dp);
+      const tempAtAlt = temperatureAtAltitude(temp, altitude);
+
+      elements.dewPoint.textContent = dp.toFixed(1) + "°C";
+      elements.lcl.textContent = lclVal.toFixed(2) + " km";
+      elements.cloudTemp.textContent = tempAtAlt.toFixed(1) + "°C";
+
+      const cloud = cloudData[selectedCloud];
+      elements.cloudName.textContent = cloud.name;
+      elements.altRange.textContent = cloud.altMin + "–" + cloud.altMax + " km";
+      elements.cloudWeather.textContent = cloud.weather;
+      elements.precipitation.textContent = cloud.precipitation;
+
+      draw();
+    }
+
+    function draw() {
+      const w = elements.canvas.width;
+      const h = elements.canvas.height;
+      const temp = parseFloat(elements.tempSlider.value);
+      const humidity = parseFloat(elements.humiditySlider.value);
+      const altitude = parseFloat(elements.altitudeSlider.value);
+      const dp = dewPointMagnus(temp, humidity);
+      const lclVal = lcl(temp, dp);
+
+      ctx.clearRect(0, 0, w, h);
+
+      // Sky gradient
+      const grad = ctx.createLinearGradient(0, 0, 0, h);
+      grad.addColorStop(0, "#87CEEB");
+      grad.addColorStop(0.5, "#b0d4e3");
+      grad.addColorStop(1, "#E0F6FF");
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, w, h);
+
+      // Altitude axis + pressure grid
+      const altMax = 15;
+      const margins = { left: 60, right: 40, top: 40, bottom: 40 };
+      const plotW = w - margins.left - margins.right;
+      const plotH = h - margins.top - margins.bottom;
+
+      ctx.font = "11px 'Space Mono'";
+      ctx.fillStyle = "#666";
+      ctx.textAlign = "right";
+
+      for (let alt = 0; alt <= 15; alt += 2) {
+        const y = margins.top + plotH - (alt / altMax) * plotH;
+        ctx.strokeStyle = "#ddd";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(margins.left, y);
+        ctx.lineTo(margins.left + plotW, y);
+        ctx.stroke();
+
+        ctx.fillText(alt + " km", margins.left - 8, y + 4);
+      }
+
+      // Pressure scale
+      ctx.textAlign = "left";
+      for (let alt = 0; alt <= 15; alt += 5) {
+        const p = 101.3 * Math.pow(1 - 0.0065 * alt / 288.15, 5.255);
+        const y = margins.top + plotH - (alt / altMax) * plotH;
+        ctx.fillText(Math.round(p) + " hPa", margins.left + plotW + 8, y + 4);
+      }
+
+      // Draw atmosphere layers
+      const tropoTop = (11 / altMax) * plotH;
+      ctx.fillStyle = "rgba(135, 206, 235, 0.1)";
+      ctx.fillRect(margins.left, margins.top, plotW, tropoTop);
+      ctx.font = "bold 14px 'Playfair Display'";
+      ctx.fillStyle = "#aaa";
+      ctx.textAlign = "center";
+      ctx.fillText("Troposphere", margins.left + plotW / 2, margins.top + 20);
+
+      // Draw selected cloud or forecast clouds
+      const cloud = cloudData[selectedCloud];
+      if (!forecastMode) {
+        drawCloud(
+          cloud,
+          cloud.altMin,
+          cloud.altMax,
+          humidity,
+          lclVal,
+          plotH,
+          altMax,
+          margins
+        );
+      } else {
+        const allClouds = [
+          cloudData.fog,
+          cloudData.stratus,
+          cloudData.cumulus,
+          cloudData.stratocumulus,
+          cloudData.cumulonimbus
+        ];
+        allClouds.forEach((c, i) => {
+          drawCloud(
+            c,
+            c.altMin,
+            c.altMax,
+            humidity * (0.8 + Math.random() * 0.2),
+            lclVal,
+            plotH,
+            altMax,
+            margins
+          );
+        });
+      }
+
+      // Draw LCL line
+      const lclY = margins.top + plotH - (lclVal / altMax) * plotH;
+      ctx.strokeStyle = "#ff6b6b";
+      ctx.lineWidth = 2;
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath();
+      ctx.moveTo(margins.left, lclY);
+      ctx.lineTo(margins.left + plotW, lclY);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      ctx.font = "11px 'Space Mono'";
+      ctx.fillStyle = "#ff6b6b";
+      ctx.textAlign = "left";
+      ctx.fillText("LCL: " + lclVal.toFixed(2) + " km", margins.left + 8, lclY - 8);
+
+      // Current altitude line
+      const altY = margins.top + plotH - (altitude / altMax) * plotH;
+      ctx.strokeStyle = "#4da8da";
+      ctx.lineWidth = 2;
+      ctx.setLineDash([2, 2]);
+      ctx.beginPath();
+      ctx.moveTo(margins.left, altY);
+      ctx.lineTo(margins.left + plotW, altY);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      ctx.fillStyle = "#4da8da";
+      ctx.fillText("You: " + altitude.toFixed(1) + " km", margins.left + 8, altY + 12);
+    }
+
+    function drawCloud(cloud, altMin, altMax, humidity, lclVal, plotH, altMax2, margins) {
+      const altMid = (altMin + altMax) / 2;
+      const y = margins.top + plotH - (altMid / altMax2) * plotH;
+      const opacity = Math.max(0.3, Math.min(1, humidity / 100));
+
+      ctx.globalAlpha = opacity;
+
+      switch (cloud.shape) {
+        case "puffy":
+          drawPuffyCloud(y - 20, opacity * 255);
+          break;
+        case "wispy":
+          drawWispyCloud(y, opacity);
+          break;
+        case "layered":
+          drawLayeredCloud(y, opacity);
+          break;
+        case "towering":
+          drawToweringCloud(y - 40, opacity);
+          break;
+        case "patchy":
+          drawPatchyCloud(y, opacity);
+          break;
+        case "lumpy":
+          drawLumpyCloud(y, opacity);
+          break;
+        case "dark":
+          drawDarkCloud(y, opacity);
+          break;
+        case "rippled":
+          drawRippledCloud(y, opacity);
+          break;
+        case "dense":
+          drawDenseCloud(y, opacity);
+          break;
+      }
+
+      ctx.globalAlpha = 1;
+    }
+
+    function drawPuffyCloud(y, alpha) {
+      ctx.fillStyle = "rgba(255, 255, 255, " + (alpha / 255) * 0.8 + ")";
+      for (let i = 0; i < 4; i++) {
+        ctx.beginPath();
+        ctx.arc(200 + i * 80, y, 35, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    function drawWispyCloud(y, opacity) {
+      ctx.strokeStyle = "rgba(245, 245, 245, " + opacity * 0.6 + ")";
+      ctx.lineWidth = 3;
+      for (let i = 0; i < 3; i++) {
+        ctx.beginPath();
+        ctx.moveTo(150 + i * 150, y - 20 + Math.sin(i) * 10);
+        ctx.quadraticCurveTo(250 + i * 150, y - 40, 300 + i * 150, y - 15);
+        ctx.stroke();
+      }
+    }
+
+    function drawLayeredCloud(y, opacity) {
+      ctx.fillStyle = "rgba(191, 191, 191, " + opacity * 0.5 + ")";
+      ctx.fillRect(150, y - 15, 600, 30);
+      ctx.fillRect(140, y + 20, 620, 25);
+    }
+
+    function drawToweringCloud(y, opacity) {
+      ctx.fillStyle = "rgba(74, 74, 74, " + opacity * 0.7 + ")";
+      ctx.beginPath();
+      ctx.moveTo(400, y + 150);
+      ctx.lineTo(300, y + 80);
+      ctx.lineTo(350, y + 40);
+      ctx.lineTo(400, y);
+      ctx.lineTo(450, y + 40);
+      ctx.lineTo(500, y + 80);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = "rgba(106, 106, 106, " + opacity * 0.8 + ")";
+      ctx.fillRect(350, y + 80, 100, 70);
+    }
+
+    function drawPatchyCloud(y, opacity) {
+      ctx.fillStyle = "rgba(232, 232, 232, " + opacity * 0.6 + ")";
+      for (let i = 0; i < 5; i++) {
+        ctx.beginPath();
+        ctx.arc(200 + i * 100, y, 25 + Math.random() * 15, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    function drawLumpyCloud(y, opacity) {
+      ctx.fillStyle = "rgba(216, 216, 216, " + opacity * 0.6 + ")";
+      for (let i = 0; i < 6; i++) {
+        ctx.beginPath();
+        ctx.arc(180 + i * 90, y + (i % 2) * 15, 30, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    function drawDarkCloud(y, opacity) {
+      ctx.fillStyle = "rgba(106, 106, 106, " + opacity * 0.9 + ")";
+      ctx.fillRect(180, y - 30, 520, 60);
+    }
+
+    function drawRippledCloud(y, opacity) {
+      ctx.strokeStyle = "rgba(239, 239, 239, " + opacity * 0.5 + ")";
+      ctx.lineWidth = 2;
+      for (let i = 0; i < 8; i++) {
+        ctx.beginPath();
+        ctx.moveTo(150 + i * 70, y - 15);
+        ctx.quadraticCurveTo(185 + i * 70, y - 25, 220 + i * 70, y - 15);
+        ctx.stroke();
+      }
+    }
+
+    function drawDenseCloud(y, opacity) {
+      ctx.fillStyle = "rgba(184, 184, 184, " + opacity * 0.8 + ")";
+      ctx.fillRect(160, y - 20, 640, 40);
+    }
+
+    elements.tempSlider.addEventListener("input", updateDisplay);
+    elements.humiditySlider.addEventListener("input", updateDisplay);
+    elements.altitudeSlider.addEventListener("input", updateDisplay);
+
+    elements.cloudButtons.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        elements.cloudButtons.forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+        selectedCloud = btn.getAttribute("data-type");
+        updateDisplay();
+      });
+    });
+
+    elements.forecastToggle.addEventListener("click", () => {
+      forecastMode = !forecastMode;
+      elements.forecastToggle.classList.toggle("active");
+      updateDisplay();
+    });
+
+    // Set initial active button
+    document.querySelector('[data-type="cumulus"]').classList.add("active");
+
+    window.addEventListener("resize", () => {
+      resizeCanvas();
+      updateDisplay();
+    });
+
+    resizeCanvas();
+    updateDisplay();
+  </script>
+</body>
+</html>
