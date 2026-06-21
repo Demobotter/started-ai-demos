@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Reaction Kinetics Lab</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Space Mono', monospace; background: #0a1020; color: #e0e0e0; padding: 20px; }
+        .container { display: flex; max-width: 1400px; margin: 0 auto; gap: 20px; height: calc(100vh - 40px); }
+        
+        .sidebar { width: 320px; background: #1a2a3a; padding: 20px; border-radius: 8px; overflow-y: auto; }
+        .sidebar h1 { font-family: 'Playfair Display'; font-size: 24px; margin-bottom: 20px; color: #4da8da; }
+        .sidebar h2 { font-family: 'Playfair Display'; font-size: 16px; margin-top: 20px; margin-bottom: 10px; color: #52c41a; border-bottom: 2px solid #2d9d5f; padding-bottom: 5px; }
+        
+        .enzyme-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 15px; }
+        .enzyme-btn { padding: 10px 8px; background: #0a1020; border: 2px solid #2d9d5f; border-radius: 6px; cursor: pointer; color: #52c41a; font-weight: bold; font-size: 12px; transition: 0.2s; }
+        .enzyme-btn.active { background: #2d9d5f; color: #fff; }
+        .enzyme-btn:hover { border-color: #52c41a; }
+        
+        .slider-group { margin-bottom: 15px; }
+        .slider-group label { display: block; font-size: 12px; color: #4da8da; margin-bottom: 5px; font-weight: bold; }
+        input[type="range"] { width: 100%; accent-color: #4da8da; }
+        .slider-value { font-size: 11px; color: #52c41a; font-weight: bold; }
+        
+        .toggle-btn { background: #0a1020; border: 1px solid #4da8da; padding: 8px 12px; border-radius: 6px; cursor: pointer; color: #4da8da; font-size: 12px; margin: 5px 0; width: 100%; transition: 0.2s; }
+        .toggle-btn.on { background: #4da8da; color: #0a1020; font-weight: bold; }
+        .toggle-btn:hover { border-color: #52c41a; }
+        
+        .stat-box { background: #0a1020; border-left: 4px solid #2d9d5f; padding: 10px; margin: 10px 0; border-radius: 4px; font-size: 11px; }
+        .stat-label { color: #4da8da; font-weight: bold; }
+        .stat-value { color: #52c41a; font-weight: bold; font-size: 13px; }
+        
+        .canvas-container { flex: 1; display: flex; flex-direction: column; }
+        #canvas { background: #0f1a2e; border-radius: 8px; border: 2px solid #4da8da; flex: 1; }
+        
+        .graph-container { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px; }
+        .graph-box { background: #1a2a3a; padding: 10px; border-radius: 8px; border: 1px solid #4da8da; }
+        .graph-box canvas { width: 100%; height: 150px; background: #0a1020; border-radius: 4px; }
+        .graph-label { font-size: 11px; color: #4da8da; font-weight: bold; margin-bottom: 8px; text-align: center; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar Controls -->
+        <div class="sidebar">
+            <h1>⚗️ Kinetics Lab</h1>
+            
+            <h2>Enzyme Type</h2>
+            <div class="enzyme-buttons" id="enzymeButtons"></div>
+            
+            <h2>Concentration</h2>
+            <div class="slider-group">
+                <label>Enzyme [E] (μM)</label>
+                <input type="range" id="enzymeConc" min="0.1" max="10" step="0.1" value="1">
+                <div class="slider-value" id="enzymeConcVal">1.0 μM</div>
+            </div>
+            
+            <div class="slider-group">
+                <label>Substrate [S] (μM)</label>
+                <input type="range" id="substrateConc" min="0.1" max="100" step="0.5" value="10">
+                <div class="slider-value" id="substrateConcVal">10.0 μM</div>
+            </div>
+            
+            <h2>Environment</h2>
+            <div class="slider-group">
+                <label>Temperature (°C)</label>
+                <input type="range" id="temp" min="5" max="50" step="1" value="37">
+                <div class="slider-value" id="tempVal">37°C</div>
+            </div>
+            
+            <div class="slider-group">
+                <label>pH</label>
+                <input type="range" id="ph" min="5" max="9" step="0.1" value="7">
+                <div class="slider-value" id="phVal">7.0</div>
+            </div>
+            
+            <h2>Inhibitor</h2>
+            <div id="inhibitorButtons"></div>
+            
+            <h2>Display</h2>
+            <button class="toggle-btn" id="bindingToggle">Hide Binding Events</button>
+            
+            <h2>Kinetic Parameters</h2>
+            <div class="stat-box">
+                <div class="stat-label">Km (μM)</div>
+                <div class="stat-value" id="kmVal">5.0</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Vmax (μmol/min)</div>
+                <div class="stat-value" id="vmaxVal">100</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Velocity (μmol/min)</div>
+                <div class="stat-value" id="velocityVal">50.0</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">kcat/Km (1/μM·s)</div>
+                <div class="stat-value" id="efficiencyVal">83.3</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Saturation</div>
+                <div class="stat-value" id="saturationVal">66.7%</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Phase</div>
+                <div class="stat-value" id="phaseVal">Exponential</div>
+            </div>
+        </div>
+        
+        <!-- Main Canvas & Graphs -->
+        <div class="canvas-container">
+            <canvas id="canvas"></canvas>
+            <div class="graph-container">
+                <div class="graph-box">
+                    <div class="graph-label">Product Formation</div>
+                    <canvas id="graphProduct"></canvas>
+                </div>
+                <div class="graph-box">
+                    <div class="graph-label">Lineweaver-Burk Plot</div>
+                    <canvas id="graphLineweaver"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Enzyme kinetics engine
+        const enzymes = {
+            Lactase: { km: 5.0, vmaxBase: 100, kcat: 500, pHOpt: 6.5, tempOpt: 37, color: '#ff9999' },
+            Amylase: { km: 2.0, vmaxBase: 150, kcat: 800, pHOpt: 7.0, tempOpt: 37, color: '#99ccff' },
+            Catalase: { km: 40.0, vmaxBase: 200, kcat: 1000, pHOpt: 8.5, tempOpt: 40, color: '#99ff99' }
+        };
+        
+        let state = {
+            enzyme: 'Lactase',
+            enzymeConc: 1.0,
+            substrateConc: 10.0,
+            temp: 37,
+            ph: 7.0,
+            inhibitor: 'none',
+            showBinding: true,
+            time: 0,
+            productAccum: [],
+            substrateRemain: 100
+        };
+        
+        // Setup enzyme buttons
+        const enzymeButtonsDiv = document.getElementById('enzymeButtons');
+        Object.keys(enzymes).forEach(enz => {
+            const btn = document.createElement('button');
+            btn.className = 'enzyme-btn' + (enz === state.enzyme ? ' active' : '');
+            btn.textContent = enz;
+            btn.onclick = () => {
+                document.querySelectorAll('.enzyme-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                state.enzyme = enz;
+                state.productAccum = [];
+                state.time = 0;
+                state.substrateRemain = 100;
+                update();
+            };
+            enzymeButtonsDiv.appendChild(btn);
+        });
+        
+        // Setup inhibitor buttons
+        const inhibitorButtonsDiv = document.getElementById('inhibitorButtons');
+        ['None', 'Competitive', 'Non-Competitive'].forEach(inh => {
+            const btn = document.createElement('button');
+            btn.className = 'enzyme-btn' + (inh === 'None' && state.inhibitor === 'none' ? ' active' : '');
+            btn.textContent = inh;
+            btn.onclick = () => {
+                document.querySelectorAll('#inhibitorButtons .enzyme-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                state.inhibitor = inh.toLowerCase();
+                state.productAccum = [];
+                state.time = 0;
+                state.substrateRemain = 100;
+                update();
+            };
+            inhibitorButtonsDiv.appendChild(btn);
+        });
+        
+        // Sliders
+        document.getElementById('enzymeConc').oninput = (e) => {
+            state.enzymeConc = parseFloat(e.target.value);
+            document.getElementById('enzymeConcVal').textContent = state.enzymeConc.toFixed(1) + ' μM';
+            state.productAccum = [];
+            state.time = 0;
+            state.substrateRemain = 100;
+            update();
+        };
+        
+        document.getElementById('substrateConc').oninput = (e) => {
+            state.substrateConc = parseFloat(e.target.value);
+            document.getElementById('substrateConcVal').textContent = state.substrateConc.toFixed(1) + ' μM';
+            state.productAccum = [];
+            state.time = 0;
+            state.substrateRemain = 100;
+            update();
+        };
+        
+        document.getElementById('temp').oninput = (e) => {
+            state.temp = parseFloat(e.target.value);
+            document.getElementById('tempVal').textContent = state.temp + '°C';
+            update();
+        };
+        
+        document.getElementById('ph').oninput = (e) => {
+            state.ph = parseFloat(e.target.value);
+            document.getElementById('phVal').textContent = state.ph.toFixed(1);
+            update();
+        };
+        
+        document.getElementById('bindingToggle').onclick = (e) => {
+            state.showBinding = !state.showBinding;
+            e.target.classList.toggle('on');
+            e.target.textContent = state.showBinding ? 'Hide Binding Events' : 'Show Binding Events';
+            draw();
+        };
+        
+        // Kinetics calculations
+        function calcKm() {
+            const enz = enzymes[state.enzyme];
+            let km = enz.km;
+            if (state.inhibitor === 'competitive') km *= 1.5;
+            return km;
+        }
+        
+        function calcVmax() {
+            const enz = enzymes[state.enzyme];
+            let vmax = enz.vmaxBase * (state.enzymeConc / 1.0);
+            
+            // Inhibitor effects
+            if (state.inhibitor === 'non-competitive') vmax *= 0.6;
+            else if (state.inhibitor === 'uncompetitive') vmax *= 0.7;
+            
+            // Temperature: Arrhenius-like
+            const dT = state.temp - enz.tempOpt;
+            if (dT < 0) {
+                vmax *= Math.exp(dT * 0.05); // cooling reduces rate exponentially
+            } else if (dT > 0) {
+                if (state.temp < 45) vmax *= (1 + dT * 0.02); // heating increases
+                else vmax *= Math.max(0.1, 1 - (state.temp - 45) * 0.05); // denaturation above 45°C
+            }
+            
+            // pH: bell curve
+            const pHDiff = state.ph - enz.pHOpt;
+            const pHFit = Math.exp(-Math.pow(pHDiff, 2) / 0.5);
+            vmax *= pHFit;
+            
+            return Math.max(vmax, 1);
+        }
+        
+        function calcVelocity() {
+            const km = calcKm();
+            const vmax = calcVmax();
+            const velocity = vmax * state.substrateConc / (km + state.substrateConc);
+            return Math.max(velocity, 0.1);
+        }
+        
+        function update() {
+            // Accumulate product over time
+            if (state.time < 200) {
+                const vel = calcVelocity();
+                const productThisStep = vel * 0.5; // time step
+                state.productAccum.push(state.productAccum.length ? state.productAccum[state.productAccum.length - 1] + productThisStep : productThisStep);
+                state.substrateRemain = Math.max(0, 100 - state.productAccum[state.productAccum.length - 1] / 10);
+                state.time++;
+            }
+            
+            // Update stat boxes
+            const km = calcKm();
+            const vmax = calcVmax();
+            const vel = calcVelocity();
+            const sat = (vel / vmax * 100).toFixed(1);
+            const enz = enzymes[state.enzyme];
+            const kcat = enz.kcat * (state.inhibitor === 'non-competitive' ? 0.6 : state.inhibitor === 'uncompetitive' ? 0.7 : 1.0);
+            const efficiency = (kcat / km).toFixed(1);
+            
+            document.getElementById('kmVal').textContent = km.toFixed(1);
+            document.getElementById('vmaxVal').textContent = vmax.toFixed(0);
+            document.getElementById('velocityVal').textContent = vel.toFixed(1);
+            document.getElementById('saturationVal').textContent = sat + '%';
+            document.getElementById('efficiencyVal').textContent = efficiency;
+            
+            const phase = state.productAccum.length < 30 ? 'Lag' : state.productAccum.length < 100 ? 'Exponential' : 'Stationary';
+            document.getElementById('phaseVal').textContent = phase;
+            
+            draw();
+        }
+        
+        function draw() {
+            const canvas = document.getElementById('canvas');
+            const ctx = canvas.getContext('2d');
+            const w = canvas.width;
+            const h = canvas.height;
+            
+            ctx.fillStyle = '#0f1a2e';
+            ctx.fillRect(0, 0, w, h);
+            
+            // Draw enzyme (hexagon in center)
+            const cx = w / 2;
+            const cy = h / 2;
+            const hexSize = 30;
+            ctx.fillStyle = '#52c41a';
+            ctx.beginPath();
+            for (let i = 0; i < 6; i++) {
+                const angle = (i * Math.PI / 3) - Math.PI / 2;
+                const x = cx + hexSize * Math.cos(angle);
+                const y = cy + hexSize * Math.sin(angle);
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.closePath();
+            ctx.fill();
+            ctx.strokeStyle = '#2d9d5f';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            
+            // Draw animated substrate molecules orbiting enzyme
+            const numSubstrate = Math.min(20, Math.ceil(state.substrateConc / 5));
+            for (let i = 0; i < numSubstrate; i++) {
+                const angle = (state.time * 0.03 + (i / numSubstrate) * Math.PI * 2) % (Math.PI * 2);
+                const radius = 80 + Math.sin(state.time * 0.01 + i) * 20;
+                const sx = cx + radius * Math.cos(angle);
+                const sy = cy + radius * Math.sin(angle);
+                
+                ctx.fillStyle = '#4da8da';
+                ctx.fillRect(sx - 8, sy - 8, 16, 16);
+                ctx.strokeStyle = '#7dd3fc';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(sx - 8, sy - 8, 16, 16);
+            }
+            
+            // Draw product molecules (if any)
+            const numProduct = Math.min(15, Math.floor(state.productAccum.length / 10));
+            for (let i = 0; i < numProduct; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const dist = 150 + Math.random() * 100;
+                const px = cx + dist * Math.cos(angle);
+                const py = cy + dist * Math.sin(angle);
+                ctx.fillStyle = '#e91e63';
+                ctx.beginPath();
+                ctx.arc(px, py, 6, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
+            // Title
+            ctx.font = 'bold 16px Space Mono';
+            ctx.fillStyle = '#4da8da';
+            ctx.textAlign = 'center';
+            ctx.fillText(`${state.enzyme} Kinetics | Temp: ${state.temp}°C | pH: ${state.ph.toFixed(1)}`, w / 2, 30);
+            ctx.fillText(`Substrate: ${state.substrateRemain.toFixed(0)}%`, w / 2, h - 20);
+            
+            // Draw product accumulation graph
+            drawGraph(document.getElementById('graphProduct'), state.productAccum, '#e91e63');
+            
+            // Draw Lineweaver-Burk (1/v vs 1/[S])
+            drawLineweaver(document.getElementById('graphLineweaver'));
+        }
+        
+        function drawGraph(canvas, data, color) {
+            const ctx = canvas.getContext('2d');
+            const w = canvas.width;
+            const h = canvas.height;
+            
+            ctx.fillStyle = '#0a1020';
+            ctx.fillRect(0, 0, w, h);
+            ctx.strokeStyle = '#4da8da';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([5, 5]);
+            ctx.beginPath();
+            ctx.moveTo(30, 10);
+            ctx.lineTo(30, h - 20);
+            ctx.lineTo(w - 10, h - 20);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            
+            if (data.length < 2) return;
+            
+            const maxVal = Math.max(...data, 1);
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            for (let i = 0; i < data.length; i++) {
+                const x = 30 + (i / (data.length - 1 || 1)) * (w - 40);
+                const y = h - 20 - (data[i] / maxVal) * (h - 30);
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+        }
+        
+        function drawLineweaver(canvas) {
+            const ctx = canvas.getContext('2d');
+            const w = canvas.width;
+            const h = canvas.height;
+            
+            ctx.fillStyle = '#0a1020';
+            ctx.fillRect(0, 0, w, h);
+            ctx.strokeStyle = '#4da8da';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([5, 5]);
+            ctx.beginPath();
+            ctx.moveTo(30, 10);
+            ctx.lineTo(30, h - 20);
+            ctx.lineTo(w - 10, h - 20);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            
+            const km = calcKm();
+            const vmax = calcVmax();
+            const points = [];
+            for (let s = 0.1; s <= 50; s += 2) {
+                const v = vmax * s / (km + s);
+                if (v > 0) points.push([1 / s, 1 / v]);
+            }
+            
+            if (points.length < 2) return;
+            
+            const maxX = Math.max(...points.map(p => p[0]));
+            const maxY = Math.max(...points.map(p => p[1]));
+            
+            ctx.strokeStyle = '#4da8da';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            for (let i = 0; i < points.length; i++) {
+                const x = 30 + (points[i][0] / maxX) * (w - 40);
+                const y = h - 20 - (points[i][1] / maxY) * (h - 30);
+                ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+            
+            // Mark points
+            ctx.fillStyle = '#ffeb3b';
+            for (const [px, py] of points) {
+                const x = 30 + (px / maxX) * (w - 40);
+                const y = h - 20 - (py / maxY) * (h - 30);
+                ctx.fillRect(x - 2, y - 2, 4, 4);
+            }
+        }
+        
+        // Animation loop
+        let frameCount = 0;
+        function animate() {
+            frameCount++;
+            if (frameCount % 10 === 0) {
+                update();
+            }
+            requestAnimationFrame(animate);
+        }
+        
+        animate();
+    </script>
+</body>
+</html>
