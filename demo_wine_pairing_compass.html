@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wine Pairing Compass</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Space+Mono:wght@400&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Space Mono', monospace;
+      background: linear-gradient(135deg, #3a1d2e 0%, #1a0f1a 100%);
+      color: #f5f1e8;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .container {
+      display: flex;
+      max-width: 1400px;
+      width: 100%;
+      gap: 20px;
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 8px;
+      overflow: hidden;
+      flex-wrap: wrap;
+    }
+    .sidebar {
+      width: 320px;
+      padding: 30px;
+      background: rgba(0, 0, 0, 0.4);
+      overflow-y: auto;
+      border-right: 1px solid #8b7355;
+    }
+    .main {
+      flex: 1;
+      padding: 30px;
+      min-width: 400px;
+    }
+    h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: 28px;
+      margin-bottom: 30px;
+      color: #ffd700;
+    }
+    h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: 18px;
+      margin-top: 25px;
+      margin-bottom: 12px;
+      color: #daa520;
+    }
+    .slider-group {
+      margin-bottom: 20px;
+    }
+    .slider-label {
+      font-size: 12px;
+      color: #8b7355;
+      margin-bottom: 8px;
+      display: block;
+    }
+    input[type="range"] {
+      width: 100%;
+      height: 6px;
+      border-radius: 3px;
+      background: #4a2a3a;
+      outline: none;
+      cursor: pointer;
+      -webkit-appearance: none;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #ffd700;
+      cursor: pointer;
+      box-shadow: 0 0 8px rgba(255, 215, 0, 0.6);
+    }
+    input[type="range"]::-moz-range-thumb {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #ffd700;
+      cursor: pointer;
+      border: none;
+      box-shadow: 0 0 8px rgba(255, 215, 0, 0.6);
+    }
+    .wine-list, .dish-list {
+      max-height: 300px;
+      overflow-y: auto;
+      margin-top: 15px;
+      padding: 10px;
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 4px;
+      border-left: 3px solid #2d9d5f;
+    }
+    .wine-item, .dish-item {
+      padding: 8px;
+      margin-bottom: 8px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      transition: background 0.2s;
+    }
+    .wine-item:hover, .dish-item:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+    .wine-item.active, .dish-item.active {
+      background: rgba(45, 157, 95, 0.3);
+      border-left: 2px solid #52c41a;
+    }
+    .stats-box {
+      background: rgba(0, 0, 0, 0.3);
+      padding: 15px;
+      border-radius: 4px;
+      border-left: 3px solid #2d9d5f;
+      margin-top: 15px;
+      font-size: 12px;
+    }
+    .stats-box p {
+      margin-bottom: 6px;
+      color: #7dd3fc;
+    }
+    .stats-box strong {
+      color: #52c41a;
+    }
+    canvas {
+      border-radius: 4px;
+      background: #0a0a1a;
+      max-width: 100%;
+      height: auto;
+    }
+    @media (max-width: 900px) {
+      .container {
+        flex-direction: column;
+      }
+      .sidebar {
+        width: 100%;
+        border-right: none;
+        border-bottom: 1px solid #8b7355;
+        max-height: 400px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="sidebar">
+    <h1>🍷 Pairing</h1>
+    
+    <h2>Dish Profile</h2>
+    <div class="slider-group">
+      <label class="slider-label">Richness (Light ↔ Heavy)</label>
+      <input type="range" id="dishRichness" min="0" max="100" value="50">
+    </div>
+    <div class="slider-group">
+      <label class="slider-label">Acidity (Soft ↔ Tangy)</label>
+      <input type="range" id="dishAcidity" min="0" max="100" value="50">
+    </div>
+    <div class="slider-group">
+      <label class="slider-label">Spice (Mild ↔ Hot)</label>
+      <input type="range" id="dishSpice" min="0" max="100" value="0">
+    </div>
+
+    <h2>Wine Preference</h2>
+    <div class="slider-group">
+      <label class="slider-label">Body (Light ↔ Full)</label>
+      <input type="range" id="wineBody" min="0" max="100" value="50">
+    </div>
+    <div class="slider-group">
+      <label class="slider-label">Acidity (Soft ↔ Crisp)</label>
+      <input type="range" id="wineAcidity" min="0" max="100" value="50">
+    </div>
+    <div class="slider-group">
+      <label class="slider-label">Tannin (Smooth ↔ Dry)</label>
+      <input type="range" id="wineTannin" min="0" max="100" value="30">
+    </div>
+
+    <h2>Top Wines</h2>
+    <div class="wine-list" id="wineList"></div>
+
+    <h2>Top Dishes</h2>
+    <div class="dish-list" id="dishList"></div>
+
+    <div class="stats-box">
+      <p><strong>Selected Wine:</strong></p>
+      <p id="selectedWine">—</p>
+      <p><strong>Selected Dish:</strong></p>
+      <p id="selectedDish">—</p>
+      <p><strong>Pairing Score:</strong></p>
+      <p id="pairingScore">—</p>
+    </div>
+  </div>
+
+  <div class="main">
+    <canvas id="canvas" width="800" height="600"></canvas>
+    <div style="margin-top: 20px; font-size: 12px; color: #8b7355;">
+      <p>💡 Click a wine dot or dish square to select. Drag sliders to explore pairings.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+const WINES = [
+  { name: 'Cabernet Sauvignon', region: 'Napa', vintage: 2019, body: 85, acidity: 45, tannin: 80, alcohol: 13.8, price: 25, color: '#8b0000', notes: 'Dark cherry, oak, bold tannins' },
+  { name: 'Pinot Noir', region: 'Burgundy', vintage: 2020, body: 60, acidity: 65, tannin: 50, alcohol: 13, price: 30, color: '#c41e3a', notes: 'Red cherry, earthy, silky' },
+  { name: 'Merlot', region: 'Bordeaux', vintage: 2019, body: 70, acidity: 50, tannin: 60, alcohol: 13.5, price: 20, color: '#8b1a1a', notes: 'Plum, soft, smooth' },
+  { name: 'Sauvignon Blanc', region: 'Loire', vintage: 2022, body: 35, acidity: 80, tannin: 5, alcohol: 12.5, price: 18, color: '#ffffcc', notes: 'Grapefruit, crisp, grassy' },
+  { name: 'Chardonnay', region: 'Burgundy', vintage: 2021, body: 65, acidity: 60, tannin: 10, alcohol: 13.5, price: 28, color: '#f4d03f', notes: 'Apple, butter, oaky' },
+  { name: 'Riesling', region: 'Alsace', vintage: 2021, body: 40, acidity: 75, tannin: 0, alcohol: 11.5, price: 16, color: '#ffffe0', notes: 'Stone fruit, floral, bright' },
+  { name: 'Syrah', region: 'Rhône', vintage: 2019, body: 80, acidity: 55, tannin: 70, alcohol: 13.9, price: 24, color: '#800020', notes: 'Blackberry, spice, peppery' },
+  { name: 'Pinot Grigio', region: 'Veneto', vintage: 2022, body: 30, acidity: 70, tannin: 2, alcohol: 12, price: 14, color: '#fffacd', notes: 'Citrus, light, crisp' },
+  { name: 'Rosé', region: 'Provence', vintage: 2022, body: 45, acidity: 65, tannin: 15, alcohol: 12, price: 20, color: '#ff69b4', notes: 'Strawberry, dry, refreshing' },
+];
+
+const DISHES = [
+  { name: 'Grilled Steak', richness: 90, acidity: 20, spice: 10, color: '#6b4423', notes: 'Fatty, umami-rich' },
+  { name: 'Salmon', richness: 75, acidity: 30, spice: 5, color: '#708090', notes: 'Buttery, delicate' },
+  { name: 'Pasta Carbonara', richness: 85, acidity: 25, spice: 5, color: '#daa520', notes: 'Creamy, rich, salty' },
+  { name: 'Caesar Salad', richness: 40, acidity: 60, spice: 5, color: '#6b8e23', notes: 'Fresh, tangy, crisp' },
+  { name: 'Spicy Thai Curry', richness: 70, acidity: 45, spice: 85, color: '#ff6347', notes: 'Creamy heat, bold' },
+  { name: 'Roast Chicken', richness: 65, acidity: 35, spice: 10, color: '#b8860b', notes: 'Savory, tender' },
+  { name: 'Grilled Vegetables', richness: 30, acidity: 50, spice: 20, color: '#6b8e23', notes: 'Charred, fresh' },
+  { name: 'Chocolate Cake', richness: 95, acidity: 30, spice: 5, color: '#3d2817', notes: 'Rich, sweet, dense' },
+  { name: 'Oysters', richness: 35, acidity: 70, spice: 5, color: '#708090', notes: 'Briny, mineral' },
+];
+
+let selectedWine = null;
+let selectedDish = null;
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+
+function computePairingScore(wine, dish) {
+  const bodyDiff = Math.abs(wine.body - dish.richness) / 100;
+  const acidityDiff = Math.abs(wine.acidity - dish.acidity) / 100;
+  const spiceMatch = (100 - Math.abs(wine.tannin - dish.spice)) / 100;
+  return Math.max(0, 100 - (bodyDiff + acidityDiff) * 25) * 0.7 + spiceMatch * 30;
+}
+
+function getColor(score) {
+  if (score > 80) return '#52c41a';
+  if (score > 60) return '#ffd700';
+  if (score > 40) return '#ff8c00';
+  return '#c41e3a';
+}
+
+function updateCanvas() {
+  const padding = 60;
+  const w = canvas.width - padding * 2;
+  const h = canvas.height - padding * 2;
+
+  ctx.fillStyle = '#0a0a1a';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Grid
+  ctx.strokeStyle = '#333';
+  ctx.lineWidth = 0.5;
+  for (let i = 0; i <= 10; i++) {
+    const x = padding + (i / 10) * w;
+    const y = padding + (i / 10) * h;
+    ctx.beginPath();
+    ctx.moveTo(x, padding);
+    ctx.lineTo(x, padding + h);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(padding, y);
+    ctx.lineTo(padding + w, y);
+    ctx.stroke();
+  }
+
+  // Axes
+  ctx.strokeStyle = '#8b7355';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(padding, padding + h);
+  ctx.lineTo(padding + w, padding + h);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(padding, padding);
+  ctx.lineTo(padding, padding + h);
+  ctx.stroke();
+
+  ctx.fillStyle = '#8b7355';
+  ctx.font = '12px Space Mono';
+  ctx.textAlign = 'center';
+  ctx.fillText('Acidity →', padding + w / 2, canvas.height - 10);
+  ctx.save();
+  ctx.rotate(-Math.PI / 2);
+  ctx.textAlign = 'center';
+  ctx.fillText('← Body', -padding - h / 2, 15);
+  ctx.restore();
+
+  // Render wines
+  for (const wine of WINES) {
+    const x = padding + (wine.acidity / 100) * w;
+    const y = padding + h - (wine.body / 100) * h;
+    const radius = 6;
+
+    ctx.fillStyle = wine.color;
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
+    ctx.fill();
+
+    if (selectedWine === wine.name) {
+      ctx.strokeStyle = '#ffd700';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(x, y, radius + 4, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    wine._x = x;
+    wine._y = y;
+  }
+
+  // Render dishes
+  for (const dish of DISHES) {
+    const x = padding + (dish.acidity / 100) * w;
+    const y = padding + h - (dish.richness / 100) * h;
+    const size = 12;
+
+    ctx.fillStyle = dish.color;
+    ctx.fillRect(x - size / 2, y - size / 2, size, size);
+
+    if (selectedDish === dish.name) {
+      ctx.strokeStyle = '#ffd700';
+      ctx.lineWidth = 3;
+      ctx.strokeRect(x - size / 2 - 3, y - size / 2 - 3, size + 6, size + 6);
+    }
+
+    dish._x = x;
+    dish._y = y;
+  }
+
+  updateLists();
+  updateStats();
+}
+
+function updateLists() {
+  const wineList = document.getElementById('wineList');
+  const dishList = document.getElementById('dishList');
+  wineList.innerHTML = '';
+  dishList.innerHTML = '';
+
+  const dishRef = selectedDish ? DISHES.find(d => d.name === selectedDish) : null;
+  const wineRef = selectedWine ? WINES.find(w => w.name === selectedWine) : null;
+
+  let wineScores = WINES.map(w => ({ wine: w, score: dishRef ? computePairingScore(w, dishRef) : 0 }))
+    .sort((a, b) => b.score - a.score);
+
+  let dishScores = DISHES.map(d => ({ dish: d, score: wineRef ? computePairingScore(wineRef, d) : 0 }))
+    .sort((a, b) => b.score - a.score);
+
+  wineScores.slice(0, 6).forEach(({ wine, score }) => {
+    const el = document.createElement('div');
+    el.className = 'wine-item' + (selectedWine === wine.name ? ' active' : '');
+    el.textContent = `${wine.name} (${Math.round(score)}%)`;
+    el.onclick = () => { selectedWine = wine.name; updateCanvas(); };
+    wineList.appendChild(el);
+  });
+
+  dishScores.slice(0, 6).forEach(({ dish, score }) => {
+    const el = document.createElement('div');
+    el.className = 'dish-item' + (selectedDish === dish.name ? ' active' : '');
+    el.textContent = `${dish.name} (${Math.round(score)}%)`;
+    el.onclick = () => { selectedDish = dish.name; updateCanvas(); };
+    dishList.appendChild(el);
+  });
+}
+
+function updateStats() {
+  const wineEl = document.getElementById('selectedWine');
+  const dishEl = document.getElementById('selectedDish');
+  const scoreEl = document.getElementById('pairingScore');
+
+  if (selectedWine) {
+    const w = WINES.find(x => x.name === selectedWine);
+    wineEl.textContent = w.name + ' (' + w.price + ')';
+  } else {
+    wineEl.textContent = '—';
+  }
+
+  if (selectedDish) {
+    dishEl.textContent = selectedDish;
+  } else {
+    dishEl.textContent = '—';
+  }
+
+  if (selectedWine && selectedDish) {
+    const w = WINES.find(x => x.name === selectedWine);
+    const d = DISHES.find(x => x.name === selectedDish);
+    const score = computePairingScore(w, d);
+    scoreEl.textContent = Math.round(score) + '%';
+    scoreEl.style.color = getColor(score);
+  } else {
+    scoreEl.textContent = '—';
+  }
+}
+
+// Canvas click handler
+canvas.addEventListener('click', (e) => {
+  const rect = canvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
+
+  for (const wine of WINES) {
+    const dx = mx - wine._x;
+    const dy = my - wine._y;
+    if (dx * dx + dy * dy < 100) {
+      selectedWine = wine.name;
+      updateCanvas();
+      return;
+    }
+  }
+
+  for (const dish of DISHES) {
+    const dx = mx - dish._x;
+    const dy = my - dish._y;
+    if (Math.abs(dx) < 8 && Math.abs(dy) < 8) {
+      selectedDish = dish.name;
+      updateCanvas();
+      return;
+    }
+  }
+});
+
+// Slider handlers
+['dishRichness', 'dishAcidity', 'dishSpice', 'wineBody', 'wineAcidity', 'wineTannin'].forEach(id => {
+  document.getElementById(id).addEventListener('input', updateCanvas);
+});
+
+// Initial render
+updateCanvas();
+</script>
+
+</body>
+</html>
