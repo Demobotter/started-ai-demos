@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Loom Weave Generator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Space+Mono:wght@400&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Space Mono', monospace; 
+            background: #f5f1e8;
+            color: #1a1a1a;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            width: 100%;
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            gap: 30px;
+            background: white;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+        h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 28px;
+            margin-bottom: 24px;
+            color: #2a1a1a;
+        }
+        .control-section {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .control-section label {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #666;
+            font-weight: bold;
+        }
+        .button-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+        button {
+            padding: 10px 12px;
+            border: 2px solid #ccc;
+            background: white;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: 'Space Mono', monospace;
+        }
+        button:hover { 
+            border-color: #8B4513;
+            background: #faf6f0;
+        }
+        button.active {
+            background: #8B4513;
+            color: white;
+            border-color: #8B4513;
+        }
+        input[type="range"] {
+            width: 100%;
+            cursor: pointer;
+        }
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: #888;
+            margin-top: 4px;
+        }
+        .stat-box {
+            background: #faf6f0;
+            padding: 12px;
+            border-radius: 4px;
+            border-left: 4px solid #8B4513;
+            font-size: 12px;
+        }
+        .stat-box .label {
+            color: #888;
+            text-transform: uppercase;
+            font-size: 10px;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+        .stat-box .value {
+            font-weight: bold;
+            color: #2a1a1a;
+            font-size: 14px;
+        }
+        canvas {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: white;
+        }
+        .canvas-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <h1>🧵 Loom Weave</h1>
+            
+            <div class="control-section">
+                <label>Pattern Type</label>
+                <div class="button-group">
+                    <button class="pattern-btn active" data-pattern="plain">Plain</button>
+                    <button class="pattern-btn" data-pattern="twill2">Twill 2/2</button>
+                    <button class="pattern-btn" data-pattern="twill3">Twill 3/1</button>
+                    <button class="pattern-btn" data-pattern="satin4">Satin 4</button>
+                    <button class="pattern-btn" data-pattern="satin8">Satin 8</button>
+                    <button class="pattern-btn" data-pattern="herringbone">Herringbone</button>
+                </div>
+            </div>
+
+            <div class="control-section">
+                <label for="warpCount">Warp Threads</label>
+                <input type="range" id="warpCount" min="8" max="32" value="16" step="1">
+                <div class="slider-label">
+                    <span>8</span>
+                    <span id="warpValue">16</span>
+                    <span>32</span>
+                </div>
+            </div>
+
+            <div class="control-section">
+                <label for="weftCount">Weft Threads</label>
+                <input type="range" id="weftCount" min="8" max="32" value="16" step="1">
+                <div class="slider-label">
+                    <span>8</span>
+                    <span id="weftValue">16</span>
+                    <span>32</span>
+                </div>
+            </div>
+
+            <div class="control-section">
+                <label for="warp1Color">Warp Color 1</label>
+                <input type="color" id="warp1Color" value="#D2691E">
+            </div>
+
+            <div class="control-section">
+                <label for="warp2Color">Warp Color 2</label>
+                <input type="color" id="warp2Color" value="#8B4513">
+            </div>
+
+            <div class="control-section">
+                <label for="weftColor">Weft Color</label>
+                <input type="color" id="weftColor" value="#CD853F">
+            </div>
+
+            <div class="control-section">
+                <label for="zoom">Zoom</label>
+                <input type="range" id="zoom" min="1" max="8" value="3" step="1">
+                <div class="slider-label">
+                    <span>1×</span>
+                    <span id="zoomValue">3×</span>
+                    <span>8×</span>
+                </div>
+            </div>
+
+            <div class="stat-box">
+                <div class="label">Thread Count</div>
+                <div class="value" id="threadCount">512</div>
+            </div>
+
+            <div class="stat-box">
+                <div class="label">Density</div>
+                <div class="value" id="density">256 TPI</div>
+            </div>
+
+            <div class="stat-box">
+                <div class="label">Est. Weaving Time</div>
+                <div class="value" id="weavingTime">2.5 hrs</div>
+            </div>
+
+            <div class="stat-box">
+                <div class="label">Complexity</div>
+                <div class="value" id="complexity">Simple</div>
+            </div>
+        </div>
+
+        <div class="canvas-container">
+            <canvas id="weaveCanvas" width="600" height="600"></canvas>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('weaveCanvas');
+        const ctx = canvas.getContext('2d');
+
+        let state = {
+            patternType: 'plain',
+            warpCount: 16,
+            weftCount: 16,
+            warp1Color: '#D2691E',
+            warp2Color: '#8B4513',
+            weftColor: '#CD853F',
+            zoom: 3
+        };
+
+        const patterns = {
+            plain: (w, f) => {
+                const grid = Array(w).fill(null).map(() => Array(f).fill(false));
+                for (let i = 0; i < w; i++) {
+                    for (let j = 0; j < f; j++) {
+                        grid[i][j] = (i + j) % 2 === 0;
+                    }
+                }
+                return grid;
+            },
+            twill2: (w, f) => {
+                const grid = Array(w).fill(null).map(() => Array(f).fill(false));
+                for (let i = 0; i < w; i++) {
+                    for (let j = 0; j < f; j++) {
+                        grid[i][j] = ((i + j) % 4) < 2;
+                    }
+                }
+                return grid;
+            },
+            twill3: (w, f) => {
+                const grid = Array(w).fill(null).map(() => Array(f).fill(false));
+                for (let i = 0; i < w; i++) {
+                    for (let j = 0; j < f; j++) {
+                        const sum = (i + j) % 4;
+                        grid[i][j] = sum === 0 || sum === 1 || sum === 2;
+                    }
+                }
+                return grid;
+            },
+            satin4: (w, f) => {
+                const grid = Array(w).fill(null).map(() => Array(f).fill(false));
+                for (let i = 0; i < w; i++) {
+                    for (let j = 0; j < f; j++) {
+                        grid[i][j] = ((i * 3 + j) % 4) < 3;
+                    }
+                }
+                return grid;
+            },
+            satin8: (w, f) => {
+                const grid = Array(w).fill(null).map(() => Array(f).fill(false));
+                for (let i = 0; i < w; i++) {
+                    for (let j = 0; j < f; j++) {
+                        grid[i][j] = ((i * 5 + j) % 8) < 7;
+                    }
+                }
+                return grid;
+            },
+            herringbone: (w, f) => {
+                const grid = Array(w).fill(null).map(() => Array(f).fill(false));
+                for (let i = 0; i < w; i++) {
+                    for (let j = 0; j < f; j++) {
+                        const row = Math.floor(i / 2);
+                        const col = Math.floor(j / 2);
+                        if (row % 2 === 0) {
+                            grid[i][j] = col % 2 === 0;
+                        } else {
+                            grid[i][j] = col % 2 === 1;
+                        }
+                    }
+                }
+                return grid;
+            }
+        };
+
+        function render() {
+            const { patternType, warpCount, weftCount, warp1Color, warp2Color, weftColor, zoom } = state;
+            const pattern = patterns[patternType](warpCount, weftCount);
+            
+            const cellSize = zoom;
+            const canvasSize = Math.max(warpCount, weftCount) * cellSize;
+            
+            ctx.fillStyle = '#f5f1e8';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            ctx.save();
+            ctx.translate(Math.max(0, (canvas.width - canvasSize) / 2), Math.max(0, (canvas.height - canvasSize) / 2));
+            
+            // Draw weft (horizontal)
+            for (let j = 0; j < weftCount; j++) {
+                ctx.strokeStyle = weftColor;
+                ctx.lineWidth = cellSize * 0.8;
+                ctx.globalAlpha = 0.6;
+                ctx.beginPath();
+                ctx.moveTo(0, j * cellSize + cellSize / 2);
+                ctx.lineTo(warpCount * cellSize, j * cellSize + cellSize / 2);
+                ctx.stroke();
+            }
+            
+            ctx.globalAlpha = 1;
+            // Draw warp (vertical) with pattern
+            for (let i = 0; i < warpCount; i++) {
+                const color = i % 2 === 0 ? warp1Color : warp2Color;
+                ctx.strokeStyle = color;
+                ctx.lineWidth = cellSize * 0.8;
+                
+                for (let j = 0; j < weftCount; j++) {
+                    if (pattern[i][j]) {
+                        ctx.globalAlpha = 1;
+                        ctx.strokeStyle = color;
+                    } else {
+                        ctx.globalAlpha = 0.3;
+                        ctx.strokeStyle = '#ccc';
+                    }
+                    ctx.beginPath();
+                    ctx.moveTo(i * cellSize + cellSize / 2, j * cellSize + cellSize / 2 - cellSize * 0.4);
+                    ctx.lineTo(i * cellSize + cellSize / 2, j * cellSize + cellSize / 2 + cellSize * 0.4);
+                    ctx.stroke();
+                }
+            }
+            
+            // Draw grid
+            ctx.globalAlpha = 0.2;
+            ctx.strokeStyle = '#ccc';
+            ctx.lineWidth = 1;
+            for (let i = 0; i <= warpCount; i++) {
+                ctx.beginPath();
+                ctx.moveTo(i * cellSize, 0);
+                ctx.lineTo(i * cellSize, weftCount * cellSize);
+                ctx.stroke();
+            }
+            for (let j = 0; j <= weftCount; j++) {
+                ctx.beginPath();
+                ctx.moveTo(0, j * cellSize);
+                ctx.lineTo(warpCount * cellSize, j * cellSize);
+                ctx.stroke();
+            }
+            
+            ctx.restore();
+        }
+
+        function updateStats() {
+            const threadCount = state.warpCount * state.weftCount;
+            const density = state.warpCount + state.weftCount;
+            const weavingTime = (threadCount / 200).toFixed(1);
+            
+            let complexity = 'Simple';
+            if (state.patternType.includes('twill')) complexity = 'Intermediate';
+            if (state.patternType.includes('satin') || state.patternType === 'herringbone') complexity = 'Advanced';
+            
+            document.getElementById('threadCount').textContent = threadCount;
+            document.getElementById('density').textContent = Math.round(density * 16) + ' TPI';
+            document.getElementById('weavingTime').textContent = weavingTime + ' hrs';
+            document.getElementById('complexity').textContent = complexity;
+        }
+
+        // Event listeners
+        document.querySelectorAll('.pattern-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.pattern-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                state.patternType = btn.dataset.pattern;
+                updateStats();
+                render();
+            });
+        });
+
+        document.getElementById('warpCount').addEventListener('input', (e) => {
+            state.warpCount = parseInt(e.target.value);
+            document.getElementById('warpValue').textContent = state.warpCount;
+            updateStats();
+            render();
+        });
+
+        document.getElementById('weftCount').addEventListener('input', (e) => {
+            state.weftCount = parseInt(e.target.value);
+            document.getElementById('weftValue').textContent = state.weftCount;
+            updateStats();
+            render();
+        });
+
+        document.getElementById('warp1Color').addEventListener('input', (e) => {
+            state.warp1Color = e.target.value;
+            render();
+        });
+
+        document.getElementById('warp2Color').addEventListener('input', (e) => {
+            state.warp2Color = e.target.value;
+            render();
+        });
+
+        document.getElementById('weftColor').addEventListener('input', (e) => {
+            state.weftColor = e.target.value;
+            render();
+        });
+
+        document.getElementById('zoom').addEventListener('input', (e) => {
+            state.zoom = parseInt(e.target.value);
+            document.getElementById('zoomValue').textContent = state.zoom + '×';
+            render();
+        });
+
+        // Initial render
+        updateStats();
+        render();
+    </script>
+</body>
+</html>
