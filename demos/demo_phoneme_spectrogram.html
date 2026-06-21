@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phoneme Spectrogram Analyzer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Space+Mono:wght@400&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Space Mono', monospace;
+            background: linear-gradient(135deg, #0a1428 0%, #1a3a5a 100%);
+            color: #7dd3fc;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 30px;
+            background: rgba(10, 20, 40, 0.8);
+            border-radius: 12px;
+            padding: 30px;
+            border: 1px solid #1a3a5a;
+        }
+        @media (max-width: 900px) {
+            .container {
+                grid-template-columns: 1fr;
+                max-width: 100%;
+            }
+        }
+        h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 32px;
+            margin-bottom: 30px;
+            text-align: center;
+            grid-column: 1 / -1;
+            color: #4da8da;
+        }
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .control-group {
+            background: rgba(26, 58, 90, 0.5);
+            border-left: 3px solid #2d9d5f;
+            padding: 15px;
+            border-radius: 8px;
+        }
+        .control-group label {
+            display: block;
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+            color: #52c41a;
+        }
+        .phoneme-buttons {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+        }
+        button {
+            background: #0a1428;
+            border: 1px solid #1a3a5a;
+            color: #7dd3fc;
+            padding: 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: 'Space Mono', monospace;
+            font-size: 11px;
+            transition: all 0.15s;
+        }
+        button:hover {
+            background: #1a3a5a;
+            border-color: #4da8da;
+            box-shadow: 0 0 8px rgba(77, 168, 218, 0.3);
+        }
+        button.active {
+            background: #4da8da;
+            color: #0a1428;
+            border-color: #4da8da;
+            box-shadow: 0 0 12px rgba(77, 168, 218, 0.5);
+        }
+        .slider-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        input[type="range"] {
+            width: 100%;
+            cursor: pointer;
+        }
+        input[type="checkbox"] {
+            cursor: pointer;
+        }
+        .toggle-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .stats-box {
+            background: rgba(26, 58, 90, 0.4);
+            border-left: 3px solid #2d9d5f;
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 11px;
+            line-height: 1.6;
+        }
+        .stat-line {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .stat-label {
+            color: #7dd3fc;
+        }
+        .stat-value {
+            color: #52c41a;
+            font-weight: bold;
+        }
+        .canvas-area {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        canvas {
+            background: #0a1428;
+            border: 1px solid #1a3a5a;
+            border-radius: 8px;
+            display: block;
+            width: 100%;
+            height: auto;
+        }
+        .main-canvas {
+            border: 2px solid #4da8da;
+            min-height: 400px;
+        }
+        .waveform-canvas {
+            min-height: 120px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔊 Phoneme Spectrogram</h1>
+        
+        <div class="sidebar">
+            <div class="control-group">
+                <label>Vowels</label>
+                <div class="phoneme-buttons">
+                    <button data-phoneme="i" data-type="vowel">/i/ fleece</button>
+                    <button data-phoneme="e" data-type="vowel">/ɛ/ dress</button>
+                    <button data-phoneme="a" data-type="vowel">/ɑ/ father</button>
+                    <button data-phoneme="o" data-type="vowel">/ɔ/ thought</button>
+                    <button data-phoneme="u" data-type="vowel">/u/ goose</button>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label>Consonants</label>
+                <div class="phoneme-buttons">
+                    <button data-phoneme="s" data-type="consonant">/s/ sibilant</button>
+                    <button data-phoneme="sh" data-type="consonant">/ʃ/ shush</button>
+                    <button data-phoneme="p" data-type="consonant">/p/ plosive</button>
+                    <button data-phoneme="b" data-type="consonant">/b/ voiced</button>
+                    <button data-phoneme="g" data-type="consonant">/g/ velar</button>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label>Duration (s)</label>
+                <div class="slider-group">
+                    <input type="range" id="durationSlider" min="0.5" max="2.0" step="0.1" value="1.0">
+                    <span id="durationValue">1.0s</span>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label>Display</label>
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <label class="toggle-label">
+                        <input type="checkbox" id="showFormants" checked>
+                        Show Formants
+                    </label>
+                    <label class="toggle-label">
+                        <input type="checkbox" id="showPitch" checked>
+                        Show Pitch
+                    </label>
+                    <label class="toggle-label">
+                        <input type="checkbox" id="showWaveform" checked>
+                        Show Waveform
+                    </label>
+                </div>
+            </div>
+
+            <div class="stats-box">
+                <div class="stat-line">
+                    <span class="stat-label">Phoneme:</span>
+                    <span class="stat-value" id="phonemeName">—</span>
+                </div>
+                <div class="stat-line">
+                    <span class="stat-label">Type:</span>
+                    <span class="stat-value" id="phonemeType">—</span>
+                </div>
+                <div class="stat-line">
+                    <span class="stat-label">Voicing:</span>
+                    <span class="stat-value" id="voicingStatus">—</span>
+                </div>
+                <hr style="border: none; border-top: 1px solid #1a3a5a; margin: 8px 0;">
+                <div class="stat-line">
+                    <span class="stat-label">F1:</span>
+                    <span class="stat-value" id="f1Value">—</span>
+                </div>
+                <div class="stat-line">
+                    <span class="stat-label">F2:</span>
+                    <span class="stat-value" id="f2Value">—</span>
+                </div>
+                <div class="stat-line">
+                    <span class="stat-label">F3:</span>
+                    <span class="stat-value" id="f3Value">—</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="canvas-area">
+            <div>
+                <canvas id="mainCanvas" class="main-canvas"></canvas>
+            </div>
+            <div id="waveformContainer" style="display: none;">
+                <canvas id="waveformCanvas" class="waveform-canvas"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Phoneme data: formant frequencies, voicing, duration factor
+        const phonemes = {
+            i: {
+                name: '/i/ fleece',
+                type: 'vowel',
+                voiced: true,
+                f1: 250, f2: 2200, f3: 2800,
+                noise: false,
+                description: 'Bright, tight vowel — high F2 indicates front tongue position.'
+            },
+            e: {
+                name: '/ɛ/ dress',
+                type: 'vowel',
+                voiced: true,
+                f1: 500, f2: 1800, f3: 2500,
+                noise: false,
+                description: 'Mid-front vowel — F1 higher than /i/, F2 slightly lower.'
+            },
+            a: {
+                name: '/ɑ/ father',
+                type: 'vowel',
+                voiced: true,
+                f1: 750, f2: 900, f3: 2200,
+                noise: false,
+                description: 'Open, dark vowel — very high F1, very low F2.'
+            },
+            o: {
+                name: '/ɔ/ thought',
+                type: 'vowel',
+                voiced: true,
+                f1: 600, f2: 900, f3: 2300,
+                noise: false,
+                description: 'Rounded back vowel — mid formants with lip rounding.'
+            },
+            u: {
+                name: '/u/ goose',
+                type: 'vowel',
+                voiced: true,
+                f1: 300, f2: 600, f3: 2250,
+                noise: false,
+                description: 'High, rounded back vowel — low F2 for back position.'
+            },
+            s: {
+                name: '/s/ sibilant',
+                type: 'consonant',
+                voiced: false,
+                f1: 0, f2: 0, f3: 0,
+                noise: true,
+                noiseBand: [3500, 8000],
+                description: 'Fricative noise in high frequencies — sharp spectral peaks 3.5-8 kHz.'
+            },
+            sh: {
+                name: '/ʃ/ shush',
+                type: 'consonant',
+                voiced: false,
+                f1: 0, f2: 0, f3: 0,
+                noise: true,
+                noiseBand: [2500, 6000],
+                description: 'Slower fricative than /s/ — lower frequency noise band.'
+            },
+            p: {
+                name: '/p/ plosive',
+                type: 'consonant',
+                voiced: false,
+                f1: 0, f2: 0, f3: 0,
+                noise: true,
+                plosive: 'unvoiced',
+                description: 'Voiceless stop — silence then burst of energy across frequencies.'
+            },
+            b: {
+                name: '/b/ voiced',
+                type: 'consonant',
+                voiced: true,
+                f1: 0, f2: 0, f3: 0,
+                noise: true,
+                plosive: 'voiced',
+                description: 'Voiced stop — voicing bar (50-200 Hz) + burst, shorter closure than /p/.'
+            },
+            g: {
+                name: '/g/ velar',
+                type: 'consonant',
+                voiced: true,
+                f1: 0, f2: 0, f3: 0,
+                noise: true,
+                plosive: 'voiced',
+                description: 'Velar stop — transition from silence to burst with formant transitions.'
+            }
+        };
+
+        let currentPhoneme = 'i';
+        let duration = 1.0;
+
+        // DOM references
+        const mainCanvas = document.getElementById('mainCanvas');
+        const waveformCanvas = document.getElementById('waveformCanvas');
+        const waveformContainer = document.getElementById('waveformContainer');
+        const mainCtx = mainCanvas.getContext('2d');
+        const waveformCtx = waveformCanvas.getContext('2d');
+
+        // Phoneme buttons
+        document.querySelectorAll('[data-phoneme]').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                document.querySelectorAll('[data-phoneme]').forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
+                currentPhoneme = e.target.dataset.phoneme;
+                updateStats();
+                render();
+            });
+        });
+
+        // Set initial active button
+        document.querySelector('[data-phoneme="i"]').classList.add('active');
+
+        // Duration slider
+        document.getElementById('durationSlider').addEventListener('input', (e) => {
+            duration = parseFloat(e.target.value);
+            document.getElementById('durationValue').textContent = duration.toFixed(1) + 's';
+            render();
+        });
+
+        // Toggle checkboxes
+        document.getElementById('showFormants').addEventListener('change', render);
+        document.getElementById('showPitch').addEventListener('change', render);
+        document.getElementById('showWaveform').addEventListener('change', () => {
+            waveformContainer.style.display = document.getElementById('showWaveform').checked ? 'block' : 'none';
+            render();
+        });
+
+        function updateStats() {
+            const ph = phonemes[currentPhoneme];
+            document.getElementById('phonemeName').textContent = ph.name;
+            document.getElementById('phonemeType').textContent = ph.type;
+            document.getElementById('voicingStatus').textContent = ph.voiced ? 'Voiced ✓' : 'Unvoiced';
+            document.getElementById('f1Value').textContent = ph.f1 > 0 ? ph.f1 + ' Hz' : '—';
+            document.getElementById('f2Value').textContent = ph.f2 > 0 ? ph.f2 + ' Hz' : '—';
+            document.getElementById('f3Value').textContent = ph.f3 > 0 ? ph.f3 + ' Hz' : '—';
+        }
+
+        function resizeCanvases() {
+            const rect = mainCanvas.parentElement.getBoundingClientRect();
+            const w = Math.max(300, rect.width - 10);
+            mainCanvas.width = w;
+            mainCanvas.height = 400;
+            waveformCanvas.width = w;
+            waveformCanvas.height = 120;
+        }
+
+        function generateSpectrogram() {
+            const w = mainCanvas.width;
+            const h = mainCanvas.height;
+            const ph = phonemes[currentPhoneme];
+            
+            const imageData = mainCtx.createImageData(w, h);
+            const data = imageData.data;
+
+            const timeScale = w / duration;  // pixels per second
+            const freqScale = h / 4000;       // pixels per Hz
+
+            for (let y = 0; y < h; y++) {
+                const freq = (h - y) * (4000 / h);  // frequency at this y
+
+                for (let x = 0; x < w; x++) {
+                    const t = x / timeScale;  // time at this x
+
+                    let power = 0;
+
+                    if (ph.voiced && !ph.noise) {
+                        // Vowel: formant peaks
+                        const voicing = Math.exp(-5 * Math.abs(t - duration / 2) ** 2);
+                        const f1Power = Math.exp(-((freq - ph.f1) ** 2) / (30000));
+                        const f2Power = Math.exp(-((freq - ph.f2) ** 2) / (40000));
+                        const f3Power = Math.exp(-((freq - ph.f3) ** 2) / (50000));
+                        power = voicing * (f1Power * 0.8 + f2Power * 1.0 + f3Power * 0.6);
+                    } else if (ph.noise) {
+                        if (ph.plosive === 'unvoiced') {
+                            // /p/ – silence then burst
+                            if (t > duration * 0.6) {
+                                power = 0.3 * Math.exp(-(t - duration * 0.6) ** 2 / 0.02);
+                            }
+                        } else if (ph.plosive === 'voiced') {
+                            // /b/, /g/ – voicing bar + burst
+                            const voicing = t < duration * 0.4 ? Math.sin(t * 100 * Math.PI) ** 2 * 0.5 : 0;
+                            const burst = t > duration * 0.35 ? 0.2 * Math.exp(-(t - duration * 0.35) ** 2 / 0.02) : 0;
+                            const voicingBandPower = voicing * Math.exp(-((freq - 120) ** 2) / 5000);
+                            power = voicingBandPower + burst * (freq > 500 ? 0.5 : 0.1);
+                        } else if (ph.noiseBand) {
+                            // /s/, /ʃ/ – friction noise
+                            const bandPower = freq >= ph.noiseBand[0] && freq <= ph.noiseBand[1]
+                                ? Math.exp(-((freq - (ph.noiseBand[0] + ph.noiseBand[1]) / 2) ** 2) / ((ph.noiseBand[1] - ph.noiseBand[0]) ** 2 / 4))
+                                : 0;
+                            power = 0.6 * bandPower;
+                        }
+                    }
+
+                    // Convert power to color (black to red)
+                    const intensity = Math.min(1, power);
+                    const idx = (y * w + x) * 4;
+                    data[idx] = Math.round(255 * intensity);  // R
+                    data[idx + 1] = 0;                        // G
+                    data[idx + 2] = 0;                        // B
+                    data[idx + 3] = 255;                      // A
+                }
+            }
+
+            mainCtx.putImageData(imageData, 0, 0);
+
+            // Draw axes and labels
+            mainCtx.strokeStyle = '#333';
+            mainCtx.lineWidth = 1;
+            mainCtx.beginPath();
+            mainCtx.moveTo(0, h);
+            mainCtx.lineTo(w, h);
+            mainCtx.stroke();
+            mainCtx.beginPath();
+            mainCtx.moveTo(0, 0);
+            mainCtx.lineTo(0, h);
+            mainCtx.stroke();
+
+            // Frequency labels
+            mainCtx.fillStyle = '#7dd3fc';
+            mainCtx.font = '10px Space Mono';
+            mainCtx.textAlign = 'right';
+            for (let f = 0; f <= 4000; f += 1000) {
+                const y = h - (f / 4000) * h;
+                mainCtx.fillText(f / 1000 + 'k', 30, y + 3);
+            }
+
+            // Time labels
+            mainCtx.textAlign = 'center';
+            mainCtx.textBaseline = 'top';
+            for (let t = 0; t <= duration; t += 0.25) {
+                const x = (t / duration) * w;
+                mainCtx.fillText(t.toFixed(2) + 's', x, h + 8);
+            }
+
+            // Formant lines
+            if (document.getElementById('showFormants').checked && (ph.f1 > 0 || ph.f2 > 0 || ph.f3 > 0)) {
+                const formants = [
+                    { f: ph.f1, color: '#4da8da' },
+                    { f: ph.f2, color: '#ff00ff' },
+                    { f: ph.f3, color: '#ffff00' }
+                ];
+                formants.forEach(({ f, color }) => {
+                    if (f > 0) {
+                        const y = h - (f / 4000) * h;
+                        mainCtx.strokeStyle = color;
+                        mainCtx.lineWidth = 2;
+                        mainCtx.setLineDash([4, 4]);
+                        mainCtx.beginPath();
+                        mainCtx.moveTo(0, y);
+                        mainCtx.lineTo(w, y);
+                        mainCtx.stroke();
+                        mainCtx.setLineDash([]);
+                    }
+                });
+            }
+
+            // Pitch contour (F0)
+            if (document.getElementById('showPitch').checked && ph.voiced) {
+                mainCtx.strokeStyle = '#52c41a';
+                mainCtx.lineWidth = 2;
+                mainCtx.beginPath();
+                for (let x = 0; x < w; x++) {
+                    const t = x / timeScale;
+                    const f0 = 120 + 50 * Math.cos(2 * Math.PI * t);
+                    const y = h - (f0 / 4000) * h;
+                    if (x === 0) mainCtx.moveTo(x, y);
+                    else mainCtx.lineTo(x, y);
+                }
+                mainCtx.stroke();
+            }
+        }
+
+        function generateWaveform() {
+            const w = waveformCanvas.width;
+            const h = waveformCanvas.height;
+            const ph = phonemes[currentPhoneme];
+
+            waveformCtx.fillStyle = '#0a1428';
+            waveformCtx.fillRect(0, 0, w, h);
+
+            const sampleRate = 16000;
+            const samples = (duration * sampleRate);
+
+            waveformCtx.strokeStyle = '#4da8da';
+            waveformCtx.lineWidth = 1.5;
+            waveformCtx.beginPath();
+
+            for (let i = 0; i < w; i++) {
+                const sampleIdx = (i / w) * samples;
+                const t = sampleIdx / sampleRate;
+
+                let amplitude = 0;
+
+                if (ph.voiced && !ph.noise) {
+                    // Sinusoidal vowel with formant modulation
+                    const envelope = Math.exp(-5 * Math.abs(t - duration / 2) ** 2);
+                    const f0 = 120 + 50 * Math.cos(2 * Math.PI * t);
+                    amplitude = envelope * Math.sin(2 * Math.PI * f0 * t) * 0.7;
+                } else if (ph.plosive === 'unvoiced') {
+                    if (t > duration * 0.6) {
+                        amplitude = (Math.random() - 0.5) * 2 * 0.4;
+                    }
+                } else if (ph.plosive === 'voiced') {
+                    if (t < duration * 0.4) {
+                        amplitude = Math.sin(2 * Math.PI * 120 * t) * 0.4;
+                    } else if (t > duration * 0.35) {
+                        amplitude = (Math.random() - 0.5) * 2 * 0.3;
+                    }
+                } else if (ph.noiseBand) {
+                    amplitude = (Math.random() - 0.5) * 2 * 0.5;
+                }
+
+                const y = h / 2 - amplitude * (h / 2 * 0.8);
+                if (i === 0) waveformCtx.moveTo(i, y);
+                else waveformCtx.lineTo(i, y);
+            }
+            waveformCtx.stroke();
+
+            // Axes
+            waveformCtx.strokeStyle = '#333';
+            waveformCtx.lineWidth = 1;
+            waveformCtx.beginPath();
+            waveformCtx.moveTo(0, h / 2);
+            waveformCtx.lineTo(w, h / 2);
+            waveformCtx.stroke();
+        }
+
+        function render() {
+            resizeCanvases();
+            generateSpectrogram();
+            if (document.getElementById('showWaveform').checked) {
+                generateWaveform();
+            }
+        }
+
+        updateStats();
+        render();
+        window.addEventListener('resize', render);
+    </script>
+</body>
+</html>
