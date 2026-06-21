@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Protein Fold Explorer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Space Mono', monospace;
+            background: #0a1428;
+            color: #e0e0e0;
+            display: flex;
+            min-height: 100vh;
+            padding: 0;
+        }
+        .sidebar {
+            width: 320px;
+            background: #0f1a2e;
+            padding: 20px;
+            overflow-y: auto;
+            border-right: 1px solid #2d4a6a;
+        }
+        .main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 28px;
+            margin-bottom: 20px;
+            color: #4da8da;
+            text-align: center;
+        }
+        h2 {
+            font-family: 'Playfair Display', serif;
+            font-size: 18px;
+            margin-top: 20px;
+            margin-bottom: 10px;
+            color: #7dd3fc;
+            border-bottom: 1px solid #2d9d5f;
+            padding-bottom: 8px;
+        }
+        .protein-buttons {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        .protein-btn {
+            padding: 10px;
+            background: #1a3a5a;
+            border: 2px solid #2d4a6a;
+            color: #7dd3fc;
+            cursor: pointer;
+            font-family: 'Space Mono', monospace;
+            font-size: 13px;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+        .protein-btn:hover {
+            background: #2d4a6a;
+            border-color: #4da8da;
+        }
+        .protein-btn.active {
+            background: #4da8da;
+            color: #0a1428;
+            border-color: #00d4ff;
+        }
+        .control-group {
+            margin-bottom: 18px;
+        }
+        label {
+            display: block;
+            font-size: 12px;
+            margin-bottom: 6px;
+            color: #7dd3fc;
+            font-weight: bold;
+        }
+        input[type="range"] {
+            width: 100%;
+            cursor: pointer;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 8px;
+            background: #1a3a5a;
+            border: 1px solid #2d4a6a;
+            color: #7dd3fc;
+            font-family: 'Space Mono', monospace;
+            font-size: 11px;
+            border-radius: 3px;
+            margin-bottom: 8px;
+        }
+        .stat-box {
+            background: #1a2f45;
+            padding: 12px;
+            margin-bottom: 10px;
+            border-left: 4px solid #2d9d5f;
+            border-radius: 3px;
+            font-size: 12px;
+            line-height: 1.5;
+        }
+        .stat-label {
+            color: #7dd3fc;
+            font-weight: bold;
+        }
+        .stat-value {
+            color: #00d4ff;
+            font-weight: bold;
+        }
+        .legend {
+            background: #1a2f45;
+            padding: 12px;
+            border-radius: 3px;
+            font-size: 11px;
+            line-height: 1.6;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 6px;
+        }
+        .legend-swatch {
+            width: 12px;
+            height: 12px;
+            border-radius: 2px;
+        }
+        canvas {
+            display: block;
+            background: #0a1428;
+            cursor: crosshair;
+        }
+        #canvas-container {
+            flex: 1;
+            overflow: hidden;
+        }
+        @media (max-width: 900px) {
+            body { flex-direction: column; }
+            .sidebar { width: 100%; border-right: none; border-bottom: 1px solid #2d4a6a; }
+            #canvas-container { flex: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <h1>🧬 Protein Fold</h1>
+        
+        <h2>Proteins</h2>
+        <div class="protein-buttons" id="proteinButtons"></div>
+        
+        <h2>Custom Sequence</h2>
+        <div class="control-group">
+            <label>Paste FASTA or single-letter codes:</label>
+            <textarea id="sequenceInput" style="width: 100%; height: 80px; padding: 8px; background: #1a3a5a; border: 1px solid #2d4a6a; color: #7dd3fc; font-family: 'Space Mono', monospace; font-size: 11px; border-radius: 3px; resize: none;"></textarea>
+            <button id="predictBtn" style="width: 100%; padding: 10px; background: #2d9d5f; border: none; color: #0a1428; cursor: pointer; font-weight: bold; border-radius: 3px; margin-top: 8px;">Predict Structure</button>
+        </div>
+
+        <h2>View Controls</h2>
+        <div class="control-group">
+            <label>Rotation (°): <span id="angleVal">0</span></label>
+            <input type="range" id="angleSlider" min="0" max="360" value="0" step="1">
+        </div>
+        <div class="control-group">
+            <label>Zoom: <span id="zoomVal">1.0</span>x</label>
+            <input type="range" id="zoomSlider" min="0.5" max="3" value="1" step="0.1">
+        </div>
+        <div class="control-group">
+            <label>Temperature (K): <span id="tempVal">300</span></label>
+            <input type="range" id="tempSlider" min="300" max="500" value="300" step="10">
+        </div>
+        <div class="control-group">
+            <label>pH: <span id="phVal">7</span></label>
+            <input type="range" id="phSlider" min="3" max="11" value="7" step="0.5">
+        </div>
+
+        <h2>Statistics</h2>
+        <div class="stat-box">
+            <div class="stat-label">Protein:</div>
+            <div class="stat-value" id="statName">—</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-label">Length:</div>
+            <div class="stat-value" id="statLength">—</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-label">Secondary Structure:</div>
+            <div class="stat-value" id="statSS">—</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-label">Hydrophobic Moment:</div>
+            <div class="stat-value" id="statHM">—</div>
+        </div>
+
+        <h2>Legend</h2>
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-swatch" style="background: #555;"></div>
+                <span>Hydrophobic</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-swatch" style="background: #4da8da;"></div>
+                <span>Polar</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-swatch" style="background: #0099ff;"></div>
+                <span>Positive (+)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-swatch" style="background: #ff3333;"></div>
+                <span>Negative (−)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-swatch" style="background: #ffeb3b;"></div>
+                <span>G / P</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="main">
+        <div id="canvas-container">
+            <canvas id="canvas"></canvas>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        let resizeTimer;
+        
+        function resizeCanvas() {
+            const container = document.getElementById('canvas-container');
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+            render();
+        }
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(resizeCanvas, 200);
+        });
+        resizeCanvas();
+
+        // Real protein sequences
+        const proteins = {
+            myoglobin: {
+                name: 'Myoglobin',
+                seq: 'GLSDGEAKQVVKVKALPDAQFEVVHSLAKWKRQTLGQHDFSAGEGLYTHMKALRPDEDRLSPLHSVYVDQWDWERVMGDGERQGSIDLLWIYHTQGYFPDWQNYTSGVFQYSPDGKMMYDGNPHYDAFL',
+                description: 'Oxygen storage in muscle'
+            },
+            hemoglobin: {
+                name: 'Hemoglobin (α-chain)',
+                seq: 'VLSPADKTNVKAAWGKVGAHAGEYGAEALERMFLSFPTTKTYFPHFDLSHGSAQVKGH',
+                description: 'Oxygen transport in blood'
+            },
+            lysozyme: {
+                name: 'Lysozyme',
+                seq: 'MKVLVAALLVTFAGCAKAKDVQVIIEKTDLGIDEDRLELEWHQALLRGEMPQTIGGGIGQSRLTMLLLQLPHIGQVQAGVWPAAVRESVPSLL',
+                description: 'Antimicrobial enzyme'
+            },
+            insulin: {
+                name: 'Insulin (A+B chain)',
+                seq: 'GIVEQCCTSICSLYQLENYCNFVQYGCGSPCKNPPPSWYSDLTFANDYSYSMDDKEACVEVLCALYCDLKFYTPKT',
+                description: 'Glucose regulation hormone'
+            },
+            gfp: {
+                name: 'GFP',
+                seq: 'MSKGEELFTGVVPILVELDGDVNGHKFSVSGEGEGDATYGKLTLKFICTTGKLPVQWPTLVTTFSYGVQCFSRYPDHMKQHDFFKSAMPEGYVQERTIFFKDDGNYKTRAEVKFEGDTLVNRIELKGIDFKEDGNILGHKLEYNYNSHNVYIMADKQKNGIKVNFKIRHNIEDGSVQLADHYQQNTPIGDGPVLLPDNHYLSTQSALSKDPNEKRDHMVLLEFVTAAGITHGMDELYK',
+                description: 'Green fluorescent protein'
+            }
+        };
+
+        // Amino acid properties
+        const aaProps = {
+            hydrophobic: new Set('AVILMFWP'),
+            polar: new Set('STCYNQ'),
+            posCharge: new Set('KRH'),
+            negCharge: new Set('DE'),
+            special: new Set('GP')
+        };
+
+        // Chou-Fasman propensity tables (simplified)
+        const choufasman = {
+            helix: { A:1.42, C:0.70, D:1.01, E:1.51, F:1.13, G:0.57, H:1.00, I:1.08, K:1.16, L:1.21, M:1.45, N:0.67, P:0.57, Q:1.11, R:0.98, S:0.77, T:0.83, V:1.06, W:1.08, Y:0.69 },
+            sheet: { A:0.83, C:1.19, D:0.54, E:0.37, F:1.38, G:0.75, H:0.87, I:1.60, K:0.74, L:1.30, M:1.05, N:0.89, P:0.55, Q:1.10, R:0.93, S:0.75, T:1.19, V:1.70, W:1.37, Y:1.47 },
+            coil: { A:0.66, C:1.70, D:1.38, E:1.11, F:0.60, G:1.57, H:1.00, I:0.47, K:1.01, L:0.57, M:0.60, N:1.56, P:1.52, Q:0.98, R:0.93, S:1.42, T:0.83, V:0.50, W:0.37, Y:1.14 }
+        };
+
+        function predictSecondaryStructure(seq) {
+            const helix = [], sheet = [], coil = [];
+            const window_size = 9;
+            const half = Math.floor(window_size / 2);
+            
+            for (let i = 0; i < seq.length; i++) {
+                let h = 0, s = 0, c = 0;
+                let count = 0;
+                for (let j = -half; j <= half; j++) {
+                    const idx = i + j;
+                    if (idx >= 0 && idx < seq.length) {
+                        const aa = seq[idx];
+                        h += choufasman.helix[aa] || 1.0;
+                        s += choufasman.sheet[aa] || 1.0;
+                        c += choufasman.coil[aa] || 1.0;
+                        count++;
+                    }
+                }
+                helix[i] = h / count;
+                sheet[i] = s / count;
+                coil[i] = c / count;
+            }
+
+            const structure = [];
+            for (let i = 0; i < seq.length; i++) {
+                const scores = [
+                    { type: 'H', score: helix[i] },
+                    { type: 'E', score: sheet[i] },
+                    { type: 'C', score: coil[i] }
+                ];
+                const best = scores.sort((a, b) => b.score - a.score)[0];
+                structure.push(best.type);
+            }
+
+            // Smooth short runs
+            for (let i = 0; i < structure.length; i++) {
+                let run = 1;
+                while (i + run < structure.length && structure[i + run] === structure[i]) run++;
+                if (run < 3 && i > 0 && i + run < structure.length) {
+                    const prev = structure[i - 1];
+                    const next = structure[i + run];
+                    const vote = [prev, next].filter(x => x !== structure[i]);
+                    if (vote.length === 2 && vote[0] === vote[1]) {
+                        for (let j = 0; j < run; j++) structure[i + j] = vote[0];
+                    }
+                }
+            }
+
+            return structure;
+        }
+
+        function getAaColor(aa, ph) {
+            if (aaProps.special.has(aa)) return '#ffeb3b'; // G, P yellow
+            if (aaProps.negCharge.has(aa)) {
+                const intensity = ph > 5 ? 1.0 : Math.max(0.4, (ph - 2) / 3);
+                return `rgba(255, 51, 51, ${intensity})`;
+            }
+            if (aaProps.posCharge.has(aa)) {
+                const intensity = ph < 9 ? 1.0 : Math.max(0.4, (11 - ph) / 2);
+                return `rgba(0, 153, 255, ${intensity})`;
+            }
+            if (aaProps.polar.has(aa)) return '#4da8da';
+            if (aaProps.hydrophobic.has(aa)) return '#555555';
+            return '#888888';
+        }
+
+        function getSecondaryStructureGeometry(structure, positions, index) {
+            // Returns control points for helix spiral, sheet plane, or coil
+            const ss = structure[index];
+            const pos = positions[index];
+            
+            if (ss === 'H') {
+                // Alpha-helix: right-handed spiral, 3.6 residues/turn, 1.5Å rise per residue
+                const turn_pos = index % 3.6;
+                const angle = (turn_pos / 3.6) * 2 * Math.PI;
+                const rise = (index - Math.floor(index / 3.6) * 3.6) * 0.42; // 1.5Å/turn / 3.6 residues
+                return { type: 'helix', angle, rise, pos };
+            } else if (ss === 'E') {
+                // Beta-sheet: extended conformation
+                return { type: 'sheet', pos };
+            } else {
+                // Coil/loop: random walk
+                return { type: 'coil', pos };
+            }
+        }
+
+        function renderProtein(seq, angle, zoom, temp, ph) {
+            ctx.fillStyle = '#0a1428';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            const structure = predictSecondaryStructure(seq);
+            const cx = canvas.width / 2;
+            const cy = canvas.height / 2;
+            const maxLen = Math.min(300, Math.min(canvas.width, canvas.height) * 0.35 * zoom);
+            const scale = maxLen / seq.length;
+            
+            // Thermal jitter
+            const jitter = (temp - 300) / 200 * 2; // 0–2px max
+
+            ctx.save();
+            ctx.translate(cx, cy);
+            ctx.rotate((angle * Math.PI) / 180);
+
+            // Draw backbone
+            let x = -maxLen / 2;
+            let y = 0;
+            const positions = [];
+
+            for (let i = 0; i < seq.length; i++) {
+                const aa = seq[i];
+                const ss = structure[i];
+                const color = getAaColor(aa, ph);
+
+                // Apply thermal motion
+                const jx = (Math.random() - 0.5) * jitter * 2;
+                const jy = (Math.random() - 0.5) * jitter * 2;
+
+                // Helix: spiral up
+                if (ss === 'H') {
+                    const t = (i % 3.6) / 3.6;
+                    const helixR = 2;
+                    x += scale;
+                    const hx = helixR * Math.cos(t * 2 * Math.PI);
+                    const hy = helixR * Math.sin(t * 2 * Math.PI);
+                    y = hy;
+                    positions.push({ x: x + jx, y: y + jy, ss, color });
+                } else if (ss === 'E') {
+                    // Sheet: zigzag
+                    x += scale;
+                    y = (i % 2) * 3 - 1.5;
+                    positions.push({ x: x + jx, y: y + jy, ss, color });
+                } else {
+                    // Coil: smooth curve
+                    x += scale;
+                    y = Math.sin(i * 0.3) * 4;
+                    positions.push({ x: x + jx, y: y + jy, ss, color });
+                }
+            }
+
+            // Draw backbone line
+            ctx.strokeStyle = '#2d4a6a';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(positions[0].x, positions[0].y);
+            for (let i = 1; i < positions.length; i++) {
+                ctx.lineTo(positions[i].x, positions[i].y);
+            }
+            ctx.stroke();
+
+            // Draw residue circles
+            for (let i = 0; i < positions.length; i++) {
+                const p = positions[i];
+                ctx.fillStyle = p.color;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 2, 0, 2 * Math.PI);
+                ctx.fill();
+
+                // Secondary structure annotation
+                if (p.ss === 'H') {
+                    ctx.strokeStyle = '#4da8da';
+                    ctx.lineWidth = 1.5;
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, 3, 0, 2 * Math.PI);
+                    ctx.stroke();
+                } else if (p.ss === 'E') {
+                    ctx.strokeStyle = '#ffeb3b';
+                    ctx.lineWidth = 1;
+                    ctx.strokeRect(p.x - 2.5, p.y - 2.5, 5, 5);
+                }
+            }
+
+            // Draw info text
+            ctx.restore();
+            ctx.fillStyle = '#7dd3fc';
+            ctx.font = '12px "Space Mono"';
+            ctx.textAlign = 'left';
+            ctx.fillText(`Length: ${seq.length} | Angle: ${angle}° | Zoom: ${zoom.toFixed(1)}×`, 20, 30);
+
+            // Secondary structure summary
+            const hCount = structure.filter(x => x === 'H').length;
+            const eCount = structure.filter(x => x === 'E').length;
+            const cCount = structure.filter(x => x === 'C').length;
+            const totalSS = hCount + eCount + cCount;
+            ctx.fillStyle = '#7dd3fc';
+            ctx.fillText(`α-helix: ${Math.round((hCount / totalSS) * 100)}% | β-sheet: ${Math.round((eCount / totalSS) * 100)}% | Coil: ${Math.round((cCount / totalSS) * 100)}%`, 20, 50);
+        }
+
+        function updateStats(name, seq, structure) {
+            document.getElementById('statName').textContent = name;
+            document.getElementById('statLength').textContent = seq.length;
+            
+            const hCount = structure.filter(x => x === 'H').length;
+            const eCount = structure.filter(x => x === 'E').length;
+            const cCount = structure.filter(x => x === 'C').length;
+            const total = hCount + eCount + cCount;
+            document.getElementById('statSS').textContent = `${Math.round((hCount / total) * 100)}% H, ${Math.round((eCount / total) * 100)}% E, ${Math.round((cCount / total) * 100)}% C`;
+
+            // Hydrophobic moment (simplified: proportion of hydrophobic residues)
+            const hydrophobicCount = [...seq].filter(aa => aaProps.hydrophobic.has(aa)).length;
+            const hm = (hydrophobicCount / seq.length).toFixed(3);
+            document.getElementById('statHM').textContent = hm;
+        }
+
+        let currentSeq = '';
+        let currentStructure = [];
+        let currentName = '';
+
+        // Load protein
+        function loadProtein(key) {
+            const p = proteins[key];
+            currentSeq = p.seq.replace(/[^A-Z]/g, '');
+            currentName = p.name;
+            currentStructure = predictSecondaryStructure(currentSeq);
+            updateStats(currentName, currentSeq, currentStructure);
+            document.querySelectorAll('.protein-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(`btn-${key}`).classList.add('active');
+            render();
+        }
+
+        function render() {
+            if (currentSeq.length === 0) {
+                ctx.fillStyle = '#0a1428';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = '#7dd3fc';
+                ctx.font = '16px "Playfair Display"';
+                ctx.textAlign = 'center';
+                ctx.fillText('Select a protein or paste a sequence', canvas.width / 2, canvas.height / 2);
+                return;
+            }
+            const angle = parseFloat(document.getElementById('angleSlider').value);
+            const zoom = parseFloat(document.getElementById('zoomSlider').value);
+            const temp = parseFloat(document.getElementById('tempSlider').value);
+            const ph = parseFloat(document.getElementById('phSlider').value);
+            renderProtein(currentSeq, angle, zoom, temp, ph);
+        }
+
+        // Event listeners
+        document.getElementById('angleSlider').addEventListener('input', (e) => {
+            document.getElementById('angleVal').textContent = e.target.value;
+            render();
+        });
+        document.getElementById('zoomSlider').addEventListener('input', (e) => {
+            document.getElementById('zoomVal').textContent = parseFloat(e.target.value).toFixed(1);
+            render();
+        });
+        document.getElementById('tempSlider').addEventListener('input', (e) => {
+            document.getElementById('tempVal').textContent = e.target.value;
+            render();
+        });
+        document.getElementById('phSlider').addEventListener('input', (e) => {
+            document.getElementById('phVal').textContent = parseFloat(e.target.value).toFixed(1);
+            render();
+        });
+
+        document.getElementById('predictBtn').addEventListener('click', () => {
+            let input = document.getElementById('sequenceInput').value.toUpperCase().replace(/[^A-Z\s]/g, '');
+            if (input.includes('>')) {
+                // FASTA format
+                input = input.split('\n').slice(1).join('').replace(/\s/g, '');
+            }
+            if (input.length < 10) {
+                alert('Sequence must be at least 10 amino acids.');
+                return;
+            }
+            currentSeq = input;
+            currentName = 'Custom Sequence';
+            currentStructure = predictSecondaryStructure(currentSeq);
+            updateStats(currentName, currentSeq, currentStructure);
+            document.querySelectorAll('.protein-btn').forEach(btn => btn.classList.remove('active'));
+            render();
+        });
+
+        // Initialize buttons
+        for (const [key, protein] of Object.entries(proteins)) {
+            const btn = document.createElement('button');
+            btn.id = `btn-${key}`;
+            btn.className = 'protein-btn';
+            btn.textContent = protein.name;
+            btn.addEventListener('click', () => loadProtein(key));
+            document.getElementById('proteinButtons').appendChild(btn);
+        }
+
+        // Load first protein
+        loadProtein('myoglobin');
+    </script>
+</body>
+</html>
