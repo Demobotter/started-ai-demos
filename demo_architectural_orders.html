@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Architectural Orders</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Space+Mono:wght@400&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #f5f1e8;
+            font-family: 'Space Mono', monospace;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            width: 100%;
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            gap: 30px;
+            background: white;
+            border-radius: 8px;
+            padding: 40px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+        }
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+        h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 28px;
+            color: #3d3d3d;
+            margin-bottom: 8px;
+        }
+        .section-label {
+            font-family: 'Playfair Display', serif;
+            font-size: 16px;
+            color: #666;
+            margin-top: 20px;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 700;
+        }
+        .button-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        button {
+            padding: 10px 14px;
+            border: 2px solid #d0d0d0;
+            background: white;
+            border-radius: 4px;
+            font-family: 'Space Mono', monospace;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: left;
+            color: #333;
+        }
+        button:hover {
+            border-color: #888;
+            background: #fafafa;
+        }
+        button.active {
+            background: #3d3d3d;
+            color: white;
+            border-color: #3d3d3d;
+        }
+        .slider-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .slider-group label {
+            font-size: 12px;
+            color: #666;
+            font-weight: 600;
+        }
+        input[type="range"] {
+            width: 100%;
+            height: 5px;
+            border-radius: 3px;
+            background: #d0d0d0;
+            outline: none;
+            -webkit-appearance: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #3d3d3d;
+            cursor: pointer;
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #3d3d3d;
+            cursor: pointer;
+            border: none;
+        }
+        .slider-value {
+            font-size: 12px;
+            color: #888;
+        }
+        .toggle-group {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            margin-top: 12px;
+        }
+        input[type="checkbox"] {
+            cursor: pointer;
+        }
+        .toggle-group label {
+            cursor: pointer;
+            font-size: 13px;
+            color: #333;
+        }
+        .stats-box {
+            background: #fafafa;
+            border-left: 4px solid #b8860b;
+            padding: 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            line-height: 1.6;
+        }
+        .stats-box.doric { border-left-color: #b8860b; }
+        .stats-box.ionic { border-left-color: #8b7355; }
+        .stats-box.corinthian { border-left-color: #daa520; }
+        .stat-line {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 4px;
+        }
+        .stat-line:last-child { margin-bottom: 0; }
+        .stat-label { color: #666; }
+        .stat-value { color: #333; font-weight: 600; }
+        .canvas-wrapper {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: white;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        canvas {
+            display: block;
+            max-width: 100%;
+            height: auto;
+        }
+        @media (max-width: 900px) {
+            .container {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            h1 {
+                font-size: 22px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <div>
+                <h1>🏛️ Orders</h1>
+                <p style="font-size: 12px; color: #999; margin-bottom: 16px;">Classical column explorer</p>
+            </div>
+
+            <div>
+                <div class="section-label">Style</div>
+                <div class="button-group" id="orderButtons"></div>
+            </div>
+
+            <div>
+                <div class="section-label">Proportions</div>
+                <div class="slider-group">
+                    <label>Height multiplier</label>
+                    <input type="range" id="heightSlider" min="4" max="12" value="6" step="0.1">
+                    <div class="slider-value" id="heightValue">6.0x diameter</div>
+                </div>
+                <div class="slider-group">
+                    <label>Capital size</label>
+                    <input type="range" id="capitalSlider" min="0.8" max="2.0" value="1.2" step="0.1">
+                    <div class="slider-value" id="capitalValue">1.2x</div>
+                </div>
+            </div>
+
+            <div>
+                <div class="toggle-group">
+                    <input type="checkbox" id="historicalToggle" checked>
+                    <label for="historicalToggle">Historical accuracy</label>
+                </div>
+            </div>
+
+            <div id="statsContainer"></div>
+        </div>
+
+        <div class="canvas-wrapper">
+            <canvas id="canvas" width="600" height="700"></canvas>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const heightSlider = document.getElementById('heightSlider');
+        const capitalSlider = document.getElementById('capitalSlider');
+        const historicalToggle = document.getElementById('historicalToggle');
+        const statsContainer = document.getElementById('statsContainer');
+
+        const orders = {
+            doric: {
+                name: 'Doric',
+                color: '#b8860b',
+                heightMin: 4, heightMax: 6,
+                capitalMin: 1, capitalMax: 1.5,
+                origin: 'Ancient Greece',
+                fact: 'Simplest order. Sturdy, massive columns with plain capitals. Symbol of strength and dignity.',
+                acanthus: 0,
+                scrolls: 0
+            },
+            ionic: {
+                name: 'Ionic',
+                color: '#8b7355',
+                heightMin: 8, heightMax: 10,
+                capitalMin: 1, capitalMax: 1.5,
+                origin: 'Ionia (Asia Minor)',
+                fact: 'Slender with iconic scrolled capital (volutes). Associated with grace and elegance.',
+                acanthus: 0,
+                scrolls: 2
+            },
+            corinthian: {
+                name: 'Corinthian',
+                color: '#daa520',
+                heightMin: 9, heightMax: 11,
+                capitalMin: 1.2, capitalMax: 2,
+                origin: 'Ancient Rome',
+                fact: 'Most ornate with acanthus leaves. Height and elaboration required high craftsmanship.',
+                acanthus: 1,
+                scrolls: 4
+            }
+        };
+
+        let currentOrder = 'doric';
+
+        function updateOrderButtons() {
+            const container = document.getElementById('orderButtons');
+            container.innerHTML = '';
+            Object.keys(orders).forEach(key => {
+                const btn = document.createElement('button');
+                btn.textContent = orders[key].name;
+                btn.className = key === currentOrder ? 'active' : '';
+                btn.onclick = () => {
+                    currentOrder = key;
+                    updateOrderButtons();
+                    updateSliderConstraints();
+                    draw();
+                };
+                container.appendChild(btn);
+            });
+        }
+
+        function updateSliderConstraints() {
+            const order = orders[currentOrder];
+            if (historicalToggle.checked) {
+                heightSlider.min = order.heightMin;
+                heightSlider.max = order.heightMax;
+                heightSlider.value = (order.heightMin + order.heightMax) / 2;
+                capitalSlider.min = order.capitalMin;
+                capitalSlider.max = order.capitalMax;
+                capitalSlider.value = (order.capitalMin + order.capitalMax) / 2;
+            } else {
+                heightSlider.min = 4;
+                heightSlider.max = 12;
+                capitalSlider.min = 0.8;
+                capitalSlider.max = 2;
+            }
+            updateValues();
+        }
+
+        function updateValues() {
+            document.getElementById('heightValue').textContent = parseFloat(heightSlider.value).toFixed(1) + 'x diameter';
+            document.getElementById('capitalValue').textContent = parseFloat(capitalSlider.value).toFixed(1) + 'x';
+        }
+
+        function drawColumn(x, y, diameter, height, capitalSize, order) {
+            const shaftHeight = height - capitalSize;
+            const order_obj = orders[order];
+            const color = order_obj.color;
+
+            // Shaft (with slight entasis curve)
+            ctx.fillStyle = `${color}40`;
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            for (let i = 0; i <= shaftHeight; i++) {
+                const ratio = i / shaftHeight;
+                const taper = 1 - (ratio * ratio * 0.15); // entasis
+                const w = (diameter / 2) * taper;
+                const px = x + w;
+                const py = y - i;
+                if (i === 0) ctx.moveTo(px, py);
+                else ctx.lineTo(px, py);
+            }
+            for (let i = shaftHeight; i >= 0; i--) {
+                const ratio = i / shaftHeight;
+                const taper = 1 - (ratio * ratio * 0.15);
+                const w = (diameter / 2) * taper;
+                const px = x - w;
+                const py = y - i;
+                ctx.lineTo(px, py);
+            }
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            // Capital (simplified geometric shape)
+            ctx.fillStyle = `${color}60`;
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2;
+            const capW = diameter / 2 * 1.2;
+            ctx.fillRect(x - capW, y - shaftHeight - capitalSize, capW * 2, capitalSize);
+            ctx.strokeRect(x - capW, y - shaftHeight - capitalSize, capW * 2, capitalSize);
+
+            // Add scrolls for Ionic/Corinthian
+            if (order_obj.scrolls > 0) {
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                ctx.arc(x - capW + 8, y - shaftHeight - capitalSize + 4, 6, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.arc(x + capW - 8, y - shaftHeight - capitalSize + 4, 6, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+
+            // Add acanthus leaf indication for Corinthian
+            if (order_obj.acanthus > 0) {
+                ctx.fillStyle = color;
+                for (let i = 0; i < 3; i++) {
+                    const leafX = x - capW + 6 + i * (capW * 2 / 3);
+                    const leafY = y - shaftHeight - capitalSize + 8;
+                    ctx.beginPath();
+                    ctx.ellipse(leafX, leafY, 3, 8, Math.PI / 4, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+
+            // Base
+            ctx.fillStyle = `${color}30`;
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 1;
+            ctx.fillRect(x - diameter / 2 * 1.3, y, diameter * 1.3, 8);
+            ctx.strokeRect(x - diameter / 2 * 1.3, y, diameter * 1.3, 8);
+        }
+
+        function getStats() {
+            const order = orders[currentOrder];
+            const h = parseFloat(heightSlider.value);
+            const c = parseFloat(capitalSlider.value);
+            const d = 30; // base diameter
+            const shaftH = h - c;
+
+            // Slenderness ratio (height / width) — stability indicator
+            const slenderness = (h * d) / (d * d);
+            const stable = slenderness < 8;
+
+            return {
+                order: order.name,
+                origin: order.origin,
+                fact: order.fact,
+                heightRatio: h.toFixed(2),
+                capitalRatio: c.toFixed(2),
+                slenderness: slenderness.toFixed(2),
+                stable: stable,
+                stability: stable ? '✓ Structurally stable' : '⚠ Top-heavy — risk of buckling'
+            };
+        }
+
+        function updateStats() {
+            const stats = getStats();
+            const statClass = currentOrder;
+            statsContainer.innerHTML = `
+                <div class="stats-box ${statClass}">
+                    <div class="stat-line">
+                        <span class="stat-label">Order:</span>
+                        <span class="stat-value">${stats.order}</span>
+                    </div>
+                    <div class="stat-line">
+                        <span class="stat-label">Origin:</span>
+                        <span class="stat-value">${stats.origin}</span>
+                    </div>
+                    <div class="stat-line">
+                        <span class="stat-label">Height ratio:</span>
+                        <span class="stat-value">${stats.heightRatio}×</span>
+                    </div>
+                    <div class="stat-line">
+                        <span class="stat-label">Slenderness:</span>
+                        <span class="stat-value">${stats.slenderness}</span>
+                    </div>
+                    <div class="stat-line" style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #ddd;">
+                        <span class="stat-value" style="flex: 1; color: ${stats.stable ? '#2d9d5f' : '#c44'}">${stats.stability}</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        function draw() {
+            ctx.fillStyle = '#fff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Grid
+            ctx.strokeStyle = '#ddd';
+            ctx.lineWidth = 0.5;
+            for (let i = 0; i < canvas.height; i += 50) {
+                ctx.beginPath();
+                ctx.moveTo(0, i);
+                ctx.lineTo(canvas.width, i);
+                ctx.stroke();
+            }
+
+            const h = parseFloat(heightSlider.value);
+            const c = parseFloat(capitalSlider.value);
+            const totalHeight = (h + c) * 30; // 30px per unit
+
+            const centerY = canvas.height - 100;
+            const diameter = 30;
+
+            drawColumn(canvas.width / 2, centerY, diameter, totalHeight, c * diameter, currentOrder);
+
+            // Info text
+            ctx.fillStyle = '#666';
+            ctx.font = '12px "Space Mono"';
+            ctx.textAlign = 'center';
+            const fact = orders[currentOrder].fact;
+            ctx.fillText(fact, canvas.width / 2, canvas.height - 20);
+
+            updateStats();
+        }
+
+        // Event listeners
+        heightSlider.addEventListener('input', () => {
+            updateValues();
+            draw();
+        });
+        capitalSlider.addEventListener('input', () => {
+            updateValues();
+            draw();
+        });
+        historicalToggle.addEventListener('change', () => {
+            updateSliderConstraints();
+            draw();
+        });
+
+        // Init
+        updateOrderButtons();
+        updateSliderConstraints();
+        draw();
+    </script>
+</body>
+</html>
