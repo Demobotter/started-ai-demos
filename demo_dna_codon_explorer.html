@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DNA Codon Explorer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Space+Mono:wght@400&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Space Mono', monospace;
+            background: linear-gradient(135deg, #0f1a2e 0%, #1a2540 100%);
+            color: #e0e7ff;
+            overflow: hidden;
+        }
+        .container {
+            display: flex;
+            height: 100vh;
+        }
+        .sidebar {
+            width: 350px;
+            background: rgba(15, 26, 46, 0.95);
+            border-right: 1px solid #2d5a7a;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .canvas-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+        }
+        h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 24px;
+            color: #4da8da;
+            margin-bottom: 10px;
+        }
+        h2 {
+            font-family: 'Playfair Display', serif;
+            font-size: 16px;
+            color: #52c41a;
+            margin: 15px 0 8px 0;
+            border-bottom: 1px solid #2d5a7a;
+            padding-bottom: 5px;
+        }
+        input, select, button {
+            background: #1a2540;
+            border: 1px solid #2d5a7a;
+            color: #e0e7ff;
+            padding: 8px;
+            border-radius: 4px;
+            font-family: 'Space Mono', monospace;
+            font-size: 12px;
+            margin: 5px 0;
+            width: 100%;
+        }
+        input:focus, select:focus {
+            outline: none;
+            border-color: #4da8da;
+            background: #223354;
+        }
+        button {
+            cursor: pointer;
+            background: #2d5a7a;
+            transition: all 0.2s;
+        }
+        button:hover {
+            background: #3d7a9a;
+            border-color: #4da8da;
+        }
+        button.active {
+            background: #4da8da;
+            color: #0f1a2e;
+            font-weight: bold;
+        }
+        .stats-box {
+            background: rgba(45, 157, 95, 0.1);
+            border-left: 3px solid #2d9d5f;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 3px;
+            font-size: 11px;
+            line-height: 1.5;
+        }
+        .stats-box .label {
+            color: #52c41a;
+            font-weight: bold;
+        }
+        .stats-box .value {
+            color: #4da8da;
+        }
+        .control-group {
+            margin: 10px 0;
+        }
+        .control-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #52c41a;
+            font-size: 12px;
+        }
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            color: #e0e7ff;
+        }
+        .checkbox-label input {
+            width: auto;
+            margin: 0;
+        }
+        textarea {
+            background: #1a2540;
+            border: 1px solid #2d5a7a;
+            color: #4da8da;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: 'Space Mono', monospace;
+            font-size: 11px;
+            resize: vertical;
+            width: 100%;
+            height: 80px;
+        }
+        textarea:focus {
+            outline: none;
+            border-color: #4da8da;
+            background: #223354;
+        }
+        canvas {
+            background: #0f1a2e;
+            border: 1px solid #2d5a7a;
+            border-radius: 4px;
+            flex: 1;
+            display: block;
+        }
+        .tab-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 5px;
+            margin-bottom: 10px;
+        }
+        .tab-buttons button {
+            padding: 6px;
+            font-size: 11px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <h1>🧬 DNA Codon</h1>
+            
+            <div>
+                <h2>Sequence Input</h2>
+                <textarea id="dnaInput" placeholder="Paste DNA sequence (ATGC only)&#10;e.g., ATGGGTAAA...">ATGTTTCAGTGGAGAGGCGGACGACGAC</textarea>
+                <button onclick="translateDNA()">Translate</button>
+            </div>
+
+            <div>
+                <h2>View Mode</h2>
+                <div class="tab-buttons">
+                    <button id="tabCodons" class="active" onclick="switchView('codons')">Codons</button>
+                    <button id="tabAminoAcids" onclick="switchView('aminoacids')">Amino Acids</button>
+                    <button id="tabProtein" onclick="switchView('protein')">Structure</button>
+                </div>
+            </div>
+
+            <div>
+                <h2>Options</h2>
+                <div class="control-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="showProperties" onchange="redraw()"> Show Properties
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="showStop" checked onchange="redraw()"> Highlight Stop
+                    </label>
+                </div>
+                <label>Reading Frame: <select id="frameSelector" onchange="translateDNA()">
+                    <option value="0">+0 (normal)</option>
+                    <option value="1">+1 (shift 1)</option>
+                    <option value="2">+2 (shift 2)</option>
+                </select></label>
+            </div>
+
+            <div id="statsContainer"></div>
+
+            <div>
+                <h2>Examples</h2>
+                <button style="padding: 5px; font-size: 10px;" onclick="loadExample('insulin')">Human Insulin</button>
+                <button style="padding: 5px; font-size: 10px;" onclick="loadExample('gfp')">GFP (Green)</button>
+            </div>
+        </div>
+
+        <div class="canvas-area">
+            <canvas id="canvas"></canvas>
+        </div>
+    </div>
+
+    <script>
+        // Genetic code table (standard IUPAC)
+        const codonTable = {
+            'TTT': 'Phe (F)', 'TTC': 'Phe (F)', 'TTA': 'Leu (L)', 'TTG': 'Leu (L)',
+            'TCT': 'Ser (S)', 'TCC': 'Ser (S)', 'TCA': 'Ser (S)', 'TCG': 'Ser (S)',
+            'TAT': 'Tyr (Y)', 'TAC': 'Tyr (Y)', 'TAA': 'STOP', 'TAG': 'STOP',
+            'TGT': 'Cys (C)', 'TGC': 'Cys (C)', 'TGA': 'STOP', 'TGG': 'Trp (W)',
+            'CTT': 'Leu (L)', 'CTC': 'Leu (L)', 'CTA': 'Leu (L)', 'CTG': 'Leu (L)',
+            'CCT': 'Pro (P)', 'CCC': 'Pro (P)', 'CCA': 'Pro (P)', 'CCG': 'Pro (P)',
+            'CAT': 'His (H)', 'CAC': 'His (H)', 'CAA': 'Gln (Q)', 'CAG': 'Gln (Q)',
+            'CGT': 'Arg (R)', 'CGC': 'Arg (R)', 'CGA': 'Arg (R)', 'CGG': 'Arg (R)',
+            'ATT': 'Ile (I)', 'ATC': 'Ile (I)', 'ATA': 'Ile (I)', 'ATG': 'Met (M)',
+            'ACT': 'Thr (T)', 'ACC': 'Thr (T)', 'ACA': 'Thr (T)', 'ACG': 'Thr (T)',
+            'AAT': 'Asn (N)', 'AAC': 'Asn (N)', 'AAA': 'Lys (K)', 'AAG': 'Lys (K)',
+            'AGT': 'Ser (S)', 'AGC': 'Ser (S)', 'AGA': 'Arg (R)', 'AGG': 'Arg (R)',
+            'GTT': 'Val (V)', 'GTC': 'Val (V)', 'GTA': 'Val (V)', 'GTG': 'Val (V)',
+            'GCT': 'Ala (A)', 'GCC': 'Ala (A)', 'GCA': 'Ala (A)', 'GCG': 'Ala (A)',
+            'GAT': 'Asp (D)', 'GAC': 'Asp (D)', 'GAA': 'Glu (E)', 'GAG': 'Glu (E)',
+            'GGT': 'Gly (G)', 'GGC': 'Gly (G)', 'GGA': 'Gly (G)', 'GGG': 'Gly (G)'
+        };
+
+        // Amino acid properties
+        const aaProperties = {
+            'Ala': 'hydrophobic', 'Arg': 'charged+', 'Asn': 'polar', 'Asp': 'charged-',
+            'Cys': 'special', 'Gln': 'polar', 'Glu': 'charged-', 'Gly': 'special',
+            'His': 'charged+', 'Ile': 'hydrophobic', 'Leu': 'hydrophobic', 'Lys': 'charged+',
+            'Met': 'hydrophobic', 'Phe': 'hydrophobic', 'Pro': 'special', 'Ser': 'polar',
+            'Thr': 'polar', 'Trp': 'hydrophobic', 'Tyr': 'polar', 'Val': 'hydrophobic'
+        };
+
+        const aaColors = {
+            'hydrophobic': '#ff9933',
+            'polar': '#4da8da',
+            'charged+': '#0066ff',
+            'charged-': '#ff3333',
+            'special': '#ffff00'
+        };
+
+        let currentDNA = '';
+        let currentCodons = [];
+        let currentAminoAcids = [];
+        let currentView = 'codons';
+
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        function resizeCanvas() {
+            const rect = canvas.parentElement.getBoundingClientRect();
+            canvas.width = rect.width;
+            canvas.height = rect.height;
+            redraw();
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        function cleanDNA(seq) {
+            return seq.toUpperCase().replace(/[^ATGC]/g, '');
+        }
+
+        function translateDNA() {
+            const input = document.getElementById('dnaInput').value;
+            currentDNA = cleanDNA(input);
+            const frame = parseInt(document.getElementById('frameSelector').value);
+            
+            currentCodons = [];
+            currentAminoAcids = [];
+            
+            for (let i = frame; i + 3 <= currentDNA.length; i += 3) {
+                const codon = currentDNA.substr(i, 3);
+                currentCodons.push(codon);
+                const aa = codonTable[codon] || '???';
+                currentAminoAcids.push(aa);
+            }
+            
+            updateStats();
+            redraw();
+        }
+
+        function updateStats() {
+            const stats = `
+                <div class="stats-box">
+                    <div class="label">Sequence Length:</div>
+                    <div class="value">${currentDNA.length} bp</div>
+                </div>
+                <div class="stats-box">
+                    <div class="label">Codons:</div>
+                    <div class="value">${currentCodons.length}</div>
+                </div>
+                <div class="stats-box">
+                    <div class="label">Amino Acids:</div>
+                    <div class="value">${currentAminoAcids.length}</div>
+                </div>
+                <div class="stats-box">
+                    <div class="label">Start Codon:</div>
+                    <div class="value">${currentCodons[0] === 'ATG' ? '✓ ATG' : '⚠ No ATG'}</div>
+                </div>
+                <div class="stats-box">
+                    <div class="label">Stop Codon:</div>
+                    <div class="value">${currentCodons.some(c => ['TAA', 'TAG', 'TGA'].includes(c)) ? '✓ Found' : '⚠ None'}</div>
+                </div>
+            `;
+            document.getElementById('statsContainer').innerHTML = stats;
+        }
+
+        function switchView(view) {
+            currentView = view;
+            document.getElementById('tabCodons').classList.remove('active');
+            document.getElementById('tabAminoAcids').classList.remove('active');
+            document.getElementById('tabProtein').classList.remove('active');
+            document.getElementById('tab' + (view === 'codons' ? 'Codons' : view === 'aminoacids' ? 'AminoAcids' : 'Protein')).classList.add('active');
+            redraw();
+        }
+
+        function redraw() {
+            const w = canvas.width;
+            const h = canvas.height;
+            ctx.fillStyle = '#0f1a2e';
+            ctx.fillRect(0, 0, w, h);
+            ctx.strokeStyle = '#2d5a7a';
+            ctx.strokeRect(0, 0, w, h);
+
+            if (currentView === 'codons') {
+                drawCodonsView();
+            } else if (currentView === 'aminoacids') {
+                drawAminoAcidsView();
+            } else {
+                drawProteinView();
+            }
+        }
+
+        function drawCodonsView() {
+            const w = canvas.width;
+            const h = canvas.height;
+            const margin = 30;
+
+            // Title
+            ctx.font = 'bold 18px Playfair Display';
+            ctx.fillStyle = '#4da8da';
+            ctx.fillText('DNA Codons', margin, margin - 5);
+
+            const codonSize = 60;
+            const spacing = 10;
+            
+            ctx.font = '12px Space Mono';
+            let x = margin, y = margin + 30;
+
+            for (let i = 0; i < currentCodons.length && y + codonSize < h - 20; i++) {
+                if (x + codonSize > w - margin) {
+                    x = margin;
+                    y += codonSize + spacing + 40;
+                }
+
+                const codon = currentCodons[i];
+                const aa = currentAminoAcids[i];
+                const isStop = ['TAA', 'TAG', 'TGA'].includes(codon);
+                const isStart = codon === 'ATG' && i === 0;
+
+                // Codon box
+                ctx.fillStyle = isStop ? '#8b0000' : isStart ? '#006400' : '#1a2540';
+                ctx.strokeStyle = isStop ? '#ff6666' : isStart ? '#00ff00' : '#2d5a7a';
+                ctx.lineWidth = 2;
+                ctx.fillRect(x, y, codonSize, codonSize);
+                ctx.strokeRect(x, y, codonSize, codonSize);
+
+                // Nucleotides
+                ctx.fillStyle = '#4da8da';
+                ctx.font = 'bold 14px Space Mono';
+                ctx.fillText(codon, x + 8, y + 28);
+
+                // Amino acid
+                ctx.fillStyle = isStop ? '#ff9999' : '#52c41a';
+                ctx.font = '10px Space Mono';
+                ctx.fillText(aa, x + 4, y + 48);
+
+                x += codonSize + spacing;
+            }
+        }
+
+        function drawAminoAcidsView() {
+            const w = canvas.width;
+            const h = canvas.height;
+            const margin = 30;
+
+            ctx.font = 'bold 18px Playfair Display';
+            ctx.fillStyle = '#4da8da';
+            ctx.fillText('Amino Acid Sequence', margin, margin - 5);
+
+            const aaSize = 40;
+            const spacing = 8;
+            let x = margin, y = margin + 30;
+
+            for (let i = 0; i < currentAminoAcids.length; i++) {
+                const aa = currentAminoAcids[i];
+                const aaName = aa.split(' ')[0];
+                const shortCode = aa.split('(')[1]?.replace(')', '') || '?';
+                const showProps = document.getElementById('showProperties').checked;
+                const prop = showProps ? aaProperties[aaName] || 'unknown' : null;
+                const color = showProps ? aaColors[prop] : '#4da8da';
+
+                if (x + aaSize > w - margin) {
+                    x = margin;
+                    y += aaSize + spacing + 20;
+                }
+
+                ctx.fillStyle = color;
+                ctx.fillRect(x, y, aaSize, aaSize);
+                ctx.strokeStyle = '#2d5a7a';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(x, y, aaSize, aaSize);
+
+                ctx.fillStyle = '#0f1a2e';
+                ctx.font = 'bold 12px Space Mono';
+                ctx.textAlign = 'center';
+                ctx.fillText(shortCode, x + aaSize / 2, y + 25);
+                ctx.textAlign = 'left';
+
+                x += aaSize + spacing;
+            }
+        }
+
+        function drawProteinView() {
+            const w = canvas.width;
+            const h = canvas.height;
+            const cx = w / 2;
+            const cy = h / 2;
+            const radius = Math.min(w, h) / 3;
+
+            ctx.font = 'bold 18px Playfair Display';
+            ctx.fillStyle = '#4da8da';
+            ctx.fillText('Protein Properties', 30, 30);
+
+            const n = currentAminoAcids.length;
+            for (let i = 0; i < n; i++) {
+                const angle = (i / n) * Math.PI * 2 - Math.PI / 2;
+                const x = cx + Math.cos(angle) * radius;
+                const y = cy + Math.sin(angle) * radius;
+
+                const aa = currentAminoAcids[i];
+                const aaName = aa.split(' ')[0];
+                const prop = aaProperties[aaName] || 'unknown';
+                const color = aaColors[prop];
+
+                ctx.fillStyle = color;
+                ctx.beginPath();
+                ctx.arc(x, y, 12, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.strokeStyle = '#2d5a7a';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+
+                ctx.fillStyle = '#0f1a2e';
+                ctx.font = 'bold 10px Space Mono';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(aa.split('(')[1]?.replace(')', '') || '?', x, y);
+            }
+
+            // Legend
+            let legendY = h - 120;
+            ctx.font = '10px Space Mono';
+            ctx.fillStyle = '#52c41a';
+            const legend = [
+                { prop: 'hydrophobic', label: 'Hydrophobic' },
+                { prop: 'polar', label: 'Polar' },
+                { prop: 'charged+', label: 'Pos. Charged' },
+                { prop: 'charged-', label: 'Neg. Charged' },
+                { prop: 'special', label: 'Special' }
+            ];
+            for (const item of legend) {
+                ctx.fillStyle = aaColors[item.prop];
+                ctx.fillRect(30, legendY, 12, 12);
+                ctx.fillStyle = '#e0e7ff';
+                ctx.fillText(item.label, 50, legendY + 8);
+                legendY += 18;
+            }
+        }
+
+        function loadExample(name) {
+            const examples = {
+                insulin: 'ATGTTTCAGTGGAGAGGCGGACGACGACAAACAGACACGTGGTGCGTGCGCTGGTGTGTGCGGAGAGCGCGTGTGGTGGTGCCCTGGTGCACGGCGCCTATCAGAAAGAGGTGCAGCGCGACGTGGTGTACAACGAGCTGGTGGTGGAACTGCTGGCACGCGTGCTGGTGGTGGCCAAACACGCGTATGTGGTGCTGGGCACCCTGGTGATCGTGACCATCTATTTTGTGTACTACCGCACTGTGCACTGA',
+                gfp: 'ATGAGTAAAGGAGAAGAACTTTTCACTGGAGTTGTCCCAATTCTTGTTGAATTAGATGGTGATGTTAATGGGCACAAATTTTCTGTCAGTGGAGAGGGTGAAGGTGATGCTACAAACGGTAAACTGACGCTGAAATTTATCTGCACCACCGGCAAGCTGCCCGTGCCCTGGCCCACCCTCGTGACCACCCTGACCTACGGCGTGCAGTGCTTCAGCCGCTACCCCGACCACATGAAGCAGCACGACTTCTTCAAGTCCGCCATGCCGGAAGGCTATGTGCAGGAACGCACGATTCTTTTCAAGTCCGCCATGCCGATG'
+            };
+            document.getElementById('dnaInput').value = examples[name] || '';
+            translateDNA();
+        }
+
+        // Initial draw
+        redraw();
+    </script>
+</body>
+</html>
