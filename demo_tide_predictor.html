@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tide Predictor</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Space+Mono:wght@400&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Space Mono', monospace;
+      background: #1a3a5a;
+      color: #e0e7ff;
+      padding: 20px;
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      display: flex;
+      gap: 24px;
+    }
+    .sidebar {
+      width: 280px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: 28px;
+      margin-bottom: 12px;
+    }
+    .section {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .section-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 14px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 12px;
+      color: #4da8da;
+    }
+    .port-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
+    .port-btn {
+      background: rgba(77,168,218,0.2);
+      border: 1px solid #4da8da;
+      color: #e0e7ff;
+      padding: 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-family: 'Space Mono', monospace;
+      font-size: 12px;
+      transition: all 0.2s;
+    }
+    .port-btn.active {
+      background: #4da8da;
+      color: #1a3a5a;
+    }
+    .port-btn:hover {
+      background: rgba(77,168,218,0.4);
+    }
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .control-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #9ca3af;
+    }
+    input[type="date"], input[type="range"], input[type="number"] {
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.15);
+      color: #e0e7ff;
+      padding: 8px;
+      border-radius: 4px;
+      font-family: 'Space Mono', monospace;
+      font-size: 12px;
+    }
+    input[type="range"] {
+      cursor: pointer;
+      padding: 4px;
+    }
+    .constituent-toggles {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .constituent-toggle {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    .constituent-toggle input[type="checkbox"] {
+      cursor: pointer;
+      width: 16px;
+      height: 16px;
+    }
+    .constituent-color {
+      width: 12px;
+      height: 12px;
+      border-radius: 2px;
+    }
+    .stats-box {
+      background: rgba(45,157,95,0.1);
+      border-left: 3px solid #2d9d5f;
+      padding: 10px;
+      border-radius: 4px;
+      font-size: 12px;
+    }
+    .stats-label {
+      color: #9ca3af;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .stats-value {
+      color: #4da8da;
+      font-weight: 700;
+      font-size: 14px;
+      margin-top: 4px;
+    }
+    canvas {
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px;
+      background: #0f1e2e;
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+    .comparison-mode {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .comparison-mode button {
+      flex: 1;
+      background: rgba(77,168,218,0.2);
+      border: 1px solid #4da8da;
+      color: #e0e7ff;
+      padding: 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      transition: all 0.2s;
+    }
+    .comparison-mode button.active {
+      background: #4da8da;
+      color: #1a3a5a;
+    }
+    @media (max-width: 1024px) {
+      .container {
+        flex-direction: column;
+      }
+      .sidebar {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="sidebar">
+      <div>
+        <h1>🌊 Tide Predictor</h1>
+      </div>
+      
+      <div class="section">
+        <div class="section-title">Port</div>
+        <div class="port-grid">
+          <button class="port-btn active" data-port="sf">San Francisco</button>
+          <button class="port-btn" data-port="liverpool">Liverpool</button>
+          <button class="port-btn" data-port="sydney">Sydney</button>
+          <button class="port-btn" data-port="dubai">Dubai</button>
+          <button class="port-btn" data-port="tokyo">Tokyo</button>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Date & Time</div>
+        <div class="control-group">
+          <label class="control-label">Date</label>
+          <input type="date" id="dateInput">
+        </div>
+        <div class="control-group">
+          <label class="control-label">Hour (0–23)</label>
+          <input type="range" id="hourSlider" min="0" max="23" value="12">
+          <div style="text-align: center; color: #4da8da; font-size: 12px;" id="hourDisplay">12:00</div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Constituents</div>
+        <div class="constituent-toggles" id="constituentToggles"></div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Stats</div>
+        <div class="stats-box">
+          <div class="stats-label">Height</div>
+          <div class="stats-value" id="statHeight">0.0 m</div>
+        </div>
+        <div class="stats-box" style="margin-top: 8px;">
+          <div class="stats-label">Rate</div>
+          <div class="stats-value" id="statRate">0.0 m/hr</div>
+        </div>
+        <div class="stats-box" style="margin-top: 8px;">
+          <div class="stats-label">Range</div>
+          <div class="stats-value" id="statRange">0.0 m</div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Mode</div>
+        <div class="comparison-mode">
+          <button class="active" data-mode="single">Single</button>
+          <button data-mode="compare">Compare</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="main">
+      <canvas id="tideCanvas" width="900" height="500"></canvas>
+    </div>
+  </div>
+
+  <script>
+    const ports = {
+      sf: {
+        name: 'San Francisco',
+        constituents: {
+          M2: { A: 0.85, phase: 142 },
+          S2: { A: 0.20, phase: 155 },
+          K1: { A: 0.15, phase: 320 }
+        }
+      },
+      liverpool: {
+        name: 'Liverpool',
+        constituents: {
+          M2: { A: 2.1, phase: 80 },
+          S2: { A: 0.45, phase: 95 },
+          N2: { A: 0.4, phase: 75 }
+        }
+      },
+      sydney: {
+        name: 'Sydney',
+        constituents: {
+          K1: { A: 0.6, phase: 210 },
+          O1: { A: 0.35, phase: 200 },
+          M2: { A: 0.3, phase: 120 }
+        }
+      },
+      dubai: {
+        name: 'Dubai',
+        constituents: {
+          M2: { A: 1.3, phase: 100 },
+          S2: { A: 0.4, phase: 115 },
+          K2: { A: 0.1, phase: 150 }
+        }
+      },
+      tokyo: {
+        name: 'Tokyo',
+        constituents: {
+          M2: { A: 0.85, phase: 130 },
+          N2: { A: 0.2, phase: 125 },
+          K1: { A: 0.4, phase: 280 },
+          O1: { A: 0.35, phase: 270 },
+          S2: { A: 0.2, phase: 145 }
+        }
+      }
+    };
+
+    const constituentColors = {
+      M2: '#00ff00',
+      S2: '#ff9900',
+      K1: '#ff0000',
+      N2: '#9966ff',
+      O1: '#ff1493',
+      K2: '#ffff00'
+    };
+
+    const constituentFreqs = {
+      M2: 1.4051, // rad/hr (lunar semi-diurnal)
+      S2: 1.4546, // rad/hr (solar semi-diurnal)
+      N2: 1.3897, // rad/hr (lunar elliptic)
+      K1: 0.7292, // rad/hr (lunar diurnal)
+      O1: 0.6794, // rad/hr (lunar diurnal)
+      K2: 0.7292  // rad/hr (solar diurnal) — placeholder
+    };
+
+    let state = {
+      currentPort: 'sf',
+      currentDate: new Date(),
+      currentHour: 12,
+      activeConstituents: { M2: true, S2: true, K1: true, N2: true, O1: true, K2: true },
+      comparisonMode: false,
+      comparisonPort: 'sydney'
+    };
+
+    const canvas = document.getElementById('tideCanvas');
+    const ctx = canvas.getContext('2d');
+
+    function calculateTideHeight(t, portKey, constituents) {
+      const port = ports[portKey];
+      let height = 0;
+      for (const [name, data] of Object.entries(port.constituents)) {
+        if (!constituents[name]) continue;
+        const omega = constituentFreqs[name];
+        const phase = data.phase * Math.PI / 180;
+        height += data.A * Math.cos(omega * t + phase);
+      }
+      return height;
+    }
+
+    function updateConstituentsUI() {
+      const port = ports[state.currentPort];
+      const container = document.getElementById('constituentToggles');
+      container.innerHTML = '';
+      for (const [name, data] of Object.entries(port.constituents)) {
+        const checked = state.activeConstituents[name] ? 'checked' : '';
+        const label = document.createElement('label');
+        label.className = 'constituent-toggle';
+        label.innerHTML = `
+          <input type="checkbox" data-constituent="${name}" ${checked}>
+          <div class="constituent-color" style="background: ${constituentColors[name]}"></div>
+          <span>${name}</span>
+        `;
+        container.appendChild(label);
+      }
+      document.querySelectorAll('.constituent-toggle input').forEach(cb => {
+        cb.addEventListener('change', (e) => {
+          state.activeConstituents[e.target.dataset.constituent] = e.target.checked;
+          draw();
+        });
+      });
+    }
+
+    function draw() {
+      ctx.fillStyle = '#0f1e2e';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      const pad = 50;
+      const graphW = canvas.width - 2*pad;
+      const graphH = canvas.height - 2*pad;
+
+      // Mean sea level
+      const mslY = canvas.height / 2;
+      ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath();
+      ctx.moveTo(pad, mslY);
+      ctx.lineTo(canvas.width - pad, mslY);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Axes
+      ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+      ctx.beginPath();
+      ctx.moveTo(pad, pad);
+      ctx.lineTo(pad, canvas.height - pad);
+      ctx.lineTo(canvas.width - pad, canvas.height - pad);
+      ctx.stroke();
+
+      // Labels
+      ctx.fillStyle = '#9ca3af';
+      ctx.font = '11px "Space Mono"';
+      ctx.textAlign = 'right';
+      ctx.fillText('Height (m)', 40, pad - 10);
+      ctx.textAlign = 'center';
+      ctx.fillText('Hour (UTC)', canvas.width / 2, canvas.height - 10);
+
+      // Grid
+      ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+      for (let i = -2; i <= 2; i++) {
+        const y = mslY - (i * graphH / 4);
+        ctx.beginPath();
+        ctx.moveTo(pad, y);
+        ctx.lineTo(canvas.width - pad, y);
+        ctx.stroke();
+        ctx.fillStyle = '#9ca3af';
+        ctx.textAlign = 'right';
+        ctx.fillText(i.toFixed(1), pad - 8, y + 4);
+      }
+      for (let h = 0; h <= 24; h += 4) {
+        const x = pad + (h / 24) * graphW;
+        ctx.beginPath();
+        ctx.moveTo(x, canvas.height - pad);
+        ctx.lineTo(x, canvas.height - pad + 5);
+        ctx.stroke();
+        ctx.fillStyle = '#9ca3af';
+        ctx.textAlign = 'center';
+        ctx.fillText(h, x, canvas.height - pad + 18);
+      }
+
+      // Plot constituents individually if toggled
+      for (const [name, data] of Object.entries(ports[state.currentPort].constituents)) {
+        if (!state.activeConstituents[name]) continue;
+        ctx.strokeStyle = constituentColors[name];
+        ctx.globalAlpha = 0.3;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        for (let h = 0; h <= 24; h += 0.1) {
+          const height = data.A * Math.cos((constituentFreqs[name] * h * Math.PI / 180) + (data.phase * Math.PI / 180));
+          const x = pad + (h / 24) * graphW;
+          const y = mslY - (height / 2.5) * (graphH / 4);
+          if (h === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+      }
+
+      // Plot total
+      ctx.strokeStyle = '#4da8da';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      for (let h = 0; h <= 24; h += 0.1) {
+        const height = calculateTideHeight(h, state.currentPort, state.activeConstituents);
+        const x = pad + (h / 24) * graphW;
+        const y = mslY - (height / 2.5) * (graphH / 4);
+        if (h === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+
+      // Fill under curve
+      ctx.fillStyle = 'rgba(77, 168, 218, 0.1)';
+      ctx.beginPath();
+      for (let h = 0; h <= 24; h += 0.1) {
+        const height = calculateTideHeight(h, state.currentPort, state.activeConstituents);
+        const x = pad + (h / 24) * graphW;
+        const y = mslY - (height / 2.5) * (graphH / 4);
+        if (h === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.lineTo(canvas.width - pad, mslY);
+      ctx.lineTo(pad, mslY);
+      ctx.fill();
+
+      // Current time marker
+      const t = state.currentHour;
+      const height = calculateTideHeight(t, state.currentPort, state.activeConstituents);
+      const currentX = pad + (t / 24) * graphW;
+      const currentY = mslY - (height / 2.5) * (graphH / 4);
+      ctx.fillStyle = '#ff6b6b';
+      ctx.beginPath();
+      ctx.arc(currentX, currentY, 5, 0, 2*Math.PI);
+      ctx.fill();
+
+      // Update stats
+      document.getElementById('statHeight').textContent = height.toFixed(2) + ' m';
+
+      // Rate of change (derivative)
+      const dt = 0.01;
+      const h2 = calculateTideHeight(t + dt, state.currentPort, state.activeConstituents);
+      const rate = (h2 - height) / dt;
+      document.getElementById('statRate').textContent = rate.toFixed(2) + ' m/hr';
+
+      // Range
+      let minH = Infinity, maxH = -Infinity;
+      for (let h = 0; h <= 24; h += 0.1) {
+        const hh = calculateTideHeight(h, state.currentPort, state.activeConstituents);
+        minH = Math.min(minH, hh);
+        maxH = Math.max(maxH, hh);
+      }
+      document.getElementById('statRange').textContent = (maxH - minH).toFixed(2) + ' m';
+    }
+
+    // Event listeners
+    document.querySelectorAll('.port-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        document.querySelectorAll('.port-btn').forEach(b => b.classList.remove('active'));
+        e.target.classList.add('active');
+        state.currentPort = e.target.dataset.port;
+        updateConstituentsUI();
+        draw();
+      });
+    });
+
+    document.getElementById('hourSlider').addEventListener('input', (e) => {
+      state.currentHour = parseInt(e.target.value);
+      document.getElementById('hourDisplay').textContent = String(state.currentHour).padStart(2, '0') + ':00';
+      draw();
+    });
+
+    // Initialize
+    const today = new Date();
+    document.getElementById('dateInput').valueAsDate = today;
+    updateConstituentsUI();
+    draw();
+
+    window.addEventListener('resize', () => {
+      if (canvas.parentElement) {
+        canvas.width = canvas.parentElement.clientWidth * 0.95;
+        draw();
+      }
+    });
+  </script>
+</body>
+</html>
