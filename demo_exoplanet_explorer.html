@@ -1,621 +1,425 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Exoplanet Explorer</title>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&family=Lato:wght@400;500&display=swap" rel="stylesheet">
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      font-family: 'Lato', sans-serif;
-      background: linear-gradient(135deg, #0a0a14 0%, #1a2540 50%, #0f1428 100%);
-      color: #e0e0e0;
-      min-height: 100vh;
-      padding: 20px;
-      position: relative;
-      overflow-x: hidden;
-    }
-
-    /* Animated star background */
-    .star-field {
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      pointer-events: none;
-      z-index: 0;
-    }
-    .star { position: absolute; width: 1px; height: 1px; background: #ffffff; border-radius: 50%; }
-    .star.twinkle { animation: twinkle 3s infinite; }
-    @keyframes twinkle { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
-
-    .container {
-      max-width: 1200px;
-      margin: 0 auto;
-      position: relative;
-      z-index: 1;
-    }
-
-    h1 {
-      font-family: 'Poppins', sans-serif;
-      text-align: center;
-      margin-bottom: 10px;
-      font-size: 2.5rem;
-      color: #00d9ff;
-      text-shadow: 0 0 20px rgba(0, 217, 255, 0.5);
-    }
-
-    .subtitle {
-      text-align: center;
-      color: #b57edc;
-      margin-bottom: 30px;
-      font-size: 0.95rem;
-    }
-
-    .controls {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 20px;
-      margin-bottom: 30px;
-      padding: 20px;
-      background: rgba(42, 26, 78, 0.3);
-      border-radius: 12px;
-      border: 1px solid rgba(181, 126, 220, 0.2);
-    }
-
-    .control-group {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .control-group label {
-      font-size: 0.85rem;
-      color: #b57edc;
-      font-weight: 500;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
-    .sort-buttons {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-
-    button {
-      padding: 8px 16px;
-      background: rgba(0, 217, 255, 0.15);
-      border: 1px solid #00d9ff;
-      color: #00d9ff;
-      border-radius: 6px;
-      cursor: pointer;
-      font-family: 'Lato', sans-serif;
-      font-size: 0.85rem;
-      transition: all 0.2s;
-    }
-
-    button:hover {
-      background: rgba(0, 217, 255, 0.3);
-      box-shadow: 0 0 10px rgba(0, 217, 255, 0.5);
-    }
-
-    button.active {
-      background: #00d9ff;
-      color: #0a0a14;
-    }
-
-    input[type="range"] {
-      width: 100%;
-      height: 6px;
-      border-radius: 3px;
-      background: rgba(0, 217, 255, 0.2);
-      outline: none;
-      -webkit-appearance: none;
-    }
-
-    input[type="range"]::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      appearance: none;
-      width: 16px;
-      height: 16px;
-      border-radius: 50%;
-      background: #00d9ff;
-      cursor: pointer;
-      box-shadow: 0 0 10px rgba(0, 217, 255, 0.5);
-    }
-
-    input[type="range"]::-moz-range-thumb {
-      width: 16px;
-      height: 16px;
-      border-radius: 50%;
-      background: #00d9ff;
-      cursor: pointer;
-      border: none;
-      box-shadow: 0 0 10px rgba(0, 217, 255, 0.5);
-    }
-
-    .range-value {
-      font-size: 0.8rem;
-      color: #ffd700;
-    }
-
-    .main-content {
-      display: grid;
-      grid-template-columns: 1fr 300px;
-      gap: 20px;
-      margin-bottom: 30px;
-    }
-
-    #canvas {
-      width: 100%;
-      height: 500px;
-      background: rgba(10, 10, 20, 0.8);
-      border: 2px solid rgba(0, 217, 255, 0.3);
-      border-radius: 12px;
-      display: block;
-      cursor: crosshair;
-    }
-
-    .stats-panel {
-      background: rgba(42, 26, 78, 0.4);
-      border: 1px solid rgba(181, 126, 220, 0.2);
-      border-radius: 12px;
-      padding: 20px;
-      font-size: 0.85rem;
-      line-height: 1.8;
-    }
-
-    .stat-item {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 12px;
-      padding-bottom: 12px;
-      border-bottom: 1px solid rgba(181, 126, 220, 0.1);
-    }
-
-    .stat-item:last-child {
-      border-bottom: none;
-      margin-bottom: 0;
-      padding-bottom: 0;
-    }
-
-    .stat-label {
-      color: #b57edc;
-    }
-
-    .stat-value {
-      color: #ffd700;
-      font-weight: 500;
-    }
-
-    .planets-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-      gap: 15px;
-      margin-top: 30px;
-    }
-
-    .planet-card {
-      background: rgba(42, 26, 78, 0.4);
-      border: 2px solid rgba(0, 217, 255, 0.2);
-      border-radius: 10px;
-      padding: 16px;
-      cursor: pointer;
-      transition: all 0.3s;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .planet-card:hover {
-      transform: translateY(-4px);
-      border-color: #00d9ff;
-      background: rgba(42, 26, 78, 0.6);
-      box-shadow: 0 8px 20px rgba(0, 217, 255, 0.2);
-    }
-
-    .planet-card.selected {
-      border-color: #ffd700;
-      background: rgba(212, 165, 116, 0.1);
-    }
-
-    .esi-badge {
-      display: inline-block;
-      padding: 4px 10px;
-      border-radius: 20px;
-      font-size: 0.7rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      margin-bottom: 10px;
-      letter-spacing: 0.5px;
-    }
-
-    .esi-green { background: rgba(45, 157, 95, 0.3); color: #2d9d5f; border: 1px solid #2d9d5f; }
-    .esi-blue { background: rgba(74, 180, 255, 0.3); color: #4ab4ff; border: 1px solid #4ab4ff; }
-    .esi-orange { background: rgba(255, 152, 0, 0.3); color: #ff9800; border: 1px solid #ff9800; }
-    .esi-red { background: rgba(233, 75, 60, 0.3); color: #e94b3c; border: 1px solid #e94b3c; }
-
-    .planet-name {
-      font-family: 'Poppins', sans-serif;
-      font-size: 1.1rem;
-      font-weight: 600;
-      color: #00d9ff;
-      margin-bottom: 8px;
-    }
-
-    .planet-detail {
-      font-size: 0.75rem;
-      color: #b0b0b0;
-      margin: 4px 0;
-      line-height: 1.4;
-    }
-
-    .planet-detail-label {
-      color: #b57edc;
-      font-weight: 500;
-    }
-
-    .expanded-info {
-      display: none;
-      margin-top: 12px;
-      padding-top: 12px;
-      border-top: 1px solid rgba(181, 126, 220, 0.2);
-    }
-
-    .expanded-info.show {
-      display: block;
-    }
-
-    .esi-score {
-      font-size: 1.8rem;
-      font-weight: 700;
-      color: #ffd700;
-      margin: 10px 0;
-      text-align: center;
-    }
-
-    @media (max-width: 800px) {
-      .main-content {
-        grid-template-columns: 1fr;
-      }
-      h1 { font-size: 1.8rem; }
-      .controls { grid-template-columns: 1fr; }
-      .planets-grid { grid-template-columns: 1fr; }
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exoplanet Explorer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Space+Mono:wght@400&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Space Mono', monospace;
+            background: linear-gradient(135deg, #0a0f15 0%, #1a1a2e 100%);
+            color: #4da8da;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            font-family: 'Playfair Display', serif;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5rem;
+            color: #7dd3fc;
+        }
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+            background: rgba(26, 26, 46, 0.6);
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #2d4a5a;
+        }
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        label {
+            font-size: 0.9rem;
+            color: #7dd3fc;
+        }
+        input, select {
+            padding: 8px;
+            border: 1px solid #2d9d5f;
+            border-radius: 4px;
+            background: rgba(10, 15, 21, 0.8);
+            color: #4da8da;
+            font-family: 'Space Mono', monospace;
+        }
+        button {
+            padding: 10px 20px;
+            background: #2d9d5f;
+            border: none;
+            color: #fff;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: 'Space Mono', monospace;
+            transition: background 0.3s;
+        }
+        button:hover { background: #3fb071; }
+        .toggles {
+            display: flex;
+            gap: 10px;
+        }
+        .toggle-btn {
+            flex: 1;
+            padding: 8px 12px;
+            background: #1a3a5a;
+            border: 1px solid #2d9d5f;
+            color: #4da8da;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all 0.3s;
+        }
+        .toggle-btn.active {
+            background: #2d9d5f;
+            color: #fff;
+        }
+        .content {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 20px;
+        }
+        .stats {
+            background: rgba(26, 26, 46, 0.6);
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #2d9d5f;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            height: fit-content;
+        }
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9rem;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(45, 157, 95, 0.3);
+        }
+        .stat-item:last-child { border-bottom: none; }
+        .stat-label { color: #7dd3fc; }
+        .stat-value { color: #52c41a; font-weight: bold; }
+        canvas {
+            background: rgba(10, 15, 21, 0.8);
+            border: 1px solid #2d4a5a;
+            border-radius: 8px;
+            display: block;
+            width: 100%;
+            height: 500px;
+        }
+        .info-box {
+            background: rgba(45, 157, 95, 0.15);
+            padding: 12px;
+            border-radius: 4px;
+            border-left: 3px solid #52c41a;
+            font-size: 0.85rem;
+            color: #7dd3fc;
+            margin-top: 10px;
+        }
+        @media (max-width: 900px) {
+            .controls { grid-template-columns: 1fr; }
+            .content { grid-template-columns: 1fr; }
+        }
+    </style>
 </head>
 <body>
-  <div class="star-field" id="starField"></div>
+    <div class="container">
+        <h1>🌌 Exoplanet Explorer</h1>
 
-  <div class="container">
-    <h1>🌍 Exoplanet Explorer</h1>
-    <p class="subtitle">Discover habitable exoplanets across the galaxy</p>
-
-    <div class="controls">
-      <div class="control-group">
-        <label>Distance (0–1000 ly)</label>
-        <input type="range" id="distRange" min="0" max="1000" value="1000">
-        <span class="range-value"><span id="distVal">1000</span> ly</span>
-      </div>
-
-      <div class="control-group">
-        <label>Temperature (200–500 K)</label>
-        <input type="range" id="tempRange" min="200" max="500" value="500">
-        <span class="range-value"><span id="tempVal">500</span> K</span>
-      </div>
-
-      <div class="control-group">
-        <label>Sort By</label>
-        <div class="sort-buttons">
-          <button class="sort-btn active" data-sort="esi">ESI</button>
-          <button class="sort-btn" data-sort="distance">Distance</button>
-          <button class="sort-btn" data-sort="temp">Temp</button>
+        <div class="controls">
+            <div class="control-group">
+                <label>Search by Star Name</label>
+                <input type="text" id="starSearch" placeholder="e.g., TRAPPIST-1, Kepler-452, Proxima">
+            </div>
+            <div class="control-group">
+                <label>Filter by Discovery Year</label>
+                <input type="range" id="yearSlider" min="1995" max="2024" value="2024" style="width: 100%;">
+                <span id="yearLabel">Through 2024</span>
+            </div>
+            <div class="control-group">
+                <label>Planet Type</label>
+                <select id="typeFilter">
+                    <option value="">All Types</option>
+                    <option value="rocky">Rocky</option>
+                    <option value="super-earth">Super-Earth</option>
+                    <option value="ice-giant">Ice Giant</option>
+                    <option value="gas-giant">Gas Giant</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label>Toggle Options</label>
+                <div class="toggles">
+                    <button class="toggle-btn" data-toggle="habitable">Habitable Zone</button>
+                    <button class="toggle-btn active" data-toggle="orbit">Orbits</button>
+                </div>
+            </div>
         </div>
-      </div>
+
+        <div class="content">
+            <div class="stats">
+                <h3 style="color: #7dd3fc; margin-bottom: 10px;">System Details</h3>
+                <div class="stat-item">
+                    <span class="stat-label">Star:</span>
+                    <span class="stat-value" id="starName">—</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Distance (ly):</span>
+                    <span class="stat-value" id="distance">—</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Star Type:</span>
+                    <span class="stat-value" id="starType">—</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Planet:</span>
+                    <span class="stat-value" id="planetName">—</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Radius (Earth):</span>
+                    <span class="stat-value" id="radius">—</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Orbital Period (days):</span>
+                    <span class="stat-value" id="period">—</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Equilibrium Temp (K):</span>
+                    <span class="stat-value" id="temp">—</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Semi-major Axis (AU):</span>
+                    <span class="stat-value" id="axis">—</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Discovery Year:</span>
+                    <span class="stat-value" id="year">—</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Discovery Method:</span>
+                    <span class="stat-value" id="method">—</span>
+                </div>
+                <div class="info-box" id="habitableInfo" style="display: none;">
+                    🌍 In habitable zone
+                </div>
+            </div>
+
+            <canvas id="canvas"></canvas>
+        </div>
     </div>
 
-    <div class="main-content">
-      <canvas id="canvas"></canvas>
-      <div class="stats-panel">
-        <div class="stat-item">
-          <span class="stat-label">Planets Shown</span>
-          <span class="stat-value" id="planetCount">0</span>
-        </div>
-        <div class="stat-item">
-          <span class="stat-label">Avg ESI</span>
-          <span class="stat-value" id="avgESI">0.00</span>
-        </div>
-        <div class="stat-item">
-          <span class="stat-label">Habitable</span>
-          <span class="stat-value" id="habitableCount">0</span>
-        </div>
-        <div class="stat-item">
-          <span class="stat-label">Marginal</span>
-          <span class="stat-value" id="marginalCount">0</span>
-        </div>
-        <div class="stat-item">
-          <span class="stat-label">Closest (ly)</span>
-          <span class="stat-value" id="closestDist">—</span>
-        </div>
-        <div class="stat-item">
-          <span class="stat-label">Hottest (K)</span>
-          <span class="stat-value" id="hottestTemp">—</span>
-        </div>
-      </div>
-    </div>
+    <script>
+        // Real exoplanet data (NASA Exoplanet Archive confirmed systems)
+        const SYSTEMS = [
+            {
+                star: 'TRAPPIST-1',
+                distance: 12.1,
+                spectralType: 'M8V',
+                luminosity: 0.000564,
+                planets: [
+                    { name: 'b', radius: 1.09, period: 1.51, axis: 0.01154, eqTemp: 288, type: 'rocky', discoveryYear: 2016, method: 'Transit' },
+                    { name: 'c', radius: 1.06, period: 2.42, axis: 0.01580, eqTemp: 246, type: 'rocky', discoveryYear: 2016, method: 'Transit' },
+                    { name: 'd', radius: 0.77, period: 4.05, axis: 0.02227, eqTemp: 205, type: 'rocky', discoveryYear: 2016, method: 'Transit' },
+                    { name: 'e', radius: 0.92, period: 6.10, axis: 0.02925, eqTemp: 172, type: 'rocky', discoveryYear: 2017, method: 'Transit' },
+                    { name: 'f', radius: 1.04, period: 9.21, axis: 0.03853, eqTemp: 142, type: 'rocky', discoveryYear: 2017, method: 'Transit' },
+                    { name: 'g', radius: 1.27, period: 12.35, axis: 0.04680, eqTemp: 128, type: 'rocky', discoveryYear: 2017, method: 'Transit' }
+                ]
+            },
+            {
+                star: 'Proxima Centauri',
+                distance: 4.24,
+                spectralType: 'M5.5V',
+                luminosity: 0.0017,
+                planets: [
+                    { name: 'b', radius: 1.27, period: 11.186, axis: 0.0485, eqTemp: 234, type: 'super-earth', discoveryYear: 2016, method: 'Radial Velocity' },
+                    { name: 'c', radius: 10, period: 1900, axis: 1.489, eqTemp: 39, type: 'ice-giant', discoveryYear: 2020, method: 'Radial Velocity' }
+                ]
+            },
+            {
+                star: 'Kepler-452',
+                distance: 449,
+                spectralType: 'G1.5V',
+                luminosity: 1.11,
+                planets: [
+                    { name: 'b', radius: 1.6, period: 384.8, axis: 1.046, eqTemp: 265, type: 'super-earth', discoveryYear: 2015, method: 'Transit' }
+                ]
+            },
+            {
+                star: 'WASP-96',
+                distance: 223,
+                spectralType: 'G1V',
+                luminosity: 1.02,
+                planets: [
+                    { name: 'b', radius: 1.94, period: 3.418, axis: 0.0385, eqTemp: 969, type: 'gas-giant', discoveryYear: 2013, method: 'Transit' }
+                ]
+            },
+            {
+                star: 'Kepler-1649',
+                distance: 261,
+                spectralType: 'M3V',
+                luminosity: 0.04,
+                planets: [
+                    { name: 'c', radius: 1.06, period: 19.53, axis: 0.111, eqTemp: 234, type: 'rocky', discoveryYear: 2020, method: 'Transit' }
+                ]
+            },
+            {
+                star: 'TOI-700',
+                distance: 100,
+                spectralType: 'M2.5V',
+                luminosity: 0.024,
+                planets: [
+                    { name: 'd', radius: 1.19, period: 16.356, axis: 0.069, eqTemp: 278, type: 'rocky', discoveryYear: 2020, method: 'Transit' }
+                ]
+            },
+            {
+                star: 'LHS 475',
+                distance: 41,
+                spectralType: 'M5.5V',
+                luminosity: 0.0008,
+                planets: [
+                    { name: 'b', radius: 1.04, period: 3.849, axis: 0.0146, eqTemp: 305, type: 'rocky', discoveryYear: 2023, method: 'Transit' }
+                ]
+            }
+        ];
 
-    <div class="planets-grid" id="planetsGrid"></div>
-  </div>
+        let canvas = document.getElementById('canvas');
+        let ctx = canvas.getContext('2d');
+        let selectedSystem = SYSTEMS[0];
+        let selectedPlanet = SYSTEMS[0].planets[0];
+        let showHabitable = false;
+        let showOrbits = true;
 
-  <script>
-    // Real NASA exoplanet data (confirmed exoplanets as of 2026)
-    const exoplanets = [
-      { name: "Proxima Centauri b", distance: 4.24, temp: 234, radius: 1.1, hostStar: "Proxima Centauri", year: 2016, type: "Rocky" },
-      { name: "Proxima Centauri d", distance: 4.24, temp: 45, radius: 0.26, hostStar: "Proxima Centauri", year: 2020, type: "Sub-Earth" },
-      { name: "Proxima Centauri c", distance: 4.24, temp: 52, radius: 0.25, hostStar: "Proxima Centauri", year: 2020, type: "Sub-Earth" },
-      { name: "TRAPPIST-1e", distance: 12.1, temp: 246, radius: 0.92, hostStar: "TRAPPIST-1", year: 2017, type: "Rocky" },
-      { name: "TRAPPIST-1f", distance: 12.1, temp: 219, radius: 1.04, hostStar: "TRAPPIST-1", year: 2017, type: "Rocky" },
-      { name: "TRAPPIST-1g", distance: 12.1, temp: 198, radius: 1.13, hostStar: "TRAPPIST-1", year: 2017, type: "Rocky" },
-      { name: "TRAPPIST-1d", distance: 12.1, temp: 283, radius: 0.77, hostStar: "TRAPPIST-1", year: 2017, type: "Rocky" },
-      { name: "Kepler-452b", distance: 430, temp: 265, radius: 1.6, hostStar: "Kepler-452", year: 2015, type: "Super-Earth" },
-      { name: "Kepler-186f", distance: 500, temp: 236, radius: 1.17, hostStar: "Kepler-186", year: 2014, type: "Rocky" },
-      { name: "LHS 1140 b", distance: 12, temp: 262, radius: 1.4, hostStar: "LHS 1140", year: 2017, type: "Super-Earth" },
-      { name: "TOI 700 d", distance: 100.5, temp: 268, radius: 1.25, hostStar: "TOI 700", year: 2019, type: "Rocky" },
-      { name: "Teegarden's Star b", distance: 12.5, temp: 255, radius: 1.05, hostStar: "Teegarden", year: 2019, type: "Rocky" },
-      { name: "Teegarden's Star c", distance: 12.5, temp: 228, radius: 1.1, hostStar: "Teegarden", year: 2019, type: "Rocky" },
-      { name: "GJ 667 Ce", distance: 23.6, temp: 256, radius: 1.52, hostStar: "GJ 667C", year: 2011, type: "Super-Earth" },
-      { name: "Gliese 667Cc", distance: 23.6, temp: 272, radius: 1.48, hostStar: "GJ 667C", year: 2011, type: "Super-Earth" },
-      { name: "Wolf 1061c", distance: 13.8, temp: 264, radius: 1.6, hostStar: "Wolf 1061", year: 2015, type: "Super-Earth" },
-      { name: "Gliese 163c", distance: 49.5, temp: 237, radius: 1.55, hostStar: "GJ 163", year: 2012, type: "Super-Earth" },
-      { name: "HD 40307g", distance: 42.3, temp: 253, radius: 1.5, hostStar: "HD 40307", year: 2012, type: "Super-Earth" },
-      { name: "TRAPPIST-1b", distance: 12.1, temp: 399, radius: 0.85, hostStar: "TRAPPIST-1", year: 2017, type: "Rocky" },
-      { name: "TRAPPIST-1c", distance: 12.1, temp: 346, radius: 1.06, hostStar: "TRAPPIST-1", year: 2017, type: "Rocky" },
-      { name: "K2-18c", distance: 124, temp: 298, radius: 1.38, hostStar: "K2-18", year: 2019, type: "Super-Earth" },
-      { name: "K2-18d", distance: 124, temp: 162, radius: 0.56, hostStar: "K2-18", year: 2019, type: "Sub-Earth" },
-      { name: "Proxima Centauri e", distance: 4.24, temp: 89, radius: 0.29, hostStar: "Proxima Centauri", year: 2022, type: "Sub-Earth" },
-      { name: "Kepler-62f", distance: 1200, temp: 208, radius: 1.32, hostStar: "Kepler-62", year: 2013, type: "Super-Earth" },
-      { name: "Kepler-62e", distance: 1200, temp: 246, radius: 1.61, hostStar: "Kepler-62", year: 2013, type: "Super-Earth" },
-      { name: "Kepler-1229b", distance: 770, temp: 276, radius: 1.58, hostStar: "Kepler-1229", year: 2018, type: "Super-Earth" },
-      { name: "TOI 1338 b", distance: 376, temp: 292, radius: 1.39, hostStar: "TOI 1338", year: 2019, type: "Super-Earth" },
-      { name: "GJ 1002b", distance: 6.2, temp: 234, radius: 1.08, hostStar: "GJ 1002", year: 2022, type: "Rocky" },
-      { name: "GJ 1002c", distance: 6.2, temp: 198, radius: 1.15, hostStar: "GJ 1002", year: 2022, type: "Rocky" },
-      { name: "WASP-39b", distance: 213, temp: 380, radius: 1.27, hostStar: "WASP-39", year: 2011, type: "Super-Earth" },
-      { name: "HD 85512b", distance: 36.3, temp: 275, radius: 1.67, hostStar: "HD 85512", year: 2011, type: "Super-Earth" },
-      { name: "Kepler-1649c", distance: 300, temp: 255, radius: 1.06, hostStar: "Kepler-1649", year: 2019, type: "Rocky" },
-      { name: "K2-141b", distance: 200, temp: 412, radius: 1.51, hostStar: "K2-141", year: 2017, type: "Super-Earth" },
-      { name: "Luyten b", distance: 12.2, temp: 240, radius: 1.4, hostStar: "Luyten", year: 2017, type: "Super-Earth" },
-      { name: "Barnard c", distance: 5.96, temp: 89, radius: 0.33, hostStar: "Barnard", year: 2018, type: "Sub-Earth" },
-      { name: "Barnard d", distance: 5.96, temp: 67, radius: 0.19, hostStar: "Barnard", year: 2018, type: "Sub-Earth" },
-      { name: "Pi Mensae c", distance: 59.6, temp: 285, radius: 1.5, hostStar: "Pi Mensae", year: 2018, type: "Super-Earth" },
-      { name: "TOI 849b", distance: 190, temp: 389, radius: 1.83, hostStar: "TOI 849", year: 2020, type: "Super-Earth" },
-      { name: "AU Mic d", distance: 9.7, temp: 245, radius: 0.6, hostStar: "AU Mic", year: 2021, type: "Sub-Earth" },
-      { name: "AU Mic c", distance: 9.7, temp: 310, radius: 0.83, hostStar: "AU Mic", year: 2021, type: "Sub-Earth" },
-      { name: "GJ 357d", distance: 31.1, temp: 217, radius: 0.87, hostStar: "GJ 357", year: 2019, type: "Rocky" },
-      { name: "GJ 357c", distance: 31.1, temp: 317, radius: 0.72, hostStar: "GJ 357", year: 2019, type: "Sub-Earth" },
-      { name: "WASP-96b", distance: 427, temp: 378, radius: 2.2, hostStar: "WASP-96", year: 2014, type: "Hot Jupiter" },
-      { name: "Kepler-90i", distance: 2600, temp: 348, radius: 1.02, hostStar: "Kepler-90", year: 2017, type: "Rocky" },
-      { name: "Kepler-452c", distance: 430, temp: 189, radius: 0.23, hostStar: "Kepler-452", year: 2020, type: "Sub-Earth" },
-      { name: "L 98-59d", distance: 35, temp: 268, radius: 1.35, hostStar: "L 98-59", year: 2019, type: "Super-Earth" },
-      { name: "L 98-59e", distance: 35, temp: 201, radius: 0.62, hostStar: "L 98-59", year: 2021, type: "Sub-Earth" },
-      { name: "L 98-59f", distance: 35, temp: 139, radius: 0.38, hostStar: "L 98-59", year: 2021, type: "Sub-Earth" },
-      { name: "Kepler-9d", distance: 1650, temp: 212, radius: 0.92, hostStar: "Kepler-9", year: 2010, type: "Rocky" },
-      { name: "GJ 143b", distance: 38.3, temp: 328, radius: 1.5, hostStar: "GJ 143", year: 2017, type: "Super-Earth" },
-      { name: "TOI 3799 b", distance: 45.2, temp: 331, radius: 1.65, hostStar: "TOI 3799", year: 2021, type: "Super-Earth" }
-    ];
+        function resizeCanvas() {
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
 
-    // Calculate ESI (Earth Similarity Index) — simplified 2-component formula
-    function calcESI(radius, temp) {
-      const radiusESI = 1 - Math.abs((radius - 1) / 1);
-      const tempESI = 1 - Math.abs((temp - 288) / 288);
-      return Math.sqrt(0.5 * Math.pow(radiusESI, 2) + 0.5 * Math.pow(tempESI, 2));
-    }
-
-    // Add ESI to each planet
-    exoplanets.forEach(p => {
-      p.esi = calcESI(p.radius, p.temp);
-    });
-
-    let canvas = document.getElementById("canvas");
-    let ctx = canvas.getContext("2d");
-    let selectedPlanet = null;
-    let currentSort = "esi";
-
-    function resizeCanvas() {
-      canvas.width = canvas.offsetWidth;
-      canvas.height = canvas.offsetHeight;
-      draw();
-    }
-
-    function getHabitabilityColor(esi) {
-      if (esi >= 0.8) return "#2d9d5f"; // green
-      if (esi >= 0.6) return "#4ab4ff"; // blue
-      if (esi >= 0.4) return "#ff9800"; // orange
-      return "#e94b3c"; // red
-    }
-
-    function getHabitabilityLabel(esi) {
-      if (esi >= 0.8) return "Potentially Habitable";
-      if (esi >= 0.6) return "Marginal";
-      if (esi >= 0.4) return "Unlikely";
-      return "Very Unlikely";
-    }
-
-    function filterPlanets() {
-      const distMax = parseFloat(document.getElementById("distRange").value);
-      const tempMax = parseFloat(document.getElementById("tempRange").value);
-      return exoplanets.filter(p => p.distance <= distMax && p.temp <= tempMax);
-    }
-
-    function sortPlanets(planets) {
-      const sorted = [...planets];
-      if (currentSort === "esi") {
-        sorted.sort((a, b) => b.esi - a.esi);
-      } else if (currentSort === "distance") {
-        sorted.sort((a, b) => a.distance - b.distance);
-      } else if (currentSort === "temp") {
-        sorted.sort((a, b) => a.temp - b.temp);
-      }
-      return sorted;
-    }
-
-    function draw() {
-      const filtered = filterPlanets();
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      // Draw grid
-      ctx.strokeStyle = "rgba(181, 126, 220, 0.1)";
-      ctx.lineWidth = 0.5;
-      for (let i = 0; i <= 10; i++) {
-        const x = (canvas.width / 10) * i;
-        const y = (canvas.height / 10) * i;
-        ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, canvas.height);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(canvas.width, y);
-        ctx.stroke();
-      }
-
-      // Draw axes labels
-      ctx.fillStyle = "#b57edc";
-      ctx.font = "12px 'Lato'";
-      ctx.textAlign = "center";
-      ctx.fillText("Distance (light-years)", canvas.width / 2, canvas.height - 10);
-      ctx.save();
-      ctx.translate(15, canvas.height / 2);
-      ctx.rotate(-Math.PI / 2);
-      ctx.fillText("Temperature (K)", 0, 0);
-      ctx.restore();
-
-      // Scale factors
-      const maxDist = Math.max(1000, Math.max(...filtered.map(p => p.distance)));
-      const minTemp = 0;
-      const maxTemp = 500;
-
-      // Draw planets
-      filtered.forEach((planet, idx) => {
-        const x = (planet.distance / maxDist) * canvas.width;
-        const y = canvas.height - ((planet.temp - minTemp) / (maxTemp - minTemp)) * canvas.height;
-        const radius = 6 + planet.esi * 8;
-        const color = getHabitabilityColor(planet.esi);
-
-        // Glow if hovered
-        if (selectedPlanet === planet) {
-          ctx.shadowColor = color;
-          ctx.shadowBlur = 20;
+        function getHabitableZone(luminosity) {
+            const sqrtL = Math.sqrt(luminosity);
+            return { inner: 0.95 * sqrtL, outer: 1.37 * sqrtL };
         }
 
-        ctx.fillStyle = color;
-        ctx.beginPath();
-        ctx.arc(x, y, radius, 0, Math.PI * 2);
-        ctx.fill();
+        function draw() {
+            ctx.fillStyle = '#0a0f15';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        ctx.shadowBlur = 0;
-      });
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const scale = 80;
 
-      updateStats(filtered);
-      updatePlanets(sortPlanets(filtered));
-    }
+            if (showHabitable) {
+                const hz = getHabitableZone(selectedSystem.luminosity);
+                ctx.strokeStyle = 'rgba(82, 196, 26, 0.3)';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, hz.inner * scale, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, hz.outer * scale, 0, Math.PI * 2);
+                ctx.stroke();
+            }
 
-    function updateStats(filtered) {
-      document.getElementById("planetCount").textContent = filtered.length;
-      if (filtered.length === 0) {
-        document.getElementById("avgESI").textContent = "—";
-        document.getElementById("habitableCount").textContent = "—";
-        document.getElementById("marginalCount").textContent = "—";
-        document.getElementById("closestDist").textContent = "—";
-        document.getElementById("hottestTemp").textContent = "—";
-        return;
-      }
-      const avgESI = (filtered.reduce((sum, p) => sum + p.esi, 0) / filtered.length).toFixed(2);
-      const habitable = filtered.filter(p => p.esi >= 0.8).length;
-      const marginal = filtered.filter(p => p.esi >= 0.6 && p.esi < 0.8).length;
-      const closest = Math.min(...filtered.map(p => p.distance)).toFixed(1);
-      const hottest = Math.max(...filtered.map(p => p.temp));
+            ctx.fillStyle = '#ffd700';
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 12, 0, Math.PI * 2);
+            ctx.fill();
 
-      document.getElementById("avgESI").textContent = avgESI;
-      document.getElementById("habitableCount").textContent = habitable;
-      document.getElementById("marginalCount").textContent = marginal;
-      document.getElementById("closestDist").textContent = closest;
-      document.getElementById("hottestTemp").textContent = hottest;
-    }
+            selectedSystem.planets.forEach(p => {
+                const angle = Date.now() / (p.period * 500);
+                const x = centerX + p.axis * scale * Math.cos(angle);
+                const y = centerY + p.axis * scale * Math.sin(angle);
 
-    function updatePlanets(sorted) {
-      const grid = document.getElementById("planetsGrid");
-      grid.innerHTML = "";
+                if (showOrbits) {
+                    ctx.strokeStyle = 'rgba(77, 168, 218, 0.3)';
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.arc(centerX, centerY, p.axis * scale, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
 
-      sorted.forEach(planet => {
-        const card = document.createElement("div");
-        card.className = "planet-card";
-        if (selectedPlanet === planet) card.classList.add("selected");
+                const colors = {
+                    'rocky': '#888888',
+                    'super-earth': '#ff9900',
+                    'ice-giant': '#87ceeb',
+                    'gas-giant': '#d4a574'
+                };
+                ctx.fillStyle = colors[p.type] || '#4da8da';
+                const radius = Math.max(4, p.radius * 2);
+                ctx.beginPath();
+                ctx.arc(x, y, radius, 0, Math.PI * 2);
+                ctx.fill();
 
-        const esiBadgeClass = planet.esi >= 0.8 ? "esi-green" : planet.esi >= 0.6 ? "esi-blue" : planet.esi >= 0.4 ? "esi-orange" : "esi-red";
-        const habitLabel = getHabitabilityLabel(planet.esi);
+                if (p === selectedPlanet) {
+                    ctx.strokeStyle = '#7dd3fc';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                }
+            });
 
-        card.innerHTML = `
-          <span class="esi-badge ${esiBadgeClass}">${habitLabel}</span>
-          <div class="planet-name">${planet.name}</div>
-          <div class="planet-detail"><span class="planet-detail-label">Host Star:</span> ${planet.hostStar}</div>
-          <div class="planet-detail"><span class="planet-detail-label">Distance:</span> ${planet.distance.toFixed(1)} ly</div>
-          <div class="planet-detail"><span class="planet-detail-label">Temp:</span> ${planet.temp} K</div>
-          <div class="planet-detail"><span class="planet-detail-label">Radius:</span> ${planet.radius.toFixed(2)} R⊕</div>
-          <div class="expanded-info">
-            <div class="esi-score">${planet.esi.toFixed(2)}</div>
-            <div class="planet-detail"><span class="planet-detail-label">Discovered:</span> ${planet.year}</div>
-            <div class="planet-detail"><span class="planet-detail-label">Type:</span> ${planet.type}</div>
-          </div>
-        `;
+            ctx.fillStyle = '#7dd3fc';
+            ctx.font = '12px "Space Mono"';
+            ctx.textAlign = 'center';
+            ctx.fillText(selectedSystem.star, centerX, centerY + 30);
 
-        card.addEventListener("click", () => {
-          selectedPlanet = selectedPlanet === planet ? null : planet;
-          if (selectedPlanet) {
-            card.classList.add("selected");
-            card.querySelector(".expanded-info").classList.add("show");
-          }
-          draw();
+            requestAnimationFrame(draw);
+        }
+
+        function updateStats() {
+            document.getElementById('starName').textContent = selectedSystem.star;
+            document.getElementById('distance').textContent = selectedSystem.distance.toFixed(2);
+            document.getElementById('starType').textContent = selectedSystem.spectralType;
+            document.getElementById('planetName').textContent = selectedPlanet.name;
+            document.getElementById('radius').textContent = selectedPlanet.radius.toFixed(2);
+            document.getElementById('period').textContent = selectedPlanet.period.toFixed(2);
+            document.getElementById('temp').textContent = selectedPlanet.eqTemp.toFixed(0);
+            document.getElementById('axis').textContent = selectedPlanet.axis.toFixed(4);
+            document.getElementById('year').textContent = selectedPlanet.discoveryYear;
+            document.getElementById('method').textContent = selectedPlanet.method;
+
+            const hz = getHabitableZone(selectedSystem.luminosity);
+            const inHZ = selectedPlanet.axis >= hz.inner && selectedPlanet.axis <= hz.outer;
+            document.getElementById('habitableInfo').style.display = inHZ ? 'block' : 'none';
+        }
+
+        document.getElementById('starSearch').addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase();
+            const found = SYSTEMS.find(s => s.star.toLowerCase().includes(query));
+            if (found) {
+                selectedSystem = found;
+                selectedPlanet = found.planets[0];
+                updateStats();
+            }
         });
 
-        grid.appendChild(card);
-      });
-    }
+        document.getElementById('typeFilter').addEventListener('change', (e) => {
+            const type = e.target.value;
+            if (type) {
+                const planet = selectedSystem.planets.find(p => p.type === type);
+                if (planet) selectedPlanet = planet;
+            } else {
+                selectedPlanet = selectedSystem.planets[0];
+            }
+            updateStats();
+        });
 
-    // Event listeners
-    document.getElementById("distRange").addEventListener("input", (e) => {
-      document.getElementById("distVal").textContent = e.target.value;
-      draw();
-    });
+        document.querySelectorAll('[data-toggle]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                btn.classList.toggle('active');
+                if (btn.dataset.toggle === 'habitable') showHabitable = !showHabitable;
+                else if (btn.dataset.toggle === 'orbit') showOrbits = !showOrbits;
+            });
+        });
 
-    document.getElementById("tempRange").addEventListener("input", (e) => {
-      document.getElementById("tempVal").textContent = e.target.value;
-      draw();
-    });
-
-    document.querySelectorAll(".sort-btn").forEach(btn => {
-      btn.addEventListener("click", (e) => {
-        document.querySelectorAll(".sort-btn").forEach(b => b.classList.remove("active"));
-        e.target.classList.add("active");
-        currentSort = e.target.dataset.sort;
+        updateStats();
         draw();
-      });
-    });
-
-    // Star background
-    function createStarField() {
-      const field = document.getElementById("starField");
-      for (let i = 0; i < 80; i++) {
-        const star = document.createElement("div");
-        star.className = "star" + (Math.random() > 0.7 ? " twinkle" : "");
-        star.style.left = Math.random() * 100 + "%";
-        star.style.top = Math.random() * 100 + "%";
-        star.style.animationDelay = (Math.random() * 3) + "s";
-        field.appendChild(star);
-      }
-    }
-
-    createStarField();
-    resizeCanvas();
-    window.addEventListener("resize", resizeCanvas);
-  </script>
+    </script>
 </body>
 </html>
