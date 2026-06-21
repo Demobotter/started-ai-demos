@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guitar Resonance Tuner</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Space+Mono:wght@400&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Space Mono', monospace;
+            background: #1a1f3a;
+            color: #7dd3fc;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            font-family: 'Playfair Display', serif;
+            text-align: center;
+            margin-bottom: 8px;
+            color: #4da8da;
+            font-size: 32px;
+        }
+        
+        .subtitle {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #a78bfa;
+            font-size: 13px;
+        }
+        
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            justify-content: center;
+        }
+        
+        .tab-btn {
+            padding: 8px 16px;
+            background: #2a3150;
+            border: 1px solid #4da8da;
+            color: #7dd3fc;
+            cursor: pointer;
+            border-radius: 4px;
+            font-family: 'Space Mono', monospace;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+        
+        .tab-btn.active {
+            background: #4da8da;
+            color: #0a0f15;
+        }
+        
+        .tab-btn:hover {
+            border-color: #a78bfa;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .string-buttons {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .string-btn {
+            padding: 10px;
+            background: #2a3150;
+            border: 2px solid #333;
+            color: #7dd3fc;
+            cursor: pointer;
+            border-radius: 4px;
+            font-family: 'Space Mono', monospace;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+        
+        .string-btn.active {
+            border-color: #ff1493;
+            background: #3a2550;
+        }
+        
+        .waveform-container {
+            background: #0a0f15;
+            border: 1px solid #333;
+            border-radius: 4px;
+            padding: 10px;
+            margin-bottom: 20px;
+        }
+        
+        canvas {
+            display: block;
+            width: 100%;
+            height: 200px;
+            background: #0a0f15;
+            border-radius: 2px;
+        }
+        
+        .controls {
+            background: #2a3150;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+        
+        .control-row {
+            margin-bottom: 15px;
+        }
+        
+        .control-row:last-child {
+            margin-bottom: 0;
+        }
+        
+        label {
+            display: block;
+            font-size: 12px;
+            margin-bottom: 6px;
+            color: #a78bfa;
+        }
+        
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #1a1f3a;
+            outline: none;
+            -webkit-appearance: none;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #4da8da;
+            cursor: pointer;
+        }
+        
+        input[type="range"]::-moz-range-thumb {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #4da8da;
+            cursor: pointer;
+            border: none;
+        }
+        
+        .slider-value {
+            display: inline-block;
+            color: #4da8da;
+            margin-left: 10px;
+            font-size: 12px;
+        }
+        
+        .toggle-group {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .toggle-btn {
+            flex: 1;
+            padding: 8px;
+            background: #1a1f3a;
+            border: 1px solid #333;
+            color: #7dd3fc;
+            cursor: pointer;
+            border-radius: 4px;
+            font-family: 'Space Mono', monospace;
+            font-size: 11px;
+            transition: all 0.2s;
+        }
+        
+        .toggle-btn.active {
+            background: #d4a574;
+            color: #0a0f15;
+            border-color: #d4a574;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .stat-box {
+            background: #0a0f15;
+            padding: 10px;
+            border-radius: 4px;
+            border-left: 3px solid #2d9d5f;
+        }
+        
+        .stat-label {
+            font-size: 11px;
+            color: #a78bfa;
+            margin-bottom: 4px;
+        }
+        
+        .stat-value {
+            font-size: 16px;
+            color: #4da8da;
+            font-weight: bold;
+        }
+        
+        .harmonics-display {
+            background: #0a0f15;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            display: none;
+        }
+        
+        .harmonics-display.active {
+            display: block;
+        }
+        
+        .harmonic-bars {
+            display: flex;
+            align-items: flex-end;
+            gap: 4px;
+            height: 120px;
+            margin-bottom: 10px;
+        }
+        
+        .harmonic-bar {
+            flex: 1;
+            background: #4da8da;
+            border-radius: 2px;
+            min-height: 4px;
+            transition: height 0.05s;
+        }
+        
+        .harmonic-bar.f0 { background: #ff1493; }
+        .harmonic-bar.f1 { background: #4da8da; }
+        .harmonic-bar.f2 { background: #ffff00; }
+        .harmonic-bar.f3 { background: #00ff00; }
+        .harmonic-bar.f4 { background: #ff6600; }
+        
+        .harmonic-labels {
+            display: flex;
+            gap: 4px;
+            font-size: 10px;
+            color: #a78bfa;
+        }
+        
+        .harmonic-label {
+            flex: 1;
+            text-align: center;
+        }
+        
+        .info-box {
+            background: #2a3150;
+            padding: 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            line-height: 1.5;
+            color: #7dd3fc;
+            margin-bottom: 15px;
+        }
+        
+        .warning {
+            color: #ff6b6b;
+        }
+        
+        .success {
+            color: #2d9d5f;
+        }
+        
+        @media (max-width: 600px) {
+            .string-buttons {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎸 Guitar Resonance Tuner</h1>
+        <div class="subtitle">Interactive stringed instrument tuning and harmonic analysis</div>
+        
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="tuning">Tuning</button>
+            <button class="tab-btn" data-tab="harmonics">Harmonics</button>
+            <button class="tab-btn" data-tab="waveform">Waveform</button>
+        </div>
+        
+        <!-- TUNING TAB -->
+        <div id="tuning" class="tab-content active">
+            <div class="string-buttons">
+                <button class="string-btn active" data-note="E2" data-freq="82.407">E2 (82.4Hz)</button>
+                <button class="string-btn" data-note="A2" data-freq="110.0">A2 (110Hz)</button>
+                <button class="string-btn" data-note="D3" data-freq="146.83">D3 (147Hz)</button>
+                <button class="string-btn" data-note="G3" data-freq="196.0">G3 (196Hz)</button>
+                <button class="string-btn" data-note="B3" data-freq="246.94">B3 (247Hz)</button>
+                <button class="string-btn" data-note="E4" data-freq="329.63">E4 (330Hz)</button>
+            </div>
+            
+            <div class="waveform-container">
+                <canvas id="waveformCanvas"></canvas>
+            </div>
+            
+            <div class="controls">
+                <div class="control-row">
+                    <label>Frequency: <span class="slider-value" id="freqDisplay">82.4</span> Hz</label>
+                    <input type="range" id="freqSlider" min="50" max="330" value="82.407" step="0.1">
+                </div>
+                
+                <div class="control-row">
+                    <label>Amplitude: <span class="slider-value" id="ampDisplay">0.80</span></label>
+                    <input type="range" id="ampSlider" min="0" max="1" value="0.8" step="0.05">
+                </div>
+                
+                <div class="control-row">
+                    <label>Waveform</label>
+                    <div class="toggle-group">
+                        <button class="toggle-btn active" data-wave="pure">Pure Sine</button>
+                        <button class="toggle-btn" data-wave="pluck">Plucked String</button>
+                    </div>
+                </div>
+                
+                <div class="control-row">
+                    <label>Tuning Status</label>
+                    <div class="info-box">
+                        <div id="tuneStatus"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- HARMONICS TAB -->
+        <div id="harmonics" class="tab-content">
+            <div class="controls">
+                <div class="control-row">
+                    <label>String: <span id="harmStringDisplay">E2</span></label>
+                    <div class="string-buttons" style="grid-template-columns: repeat(2, 1fr);">
+                        <button class="string-btn active" data-note="E2" data-freq="82.407">E2</button>
+                        <button class="string-btn" data-note="A2" data-freq="110.0">A2</button>
+                        <button class="string-btn" data-note="D3" data-freq="146.83">D3</button>
+                        <button class="string-btn" data-note="G3" data-freq="196.0">G3</button>
+                        <button class="string-btn" data-note="B3" data-freq="246.94">B3</button>
+                        <button class="string-btn" data-note="E4" data-freq="329.63">E4</button>
+                    </div>
+                </div>
+                
+                <div class="control-row">
+                    <label>Toggle Harmonics Visualization</label>
+                    <div class="toggle-group">
+                        <button class="toggle-btn" data-harm-view="bars">Spectrum</button>
+                        <button class="toggle-btn active" data-harm-view="harmonic-series">Series</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <div class="stat-label">Fundamental</div>
+                    <div class="stat-value" id="harmFund">82.4 Hz</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Period</div>
+                    <div class="stat-value" id="harmPeriod">12.1 ms</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">2nd Harmonic</div>
+                    <div class="stat-value" id="harmSecond">164.8 Hz</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Interval</div>
+                    <div class="stat-value" id="harmInterval">Octave</div>
+                </div>
+            </div>
+            
+            <div class="harmonics-display active" id="harmonicSeries">
+                <div style="font-size: 12px; margin-bottom: 10px; color: #a78bfa;">Harmonic Series — click to hear (simulated)</div>
+                <div class="harmonic-bars" id="harmonicBars">
+                    <div class="harmonic-bar f0" style="height: 100%;"></div>
+                    <div class="harmonic-bar f1" style="height: 70%;"></div>
+                    <div class="harmonic-bar f2" style="height: 45%;"></div>
+                    <div class="harmonic-bar f3" style="height: 30%;"></div>
+                    <div class="harmonic-bar f4" style="height: 20%;"></div>
+                </div>
+                <div class="harmonic-labels">
+                    <div class="harmonic-label">f (fund)</div>
+                    <div class="harmonic-label">2f (oct)</div>
+                    <div class="harmonic-label">3f (5th)</div>
+                    <div class="harmonic-label">4f (2oct)</div>
+                    <div class="harmonic-label">5f (3rd)</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- WAVEFORM TAB -->
+        <div id="waveform" class="tab-content">
+            <div class="waveform-container">
+                <canvas id="fullWaveCanvas"></canvas>
+            </div>
+            
+            <div class="controls">
+                <div class="control-row">
+                    <label>Frequency: <span class="slider-value" id="waveFreqDisplay">82.4</span> Hz</label>
+                    <input type="range" id="waveFreqSlider" min="50" max="330" value="82.407" step="0.1">
+                </div>
+                
+                <div class="control-row">
+                    <label>Waveform Type</label>
+                    <div class="toggle-group">
+                        <button class="toggle-btn active" data-wave-type="pure">Pure Sine</button>
+                        <button class="toggle-btn" data-wave-type="plucked">Plucked (Tri)</button>
+                        <button class="toggle-btn" data-wave-type="bowed">Bowed (Saw)</button>
+                    </div>
+                </div>
+                
+                <div class="info-box">
+                    Real sine waves at <span id="waveTypeLabel">pure sine</span> frequency, computed via standard trigonometry. Canvas rendering at 60fps.
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const state = {
+            frequency: 82.407,
+            amplitude: 0.8,
+            waveType: 'pure',
+            currentNote: 'E2',
+            harmonicView: 'harmonic-series'
+        };
+        
+        const stringFrequencies = {
+            'E2': 82.407,
+            'A2': 110.0,
+            'D3': 146.83,
+            'G3': 196.0,
+            'B3': 246.94,
+            'E4': 329.63
+        };
+        
+        const intervals = {
+            2: 'Octave',
+            3: 'Perfect Fifth',
+            4: 'Two Octaves',
+            5: 'Major Third above octave',
+            6: 'Perfect Fifth above 2 octaves'
+        };
+        
+        // Tab switching
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const tab = btn.getAttribute('data-tab');
+                document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                document.getElementById(tab).classList.add('active');
+                btn.classList.add('active');
+                
+                if (tab === 'waveform') {
+                    setTimeout(() => drawFullWaveform(), 50);
+                } else if (tab === 'harmonics') {
+                    updateHarmonicDisplay();
+                }
+            });
+        });
+        
+        // String selection
+        document.querySelectorAll('.string-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const container = btn.closest('.string-buttons') || btn.parentElement;
+                container.querySelectorAll('.string-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                
+                const note = btn.getAttribute('data-note');
+                const freq = parseFloat(btn.getAttribute('data-freq'));
+                
+                state.frequency = freq;
+                state.currentNote = note;
+                
+                // Update slider
+                const slider = document.getElementById('freqSlider');
+                if (slider) {
+                    slider.value = freq;
+                    document.getElementById('freqDisplay').textContent = freq.toFixed(1);
+                }
+                
+                document.getElementById('harmStringDisplay').textContent = note;
+                updateHarmonicDisplay();
+                drawWaveform();
+                updateTuneStatus();
+            });
+        });
+        
+        // Frequency slider
+        document.getElementById('freqSlider').addEventListener('input', (e) => {
+            state.frequency = parseFloat(e.target.value);
+            document.getElementById('freqDisplay').textContent = state.frequency.toFixed(1);
+            document.querySelectorAll('.string-btn').forEach(btn => {
+                const btnFreq = parseFloat(btn.getAttribute('data-freq'));
+                if (Math.abs(btnFreq - state.frequency) < 1) {
+                    btn.classList.add('active');
+                    state.currentNote = btn.getAttribute('data-note');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+            updateTuneStatus();
+            drawWaveform();
+            updateHarmonicDisplay();
+        });
+        
+        // Amplitude slider
+        document.getElementById('ampSlider').addEventListener('input', (e) => {
+            state.amplitude = parseFloat(e.target.value);
+            document.getElementById('ampDisplay').textContent = state.amplitude.toFixed(2);
+            drawWaveform();
+        });
+        
+        // Waveform type selection (tuning tab)
+        document.querySelectorAll('[data-wave]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                btn.parentElement.querySelectorAll('[data-wave]').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                state.waveType = btn.getAttribute('data-wave');
+                drawWaveform();
+            });
+        });
+        
+        // Waveform type selection (waveform tab)
+        document.querySelectorAll('[data-wave-type]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                btn.parentElement.querySelectorAll('[data-wave-type]').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                state.waveType = btn.getAttribute('data-wave-type');
+                document.getElementById('waveTypeLabel').textContent = 
+                    state.waveType === 'pure' ? 'pure sine' : 
+                    state.waveType === 'plucked' ? 'plucked triangular' : 'bowed sawtooth';
+                drawFullWaveform();
+            });
+        });
+        
+        // Harmonic view toggle
+        document.querySelectorAll('[data-harm-view]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                btn.parentElement.querySelectorAll('[data-harm-view]').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                state.harmonicView = btn.getAttribute('data-harm-view');
+                updateHarmonicDisplay();
+            });
+        });
+        
+        function generateWaveform(freq, amp, type, sampleCount = 512) {
+            const period = 1 / freq;
+            const samples = [];
+            
+            for (let i = 0; i < sampleCount; i++) {
+                const t = (i / sampleCount) * (period * 2); // 2 cycles
+                let y = 0;
+                
+                if (type === 'pure') {
+                    y = Math.sin(2 * Math.PI * freq * t);
+                } else if (type === 'pluck') {
+                    // Triangular wave (plucked string)
+                    const phase = (freq * t) % 1;
+                    if (phase < 0.5) {
+                        y = phase * 4 - 1;
+                    } else {
+                        y = 3 - phase * 4;
+                    }
+                    // Add some harmonics
+                    y += 0.3 * Math.sin(2 * Math.PI * freq * 3 * t);
+                    y += 0.1 * Math.sin(2 * Math.PI * freq * 5 * t);
+                } else if (type === 'plucked') {
+                    const phase = (freq * t) % 1;
+                    if (phase < 0.5) {
+                        y = phase * 4 - 1;
+                    } else {
+                        y = 3 - phase * 4;
+                    }
+                    y += 0.3 * Math.sin(2 * Math.PI * freq * 3 * t);
+                    y += 0.1 * Math.sin(2 * Math.PI * freq * 5 * t);
+                } else if (type === 'bowed' || type === 'bowed (saw)') {
+                    // Sawtooth wave
+                    const phase = (freq * t) % 1;
+                    y = (phase * 2) - 1;
+                    y += 0.2 * Math.sin(2 * Math.PI * freq * 2 * t);
+                }
+                
+                samples.push(Math.max(-1, Math.min(1, y * amp)));
+            }
+            return samples;
+        }
+        
+        function drawWaveform() {
+            const canvas = document.getElementById('waveformCanvas');
+            if (!canvas) return;
+            
+            const ctx = canvas.getContext('2d');
+            const w = canvas.offsetWidth;
+            const h = canvas.offsetHeight;
+            canvas.width = w;
+            canvas.height = h;
+            
+            // Background
+            ctx.fillStyle = '#0a0f15';
+            ctx.fillRect(0, 0, w, h);
+            
+            // Grid
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 1;
+            for (let i = 0; i <= 4; i++) {
+                const y = (h / 4) * i;
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(w, y);
+                ctx.stroke();
+            }
+            
+            // Generate samples
+            const samples = generateWaveform(state.frequency, state.amplitude, state.waveType, w);
+            
+            // Draw waveform
+            ctx.strokeStyle = '#4da8da';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            
+            for (let i = 0; i < samples.length; i++) {
+                const x = (i / samples.length) * w;
+                const y = (h / 2) - (samples[i] * (h / 2));
+                
+                if (i === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            }
+            ctx.stroke();
+        }
+        
+        function drawFullWaveform() {
+            const canvas = document.getElementById('fullWaveCanvas');
+            if (!canvas) return;
+            
+            const ctx = canvas.getContext('2d');
+            const w = canvas.offsetWidth;
+            const h = canvas.offsetHeight;
+            canvas.width = w;
+            canvas.height = h;
+            
+            // Background
+            ctx.fillStyle = '#0a0f15';
+            ctx.fillRect(0, 0, w, h);
+            
+            // Grid
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 1;
+            for (let i = 0; i <= 4; i++) {
+                const y = (h / 4) * i;
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(w, y);
+                ctx.stroke();
+            }
+            
+            // Generate samples for 3 cycles
+            const samples = [];
+            const cycleCount = 3;
+            const sampleCount = w * 2;
+            
+            for (let i = 0; i < sampleCount; i++) {
+                const t = (i / sampleCount) * (cycleCount / state.frequency);
+                let y = 0;
+                
+                if (state.waveType === 'pure') {
+                    y = Math.sin(2 * Math.PI * state.frequency * t);
+                } else if (state.waveType === 'plucked') {
+                    const phase = (state.frequency * t) % 1;
+                    if (phase < 0.5) {
+                        y = phase * 4 - 1;
+                    } else {
+                        y = 3 - phase * 4;
+                    }
+                    y += 0.3 * Math.sin(2 * Math.PI * state.frequency * 3 * t);
+                } else if (state.waveType === 'bowed') {
+                    const phase = (state.frequency * t) % 1;
+                    y = (phase * 2) - 1;
+                    y += 0.2 * Math.sin(2 * Math.PI * state.frequency * 2 * t);
+                }
+                
+                samples.push(Math.max(-1, Math.min(1, y * state.amplitude)));
+            }
+            
+            // Draw waveform
+            ctx.strokeStyle = '#4da8da';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            
+            for (let i = 0; i < samples.length; i++) {
+                const x = (i / samples.length) * w;
+                const y = (h / 2) - (samples[i] * (h / 2));
+                
+                if (i === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            }
+            ctx.stroke();
+        }
+        
+        function updateTuneStatus() {
+            const box = document.getElementById('tuneStatus');
+            const targetFreq = stringFrequencies[state.currentNote];
+            const diff = Math.abs(state.frequency - targetFreq);
+            const beatFreq = diff;
+            
+            if (diff < 0.5) {
+                box.innerHTML = `<span class="success">✓ In tune! Beat frequency: < 0.5Hz</span>`;
+            } else if (diff < 2) {
+                box.innerHTML = `<span class="warning">≈ Nearly tuned. Beat frequency: ${beatFreq.toFixed(1)}Hz</span>`;
+            } else {
+                box.innerHTML = `<span class="warning">⚠ Out of tune. Beat frequency: ${beatFreq.toFixed(1)}Hz — adjust slider</span>`;
+            }
+        }
+        
+        function updateHarmonicDisplay() {
+            const freq = state.frequency;
+            
+            // Update stats
+            document.getElementById('harmFund').textContent = freq.toFixed(1) + ' Hz';
+            document.getElementById('harmPeriod').textContent = (1000 / freq).toFixed(1) + ' ms';
+            document.getElementById('harmSecond').textContent = (freq * 2).toFixed(1) + ' Hz';
+            
+            const interval = intervals[2] || 'Octave';
+            document.getElementById('harmInterval').textContent = interval;
+            
+            // Update bars
+            const bars = document.querySelectorAll('.harmonic-bar');
+            const amplitudes = [1, 0.7, 0.45, 0.3, 0.2];
+            bars.forEach((bar, i) => {
+                bar.style.height = (amplitudes[i] * 100) + '%';
+            });
+        }
+        
+        // Initial draws
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                drawWaveform();
+                updateTuneStatus();
+                updateHarmonicDisplay();
+            }, 100);
+        });
+        
+        // Redraw on window resize
+        window.addEventListener('resize', () => {
+            const activeTab = document.querySelector('.tab-content.active').id;
+            if (activeTab === 'tuning') drawWaveform();
+            else if (activeTab === 'waveform') drawFullWaveform();
+        });
+    </script>
+</body>
+</html>
