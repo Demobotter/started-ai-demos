@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tidal Bore Tracker</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Space+Mono:wght@400&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Space Mono', monospace;
+            background: linear-gradient(135deg, #0a1428 0%, #1a2e4a 100%);
+            color: #f5ead6;
+            min-height: 100vh;
+            padding: 1rem;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 2rem;
+            height: calc(100vh - 2rem);
+        }
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+                height: auto;
+            }
+        }
+        
+        .control-panel {
+            background: rgba(10, 20, 40, 0.8);
+            border: 1px solid #4da8da;
+            border-radius: 8px;
+            padding: 1.5rem;
+            overflow-y: auto;
+        }
+        
+        h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.8rem;
+            margin-bottom: 1rem;
+            color: #4da8da;
+        }
+        
+        .location-buttons {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .location-buttons button {
+            padding: 0.7rem;
+            background: #1a3a52;
+            border: 2px solid #4da8da;
+            color: #f5ead6;
+            cursor: pointer;
+            font-family: 'Space Mono', monospace;
+            font-size: 0.9rem;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+        
+        .location-buttons button:hover {
+            background: #2d5f7a;
+            border-color: #7dd3fc;
+        }
+        
+        .location-buttons button.active {
+            background: #4da8da;
+            color: #0a1428;
+            font-weight: bold;
+        }
+        
+        .stats-box {
+            background: rgba(77, 168, 218, 0.1);
+            border-left: 3px solid #2d9d5f;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-radius: 4px;
+        }
+        
+        .stat-label {
+            font-size: 0.75rem;
+            color: #888;
+            text-transform: uppercase;
+            margin-bottom: 0.3rem;
+        }
+        
+        .stat-value {
+            font-size: 1.5rem;
+            color: #7dd3fc;
+            font-weight: bold;
+        }
+        
+        .countdown {
+            background: rgba(255, 107, 107, 0.1);
+            border: 2px solid #ff6b6b;
+            padding: 1rem;
+            border-radius: 4px;
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+        
+        .countdown-label {
+            font-size: 0.85rem;
+            color: #ff6b6b;
+            margin-bottom: 0.5rem;
+        }
+        
+        .countdown-timer {
+            font-size: 2rem;
+            color: #ff8787;
+            font-family: 'Space Mono', monospace;
+            font-weight: bold;
+        }
+        
+        .slider-group {
+            margin-bottom: 1.5rem;
+        }
+        
+        .slider-label {
+            font-size: 0.85rem;
+            color: #888;
+            margin-bottom: 0.3rem;
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        input[type="range"] {
+            width: 100%;
+            cursor: pointer;
+            accent-color: #4da8da;
+        }
+        
+        .visualization {
+            background: rgba(10, 20, 40, 0.8);
+            border: 1px solid #4da8da;
+            border-radius: 8px;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+        
+        canvas {
+            border: 1px solid #2d5f7a;
+            border-radius: 4px;
+            background: linear-gradient(180deg, #1a3a52 0%, #0d1f2d 100%);
+        }
+        
+        .graph-container {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        
+        .graph-label {
+            font-size: 0.85rem;
+            color: #888;
+            text-transform: uppercase;
+        }
+        
+        #waterLevelCanvas {
+            max-height: 150px;
+        }
+        
+        .loading {
+            color: #888;
+            font-size: 0.9rem;
+            text-align: center;
+            padding: 2rem;
+        }
+        
+        .error {
+            color: #ff6b6b;
+            font-size: 0.85rem;
+            background: rgba(255, 107, 107, 0.1);
+            padding: 0.5rem;
+            border-radius: 4px;
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="control-panel">
+            <h1>🌊 Tidal Bore</h1>
+            
+            <div class="location-buttons" id="locationButtons"></div>
+            
+            <div id="countdown" class="countdown">
+                <div class="countdown-label">TIME TO PEAK BORE</div>
+                <div class="countdown-timer" id="countdownTimer">--:--</div>
+            </div>
+            
+            <div id="statsContainer"></div>
+            
+            <div class="slider-group">
+                <div class="slider-label">
+                    <span>Time Range (Hours)</span>
+                    <span id="rangeValue">3</span>
+                </div>
+                <input type="range" id="timeRangeSlider" min="0.5" max="24" step="0.5" value="3">
+            </div>
+        </div>
+        
+        <div class="visualization">
+            <div>
+                <canvas id="boreCanvas" width="800" height="300"></canvas>
+            </div>
+            <div class="graph-container">
+                <div class="graph-label">Predicted Water Level (Next 3 Hours)</div>
+                <canvas id="waterLevelCanvas" width="800" height="120"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Tidal bore data for known locations
+        const locations = {
+            'Amazon': { lat: -2.5, lon: -60.0, name: 'Pororoca', maxBore: 8, bore_frequency_hours: 24 },
+            'Qiantang': { lat: 30.3, lon: 120.2, name: 'Hangzhou', maxBore: 7, bore_frequency_hours: 24 },
+            'Severn': { lat: 51.6, lon: -2.5, name: 'UK/Wales', maxBore: 6, bore_frequency_hours: 24 },
+            'Ord': { lat: -17.0, lon: 123.3, name: 'Australia', maxBore: 4.5, bore_frequency_hours: 24 },
+            'Fraser': { lat: 49.4, lon: -123.3, name: 'Canada', maxBore: 3, bore_frequency_hours: 24 },
+            'Seine': { lat: 49.3, lon: 0.5, name: 'France', maxBore: 2.5, bore_frequency_hours: 24 }
+        };
+        
+        let currentLocation = 'Amazon';
+        let timeRange = 3; // hours
+        let boreData = {};
+        let countdownInterval = null;
+        
+        // Initialize UI
+        function initUI() {
+            const buttonsContainer = document.getElementById('locationButtons');
+            Object.keys(locations).forEach(loc => {
+                const btn = document.createElement('button');
+                btn.textContent = `${loc} - ${locations[loc].name}`;
+                btn.dataset.location = loc;
+                if (loc === currentLocation) btn.classList.add('active');
+                btn.addEventListener('click', () => selectLocation(loc));
+                buttonsContainer.appendChild(btn);
+            });
+            
+            document.getElementById('timeRangeSlider').addEventListener('change', (e) => {
+                timeRange = parseFloat(e.target.value);
+                document.getElementById('rangeValue').textContent = timeRange;
+                updateVisualization();
+            });
+        }
+        
+        function selectLocation(loc) {
+            currentLocation = loc;
+            document.querySelectorAll('.location-buttons button').forEach(b => b.classList.remove('active'));
+            document.querySelector(`[data-location="${loc}"]`).classList.add('active');
+            updateVisualization();
+        }
+        
+        // Simulate realistic tidal cycles based on location and time
+        function getTidalData(location, hoursAhead) {
+            const loc = locations[location];
+            const now = Date.now();
+            const baseWaterLevel = 2.0 + Math.sin((now / 3600000) % 12.56) * 1.5; // Diurnal tide
+            const moonInfluence = Math.sin((now / (12.42 * 3600000)) % 1) * 0.5; // Lunar semidiurnal
+            
+            let waterLevels = [];
+            let timeToBore = null;
+            
+            for (let i = 0; i < hoursAhead * 60; i += 5) {
+                const t = now + (i * 60 * 1000);
+                const level = baseWaterLevel + 
+                    Math.sin((t / 3600000) % 12.56) * 1.5 + 
+                    Math.sin((t / (12.42 * 3600000)) % 1) * 0.5 +
+                    Math.random() * 0.1;
+                waterLevels.push({ time: i, level: Math.max(0.5, level) });
+                
+                // Bore peak happens at specific tidal phase
+                if (timeToBore === null && level > (baseWaterLevel + 2)) {
+                    timeToBore = i;
+                }
+            }
+            
+            // If no peak found, estimate next bore
+            if (timeToBore === null) {
+                timeToBore = 45 + Math.random() * 90; // 45-135 min from now
+            }
+            
+            const boreHeight = loc.maxBore * (0.7 + Math.random() * 0.3);
+            const boreSpeed = 5 + Math.random() * 8; // km/h
+            
+            return {
+                waterLevels,
+                timeToBore,
+                boreHeight,
+                boreSpeed,
+                currentLevel: waterLevels[0]?.level || 2.0
+            };
+        }
+        
+        function updateVisualization() {
+            boreData = getTidalData(currentLocation, timeRange);
+            updateStats();
+            updateCountdown();
+            drawBoreAnimation();
+            drawWaterLevelGraph();
+        }
+        
+        function updateStats() {
+            const loc = locations[currentLocation];
+            const html = `
+                <div class="stats-box">
+                    <div class="stat-label">Current Water Level</div>
+                    <div class="stat-value">${boreData.currentLevel.toFixed(2)} m</div>
+                </div>
+                <div class="stats-box">
+                    <div class="stat-label">Bore Height</div>
+                    <div class="stat-value">${boreData.boreHeight.toFixed(1)} m</div>
+                </div>
+                <div class="stats-box">
+                    <div class="stat-label">Bore Speed</div>
+                    <div class="stat-value">${boreData.boreSpeed.toFixed(1)} km/h</div>
+                </div>
+                <div class="stats-box">
+                    <div class="stat-label">Location</div>
+                    <div class="stat-value">${loc.name}</div>
+                </div>
+            `;
+            document.getElementById('statsContainer').innerHTML = html;
+        }
+        
+        function updateCountdown() {
+            if (countdownInterval) clearInterval(countdownInterval);
+            
+            let timeRemaining = boreData.timeToBore;
+            const updateTimer = () => {
+                const mins = Math.floor(timeRemaining);
+                const secs = Math.floor((timeRemaining % 1) * 60);
+                document.getElementById('countdownTimer').textContent = 
+                    `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+                
+                timeRemaining -= 0.01667; // Update every 16.67ms = 1/60 sec visual
+                if (timeRemaining < 0) {
+                    updateVisualization();
+                }
+            };
+            updateTimer();
+            countdownInterval = setInterval(updateTimer, 16.67);
+        }
+        
+        function drawBoreAnimation() {
+            const canvas = document.getElementById('boreCanvas');
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = 'url(#skyGradient)' || '#1a3a52';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            const waterY = canvas.height * 0.6;
+            const borePos = (1 - Math.min(1, boreData.timeToBore / 120)) * canvas.width;
+            
+            // Sky gradient
+            const skyGrad = ctx.createLinearGradient(0, 0, 0, waterY);
+            skyGrad.addColorStop(0, '#0d1f2d');
+            skyGrad.addColorStop(1, '#2d5f7a');
+            ctx.fillStyle = skyGrad;
+            ctx.fillRect(0, 0, canvas.width, waterY);
+            
+            // Still water before bore
+            const waterGrad = ctx.createLinearGradient(0, waterY, 0, canvas.height);
+            waterGrad.addColorStop(0, '#2d9d9d');
+            waterGrad.addColorStop(1, '#1a5f7a');
+            ctx.fillStyle = waterGrad;
+            ctx.fillRect(0, waterY, Math.min(borePos, canvas.width), canvas.height - waterY);
+            
+            // Bore wave front
+            if (borePos < canvas.width) {
+                // Wave profile
+                ctx.fillStyle = '#00d4ff';
+                ctx.beginPath();
+                const boreHeight = Math.min(60, boreData.boreHeight * 8);
+                ctx.moveTo(borePos - 5, waterY);
+                ctx.quadraticCurveTo(borePos, waterY - boreHeight, borePos + 30, waterY);
+                ctx.lineTo(borePos + 30, canvas.height);
+                ctx.lineTo(borePos - 5, canvas.height);
+                ctx.fill();
+                
+                // Foam crest
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.ellipse(borePos + 10, waterY - boreHeight * 0.8, 25, 8, 0, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Water particles being displaced
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+                for (let i = 0; i < 5; i++) {
+                    const px = borePos - 50 + i * 15;
+                    const py = waterY - 10 + Math.sin(Date.now() / 200 + i) * 5;
+                    ctx.beginPath();
+                    ctx.arc(px, py, 2, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+            
+            // Downstream water (after bore passes)
+            if (borePos < canvas.width) {
+                const afterWaterGrad = ctx.createLinearGradient(0, waterY + 20, 0, canvas.height);
+                afterWaterGrad.addColorStop(0, '#4da8da');
+                afterWaterGrad.addColorStop(1, '#2d7a9d');
+                ctx.fillStyle = afterWaterGrad;
+                ctx.fillRect(Math.max(borePos, 0), waterY + 20, canvas.width - borePos, canvas.height - waterY - 20);
+            }
+            
+            // Labels
+            ctx.fillStyle = '#888';
+            ctx.font = '12px Space Mono';
+            ctx.fillText('Incoming bore →', 20, 30);
+            if (borePos < canvas.width) {
+                ctx.fillText(`${boreData.boreHeight.toFixed(1)}m high`, borePos - 40, waterY - 60);
+            }
+        }
+        
+        function drawWaterLevelGraph() {
+            const canvas = document.getElementById('waterLevelCanvas');
+            const ctx = canvas.getContext('2d');
+            const padding = 30;
+            const width = canvas.width - padding * 2;
+            const height = canvas.height - padding * 2;
+            
+            // Background
+            ctx.fillStyle = '#0d1f2d';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Grid
+            ctx.strokeStyle = '#2d5f7a';
+            ctx.lineWidth = 1;
+            for (let i = 0; i <= 3; i++) {
+                const y = padding + (i * height / 3);
+                ctx.beginPath();
+                ctx.moveTo(padding, y);
+                ctx.lineTo(canvas.width - padding, y);
+                ctx.stroke();
+            }
+            
+            // Axes
+            ctx.strokeStyle = '#4da8da';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(padding, padding);
+            ctx.lineTo(padding, canvas.height - padding);
+            ctx.lineTo(canvas.width - padding, canvas.height - padding);
+            ctx.stroke();
+            
+            // Data line
+            if (boreData.waterLevels && boreData.waterLevels.length > 0) {
+                const maxLevel = Math.max(...boreData.waterLevels.map(d => d.level));
+                const minLevel = Math.min(...boreData.waterLevels.map(d => d.level));
+                const levelRange = maxLevel - minLevel || 1;
+                
+                ctx.strokeStyle = '#7dd3fc';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                
+                boreData.waterLevels.forEach((d, i) => {
+                    const x = padding + (d.time / (timeRange * 60)) * width;
+                    const y = canvas.height - padding - ((d.level - minLevel) / levelRange) * height;
+                    if (i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                });
+                ctx.stroke();
+            }
+            
+            // Labels
+            ctx.fillStyle = '#888';
+            ctx.font = '11px Space Mono';
+            ctx.textAlign = 'right';
+            ctx.fillText('0h', padding - 5, canvas.height - padding + 5);
+            ctx.fillText(`${timeRange}h`, canvas.width - padding, canvas.height - padding + 5);
+        }
+        
+        // Start
+        initUI();
+        updateVisualization();
+    </script>
+</body>
+</html>
