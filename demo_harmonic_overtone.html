@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Harmonic Overtone Viewer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Space+Mono:wght@400&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Space Mono', monospace;
+      background: linear-gradient(135deg, #0a1428 0%, #1a2a4a 100%);
+      color: #f5ead6;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    
+    .container {
+      max-width: 1200px;
+      width: 100%;
+      background: rgba(15, 20, 41, 0.95);
+      border-radius: 12px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+      overflow: hidden;
+      display: grid;
+      grid-template-columns: 1fr 1.5fr;
+      gap: 0;
+    }
+    
+    @media (max-width: 900px) {
+      .container {
+        grid-template-columns: 1fr;
+        max-width: 600px;
+      }
+      .controls {
+        order: -1;
+      }
+    }
+    
+    .controls {
+      padding: 40px 30px;
+      border-right: 1px solid #2c3e50;
+      overflow-y: auto;
+      max-height: 100vh;
+    }
+    
+    @media (max-width: 900px) {
+      .controls {
+        border-right: none;
+        border-bottom: 1px solid #2c3e50;
+      }
+    }
+    
+    h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: 28px;
+      margin-bottom: 25px;
+      color: #4da8da;
+      letter-spacing: 1px;
+    }
+    
+    .section {
+      margin-bottom: 30px;
+    }
+    
+    .section-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      color: #7209b7;
+      letter-spacing: 2px;
+      margin-bottom: 12px;
+      font-weight: bold;
+    }
+    
+    .button-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 15px;
+    }
+    
+    button {
+      padding: 10px 14px;
+      background: #1a2a4a;
+      color: #f5ead6;
+      border: 2px solid #2d9d5f;
+      border-radius: 6px;
+      cursor: pointer;
+      font-family: 'Space Mono', monospace;
+      font-size: 12px;
+      font-weight: bold;
+      transition: all 0.2s ease;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    button:hover {
+      background: #2d9d5f;
+      color: #0a1428;
+      transform: translateY(-2px);
+    }
+    
+    button.active {
+      background: #4da8da;
+      border-color: #4da8da;
+      color: #0a1428;
+    }
+    
+    .slider-group {
+      margin-bottom: 20px;
+    }
+    
+    .slider-label {
+      font-size: 12px;
+      margin-bottom: 6px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: #f5ead6;
+    }
+    
+    .slider-value {
+      color: #4da8da;
+      font-weight: bold;
+    }
+    
+    input[type="range"] {
+      width: 100%;
+      height: 5px;
+      border-radius: 5px;
+      background: #2c3e50;
+      outline: none;
+      -webkit-appearance: none;
+    }
+    
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #4da8da;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(77, 168, 218, 0.4);
+    }
+    
+    input[type="range"]::-moz-range-thumb {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #4da8da;
+      cursor: pointer;
+      border: none;
+      box-shadow: 0 2px 8px rgba(77, 168, 218, 0.4);
+    }
+    
+    .toggle-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px;
+      background: #1a2a4a;
+      border-radius: 6px;
+      margin-bottom: 15px;
+    }
+    
+    .toggle-group input[type="checkbox"] {
+      width: 20px;
+      height: 20px;
+      cursor: pointer;
+      accent-color: #4da8da;
+    }
+    
+    .toggle-group label {
+      cursor: pointer;
+      font-size: 13px;
+      flex: 1;
+    }
+    
+    .stat-box {
+      background: #1a2a4a;
+      border-left: 4px solid #4da8da;
+      padding: 12px;
+      border-radius: 6px;
+      margin-bottom: 12px;
+      font-size: 12px;
+    }
+    
+    .stat-label {
+      color: #aaa;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 3px;
+    }
+    
+    .stat-value {
+      color: #f5ead6;
+      font-weight: bold;
+      font-size: 14px;
+    }
+    
+    .harmonics-list {
+      background: #1a2a4a;
+      border-left: 4px solid #2d9d5f;
+      padding: 12px;
+      border-radius: 6px;
+      font-size: 11px;
+      max-height: 150px;
+      overflow-y: auto;
+    }
+    
+    .harmonics-list div {
+      margin-bottom: 6px;
+      line-height: 1.4;
+      color: #f5ead6;
+    }
+    
+    .harmonics-list .harmonic-ratio {
+      color: #4da8da;
+      font-weight: bold;
+    }
+    
+    .canvas-section {
+      padding: 30px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    canvas {
+      width: 100%;
+      max-width: 500px;
+      height: auto;
+      border: 2px solid #2c3e50;
+      border-radius: 8px;
+      background: #0f1419;
+      display: block;
+      margin-bottom: 20px;
+    }
+    
+    .overlay-toggle {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 15px;
+      background: #1a2a4a;
+      border-radius: 6px;
+      margin-bottom: 20px;
+      align-self: flex-start;
+    }
+    
+    .harmonic-chart {
+      width: 100%;
+      max-width: 500px;
+      display: flex;
+      align-items: flex-end;
+      gap: 3px;
+      height: 120px;
+      background: #1a2a4a;
+      padding: 15px;
+      border-radius: 8px;
+      border-left: 4px solid #2d9d5f;
+    }
+    
+    .harmonic-bar {
+      flex: 1;
+      background: #4da8da;
+      border-radius: 4px 4px 0 0;
+      position: relative;
+      min-height: 5px;
+      opacity: 0.8;
+    }
+    
+    .harmonic-bar:hover {
+      opacity: 1;
+      background: #7209b7;
+    }
+    
+    .harmonic-bar-label {
+      position: absolute;
+      bottom: -20px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 10px;
+      color: #aaa;
+      white-space: nowrap;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="controls">
+      <h1>🎵 Harmonics</h1>
+      
+      <div class="section">
+        <div class="section-label">Instrument</div>
+        <div class="button-group">
+          <button class="instrument-btn active" data-instrument="tuning-fork">Tuning Fork</button>
+          <button class="instrument-btn" data-instrument="piano">Piano</button>
+          <button class="instrument-btn" data-instrument="violin">Violin</button>
+          <button class="instrument-btn" data-instrument="clarinet">Clarinet</button>
+          <button class="instrument-btn" data-instrument="flute">Flute</button>
+          <button class="instrument-btn" data-instrument="bell">Bell</button>
+        </div>
+      </div>
+      
+      <div class="section">
+        <div class="slider-group">
+          <div class="slider-label">
+            <span>Frequency</span>
+            <span class="slider-value"><span id="freq-display">440</span> Hz</span>
+          </div>
+          <input type="range" id="freq-slider" min="60" max="2000" value="440" step="1">
+        </div>
+        
+        <div class="slider-group">
+          <div class="slider-label">
+            <span>Decay</span>
+            <span class="slider-value"><span id="decay-display">1.0</span>s</span>
+          </div>
+          <input type="range" id="decay-slider" min="0" max="3" value="1.0" step="0.1">
+        </div>
+        
+        <div class="slider-group">
+          <div class="slider-label">
+            <span>Volume</span>
+            <span class="slider-value"><span id="volume-display">50</span>%</span>
+          </div>
+          <input type="range" id="volume-slider" min="0" max="100" value="50" step="1">
+        </div>
+      </div>
+      
+      <div class="section">
+        <div class="toggle-group">
+          <input type="checkbox" id="play-toggle">
+          <label for="play-toggle">Play Sound</label>
+        </div>
+      </div>
+      
+      <div class="section">
+        <div class="stat-box">
+          <div class="stat-label">Note Name</div>
+          <div class="stat-value" id="note-display">A4</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Wavelength</div>
+          <div class="stat-value" id="wavelength-display">78.3 cm</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Harmonic Strength</div>
+          <div class="harmonics-list" id="harmonics-list">
+            <div><span class="harmonic-ratio">1x:</span> 100% (Fundamental)</div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="section">
+        <div class="section-label">Presets</div>
+        <div class="button-group">
+          <button class="preset-btn" data-preset="a440">A4 Fork (440Hz)</button>
+          <button class="preset-btn" data-preset="c262">C3 Piano (262Hz)</button>
+          <button class="preset-btn" data-preset="g196">G3 Violin (196Hz)</button>
+          <button class="preset-btn" data-preset="bb466">B♭ Clarinet (466Hz)</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="canvas-section">
+      <canvas id="waveform-canvas" width="500" height="250"></canvas>
+      <div class="overlay-toggle">
+        <input type="checkbox" id="show-envelope">
+        <label for="show-envelope" style="margin: 0;">Show Envelope</label>
+      </div>
+      <div class="harmonic-chart" id="harmonic-chart"></div>
+    </div>
+  </div>
+
+  <script>
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const canvas = document.getElementById('waveform-canvas');
+    const ctx = canvas.getContext('2d');
+    
+    let state = {
+      instrument: 'tuning-fork',
+      frequency: 440,
+      decay: 1.0,
+      volume: 0.5,
+      playing: false,
+      showEnvelope: false,
+      oscillators: [],
+      gains: []
+    };
+    
+    const instruments = {
+      'tuning-fork': {
+        name: 'Tuning Fork',
+        harmonics: [1],
+        profile: [1.0]
+      },
+      'piano': {
+        name: 'Piano String',
+        harmonics: [1, 2, 3, 4, 5, 6],
+        profile: [1.0, 0.5, 0.35, 0.25, 0.15, 0.08]
+      },
+      'violin': {
+        name: 'Violin',
+        harmonics: [1, 2, 3, 4, 5, 6],
+        profile: [1.0, 0.8, 0.6, 0.4, 0.2, 0.1]
+      },
+      'clarinet': {
+        name: 'Clarinet',
+        harmonics: [1, 3, 5, 7],
+        profile: [1.0, 0.6, 0.3, 0.1]
+      },
+      'flute': {
+        name: 'Flute',
+        harmonics: [1, 2, 3, 4, 5],
+        profile: [1.0, 0.4, 0.2, 0.15, 0.08]
+      },
+      'bell': {
+        name: 'Bell',
+        harmonics: [1, 1.5, 2.1, 2.9, 3.5],
+        profile: [1.0, 0.7, 0.5, 0.4, 0.3]
+      }
+    };
+    
+    const notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+    
+    function freqToNote(freq) {
+      const a4 = 440;
+      const semitones = 12 * Math.log2(freq / a4);
+      const noteNum = Math.round(semitones) + 48;
+      const octave = Math.floor(noteNum / 12);
+      const note = notes[noteNum % 12];
+      return note + octave;
+    }
+    
+    function drawWaveform() {
+      ctx.fillStyle = '#0f1419';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      const centerY = canvas.height / 2;
+      const timePoints = 300;
+      const cycles = 3;
+      const samplesPerCycle = timePoints / cycles;
+      
+      const instrument = instruments[state.instrument];
+      
+      // Draw grid
+      ctx.strokeStyle = '#2c3e50';
+      ctx.lineWidth = 1;
+      for (let i = 0; i <= cycles; i++) {
+        const x = (canvas.width / cycles) * i;
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, canvas.height);
+        ctx.stroke();
+      }
+      
+      // Draw center line
+      ctx.strokeStyle = '#444';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(0, centerY);
+      ctx.lineTo(canvas.width, centerY);
+      ctx.stroke();
+      
+      // Draw harmonics
+      const colors = ['#4da8da', '#7209b7', '#f7a600', '#2d9d5f', '#ff6b9d', '#c44569', '#ff9e1b', '#00d9ff'];
+      
+      for (let h = 0; h < instrument.harmonics.length; h++) {
+        const harmonic = instrument.harmonics[h];
+        const amplitude = instrument.profile[h] * 0.7 * (state.showEnvelope ? 1 : 0.5);
+        const color = colors[h % colors.length];
+        
+        ctx.strokeStyle = color;
+        ctx.lineWidth = h === 0 ? 2.5 : 1.5;
+        ctx.globalAlpha = h === 0 ? 1 : 0.6;
+        ctx.beginPath();
+        
+        for (let i = 0; i < timePoints; i++) {
+          const t = (i / samplesPerCycle) * Math.PI * 2;
+          const y = Math.sin(t * harmonic) * amplitude;
+          const canvasY = centerY - y * (canvas.height / 2.5);
+          
+          if (i === 0) ctx.moveTo((i / timePoints) * canvas.width, canvasY);
+          else ctx.lineTo((i / timePoints) * canvas.width, canvasY);
+        }
+        ctx.stroke();
+      }
+      
+      // Draw combined waveform (thicker, bright)
+      ctx.strokeStyle = '#4da8da';
+      ctx.lineWidth = 2.5;
+      ctx.globalAlpha = 0.9;
+      ctx.beginPath();
+      
+      for (let i = 0; i < timePoints; i++) {
+        const t = (i / samplesPerCycle) * Math.PI * 2;
+        let y = 0;
+        
+        for (let h = 0; h < instrument.harmonics.length; h++) {
+          const harmonic = instrument.harmonics[h];
+          const amplitude = instrument.profile[h];
+          y += Math.sin(t * harmonic) * amplitude;
+        }
+        
+        y /= instrument.harmonics.length;
+        const canvasY = centerY - y * (canvas.height / 2.5);
+        
+        if (i === 0) ctx.moveTo((i / timePoints) * canvas.width, canvasY);
+        else ctx.lineTo((i / timePoints) * canvas.width, canvasY);
+      }
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+    
+    function updateHarmonicChart() {
+      const instrument = instruments[state.instrument];
+      const chart = document.getElementById('harmonic-chart');
+      chart.innerHTML = '';
+      
+      for (let i = 0; i < 8; i++) {
+        const harmonic = i + 1;
+        const harmStr = instrument.harmonics.find(h => Math.abs(h - harmonic) < 0.01);
+        const idx = harmStr !== undefined ? instrument.harmonics.indexOf(harmStr) : -1;
+        const strength = idx >= 0 ? instrument.profile[idx] : 0;
+        
+        const bar = document.createElement('div');
+        bar.className = 'harmonic-bar';
+        bar.style.height = (strength * 100) + '%';
+        bar.innerHTML = `<div class="harmonic-bar-label">${harmonic}x</div>`;
+        chart.appendChild(bar);
+      }
+    }
+    
+    function updateStats() {
+      const freq = parseFloat(state.frequency);
+      document.getElementById('freq-display').textContent = Math.round(freq);
+      document.getElementById('note-display').textContent = freqToNote(freq);
+      document.getElementById('wavelength-display').textContent = (343 / freq * 100).toFixed(1) + ' cm';
+      document.getElementById('decay-display').textContent = state.decay.toFixed(1);
+      document.getElementById('volume-display').textContent = Math.round(state.volume * 100);
+      
+      const instrument = instruments[state.instrument];
+      const list = document.getElementById('harmonics-list');
+      list.innerHTML = '';
+      
+      for (let i = 0; i < instrument.harmonics.length && i < 5; i++) {
+        const harmonic = instrument.harmonics[i];
+        const strength = instrument.profile[i];
+        const ratio = harmonic === 1 ? 'Fundamental' : harmonic + 'x';
+        const div = document.createElement('div');
+        div.innerHTML = `<span class="harmonic-ratio">${ratio}:</span> ${(strength * 100).toFixed(0)}%`;
+        list.appendChild(div);
+      }
+    }
+    
+    function stopAudio() {
+      state.oscillators.forEach(osc => osc.stop());
+      state.gains.forEach(gain => gain.disconnect());
+      state.oscillators = [];
+      state.gains = [];
+      state.playing = false;
+    }
+    
+    function startAudio() {
+      if (state.playing) stopAudio();
+      
+      const instrument = instruments[state.instrument];
+      state.playing = true;
+      
+      for (let i = 0; i < instrument.harmonics.length && i < 5; i++) {
+        const harmonic = instrument.harmonics[i];
+        const strength = instrument.profile[i];
+        
+        const osc = audioContext.createOscillator();
+        const gain = audioContext.createGain();
+        
+        osc.frequency.value = state.frequency * harmonic;
+        osc.type = 'sine';
+        
+        const now = audioContext.currentTime;
+        gain.gain.setValueAtTime(strength * state.volume, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + state.decay);
+        
+        osc.connect(gain);
+        gain.connect(audioContext.destination);
+        osc.start(now);
+        
+        state.oscillators.push(osc);
+        state.gains.push(gain);
+      }
+    }
+    
+    // Event listeners
+    document.querySelectorAll('.instrument-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.instrument-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        state.instrument = btn.dataset.instrument;
+        updateHarmonicChart();
+        updateStats();
+        drawWaveform();
+      });
+    });
+    
+    document.getElementById('freq-slider').addEventListener('input', (e) => {
+      state.frequency = parseFloat(e.target.value);
+      if (state.playing) {
+        stopAudio();
+        startAudio();
+      }
+      updateStats();
+      drawWaveform();
+    });
+    
+    document.getElementById('decay-slider').addEventListener('input', (e) => {
+      state.decay = parseFloat(e.target.value);
+      updateStats();
+    });
+    
+    document.getElementById('volume-slider').addEventListener('input', (e) => {
+      state.volume = parseFloat(e.target.value) / 100;
+      updateStats();
+      if (state.playing) {
+        stopAudio();
+        startAudio();
+      }
+    });
+    
+    document.getElementById('play-toggle').addEventListener('change', (e) => {
+      if (e.target.checked) {
+        startAudio();
+      } else {
+        stopAudio();
+      }
+    });
+    
+    document.getElementById('show-envelope').addEventListener('change', (e) => {
+      state.showEnvelope = e.target.checked;
+      drawWaveform();
+    });
+    
+    document.querySelectorAll('.preset-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const presets = {
+          'a440': { freq: 440, instrument: 'tuning-fork' },
+          'c262': { freq: 261.63, instrument: 'piano' },
+          'g196': { freq: 195.99, instrument: 'violin' },
+          'bb466': { freq: 466.16, instrument: 'clarinet' }
+        };
+        const preset = presets[btn.dataset.preset];
+        if (preset) {
+          state.frequency = preset.freq;
+          state.instrument = preset.instrument;
+          document.getElementById('freq-slider').value = preset.freq;
+          document.querySelectorAll('.instrument-btn').forEach(b => b.classList.remove('active'));
+          document.querySelector(`[data-instrument="${preset.instrument}"]`).classList.add('active');
+          updateHarmonicChart();
+          updateStats();
+          drawWaveform();
+          if (state.playing) {
+            stopAudio();
+            startAudio();
+          }
+        }
+      });
+    });
+    
+    // Initial draw
+    updateStats();
+    updateHarmonicChart();
+    drawWaveform();
+  </script>
+</body>
+</html>
