@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Constellation Decoder</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Space+Mono:wght@400&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: linear-gradient(135deg, #050a15 0%, #0a1428 100%);
+            color: #f5ead6;
+            font-family: 'Space Mono', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 30px;
+            align-items: start;
+        }
+        h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 36px;
+            margin-bottom: 10px;
+            grid-column: 1 / -1;
+            text-align: center;
+        }
+        .subtitle {
+            grid-column: 1 / -1;
+            text-align: center;
+            color: #aaa;
+            margin-bottom: 20px;
+            font-size: 13px;
+        }
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+        .button-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .button-group label {
+            font-size: 11px;
+            color: #999;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+        }
+        .btn {
+            padding: 11px 12px;
+            border: 1px solid #333;
+            background: #0f1419;
+            color: #f5ead6;
+            border-radius: 3px;
+            cursor: pointer;
+            font-family: 'Space Mono', monospace;
+            font-size: 12px;
+            text-align: left;
+            transition: all 0.2s;
+        }
+        .btn:hover {
+            background: #1a2540;
+            border-color: #4da8da;
+            color: #7dd3fc;
+        }
+        .btn.active {
+            background: #1f3a52;
+            border-color: #00d4ff;
+            color: #00d4ff;
+        }
+        .info-box {
+            background: #0f1419;
+            border-left: 3px solid #4da8da;
+            padding: 12px;
+            border-radius: 3px;
+            font-size: 12px;
+        }
+        .info-label {
+            color: #888;
+            text-transform: uppercase;
+            font-size: 10px;
+            margin-top: 8px;
+            margin-bottom: 4px;
+        }
+        .info-value {
+            color: #7dd3fc;
+            font-weight: bold;
+            font-size: 13px;
+        }
+        .canvas-wrapper {
+            background: #0f1419;
+            border: 1px solid #333;
+            border-radius: 3px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        canvas {
+            border: 1px solid #1a2540;
+            background: #050a15;
+            border-radius: 3px;
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+        .description {
+            background: #0f1419;
+            border: 1px solid #333;
+            border-radius: 3px;
+            padding: 12px;
+            font-size: 12px;
+            line-height: 1.5;
+            color: #ccc;
+        }
+        @media (max-width: 1024px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>⭐ Constellation Decoder</h1>
+    <div class="subtitle">Explore myths, stars, and celestial patterns</div>
+    
+    <div class="container">
+        <div class="sidebar">
+            <div class="button-group">
+                <label>Northern Sky</label>
+                <button class="btn" data-constellation="orion">Orion</button>
+                <button class="btn" data-constellation="ursamajor">Ursa Major</button>
+                <button class="btn" data-constellation="cassiopeia">Cassiopeia</button>
+                <button class="btn" data-constellation="cygnus">Cygnus</button>
+                <button class="btn" data-constellation="perseus">Perseus</button>
+            </div>
+
+            <div class="button-group">
+                <label>Zodiac</label>
+                <button class="btn" data-constellation="taurus">Taurus</button>
+                <button class="btn" data-constellation="leo">Leo</button>
+                <button class="btn" data-constellation="scorpio">Scorpio</button>
+            </div>
+
+            <div class="button-group">
+                <label>Southern Sky</label>
+                <button class="btn" data-constellation="cruxsouthernc">Crux</button>
+                <button class="btn" data-constellation="centaurus">Centaurus</button>
+            </div>
+
+            <div class="info-box">
+                <div class="info-label">Brightest Star</div>
+                <div class="info-value" id="brightestStar">—</div>
+                
+                <div class="info-label">Magnitude Range</div>
+                <div class="info-value" id="magnitudeRange">—</div>
+                
+                <div class="info-label">Visibility</div>
+                <div class="info-value" id="visibility">—</div>
+            </div>
+
+            <div class="description" id="mythologyText">
+                Select a constellation to learn its story
+            </div>
+        </div>
+
+        <div class="canvas-wrapper">
+            <canvas id="constellationCanvas" width="900" height="600"></canvas>
+        </div>
+    </div>
+
+    <script>
+        const constellations = {
+            orion: {
+                name: "Orion",
+                mythName: "The Hunter",
+                mythology: "A great hunter in Greek mythology, placed among the stars. Often depicted chasing the Pleiades (Seven Sisters). Visible winter nights in Northern Hemisphere.",
+                stars: [
+                    { name: "Betelgeuse", x: 150, y: 100, mag: 0.5, color: "#ff6b4a" },
+                    { name: "Rigel", x: 180, y: 280, mag: 0.1, color: "#4da8da" },
+                    { name: "Bellatrix", x: 250, y: 120, mag: 1.6, color: "#a8d4ff" },
+                    { name: "Alnitak", x: 120, y: 200, mag: 1.9, color: "#ddd" },
+                    { name: "Alnilam", x: 150, y: 220, mag: 1.7, color: "#ddd" },
+                    { name: "Mintaka", x: 180, y: 240, mag: 2.2, color: "#ddd" }
+                ],
+                lines: [[150, 100], [180, 280], [250, 120], [120, 200], [150, 220], [180, 240]],
+                brightest: "Rigel (mag 0.1)",
+                magnitude: "0.1 - 2.2",
+                visibility: "Winter (Northern)"
+            },
+            ursamajor: {
+                name: "Ursa Major",
+                mythName: "The Great Bear",
+                mythology: "Known as the Big Dipper or Plough. A circumpolar constellation visible year-round in Northern skies. The two pointer stars align with Polaris, the North Star.",
+                stars: [
+                    { name: "Dubhe", x: 100, y: 150, mag: 1.9, color: "#ff8844" },
+                    { name: "Merak", x: 200, y: 160, mag: 2.4, color: "#a8d4ff" },
+                    { name: "Phecda", x: 250, y: 120, mag: 2.4, color: "#a8d4ff" },
+                    { name: "Megrez", x: 300, y: 100, mag: 3.3, color: "#ddd" },
+                    { name: "Alioth", x: 350, y: 110, mag: 1.8, color: "#a8d4ff" },
+                    { name: "Mizar", x: 380, y: 130, mag: 2.3, color: "#a8d4ff" },
+                    { name: "Alkaid", x: 420, y: 160, mag: 1.9, color: "#ff9966" }
+                ],
+                lines: [[100, 150], [200, 160], [250, 120], [300, 100], [350, 110], [380, 130], [420, 160]],
+                brightest: "Dubhe (mag 1.9)",
+                magnitude: "1.8 - 3.3",
+                visibility: "Year-round (Northern)"
+            },
+            cassiopeia: {
+                name: "Cassiopeia",
+                mythName: "The Queen",
+                mythology: "Queen of Ethiopia in Greek mythology, punished for vanity and chained to a chair. Visible circumpolar in Northern skies, forming a distinctive W shape.",
+                stars: [
+                    { name: "Scheherazade", x: 120, y: 200, mag: 2.2, color: "#ff7744" },
+                    { name: "Caph", x: 200, y: 170, mag: 2.3, color: "#a8d4ff" },
+                    { name: "Gamma Cassiopeia", x: 280, y: 180, mag: 2.4, color: "#a8d4ff" },
+                    { name: "Ruchbah", x: 350, y: 210, mag: 2.7, color: "#ddd" },
+                    { name: "Segin", x: 410, y: 240, mag: 3.4, color: "#ddd" }
+                ],
+                lines: [[120, 200], [200, 170], [280, 180], [350, 210], [410, 240]],
+                brightest: "Scheherazade (mag 2.2)",
+                magnitude: "2.2 - 3.4",
+                visibility: "Year-round (Northern)"
+            },
+            cygnus: {
+                name: "Cygnus",
+                mythName: "The Swan",
+                mythology: "Multiple myths: a swan mourning his friend, or the swan form of a god. The Northern Cross asterism lies along the Milky Way, making it spectacular in summer.",
+                stars: [
+                    { name: "Deneb", x: 250, y: 50, mag: 1.3, color: "#a8d4ff" },
+                    { name: "Sadr", x: 250, y: 200, mag: 2.2, color: "#ddd" },
+                    { name: "Albireo", x: 250, y: 350, mag: 3.1, color: "#ff8844" },
+                    { name: "Delta Cygni", x: 150, y: 200, mag: 2.9, color: "#ddd" },
+                    { name: "Epsilon Cygni", x: 350, y: 200, mag: 2.5, color: "#a8d4ff" }
+                ],
+                lines: [[250, 50], [250, 200], [250, 350], [150, 200], [350, 200]],
+                brightest: "Deneb (mag 1.3)",
+                magnitude: "1.3 - 3.1",
+                visibility: "Summer (Northern)"
+            },
+            perseus: {
+                name: "Perseus",
+                mythName: "The Hero",
+                mythology: "Hero who slew Medusa. The constellation contains Algol, the 'Demon Star', which varies in brightness. Perseus is the radiant point for the Perseid meteor shower.",
+                stars: [
+                    { name: "Algenib", x: 200, y: 150, mag: 1.8, color: "#ff9966" },
+                    { name: "Algol", x: 150, y: 250, mag: 2.1, color: "#ff6b4a" },
+                    { name: "Miram", x: 250, y: 200, mag: 3.0, color: "#ddd" },
+                    { name: "Epsilon Persei", x: 300, y: 180, mag: 2.9, color: "#a8d4ff" }
+                ],
+                lines: [[200, 150], [150, 250], [250, 200], [300, 180]],
+                brightest: "Algenib (mag 1.8)",
+                magnitude: "1.8 - 3.0",
+                visibility: "Fall/Winter (Northern)"
+            },
+            taurus: {
+                name: "Taurus",
+                mythName: "The Bull",
+                mythology: "A bull form taken by Zeus to abduct a princess. Contains the bright star Aldebaran (red eye of the bull) and the Pleiades star cluster.",
+                stars: [
+                    { name: "Aldebaran", x: 250, y: 200, mag: 0.9, color: "#ff6b4a" },
+                    { name: "Ele1", x: 180, y: 80, mag: 2.8, color: "#ddd" },
+                    { name: "Ele2", x: 200, y: 100, mag: 3.1, color: "#ddd" },
+                    { name: "Ele3", x: 220, y: 85, mag: 3.2, color: "#ddd" },
+                    { name: "Zeta Tauri", x: 320, y: 220, mag: 3.0, color: "#a8d4ff" }
+                ],
+                lines: [[250, 200], [180, 80], [200, 100], [220, 85], [320, 220]],
+                brightest: "Aldebaran (mag 0.9)",
+                magnitude: "0.9 - 3.2",
+                visibility: "Winter (Northern)"
+            },
+            leo: {
+                name: "Leo",
+                mythName: "The Lion",
+                mythology: "The Nemean Lion slain by Heracles (Hercules). One of the largest zodiac constellations, containing the bright star Regulus and identifiable by the Sickle asterism.",
+                stars: [
+                    { name: "Regulus", x: 150, y: 200, mag: 1.4, color: "#a8d4ff" },
+                    { name: "Algieba", x: 200, y: 150, mag: 1.9, color: "#ff8844" },
+                    { name: "Chertan", x: 280, y: 180, mag: 3.3, color: "#ddd" },
+                    { name: "Denebola", x: 350, y: 220, mag: 2.1, color: "#a8d4ff" }
+                ],
+                lines: [[150, 200], [200, 150], [280, 180], [350, 220]],
+                brightest: "Regulus (mag 1.4)",
+                magnitude: "1.4 - 3.3",
+                visibility: "Spring (Northern)"
+            },
+            scorpio: {
+                name: "Scorpio",
+                mythName: "The Scorpion",
+                mythology: "A scorpion sent by Gaia to kill Orion. Scorpio is rich in bright stars and lies on the Milky Way. Antares is the red supergiant 'heart' of the scorpion.",
+                stars: [
+                    { name: "Antares", x: 250, y: 150, mag: 1.0, color: "#ff6b4a" },
+                    { name: "Shaula", x: 320, y: 280, mag: 1.6, color: "#a8d4ff" },
+                    { name: "Lesath", x: 300, y: 260, mag: 2.7, color: "#a8d4ff" },
+                    { name: "Sargas", x: 280, y: 240, mag: 2.4, color: "#a8d4ff" },
+                    { name: "Alniyat", x: 260, y: 200, mag: 2.4, color: "#ddd" }
+                ],
+                lines: [[250, 150], [320, 280], [300, 260], [280, 240], [260, 200]],
+                brightest: "Antares (mag 1.0)",
+                magnitude: "1.0 - 2.7",
+                visibility: "Summer (Northern)"
+            },
+            cruxsouthernc: {
+                name: "Crux",
+                mythName: "The Southern Cross",
+                mythology: "Smallest constellation but brightest in Southern sky. Invaluable navigation aid pointing toward the South Pole. Sacred to South American and Pacific cultures.",
+                stars: [
+                    { name: "Acrux", x: 250, y: 150, mag: 0.8, color: "#a8d4ff" },
+                    { name: "Gacrux", x: 250, y: 280, mag: 1.6, color: "#ff8844" },
+                    { name: "Iota Crucis", x: 160, y: 215, mag: 2.8, color: "#ddd" },
+                    { name: "Delta Crucis", x: 340, y: 215, mag: 2.8, color: "#a8d4ff" }
+                ],
+                lines: [[250, 150], [250, 280], [160, 215], [340, 215]],
+                brightest: "Acrux (mag 0.8)",
+                magnitude: "0.8 - 2.8",
+                visibility: "Year-round (Southern)"
+            },
+            centaurus: {
+                name: "Centaurus",
+                mythName: "The Centaur",
+                mythology: "Half-man, half-horse. Contains Alpha Centauri, the closest star system to our Sun (4.37 light-years). A large, bright constellation of the Southern sky.",
+                stars: [
+                    { name: "Alpha Centauri A", x: 200, y: 180, mag: 0.0, color: "#ffd700" },
+                    { name: "Hadar", x: 320, y: 140, mag: 0.6, color: "#a8d4ff" },
+                    { name: "Menkent", x: 280, y: 240, mag: 2.1, color: "#ff9966" },
+                    { name: "Epsilon Centauri", x: 150, y: 220, mag: 2.3, color: "#ddd" }
+                ],
+                lines: [[200, 180], [320, 140], [280, 240], [150, 220]],
+                brightest: "Alpha Centauri A (mag 0.0)",
+                magnitude: "0.0 - 2.3",
+                visibility: "Year-round (Southern)"
+            }
+        };
+
+        const canvas = document.getElementById('constellationCanvas');
+        const ctx = canvas.getContext('2d');
+
+        let currentConstellation = 'orion';
+
+        function drawConstellation(key) {
+            const data = constellations[key];
+            
+            ctx.fillStyle = '#050a15';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw title
+            ctx.fillStyle = '#f5ead6';
+            ctx.font = 'bold 22px Playfair Display';
+            ctx.textAlign = 'center';
+            ctx.fillText(data.mythName + ' (' + data.name + ')', canvas.width / 2, 40);
+
+            // Draw star connections
+            ctx.strokeStyle = '#4da8da';
+            ctx.lineWidth = 1;
+            ctx.globalAlpha = 0.3;
+            for (let i = 0; i < data.stars.length - 1; i++) {
+                ctx.beginPath();
+                ctx.moveTo(data.stars[i].x + 100, data.stars[i].y + 100);
+                ctx.lineTo(data.stars[i + 1].x + 100, data.stars[i + 1].y + 100);
+                ctx.stroke();
+            }
+            ctx.globalAlpha = 1;
+
+            // Draw stars
+            for (let star of data.stars) {
+                const radius = Math.max(2, (3 - star.mag) * 1.5);
+                
+                // Glow
+                ctx.fillStyle = star.color;
+                ctx.globalAlpha = 0.2;
+                ctx.beginPath();
+                ctx.arc(star.x + 100, star.y + 100, radius * 3, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Star
+                ctx.globalAlpha = 1;
+                ctx.fillStyle = star.color;
+                ctx.beginPath();
+                ctx.arc(star.x + 100, star.y + 100, radius, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Label
+                ctx.fillStyle = '#aaa';
+                ctx.font = '11px Space Mono';
+                ctx.textAlign = 'left';
+                ctx.fillText(star.name, star.x + 110, star.y + 105);
+            }
+
+            // Update sidebar
+            document.getElementById('brightestStar').textContent = data.brightest;
+            document.getElementById('magnitudeRange').textContent = data.magnitude;
+            document.getElementById('visibility').textContent = data.visibility;
+            document.getElementById('mythologyText').textContent = data.mythology;
+        }
+
+        // Event listeners
+        document.querySelectorAll('[data-constellation]').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const key = e.target.dataset.constellation;
+                currentConstellation = key;
+                document.querySelectorAll('[data-constellation]').forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
+                drawConstellation(key);
+            });
+        });
+
+        // Initialize with Orion
+        document.querySelector('[data-constellation="orion"]').classList.add('active');
+        drawConstellation('orion');
+    </script>
+</body>
+</html>
