@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ionosphere Simulator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Space Mono', monospace;
+            background: #0a0f15;
+            color: #7dd3fc;
+            overflow: hidden;
+            height: 100vh;
+        }
+        .container {
+            display: flex;
+            width: 100%;
+            height: 100vh;
+        }
+        .sidebar {
+            width: 320px;
+            background: #0f1419;
+            padding: 20px;
+            overflow-y: auto;
+            border-right: 1px solid #1e3a5f;
+        }
+        .main-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 28px;
+            margin-bottom: 20px;
+            color: #00ff00;
+        }
+        .control-group {
+            margin-bottom: 24px;
+        }
+        .control-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            margin-bottom: 8px;
+            color: #4da8da;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .control-value {
+            color: #00ff00;
+        }
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            background: #1a3a5a;
+            outline: none;
+            border-radius: 3px;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 14px;
+            height: 14px;
+            background: #4da8da;
+            cursor: pointer;
+            border-radius: 50%;
+            border: 2px solid #00ff00;
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 14px;
+            height: 14px;
+            background: #4da8da;
+            cursor: pointer;
+            border-radius: 50%;
+            border: 2px solid #00ff00;
+        }
+        .tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #1e3a5f;
+            padding-bottom: 12px;
+        }
+        .tab-btn {
+            padding: 8px 14px;
+            background: none;
+            border: 1px solid #1e3a5f;
+            color: #7dd3fc;
+            cursor: pointer;
+            font-family: 'Space Mono', monospace;
+            font-size: 12px;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+        .tab-btn.active {
+            background: #2d9d5f;
+            border-color: #2d9d5f;
+            color: #fff;
+        }
+        .tab-btn:hover {
+            border-color: #4da8da;
+        }
+        .stats-box {
+            background: #1a3a5a;
+            border-left: 3px solid #2d9d5f;
+            padding: 12px;
+            border-radius: 4px;
+            margin-bottom: 12px;
+            font-size: 12px;
+        }
+        .stat-line {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+        }
+        .stat-label { color: #7dd3fc; }
+        .stat-value { color: #00ff00; font-weight: 700; }
+        canvas {
+            display: block;
+            background: #0a0f15;
+        }
+        @media (max-width: 900px) {
+            .sidebar { width: 280px; }
+            h1 { font-size: 22px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <h1>⚡ Ionosphere</h1>
+            
+            <div class="tabs">
+                <button class="tab-btn active" data-tab="overview">Overview</button>
+                <button class="tab-btn" data-tab="magnetosphere">Magnetosphere</button>
+                <button class="tab-btn" data-tab="ionosphere">Ionosphere</button>
+            </div>
+
+            <div class="control-group">
+                <div class="control-label">
+                    <span>Solar Wind Speed</span>
+                    <span class="control-value" id="swSpeed">400</span> km/s
+                </div>
+                <input type="range" id="swSpeedSlider" min="300" max="900" value="400" step="10">
+            </div>
+
+            <div class="control-group">
+                <div class="control-label">
+                    <span>Solar Wind Density</span>
+                    <span class="control-value" id="swDensity">5</span> /cm³
+                </div>
+                <input type="range" id="swDensitySlider" min="1" max="30" value="5" step="0.5">
+            </div>
+
+            <div class="control-group">
+                <div class="control-label">
+                    <span>IMF Bz</span>
+                    <span class="control-value" id="imfBz">+5</span> nT
+                </div>
+                <input type="range" id="imfBzSlider" min="-15" max="15" value="5" step="1">
+            </div>
+
+            <div class="control-group">
+                <div class="control-label">
+                    <span>Time</span>
+                    <span class="control-value" id="timeLabel">00:00</span>
+                </div>
+                <input type="range" id="timeSlider" min="0" max="23" value="12" step="0.1">
+            </div>
+
+            <div class="stats-box">
+                <div class="stat-line">
+                    <span class="stat-label">Kp Index</span>
+                    <span class="stat-value" id="kpValue">3</span>
+                </div>
+                <div class="stat-line">
+                    <span class="stat-label">Dst Index</span>
+                    <span class="stat-value" id="dstValue">-50</span> nT
+                </div>
+                <div class="stat-line">
+                    <span class="stat-label">Magnetopause</span>
+                    <span class="stat-value" id="magnetopauseValue">10.2</span> Re
+                </div>
+                <div class="stat-line">
+                    <span class="stat-label">Auroral Power</span>
+                    <span class="stat-value" id="auroralPowerValue">12</span> GW
+                </div>
+                <div class="stat-line">
+                    <span class="stat-label">Electrojet</span>
+                    <span class="stat-value" id="electrojeteValue">150</span> mA/m²
+                </div>
+            </div>
+        </div>
+
+        <div class="main-area">
+            <canvas id="mainCanvas"></canvas>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('mainCanvas');
+        const ctx = canvas.getContext('2d');
+
+        canvas.width = window.innerWidth - 320;
+        canvas.height = window.innerHeight;
+
+        // State
+        const state = {
+            swSpeed: 400,
+            swDensity: 5,
+            imfBz: 5,
+            time: 12,
+            currentTab: 'overview'
+        };
+
+        // Get slider elements
+        const swSpeedSlider = document.getElementById('swSpeedSlider');
+        const swDensitySlider = document.getElementById('swDensitySlider');
+        const imfBzSlider = document.getElementById('imfBzSlider');
+        const timeSlider = document.getElementById('timeSlider');
+
+        // Update displays
+        function updateState() {
+            state.swSpeed = parseFloat(swSpeedSlider.value);
+            state.swDensity = parseFloat(swDensitySlider.value);
+            state.imfBz = parseFloat(imfBzSlider.value);
+            state.time = parseFloat(timeSlider.value);
+
+            document.getElementById('swSpeed').textContent = state.swSpeed.toFixed(0);
+            document.getElementById('swDensity').textContent = state.swDensity.toFixed(1);
+            document.getElementById('imfBz').textContent = (state.imfBz >= 0 ? '+' : '') + state.imfBz.toFixed(0);
+            document.getElementById('timeLabel').textContent = String(Math.floor(state.time)).padStart(2, '0') + ':' + String(Math.floor((state.time % 1) * 60)).padStart(2, '0');
+
+            // Calculate geomagnetic indices
+            const Pdyn = state.swDensity * state.swSpeed * state.swSpeed / 1000; // Dynamic pressure
+            const beta = state.imfBz > 0 ? 1 : 0.8; // Southward coupling stronger
+            const epsilon = state.swSpeed * Math.sqrt(state.swDensity) * (Math.abs(state.imfBz) ** 0.5) * (1 - Math.cos(Math.PI / 4)) * 1e-3; // Energy transfer rate (simplified)
+            const Kp = Math.max(0, Math.min(9, 0.7 * Math.log10(epsilon + 1) + 2)); // Empirical Kp-epsilon relation
+            const Dst = -40 * Math.sqrt(epsilon) - 20 * (state.imfBz < 0 ? 1 : 0); // Storm-time disturbance
+            const magnetopause = (7.6 - 0.6 * beta) * Math.pow(Pdyn, -0.15); // Shue et al. formula (Re)
+            const auroralPower = Kp * 10; // GW
+            const electrojet = Kp * 25; // mA/m²
+
+            document.getElementById('kpValue').textContent = Kp.toFixed(1);
+            document.getElementById('dstValue').textContent = Dst.toFixed(0);
+            document.getElementById('magnetopauseValue').textContent = magnetopause.toFixed(1);
+            document.getElementById('auroralPowerValue').textContent = auroralPower.toFixed(0);
+            document.getElementById('electrojeteValue').textContent = electrojet.toFixed(0);
+
+            return { Kp, Dst, magnetopause, auroralPower, electrojet, Pdyn, epsilon };
+        }
+
+        function drawOverview(indices) {
+            const w = canvas.width;
+            const h = canvas.height;
+            const cx = w / 2;
+            const cy = h / 2;
+            const scale = Math.min(w, h) * 0.3;
+
+            // Background
+            ctx.fillStyle = '#0a0f15';
+            ctx.fillRect(0, 0, w, h);
+
+            // Earth
+            ctx.fillStyle = '#1a3a5a';
+            ctx.beginPath();
+            ctx.arc(cx, cy, scale * 0.15, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Magnetic latitude rings
+            ctx.strokeStyle = '#1e3a5f';
+            ctx.lineWidth = 1;
+            for (let lat = 30; lat <= 90; lat += 15) {
+                const r = scale * (1 - lat / 90) * 0.8;
+                ctx.beginPath();
+                ctx.arc(cx, cy, r, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+
+            // Auroral oval
+            const ovalRadius = scale * 0.5 * (1 - indices.Kp / 15); // Expands with Kp
+            const ovalColor = indices.Kp < 2 ? '#00ff00' : indices.Kp < 4 ? '#ffff00' : indices.Kp < 7 ? '#ff9900' : '#ff0000';
+            ctx.strokeStyle = ovalColor;
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.arc(cx, cy, ovalRadius, 0, Math.PI * 2);
+            ctx.stroke();
+
+            // Sun direction (from left, varying with time)
+            const sunAngle = (state.time / 24) * Math.PI * 2;
+            const sunDist = scale * 1.2;
+            const sunX = cx + Math.cos(sunAngle) * sunDist;
+            const sunY = cy + Math.sin(sunAngle) * sunDist;
+            ctx.fillStyle = '#ffff00';
+            ctx.beginPath();
+            ctx.arc(sunX, sunY, scale * 0.08, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#ffff00';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(cx, cy);
+            ctx.lineTo(sunX, sunY);
+            ctx.stroke();
+
+            // Label
+            ctx.fillStyle = '#7dd3fc';
+            ctx.font = 'bold 16px Space Mono';
+            ctx.textAlign = 'center';
+            ctx.fillText('Auroral Oval View (Pole)', cx, 50);
+            ctx.font = '12px Space Mono';
+            ctx.fillText('Kp ' + indices.Kp.toFixed(1) + ' — ' + (indices.Kp < 2 ? 'Quiet' : indices.Kp < 5 ? 'Unsettled' : indices.Kp < 7 ? 'Storm' : 'Severe Storm'), cx, 75);
+        }
+
+        function drawMagnetosphere(indices) {
+            const w = canvas.width;
+            const h = canvas.height;
+            const centerX = w * 0.35;
+            const centerY = h / 2;
+            const scale = 80;
+
+            // Background
+            ctx.fillStyle = '#0a0f15';
+            ctx.fillRect(0, 0, w, h);
+
+            // Solar wind (from left)
+            ctx.strokeStyle = '#ff6600';
+            ctx.lineWidth = 2;
+            for (let y = centerY - 200; y < centerY + 200; y += 40) {
+                ctx.beginPath();
+                ctx.moveTo(50, y);
+                ctx.lineTo(centerX - 150, y);
+                ctx.stroke();
+                // Arrow
+                ctx.beginPath();
+                ctx.moveTo(centerX - 160, y);
+                ctx.lineTo(centerX - 150, y - 5);
+                ctx.lineTo(centerX - 150, y + 5);
+                ctx.closePath();
+                ctx.fillStyle = '#ff6600';
+                ctx.fill();
+            }
+
+            // Magnetopause (distance scales with Pdyn)
+            const mpDist = indices.magnetopause * scale;
+            ctx.strokeStyle = '#4da8da';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, mpDist, -Math.PI / 3, Math.PI / 3);
+            ctx.stroke();
+
+            // Bow shock (further out)
+            const shockDist = mpDist * 1.4;
+            ctx.strokeStyle = '#ff9900';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([5, 5]);
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, shockDist, -Math.PI / 3, Math.PI / 3);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Earth
+            ctx.fillStyle = '#1a3a5a';
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, scale * 0.5, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Tail region (night side)
+            ctx.fillStyle = 'rgba(255, 20, 147, 0.1)';
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, mpDist * 0.9, Math.PI / 3, -Math.PI / 3);
+            ctx.lineTo(centerX - mpDist * 2, centerY + mpDist * 0.3);
+            ctx.lineTo(centerX - mpDist * 2, centerY - mpDist * 0.3);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.strokeStyle = '#ff1493';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(centerX - mpDist, centerY - mpDist * 0.3);
+            ctx.quadraticCurveTo(centerX - mpDist * 1.5, centerY, centerX - mpDist * 2, centerY);
+            ctx.stroke();
+
+            // Field lines
+            ctx.strokeStyle = '#4da8da';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([3, 3]);
+            for (let angle = -Math.PI / 6; angle <= Math.PI / 6; angle += Math.PI / 12) {
+                ctx.beginPath();
+                ctx.moveTo(centerX + Math.cos(angle) * scale * 0.5, centerY + Math.sin(angle) * scale * 0.5);
+                ctx.lineTo(centerX + Math.cos(angle) * mpDist * 0.8, centerY + Math.sin(angle) * mpDist * 0.8);
+                ctx.stroke();
+            }
+            ctx.setLineDash([]);
+
+            // Labels
+            ctx.fillStyle = '#7dd3fc';
+            ctx.font = 'bold 16px Space Mono';
+            ctx.textAlign = 'center';
+            ctx.fillText('Magnetosphere (Side View)', w / 2, 50);
+            ctx.font = '12px Space Mono';
+            ctx.fillText('Magnetopause: ' + indices.magnetopause.toFixed(1) + ' Re', w / 2, 75);
+        }
+
+        function drawIonosphere(indices) {
+            const w = canvas.width;
+            const h = canvas.height;
+            const leftMargin = 100;
+            const bottomMargin = 60;
+            const graphW = w - leftMargin - 40;
+            const graphH = h - bottomMargin - 60;
+            const maxAlt = 500; // km
+
+            // Background
+            ctx.fillStyle = '#0a0f15';
+            ctx.fillRect(0, 0, w, h);
+
+            // Axes
+            ctx.strokeStyle = '#1e3a5f';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(leftMargin, h - bottomMargin);
+            ctx.lineTo(leftMargin, 50);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(leftMargin, h - bottomMargin);
+            ctx.lineTo(w - 20, h - bottomMargin);
+            ctx.stroke();
+
+            // Altitude grid
+            for (let alt = 0; alt <= maxAlt; alt += 100) {
+                const y = h - bottomMargin - (alt / maxAlt) * graphH;
+                ctx.strokeStyle = '#1a3a5a';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(leftMargin - 5, y);
+                ctx.lineTo(leftMargin, y);
+                ctx.stroke();
+                ctx.fillStyle = '#7dd3fc';
+                ctx.font = '10px Space Mono';
+                ctx.textAlign = 'right';
+                ctx.fillText(alt + ' km', leftMargin - 10, y + 3);
+            }
+
+            // Electron density profile
+            const quiet = indices.Kp < 3;
+            const storm = indices.Kp > 6;
+            ctx.strokeStyle = quiet ? '#00ff00' : storm ? '#ff0000' : '#ffff00';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            let firstPoint = true;
+            for (let alt = 0; alt <= maxAlt; alt += 10) {
+                // Chapman-like ionosphere profile
+                let density = 1e11 * Math.exp(-Math.pow((alt - 150) / 100, 2)); // F-layer peak
+                if (alt < 100) density += 1e9 * Math.pow(alt / 100, 2); // D/E-layer (faint)
+                if (alt > 200) density += 5e9 * Math.exp(-Math.pow((alt - 200) / 100, 2)); // F2-layer shoulder
+                
+                if (storm) density *= 1.8; // Storm enhancement
+                if (quiet) density *= 0.7;
+                
+                const x = leftMargin + Math.log10(Math.max(1e8, density)) * (graphW / 5);
+                const y = h - bottomMargin - (alt / maxAlt) * graphH;
+                
+                if (firstPoint) {
+                    ctx.moveTo(x, y);
+                    firstPoint = false;
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            }
+            ctx.stroke();
+
+            // Labels
+            ctx.fillStyle = '#7dd3fc';
+            ctx.font = 'bold 16px Space Mono';
+            ctx.textAlign = 'center';
+            ctx.fillText('Ionosphere (Electron Density Profile)', w / 2, 40);
+            ctx.font = '12px Space Mono';
+            ctx.fillText('Kp ' + indices.Kp.toFixed(1) + ' — ' + (quiet ? 'Quiet profile' : storm ? 'Storm enhancements' : 'Unsettled state'), w / 2, 60);
+            
+            ctx.save();
+            ctx.translate(20, h / 2);
+            ctx.rotate(-Math.PI / 2);
+            ctx.textAlign = 'center';
+            ctx.fillText('Altitude (km)', 0, 0);
+            ctx.restore();
+
+            ctx.textAlign = 'center';
+            ctx.fillText('Electron Density (log scale)', w / 2, h - 15);
+        }
+
+        function animate() {
+            const indices = updateState();
+
+            switch (state.currentTab) {
+                case 'overview': drawOverview(indices); break;
+                case 'magnetosphere': drawMagnetosphere(indices); break;
+                case 'ionosphere': drawIonosphere(indices); break;
+            }
+
+            requestAnimationFrame(animate);
+        }
+
+        // Event listeners
+        swSpeedSlider.addEventListener('input', updateState);
+        swDensitySlider.addEventListener('input', updateState);
+        imfBzSlider.addEventListener('input', updateState);
+        timeSlider.addEventListener('input', updateState);
+
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
+                state.currentTab = e.target.dataset.tab;
+            });
+        });
+
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth - 320;
+            canvas.height = window.innerHeight;
+        });
+
+        animate();
+    </script>
+</body>
+</html>
