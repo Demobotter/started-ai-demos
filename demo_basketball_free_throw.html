@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Basketball Free Throw</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Space Mono', monospace;
+      background: linear-gradient(135deg, #1a2332 0%, #0f1419 100%);
+      color: #e0f2fe;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .container {
+      display: flex;
+      max-width: 1100px;
+      width: 100%;
+      gap: 20px;
+      background: rgba(10, 15, 21, 0.8);
+      border-radius: 12px;
+      padding: 20px;
+      border: 1px solid #2d5f7f;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
+    }
+    .sidebar {
+      width: 280px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .sidebar-label {
+      font-family: 'Playfair Display', serif;
+      font-size: 13px;
+      font-weight: 600;
+      color: #ff8c00;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .slider-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .slider-label {
+      font-size: 11px;
+      color: #94a3b8;
+      display: flex;
+      justify-content: space-between;
+    }
+    input[type="range"] {
+      width: 100%;
+      cursor: pointer;
+      accent-color: #ff8c00;
+    }
+    button {
+      padding: 10px 16px;
+      border: 1px solid #2d5f7f;
+      background: rgba(255, 140, 0, 0.2);
+      color: #ff8c00;
+      cursor: pointer;
+      border-radius: 6px;
+      font-family: 'Space Mono', monospace;
+      font-size: 12px;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+    button:hover {
+      background: rgba(255, 140, 0, 0.35);
+      border-color: #ff8c00;
+    }
+    .stats-box {
+      background: rgba(255, 140, 0, 0.1);
+      border: 1px solid #ff8c00;
+      border-left: 3px solid #ff8c00;
+      border-radius: 6px;
+      padding: 10px;
+      font-size: 11px;
+      line-height: 1.6;
+    }
+    .stat-line {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 3px;
+    }
+    .stat-line:last-child { margin-bottom: 0; }
+    .stat-label { color: #94a3b8; }
+    .stat-value { color: #ff8c00; font-weight: 600; }
+    .main-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    canvas {
+      width: 100%;
+      height: 450px;
+      background: #0a1419;
+      border: 1px solid #2d5f7f;
+      border-radius: 8px;
+      display: block;
+    }
+    .info-box {
+      background: rgba(255, 140, 0, 0.1);
+      border: 1px solid #ff8c00;
+      border-radius: 6px;
+      padding: 10px;
+      font-size: 11px;
+      line-height: 1.5;
+      color: #7dd3fc;
+    }
+    @media (max-width: 900px) {
+      .container { flex-direction: column; }
+      .sidebar { width: 100%; }
+      canvas { height: 320px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="sidebar">
+      <div>
+        <div class="sidebar-label">Release Angle</div>
+        <div class="slider-group">
+          <div class="slider-label">
+            <span>Degrees</span>
+            <span id="angleDisplay">45°</span>
+          </div>
+          <input type="range" id="angleSlider" min="20" max="70" value="45" step="1">
+        </div>
+      </div>
+
+      <div>
+        <div class="sidebar-label">Release Speed</div>
+        <div class="slider-group">
+          <div class="slider-label">
+            <span>m/s</span>
+            <span id="speedDisplay">7.5</span>
+          </div>
+          <input type="range" id="speedSlider" min="3" max="12" value="7.5" step="0.1">
+        </div>
+      </div>
+
+      <div>
+        <div class="sidebar-label">Backspin</div>
+        <div class="slider-group">
+          <div class="slider-label">
+            <span>RPM</span>
+            <span id="spinDisplay">150</span>
+          </div>
+          <input type="range" id="spinSlider" min="0" max="300" value="150" step="10">
+        </div>
+      </div>
+
+      <button id="shootBtn">🏀 Shoot</button>
+
+      <div class="stats-box">
+        <div class="stat-line">
+          <span class="stat-label">Result</span>
+          <span class="stat-value" id="resultText">—</span>
+        </div>
+        <div class="stat-line">
+          <span class="stat-label">Flight Time</span>
+          <span class="stat-value" id="flightTime">—</span>
+        </div>
+        <div class="stat-line">
+          <span class="stat-label">Apex Height</span>
+          <span class="stat-value" id="apexHeight">—</span>
+        </div>
+        <div class="stat-line">
+          <span class="stat-label">Distance</span>
+          <span class="stat-value" id="distance">—</span>
+        </div>
+        <div class="stat-line">
+          <span class="stat-label">Accuracy</span>
+          <span class="stat-value" id="accuracy">—</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="main-content">
+      <canvas id="courtCanvas"></canvas>
+      <div class="info-box">
+        <strong>Real Basketball Physics:</strong> Adjust release angle, speed, and backspin. Click Shoot to see trajectory physics in real time. Ball experiences air resistance, gravity (9.81 m/s²), and Magnus effect from spin. Rim is 3.05m high, 15m from free throw line.
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('courtCanvas');
+    const ctx = canvas.getContext('2d');
+    const angleSlider = document.getElementById('angleSlider');
+    const speedSlider = document.getElementById('speedSlider');
+    const spinSlider = document.getElementById('spinSlider');
+    const shootBtn = document.getElementById('shootBtn');
+
+    const G = 9.81; // gravity m/s²
+    const COURT_HEIGHT = 7.4; // meters (visible court height)
+    const COURT_WIDTH = 15; // meters
+    const RIM_X = 15; // distance from player
+    const RIM_HEIGHT = 3.05; // basket height
+    const RELEASE_HEIGHT = 2.15; // free throw release height
+    const BALL_RADIUS = 0.12; // meters
+
+    let state = {
+      angle: 45,
+      speed: 7.5,
+      spin: 150,
+      trajectory: null,
+      lastResult: null
+    };
+
+    function updateDisplay() {
+      angleSlider.value = state.angle;
+      speedSlider.value = state.speed;
+      spinSlider.value = state.spin;
+      document.getElementById('angleDisplay').textContent = state.angle + '°';
+      document.getElementById('speedDisplay').textContent = state.speed.toFixed(1);
+      document.getElementById('spinDisplay').textContent = state.spin;
+    }
+
+    angleSlider.addEventListener('input', (e) => {
+      state.angle = parseInt(e.target.value);
+      updateDisplay();
+      render();
+    });
+
+    speedSlider.addEventListener('input', (e) => {
+      state.speed = parseFloat(e.target.value);
+      updateDisplay();
+      render();
+    });
+
+    spinSlider.addEventListener('input', (e) => {
+      state.spin = parseInt(e.target.value);
+      updateDisplay();
+      render();
+    });
+
+    function calculateTrajectory(angle, speed, spin) {
+      const rad = angle * Math.PI / 180;
+      const vx = speed * Math.cos(rad);
+      const vy = speed * Math.sin(rad);
+      
+      // Air resistance coefficient
+      const dragCoeff = 0.0006;
+      const spinEffect = spin * 0.00002; // Magnus effect coefficient
+      
+      let trajectory = [];
+      let t = 0;
+      let dt = 0.01;
+      let x = 0, y = RELEASE_HEIGHT;
+      let vx_curr = vx, vy_curr = vy;
+      
+      let maxTime = 3.0;
+      let result = null;
+      
+      while (t < maxTime && y > -0.5) {
+        trajectory.push({ x, y, t });
+        
+        // Gravity
+        vy_curr -= G * dt;
+        
+        // Drag (simplified)
+        let speed_curr = Math.sqrt(vx_curr * vx_curr + vy_curr * vy_curr);
+        if (speed_curr > 0) {
+          vx_curr *= (1 - dragCoeff * speed_curr * dt);
+          vy_curr *= (1 - dragCoeff * speed_curr * dt);
+        }
+        
+        // Magnus effect (backspin creates upward lift)
+        if (spin > 0) {
+          vy_curr += spinEffect * speed_curr;
+        }
+        
+        x += vx_curr * dt;
+        y += vy_curr * dt;
+        t += dt;
+        
+        // Check if ball passes through rim
+        if (!result && x >= RIM_X - 0.5 && x <= RIM_X + 0.5) {
+          const rimGap = 0.23; // rim diameter ~0.45m
+          if (Math.abs(y - RIM_HEIGHT) < rimGap && vy_curr < -0.5) {
+            result = 'SWISH!' ;
+          } else if (Math.abs(y - RIM_HEIGHT) < rimGap * 1.5 && vy_curr < 0) {
+            result = 'GOOD!';
+          }
+        }
+        
+        if (y < 0 && x > RIM_X) result = result || 'MISS';
+      }
+      
+      trajectory.push({ x, y, t });
+      
+      return {
+        points: trajectory,
+        result: result || 'MISS',
+        flightTime: t,
+        maxY: Math.max(...trajectory.map(p => p.y)),
+        finalX: x
+      };
+    }
+
+    function drawCourt() {
+      const w = canvas.width;
+      const h = canvas.height;
+      
+      // Court background
+      ctx.fillStyle = '#2d5f7f';
+      ctx.fillRect(0, 0, w, h);
+      
+      // Grid
+      ctx.strokeStyle = '#1a3a5a';
+      ctx.lineWidth = 0.5;
+      const scale = w / COURT_WIDTH;
+      for (let i = 0; i <= COURT_WIDTH; i += 1) {
+        const px = i * scale;
+        ctx.beginPath();
+        ctx.moveTo(px, 0);
+        ctx.lineTo(px, h);
+        ctx.stroke();
+      }
+      
+      // Backboard (vertical line at 15m)
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 2;
+      const backboardX = RIM_X * scale;
+      ctx.beginPath();
+      ctx.moveTo(backboardX, 0);
+      ctx.lineTo(backboardX, h * 0.4);
+      ctx.stroke();
+      
+      // Rim (circle at basket height)
+      const rimY = h * (1 - RIM_HEIGHT / COURT_HEIGHT);
+      ctx.fillStyle = '#ff6b6b';
+      ctx.beginPath();
+      ctx.arc(backboardX, rimY, 8, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      
+      // Free throw line
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([5, 5]);
+      ctx.beginPath();
+      ctx.moveTo(0, h * 0.85);
+      ctx.lineTo(w, h * 0.85);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      
+      // Player position (at line)
+      const playerY = h * 0.85;
+      ctx.fillStyle = '#4da8da';
+      ctx.fillRect(10, playerY - 15, 20, 30);
+      ctx.fillStyle = '#fff';
+      ctx.font = '10px "Space Mono"';
+      ctx.fillText('P', 17, playerY + 3);
+    }
+
+    function drawTrajectory() {
+      const w = canvas.width;
+      const h = canvas.height;
+      const scale = w / COURT_WIDTH;
+      const heightScale = h / COURT_HEIGHT;
+      
+      if (!state.trajectory) return;
+      
+      const traj = state.trajectory.points;
+      
+      // Draw path
+      ctx.strokeStyle = 'rgba(255, 140, 0, 0.7)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      for (let i = 0; i < traj.length; i++) {
+        const px = traj[i].x * scale;
+        const py = h - traj[i].y * heightScale;
+        if (i === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      }
+      ctx.stroke();
+      
+      // Draw ball at current position (last point)
+      const last = traj[traj.length - 1];
+      const ballX = last.x * scale;
+      const ballY = h - last.y * heightScale;
+      ctx.fillStyle = '#ff8c00';
+      ctx.beginPath();
+      ctx.arc(ballX, ballY, 6, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+
+    function drawResult() {
+      if (!state.lastResult) return;
+      
+      const w = canvas.width;
+      const h = canvas.height;
+      
+      ctx.fillStyle = state.lastResult === 'SWISH!' ? 'rgba(76, 175, 80, 0.3)' : 'rgba(244, 67, 54, 0.3)';
+      ctx.fillRect(0, 0, w, h);
+      
+      ctx.font = 'bold 48px "Playfair Display"';
+      ctx.fillStyle = state.lastResult === 'SWISH!' ? '#4caf50' : '#f44336';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(state.lastResult, w / 2, h / 2);
+    }
+
+    function render() {
+      canvas.width = canvas.offsetWidth;
+      canvas.height = canvas.offsetHeight;
+      
+      drawCourt();
+      
+      if (state.trajectory) {
+        drawTrajectory();
+        drawResult();
+      }
+      
+      // Update stats
+      if (state.trajectory) {
+        const t = state.trajectory;
+        document.getElementById('resultText').textContent = state.lastResult;
+        document.getElementById('flightTime').textContent = t.flightTime.toFixed(2) + 's';
+        document.getElementById('apexHeight').textContent = (t.maxY - RELEASE_HEIGHT).toFixed(2) + 'm';
+        document.getElementById('distance').textContent = t.finalX.toFixed(1) + 'm';
+        const acc = t.result === 'SWISH!' ? '100%' : t.result === 'GOOD!' ? '70%' : '0%';
+        document.getElementById('accuracy').textContent = acc;
+      }
+    }
+
+    shootBtn.addEventListener('click', () => {
+      state.trajectory = calculateTrajectory(state.angle, state.speed, state.spin);
+      state.lastResult = state.trajectory.result;
+      render();
+    });
+
+    window.addEventListener('resize', render);
+    render();
+  </script>
+</body>
+</html>
