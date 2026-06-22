@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Coffee Flavor Mapper</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Space+Mono:wght@400&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Space Mono', monospace;
+            background: linear-gradient(135deg, #0F1419 0%, #1a1a2e 100%);
+            color: #e0e0e0;
+            overflow: hidden;
+        }
+        .container {
+            display: flex;
+            height: 100vh;
+            gap: 20px;
+            padding: 20px;
+        }
+        .sidebar {
+            width: 280px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            overflow-y: auto;
+        }
+        .panel {
+            background: rgba(111, 78, 55, 0.1);
+            border: 1px solid #6F4E37;
+            border-radius: 8px;
+            padding: 15px;
+        }
+        .panel h3 {
+            font-family: 'Playfair Display', serif;
+            font-size: 14px;
+            margin-bottom: 10px;
+            color: #4DA8DA;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+        .control-group label {
+            font-size: 12px;
+            color: #a0a0a0;
+        }
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #2D2D2D;
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #4DA8DA;
+            cursor: pointer;
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #4DA8DA;
+            cursor: pointer;
+            border: none;
+        }
+        .value-display {
+            font-size: 12px;
+            color: #4DA8DA;
+            font-weight: bold;
+        }
+        .button-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+        button {
+            background: rgba(77, 168, 218, 0.1);
+            border: 1px solid #4DA8DA;
+            color: #4DA8DA;
+            padding: 8px 12px;
+            border-radius: 5px;
+            font-family: 'Space Mono', monospace;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        button:hover {
+            background: rgba(77, 168, 218, 0.2);
+        }
+        button.active {
+            background: #4DA8DA;
+            color: #0F1419;
+        }
+        .tasting-notes {
+            background: rgba(111, 78, 55, 0.2);
+            border: 1px solid #A0826D;
+            border-radius: 5px;
+            padding: 10px;
+            font-size: 12px;
+            line-height: 1.5;
+            color: #d4a574;
+        }
+        .canvas-container {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        canvas {
+            border: 1px solid #4DA8DA;
+            border-radius: 8px;
+            background: #0a0a0f;
+        }
+        .stat-box {
+            background: rgba(77, 168, 218, 0.05);
+            border-left: 3px solid #2d9d5f;
+            padding: 8px;
+            margin: 5px 0;
+            font-size: 11px;
+            border-radius: 3px;
+        }
+        select {
+            width: 100%;
+        }
+        @media (max-width: 900px) {
+            .container {
+                flex-direction: column;
+            }
+            .sidebar {
+                width: 100%;
+                max-height: 200px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <div class="panel">
+                <h3>☕ Coffee Origin</h3>
+                <div class="button-group" id="originButtons">
+                    <button class="origin-btn active" data-origin="yirgacheffe">Yirgacheffe</button>
+                    <button class="origin-btn" data-origin="geisha">Geisha</button>
+                    <button class="origin-btn" data-origin="mandeling">Mandeling</button>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h3>🔥 Brewing Parameters</h3>
+                
+                <div class="control-group">
+                    <label>Temperature: <span class="value-display" id="tempVal">92</span>°C</label>
+                    <input type="range" id="tempSlider" min="60" max="100" value="92" step="1">
+                </div>
+
+                <div class="control-group">
+                    <label>Brew Time: <span class="value-display" id="timeVal">4</span> min</label>
+                    <input type="range" id="timeSlider" min="2" max="8" value="4" step="0.5">
+                </div>
+
+                <div class="control-group">
+                    <label>Grind Size</label>
+                    <select id="grindSelect" style="background: #2D2D2D; color: #4DA8DA; border: 1px solid #4DA8DA; padding: 6px; border-radius: 3px;">
+                        <option value="coarse">Coarse</option>
+                        <option value="medium" selected>Medium</option>
+                        <option value="fine">Fine</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label>Coffee:Water: <span class="value-display" id="ratioVal">1:16</span></label>
+                    <input type="range" id="ratioSlider" min="12" max="20" value="16" step="1">
+                </div>
+            </div>
+
+            <div class="panel">
+                <h3>⏱️ Quick Presets</h3>
+                <div class="button-group" id="presetButtons">
+                    <button class="preset-btn" data-preset="espresso">Espresso</button>
+                    <button class="preset-btn" data-preset="pourover">Pour Over</button>
+                    <button class="preset-btn" data-preset="frenchpress">French Press</button>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h3>👃 Flavor Profile</h3>
+                <div class="tasting-notes" id="tastingNotes">Adjust parameters to see flavor notes...</div>
+            </div>
+
+            <div class="panel">
+                <h3>📊 Extraction</h3>
+                <div class="stat-box">
+                    Extraction: <span id="extractionVal">18.5%</span> (optimal: 18-22%)
+                </div>
+                <div class="stat-box">
+                    Method: <span id="methodVal">Pour Over</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="canvas-container">
+            <canvas id="canvas"></canvas>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        function resizeCanvas() {
+            const container = document.querySelector('.canvas-container');
+            canvas.width = container.clientWidth - 40;
+            canvas.height = container.clientHeight - 40;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        const origins = {
+            yirgacheffe: {
+                name: 'Ethiopian Yirgacheffe',
+                baseProfile: { fruity: 0.8, floral: 0.7, acidic: 0.9, chocolate: 0.2, earthy: 0.1, bitter: 0.1, spice: 0.2 },
+                description: 'Bright and complex'
+            },
+            geisha: {
+                name: 'Colombian Geisha',
+                baseProfile: { fruity: 0.6, floral: 0.5, acidic: 0.7, chocolate: 0.4, earthy: 0.2, bitter: 0.15, spice: 0.3 },
+                description: 'Delicate and refined'
+            },
+            mandeling: {
+                name: 'Sumatra Mandeling',
+                baseProfile: { fruity: 0.3, floral: 0.2, acidic: 0.3, chocolate: 0.7, earthy: 0.8, bitter: 0.6, spice: 0.7 },
+                description: 'Rich and earthy'
+            }
+        };
+
+        const flavorWheel = {
+            fruity: { color: '#FF6B6B', angle: 0 },
+            floral: { color: '#D946A6', angle: 51.4 },
+            acidic: { color: '#FFD60A', angle: 102.8 },
+            nutty: { color: '#FF8C42', angle: 154.2 },
+            chocolate: { color: '#8B4513', angle: 205.6 },
+            spice: { color: '#F59E0B', angle: 257 },
+            earthy: { color: '#A0826D', angle: 308.4 }
+        };
+
+        let currentOrigin = 'yirgacheffe';
+        let animationTime = 0;
+
+        function getFlavorProfile() {
+            const temp = parseFloat(document.getElementById('tempSlider').value);
+            const time = parseFloat(document.getElementById('timeSlider').value);
+            const grind = document.getElementById('grindSelect').value;
+            const ratio = parseFloat(document.getElementById('ratioSlider').value);
+
+            const baseProfile = origins[currentOrigin].baseProfile;
+            const profile = { ...baseProfile };
+
+            const tempFactor = (temp - 60) / 40;
+            profile.fruity *= Math.max(0.3, 1 - tempFactor * 0.5);
+            profile.acidic *= Math.max(0.2, 1 - tempFactor * 0.4);
+            profile.chocolate *= (0.5 + tempFactor * 0.6);
+            profile.earthy *= (0.3 + tempFactor * 0.7);
+            profile.bitter *= (0.1 + tempFactor * 0.6);
+
+            const timeFactor = (time - 2) / 6;
+            profile.chocolate *= (0.8 + timeFactor * 0.4);
+            profile.earthy *= (0.8 + timeFactor * 0.3);
+            profile.acidic *= Math.max(0.2, 1 - timeFactor * 0.5);
+
+            if (grind === 'fine') {
+                profile.bitter += 0.3;
+                profile.chocolate += 0.2;
+            } else if (grind === 'coarse') {
+                profile.fruity += 0.2;
+                profile.acidic += 0.1;
+                profile.bitter = Math.max(0, profile.bitter - 0.2);
+            }
+
+            const ratioFactor = (ratio - 12) / 8;
+            profile.chocolate *= (0.9 + ratioFactor * 0.3);
+            profile.earthy *= (0.9 + ratioFactor * 0.2);
+            profile.spice *= (0.8 + ratioFactor * 0.4);
+
+            Object.keys(profile).forEach(k => {
+                profile[k] = Math.min(1, Math.max(0, profile[k]));
+            });
+
+            return profile;
+        }
+
+        function calculateExtraction() {
+            const temp = parseFloat(document.getElementById('tempSlider').value);
+            const time = parseFloat(document.getElementById('timeSlider').value);
+            const grind = document.getElementById('grindSelect').value;
+
+            let extraction = 18.5;
+            extraction += (temp - 92) * 0.1;
+            extraction += (time - 4) * 0.8;
+            if (grind === 'fine') extraction += 1.5;
+            else if (grind === 'coarse') extraction -= 1;
+
+            return Math.max(10, Math.min(25, extraction));
+        }
+
+        function drawFlavorWheel() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            animationTime += 0.01;
+
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const wheelRadius = Math.min(canvas.width, canvas.height) / 2.5;
+
+            const profile = getFlavorProfile();
+
+            ctx.save();
+            ctx.globalAlpha = 0.08;
+            ctx.translate(centerX, centerY);
+            ctx.rotate(animationTime * 0.02);
+            ctx.strokeStyle = '#4DA8DA';
+            ctx.lineWidth = 1;
+            for (let i = 0; i < 360; i += 45) {
+                const angle = (i * Math.PI) / 180;
+                const r = wheelRadius * 1.1;
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.lineTo(Math.cos(angle) * r, Math.sin(angle) * r);
+                ctx.stroke();
+            }
+            ctx.restore();
+
+            Object.entries(flavorWheel).forEach(([flavor, meta]) => {
+                const intensity = profile[flavor] || 0;
+                const angle = (meta.angle * Math.PI) / 180;
+                
+                const distance = wheelRadius * (0.4 + intensity * 0.5);
+                const x = centerX + Math.cos(angle) * distance;
+                const y = centerY + Math.sin(angle) * distance;
+
+                const bubbleSize = 15 + intensity * 40;
+                const floatOffset = Math.sin(animationTime + intensity) * 5;
+                
+                ctx.fillStyle = meta.color;
+                ctx.globalAlpha = 0.3;
+                ctx.beginPath();
+                ctx.arc(x, y + floatOffset, bubbleSize * 1.3, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.globalAlpha = 0.7;
+                ctx.beginPath();
+                ctx.arc(x, y + floatOffset, bubbleSize, 0, Math.PI * 2);
+                ctx.fill();
+
+                const pulseSize = bubbleSize * (0.8 + Math.sin(animationTime * 2) * 0.15);
+                ctx.globalAlpha = 0.4;
+                ctx.strokeStyle = meta.color;
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(x, y + floatOffset, pulseSize, 0, Math.PI * 2);
+                ctx.stroke();
+
+                ctx.globalAlpha = 1;
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 11px "Space Mono"';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(flavor, x, y + floatOffset);
+            });
+
+            ctx.globalAlpha = 1;
+
+            ctx.fillStyle = '#6F4E37';
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 30, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#4DA8DA';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            ctx.fillStyle = '#FFD60A';
+            ctx.font = 'bold 16px "Playfair Display"';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('☕', centerX, centerY);
+
+            requestAnimationFrame(drawFlavorWheel);
+        }
+        drawFlavorWheel();
+
+        function updateTastingNotes() {
+            const profile = getFlavorProfile();
+            const sorted = Object.entries(profile)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 3)
+                .map(([k]) => k)
+                .join(' • ');
+
+            const extraction = calculateExtraction().toFixed(1);
+            document.getElementById('extractionVal').textContent = extraction + '%';
+            document.getElementById('tastingNotes').textContent = `${origins[currentOrigin].description}\n\nTop notes: ${sorted || 'balanced'}`;
+        }
+
+        function updateAllControls() {
+            document.getElementById('tempVal').textContent = document.getElementById('tempSlider').value;
+            document.getElementById('timeVal').textContent = document.getElementById('timeSlider').value;
+            document.getElementById('ratioVal').textContent = '1:' + document.getElementById('ratioSlider').value;
+            updateTastingNotes();
+        }
+
+        document.getElementById('tempSlider').addEventListener('input', updateAllControls);
+        document.getElementById('timeSlider').addEventListener('input', updateAllControls);
+        document.getElementById('ratioSlider').addEventListener('input', updateAllControls);
+        document.getElementById('grindSelect').addEventListener('change', updateAllControls);
+
+        document.querySelectorAll('.origin-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                document.querySelectorAll('.origin-btn').forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
+                currentOrigin = e.target.dataset.origin;
+                document.getElementById('methodVal').textContent = origins[currentOrigin].name;
+                updateAllControls();
+            });
+        });
+
+        const presets = {
+            espresso: { temp: 92, time: 2.5, grind: 'fine', ratio: 18 },
+            pourover: { temp: 96, time: 3.5, grind: 'medium', ratio: 16 },
+            frenchpress: { temp: 95, time: 4, grind: 'coarse', ratio: 14 }
+        };
+
+        document.querySelectorAll('.preset-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const preset = presets[e.target.dataset.preset];
+                document.getElementById('tempSlider').value = preset.temp;
+                document.getElementById('timeSlider').value = preset.time;
+                document.getElementById('grindSelect').value = preset.grind;
+                document.getElementById('ratioSlider').value = preset.ratio;
+                updateAllControls();
+            });
+        });
+
+        updateAllControls();
+    </script>
+</body>
+</html>
