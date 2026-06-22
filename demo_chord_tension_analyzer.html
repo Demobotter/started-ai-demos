@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chord Tension Analyzer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Space+Mono:wght@400&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Space Mono', monospace;
+            background: linear-gradient(135deg, #0a1428 0%, #1a1f2e 100%);
+            color: #e0e0e0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .container {
+            display: flex;
+            gap: 30px;
+            max-width: 1200px;
+            width: 100%;
+            background: rgba(20, 30, 50, 0.8);
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        }
+        
+        .sidebar {
+            width: 280px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 28px;
+            margin-bottom: 20px;
+            color: #4da8da;
+        }
+        
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        label {
+            font-size: 12px;
+            text-transform: uppercase;
+            color: #7dd3fc;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+        
+        select, input[type="range"] {
+            padding: 8px 12px;
+            background: #1a2535;
+            border: 1px solid #2d5a6f;
+            border-radius: 6px;
+            color: #e0e0e0;
+            font-family: 'Space Mono', monospace;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        
+        input[type="range"] {
+            padding: 0;
+            height: 6px;
+        }
+        
+        .button-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+        }
+        
+        button {
+            padding: 10px 12px;
+            background: #1a2f4a;
+            border: 1px solid #2d5a6f;
+            border-radius: 6px;
+            color: #7dd3fc;
+            font-family: 'Space Mono', monospace;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            font-weight: bold;
+        }
+        
+        button:hover {
+            background: #2d5a6f;
+            border-color: #4da8da;
+            color: #4da8da;
+        }
+        
+        button.active {
+            background: #4da8da;
+            border-color: #4da8da;
+            color: #0a1428;
+        }
+        
+        #playBtn {
+            grid-column: 1 / -1;
+            background: #2d9d5f;
+            border-color: #2d9d5f;
+            color: #e0e0e0;
+            padding: 12px;
+            font-weight: bold;
+        }
+        
+        #playBtn:hover {
+            background: #3fb575;
+            border-color: #3fb575;
+        }
+        
+        .stats-box {
+            background: #0a1428;
+            border-left: 3px solid #2d9d5f;
+            padding: 12px;
+            border-radius: 4px;
+            font-size: 11px;
+            line-height: 1.6;
+        }
+        
+        .stat-line {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 4px;
+        }
+        
+        .stat-label { color: #7dd3fc; }
+        .stat-value { color: #4da8da; font-weight: bold; }
+        
+        .canvas-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        canvas {
+            border: 1px solid #2d5a6f;
+            border-radius: 8px;
+            background: #0a1f35;
+            cursor: pointer;
+        }
+        
+        .info-panel {
+            background: #0a1428;
+            padding: 15px;
+            border-radius: 6px;
+            font-size: 12px;
+            border-left: 3px solid #4da8da;
+        }
+        
+        .emotion-display {
+            font-size: 18px;
+            font-weight: bold;
+            margin-top: 8px;
+            padding: 8px;
+            border-radius: 4px;
+            text-align: center;
+        }
+        
+        @media (max-width: 1000px) {
+            .container {
+                flex-direction: column;
+            }
+            .sidebar {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <h1>🎼 Tension</h1>
+            
+            <div class="control-group">
+                <label>Key</label>
+                <select id="keySelect">
+                    <option>C</option>
+                    <option>G</option>
+                    <option>D</option>
+                    <option>A</option>
+                    <option>E</option>
+                    <option>B</option>
+                    <option>F#</option>
+                    <option>Db</option>
+                    <option>Ab</option>
+                    <option>Eb</option>
+                    <option>Bb</option>
+                    <option>F</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <label>Chord Type</label>
+                <div class="button-group">
+                    <button class="chord-btn active" data-chord="major">Maj</button>
+                    <button class="chord-btn" data-chord="minor">Min</button>
+                    <button class="chord-btn" data-chord="dim">Dim</button>
+                    <button class="chord-btn" data-chord="aug">Aug</button>
+                    <button class="chord-btn" data-chord="sus2">Sus2</button>
+                    <button class="chord-btn" data-chord="sus4">Sus4</button>
+                    <button class="chord-btn" data-chord="7">Dom7</button>
+                    <button class="chord-btn" data-chord="maj7">Maj7</button>
+                    <button class="chord-btn" data-chord="min7">Min7</button>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <label>Inversion</label>
+                <div class="button-group">
+                    <button class="inversion-btn active" data-inv="0">Root</button>
+                    <button class="inversion-btn" data-inv="1">1st</button>
+                    <button class="inversion-btn" data-inv="2">2nd</button>
+                </div>
+            </div>
+            
+            <button id="playBtn">▶ Play Chord</button>
+            
+            <div class="control-group">
+                <label>Context</label>
+                <select id="contextSelect">
+                    <option>Classical</option>
+                    <option>Jazz</option>
+                    <option>Pop</option>
+                    <option>Film Score</option>
+                </select>
+            </div>
+            
+            <div class="stats-box">
+                <div class="stat-line">
+                    <span class="stat-label">Chord:</span>
+                    <span class="stat-value" id="chordName">C Major</span>
+                </div>
+                <div class="stat-line">
+                    <span class="stat-label">Roman:</span>
+                    <span class="stat-value" id="romanNumeral">I</span>
+                </div>
+                <div class="stat-line">
+                    <span class="stat-label">Tension:</span>
+                    <span class="stat-value" id="tensionScore">18</span>
+                </div>
+                <div class="stat-line">
+                    <span class="stat-label">Dissonance:</span>
+                    <span class="stat-value" id="dissonanceScore">0.12</span>
+                </div>
+                <div class="emotion-display" id="emotionDisplay" style="background: #1a4d6d; color: #7dd3fc;">Peaceful</div>
+            </div>
+        </div>
+        
+        <div class="canvas-container">
+            <canvas id="pianoCanvas" width="600" height="220"></canvas>
+            <div class="info-panel">
+                <strong>How to use:</strong> Click keys to build a chord. Select chord type or inversion to explore variations. Hit Play to hear the harmonic tension. Try different keys and contexts to hear how the same notes shift emotionally.
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('pianoCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Musical note data
+        const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+        const KEY_NOTES = {
+            'C': [0, 2, 4, 5, 7, 9, 11],
+            'G': [7, 9, 11, 0, 2, 4, 6],
+            'D': [2, 4, 6, 7, 9, 11, 1],
+            'A': [9, 11, 1, 2, 4, 6, 8],
+            'E': [4, 6, 8, 9, 11, 1, 3],
+            'B': [11, 1, 3, 4, 6, 8, 10],
+            'F#': [6, 8, 10, 11, 1, 3, 5],
+            'Db': [1, 3, 5, 6, 8, 10, 0],
+            'Ab': [8, 10, 0, 1, 3, 5, 7],
+            'Eb': [3, 5, 7, 8, 10, 0, 2],
+            'Bb': [10, 0, 2, 3, 5, 7, 9],
+            'F': [5, 7, 9, 10, 0, 2, 4]
+        };
+        
+        const CHORD_INTERVALS = {
+            'major': [0, 4, 7],
+            'minor': [0, 3, 7],
+            'dim': [0, 3, 6],
+            'aug': [0, 4, 8],
+            'sus2': [0, 2, 7],
+            'sus4': [0, 5, 7],
+            '7': [0, 4, 7, 10],
+            'maj7': [0, 4, 7, 11],
+            'min7': [0, 3, 7, 10]
+        };
+        
+        const ROMAN_NUMERALS = ['I', 'ii', 'iii', 'IV', 'V', 'vi', 'vii°'];
+        
+        let selectedNotes = [0];
+        let selectedKey = 'C';
+        let selectedChordType = 'major';
+        let selectedInversion = 0;
+        let selectedContext = 'Classical';
+        
+        const pianoStartNote = 12; // C1
+        const numKeys = 52; // 4+ octaves
+        const whiteKeyWidth = canvas.width / 31; // approx white keys
+        const keyHeight = canvas.height;
+        
+        function noteToFrequency(noteIndex) {
+            return 440 * Math.pow(2, (noteIndex - 69) / 12);
+        }
+        
+        function isBlackKey(noteIndex) {
+            const note = (noteIndex - pianoStartNote) % 12;
+            return [1, 3, 6, 8, 10].includes(note);
+        }
+        
+        function getChordNotes(rootNote, chordType) {
+            const intervals = CHORD_INTERVALS[chordType] || [0, 4, 7];
+            return intervals.map(i => (rootNote + i) % 12);
+        }
+        
+        function calculateTension(notes) {
+            const intervals = [];
+            for (let i = 1; i < notes.length; i++) {
+                const diff = (notes[i] - notes[0] + 12) % 12;
+                intervals.push(diff);
+            }
+            
+            let dissonance = 0;
+            const dissonanceMap = { 0: 0, 1: 1, 2: 0.8, 3: 0.5, 4: 0.3, 5: 0.1, 6: 1.5, 7: 0.05, 8: 0.4, 9: 0.2, 10: 0.6, 11: 1.2 };
+            
+            for (const interval of intervals) {
+                dissonance += dissonanceMap[interval] || 0.5;
+            }
+            
+            let tension = Math.min(100, dissonance * 15);
+            if (notes.includes(6) && notes.length > 2) tension += 20; // tritone boost
+            if (selectedChordType.includes('7') && !notes.includes(11)) tension += 10; // unresolved 7
+            
+            return { tension: Math.round(tension), dissonance: (dissonance / 3).toFixed(2) };
+        }
+        
+        function getEmotionContext(tension) {
+            const context = selectedContext;
+            if (tension < 25) return { text: '😌 Peaceful', color: '#4da8da' };
+            if (tension < 50) return { text: '⚡ Tense', color: '#ffa500' };
+            if (tension < 70) return { text: '⚠️ Unstable', color: '#dc143c' };
+            return { text: '🔥 Chaotic', color: '#ff4444' };
+        }
+        
+        function getRomanNumeral(rootNote, key) {
+            const keyNotes = KEY_NOTES[key];
+            const degreeIndex = keyNotes.indexOf((rootNote + 12) % 12);
+            if (degreeIndex === -1) return '?';
+            return ROMAN_NUMERALS[degreeIndex];
+        }
+        
+        function drawPiano() {
+            ctx.fillStyle = '#0a1f35';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            const whiteKeys = [];
+            const blackKeys = [];
+            
+            let xPos = 0;
+            for (let i = 0; i < numKeys; i++) {
+                const absNote = pianoStartNote + i;
+                if (!isBlackKey(absNote)) {
+                    whiteKeys.push({ x: xPos, note: absNote });
+                    xPos += whiteKeyWidth;
+                }
+            }
+            
+            // Draw white keys
+            ctx.fillStyle = '#f5f5f5';
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 1;
+            for (let i = 0; i < whiteKeys.length; i++) {
+                const key = whiteKeys[i];
+                ctx.fillRect(key.x, 0, whiteKeyWidth, keyHeight);
+                ctx.strokeRect(key.x, 0, whiteKeyWidth, keyHeight);
+            }
+            
+            // Draw black keys
+            ctx.fillStyle = '#1a1a1a';
+            for (let i = 0; i < numKeys; i++) {
+                const absNote = pianoStartNote + i;
+                if (isBlackKey(absNote)) {
+                    const whiteIndex = whiteKeys.findIndex(k => k.note === absNote - 1);
+                    if (whiteIndex !== -1) {
+                        const x = whiteKeys[whiteIndex].x + whiteKeyWidth * 0.65;
+                        const bkWidth = whiteKeyWidth * 0.6;
+                        ctx.fillRect(x - bkWidth/2, 0, bkWidth, keyHeight * 0.6);
+                        ctx.strokeStyle = '#000';
+                        ctx.lineWidth = 1;
+                        ctx.strokeRect(x - bkWidth/2, 0, bkWidth, keyHeight * 0.6);
+                    }
+                }
+            }
+            
+            // Highlight selected notes
+            ctx.fillStyle = 'rgba(77, 168, 218, 0.7)';
+            for (const note of selectedNotes) {
+                const whiteIndex = whiteKeys.findIndex(k => k.note % 12 === note % 12);
+                if (whiteIndex !== -1) {
+                    const key = whiteKeys[whiteIndex];
+                    ctx.fillRect(key.x + 2, 5, whiteKeyWidth - 4, keyHeight - 10);
+                }
+            }
+        }
+        
+        function updateDisplay() {
+            const chordNotes = getChordNotes(selectedNotes[0], selectedChordType);
+            const { tension, dissonance } = calculateTension(chordNotes);
+            const emotion = getEmotionContext(tension);
+            
+            document.getElementById('chordName').textContent = NOTE_NAMES[selectedNotes[0]] + ' ' + selectedChordType;
+            document.getElementById('romanNumeral').textContent = getRomanNumeral(selectedNotes[0], selectedKey);
+            document.getElementById('tensionScore').textContent = tension;
+            document.getElementById('dissonanceScore').textContent = dissonance;
+            document.getElementById('emotionDisplay').textContent = emotion.text;
+            document.getElementById('emotionDisplay').style.background = emotion.color + '33';
+            document.getElementById('emotionDisplay').style.color = emotion.color;
+            
+            drawPiano();
+        }
+        
+        function playChord() {
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const chordNotes = getChordNotes(selectedNotes[0], selectedChordType);
+            const now = audioCtx.currentTime;
+            
+            for (const note of chordNotes) {
+                // Find closest note in full range
+                const baseFreq = noteToFrequency(pianoStartNote + note);
+                const freq = baseFreq * 2; // octave up for audibility
+                
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                
+                osc.frequency.value = freq;
+                osc.type = 'sine';
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.linearRampToValueAtTime(0, now + 1.5);
+                
+                osc.start(now);
+                osc.stop(now + 1.5);
+            }
+        }
+        
+        canvas.addEventListener('click', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const noteIndex = Math.floor(x / whiteKeyWidth) + pianoStartNote;
+            selectedNotes = [noteIndex % 12];
+            updateDisplay();
+        });
+        
+        document.querySelectorAll('.chord-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.chord-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                selectedChordType = btn.dataset.chord;
+                updateDisplay();
+            });
+        });
+        
+        document.querySelectorAll('.inversion-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.inversion-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                selectedInversion = parseInt(btn.dataset.inv);
+                updateDisplay();
+            });
+        });
+        
+        document.getElementById('keySelect').addEventListener('change', (e) => {
+            selectedKey = e.target.value;
+            updateDisplay();
+        });
+        
+        document.getElementById('contextSelect').addEventListener('change', (e) => {
+            selectedContext = e.target.value;
+            updateDisplay();
+        });
+        
+        document.getElementById('playBtn').addEventListener('click', playChord);
+        
+        // Initialize
+        updateDisplay();
+    </script>
+</body>
+</html>
