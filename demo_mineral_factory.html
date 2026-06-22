@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Crystal Growth Factory</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Space+Mono:wght@400&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: linear-gradient(135deg, #0a0f1a 0%, #1a1a3a 100%);
+      font-family: 'Space Mono', monospace;
+      color: #e0e0e0;
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+    .sidebar {
+      width: 300px;
+      background: rgba(15, 20, 35, 0.9);
+      border-right: 1px solid #333;
+      padding: 20px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .title {
+      font-family: 'Playfair Display', serif;
+      font-size: 24px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 10px;
+    }
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .control-label {
+      font-size: 12px;
+      color: #7dd3fc;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    select, input[type="range"], button {
+      padding: 8px 12px;
+      border: 1px solid #333;
+      background: #0a1428;
+      color: #e0e0e0;
+      border-radius: 4px;
+      font-family: 'Space Mono', monospace;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    select:hover, button:hover {
+      background: #143458;
+      border-color: #2d9d5f;
+    }
+    button {
+      background: #2d9d5f;
+      color: #fff;
+      border: none;
+      font-weight: 700;
+      transition: background 0.2s;
+    }
+    button:active {
+      background: #1f6b42;
+    }
+    .stat-box {
+      background: rgba(45, 157, 95, 0.1);
+      border-left: 3px solid #2d9d5f;
+      padding: 8px 12px;
+      border-radius: 4px;
+      font-size: 12px;
+      line-height: 1.4;
+    }
+    .stat-label {
+      color: #7dd3fc;
+      font-weight: 700;
+    }
+    .stat-value {
+      color: #fff;
+      margin-top: 2px;
+    }
+    input[type="range"] {
+      padding: 0;
+      cursor: pointer;
+    }
+    .canvas-container {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, rgba(10, 15, 26, 0.5) 0%, rgba(26, 26, 58, 0.5) 100%);
+    }
+    canvas {
+      display: block;
+      max-width: 100%;
+      max-height: 100%;
+    }
+    @media (max-width: 768px) {
+      body { flex-direction: column; }
+      .sidebar { width: 100%; height: 200px; overflow-x: auto; flex-direction: row; }
+    }
+  </style>
+</head>
+<body>
+  <div class="sidebar">
+    <div class="title">💎 Crystal Growth</div>
+    
+    <div class="control-group">
+      <label class="control-label">Mineral Type</label>
+      <select id="mineral">
+        <option value="quartz">Quartz (Hexagonal)</option>
+        <option value="halite">Halite (Cubic)</option>
+        <option value="diamond">Diamond (Cubic)</option>
+        <option value="calcite">Calcite (Hexagonal)</option>
+        <option value="garnet">Garnet (Cubic)</option>
+        <option value="tourmaline">Tourmaline (Hexagonal)</option>
+        <option value="topaz">Topaz (Orthorhombic)</option>
+        <option value="beryl">Beryl (Hexagonal)</option>
+      </select>
+    </div>
+
+    <div class="control-group">
+      <label class="control-label">Supersaturation</label>
+      <input type="range" id="saturation" min="0.5" max="3.0" step="0.1" value="1.0">
+      <div class="stat-value" id="saturation-display">1.0×</div>
+    </div>
+
+    <div class="control-group">
+      <label class="control-label">Temperature (°C)</label>
+      <input type="range" id="temperature" min="0" max="100" step="5" value="20">
+      <div class="stat-value" id="temp-display">20°C</div>
+    </div>
+
+    <div class="control-group">
+      <label class="control-label">Lattice Planes</label>
+      <button id="toggle-planes">Show (100) (110) (111)</button>
+    </div>
+
+    <button id="start-btn" style="width: 100%;">▶ Start Growth</button>
+    <button id="timelapse-btn" style="width: 100%;">⏩ Time Lapse (10×)</button>
+
+    <div class="stat-box">
+      <div class="stat-label">CRYSTAL SIZE</div>
+      <div class="stat-value" id="size-stat">0.0 mm</div>
+    </div>
+
+    <div class="stat-box">
+      <div class="stat-label">GROWTH RATE</div>
+      <div class="stat-value" id="rate-stat">0.0 mm/min</div>
+    </div>
+
+    <div class="stat-box">
+      <div class="stat-label">MOHS HARDNESS</div>
+      <div class="stat-value" id="hardness-stat">7.0</div>
+    </div>
+
+    <div class="stat-box">
+      <div class="stat-label">LATTICE TYPE</div>
+      <div class="stat-value" id="lattice-stat">Hexagonal</div>
+    </div>
+  </div>
+
+  <div class="canvas-container">
+    <canvas id="canvas"></canvas>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth - 300;
+    canvas.height = window.innerHeight;
+
+    const minerals = {
+      quartz: { name: 'Quartz', lattice: 'hexagonal', hardness: 7.0, color: '#b0e0e6', atomColor: '#fff' },
+      halite: { name: 'Halite', lattice: 'cubic', hardness: 2.5, color: '#dda0dd', atomColor: '#e0e0e0' },
+      diamond: { name: 'Diamond', lattice: 'cubic', hardness: 10.0, color: '#f0f8ff', atomColor: '#000' },
+      calcite: { name: 'Calcite', lattice: 'hexagonal', hardness: 3.0, color: '#deb887', atomColor: '#e0e0e0' },
+      garnet: { name: 'Garnet', lattice: 'cubic', hardness: 7.5, color: '#dc143c', atomColor: '#c0c0c0' },
+      tourmaline: { name: 'Tourmaline', lattice: 'hexagonal', hardness: 7.5, color: '#4169e1', atomColor: '#fff' },
+      topaz: { name: 'Topaz', lattice: 'orthorhombic', hardness: 8.0, color: '#ffd700', atomColor: '#000' },
+      beryl: { name: 'Beryl', lattice: 'hexagonal', hardness: 7.75, color: '#00ced1', atomColor: '#000' }
+    };
+
+    let state = {
+      mineral: 'quartz',
+      saturation: 1.0,
+      temperature: 20,
+      growing: false,
+      crystalSize: 0,
+      growthRate: 0,
+      showPlanes: false,
+      timelapseSpeed: 1,
+      atoms: [],
+      gridSize: 4
+    };
+
+    function getMineralData(mineral) {
+      return minerals[mineral];
+    }
+
+    function initializeLattice() {
+      state.atoms = [];
+      const latType = getMineralData(state.mineral).lattice;
+      const centerX = 12;
+      const centerY = 12;
+      const centerZ = 8;
+
+      if (latType === 'cubic') {
+        for (let x = centerX - 3; x <= centerX + 3; x++) {
+          for (let y = centerY - 3; y <= centerY + 3; y++) {
+            for (let z = centerZ - 2; z <= centerZ + 2; z++) {
+              state.atoms.push({ x, y, z, layer: 0, vibration: 0 });
+            }
+          }
+        }
+      } else if (latType === 'hexagonal') {
+        for (let ring = 0; ring <= 3; ring++) {
+          for (let angle = 0; angle < 360; angle += 60) {
+            const rad = angle * Math.PI / 180;
+            const x = centerX + ring * 2.5 * Math.cos(rad);
+            const y = centerY + ring * 2.5 * Math.sin(rad);
+            for (let z = centerZ - 2; z <= centerZ + 2; z++) {
+              state.atoms.push({ x, y, z, layer: ring, vibration: 0 });
+            }
+          }
+        }
+      } else {
+        // Orthorhombic
+        for (let x = centerX - 3; x <= centerX + 3; x++) {
+          for (let y = centerY - 2; y <= centerY + 2; y++) {
+            for (let z = centerZ - 2; z <= centerZ + 2; z++) {
+              state.atoms.push({ x, y, z, layer: 0, vibration: 0 });
+            }
+          }
+        }
+      }
+    }
+
+    function addGrowthLayers() {
+      const latType = getMineralData(state.mineral).lattice;
+      const growthFactor = state.saturation * 0.3 * state.timelapseSpeed;
+      const atomsToAdd = Math.floor(growthFactor * state.saturation);
+
+      for (let i = 0; i < atomsToAdd; i++) {
+        const angle = Math.random() * 360 * Math.PI / 180;
+        const dist = 4 + Math.random() * 2;
+        const x = 12 + dist * Math.cos(angle);
+        const y = 12 + dist * Math.sin(angle);
+        const z = 8 + (Math.random() - 0.5) * 4;
+        state.atoms.push({ x, y, z, layer: state.atoms.length / 20, vibration: 0 });
+      }
+
+      state.crystalSize += growthFactor * 0.1;
+      state.growthRate = growthFactor * 0.5;
+    }
+
+    function project3D(x, y, z) {
+      const scale = 20;
+      const sx = (x - z) * scale;
+      const sy = (y - z / 2) * scale;
+      return { x: sx, y: sy };
+    }
+
+    function applyVibration(atom) {
+      const vibrationIntensity = (state.temperature / 100) * 2;
+      atom.vibration = (Math.random() - 0.5) * vibrationIntensity;
+      return atom.vibration;
+    }
+
+    function draw() {
+      ctx.fillStyle = '#0a0f1a';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      const mineral = getMineralData(state.mineral);
+      const centerX = canvas.width / 2;
+      const centerY = canvas.height / 2;
+
+      ctx.save();
+      ctx.translate(centerX, centerY);
+
+      // Draw bonds
+      ctx.strokeStyle = '#e0e0e0';
+      ctx.lineWidth = 1;
+      ctx.globalAlpha = 0.3;
+      for (let i = 0; i < state.atoms.length; i++) {
+        for (let j = i + 1; j < state.atoms.length; j++) {
+          const a1 = state.atoms[i];
+          const a2 = state.atoms[j];
+          const dist = Math.sqrt((a1.x - a2.x) ** 2 + (a1.y - a2.y) ** 2 + (a1.z - a2.z) ** 2);
+          if (dist < 3) {
+            const p1 = project3D(a1.x, a1.y, a1.z);
+            const p2 = project3D(a2.x, a2.y, a2.z);
+            ctx.beginPath();
+            ctx.moveTo(p1.x, p1.y);
+            ctx.lineTo(p2.x, p2.y);
+            ctx.stroke();
+          }
+        }
+      }
+      ctx.globalAlpha = 1;
+
+      // Draw atoms
+      for (const atom of state.atoms) {
+        const vib = applyVibration(atom);
+        const pos = project3D(atom.x + vib, atom.y + vib, atom.z + vib);
+        const radius = 3 + atom.layer * 0.5;
+
+        ctx.fillStyle = mineral.atomColor;
+        ctx.beginPath();
+        ctx.arc(pos.x, pos.y, radius, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.strokeStyle = mineral.color;
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      }
+
+      if (state.showPlanes) {
+        ctx.strokeStyle = 'rgba(255, 0, 0, 0.2)';
+        ctx.lineWidth = 2;
+        const planeSize = 100;
+        ctx.strokeRect(-planeSize, -planeSize, planeSize * 2, planeSize * 2);
+      }
+
+      ctx.restore();
+
+      // Stats
+      document.getElementById('size-stat').textContent = state.crystalSize.toFixed(1) + ' mm';
+      document.getElementById('rate-stat').textContent = state.growthRate.toFixed(2) + ' mm/min';
+      document.getElementById('hardness-stat').textContent = mineral.hardness.toFixed(1);
+      document.getElementById('lattice-stat').textContent = mineral.lattice.toUpperCase();
+
+      if (state.growing) {
+        addGrowthLayers();
+        requestAnimationFrame(draw);
+      }
+    }
+
+    document.getElementById('mineral').addEventListener('change', (e) => {
+      state.mineral = e.target.value;
+      state.crystalSize = 0;
+      state.growthRate = 0;
+      initializeLattice();
+      if (!state.growing) draw();
+    });
+
+    document.getElementById('saturation').addEventListener('input', (e) => {
+      state.saturation = parseFloat(e.target.value);
+      document.getElementById('saturation-display').textContent = state.saturation.toFixed(1) + '×';
+    });
+
+    document.getElementById('temperature').addEventListener('input', (e) => {
+      state.temperature = parseInt(e.target.value);
+      document.getElementById('temp-display').textContent = state.temperature + '°C';
+    });
+
+    document.getElementById('toggle-planes').addEventListener('click', () => {
+      state.showPlanes = !state.showPlanes;
+      if (!state.growing) draw();
+    });
+
+    document.getElementById('start-btn').addEventListener('click', () => {
+      if (!state.growing) {
+        state.growing = true;
+        state.timelapseSpeed = 1;
+        draw();
+      } else {
+        state.growing = false;
+      }
+    });
+
+    document.getElementById('timelapse-btn').addEventListener('click', () => {
+      if (state.growing) {
+        state.timelapseSpeed = 10;
+      }
+    });
+
+    window.addEventListener('resize', () => {
+      canvas.width = window.innerWidth - 300;
+      canvas.height = window.innerHeight;
+      if (!state.growing) draw();
+    });
+
+    initializeLattice();
+    draw();
+  </script>
+</body>
+</html>
