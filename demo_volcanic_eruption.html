@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Volcanic Eruption Simulator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Space Mono', monospace;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #e0e0e0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+        .container {
+            display: flex;
+            gap: 24px;
+            max-width: 1200px;
+            width: 100%;
+            background: #0f3460;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .sidebar {
+            width: 280px;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+        .canvas-area {
+            flex: 1;
+            min-width: 400px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+        }
+        .title {
+            font-family: 'Playfair Display', serif;
+            font-size: 28px;
+            font-weight: 700;
+            color: #ff6600;
+            margin-bottom: 8px;
+        }
+        .subtitle {
+            font-size: 11px;
+            color: #999;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .control-group {
+            background: rgba(0, 0, 0, 0.3);
+            border-left: 3px solid #ff4444;
+            padding: 12px;
+            border-radius: 6px;
+        }
+        .control-group label {
+            display: block;
+            font-size: 12px;
+            color: #aaa;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .control-group input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(255, 68, 68, 0.2);
+            outline: none;
+            -webkit-appearance: none;
+        }
+        .control-group input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #ff6600;
+            cursor: pointer;
+            box-shadow: 0 0 8px rgba(255, 102, 0, 0.6);
+        }
+        .control-group input[type="range"]::-moz-range-thumb {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #ff6600;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 0 8px rgba(255, 102, 0, 0.6);
+        }
+        .value-display {
+            font-size: 13px;
+            color: #ffaa00;
+            margin-top: 6px;
+            font-family: 'Space Mono', monospace;
+            font-weight: 700;
+        }
+        .stat-box {
+            background: rgba(0, 0, 0, 0.2);
+            border-left: 3px solid #2d9d5f;
+            padding: 10px;
+            margin-top: 8px;
+            border-radius: 4px;
+            font-size: 11px;
+        }
+        .stat-label {
+            color: #999;
+            display: block;
+        }
+        .stat-value {
+            color: #4da8da;
+            font-weight: 700;
+            display: block;
+            margin-top: 2px;
+        }
+        .button-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        button {
+            background: #ff4444;
+            color: white;
+            border: none;
+            padding: 10px 12px;
+            border-radius: 6px;
+            font-family: 'Space Mono', monospace;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: all 0.2s;
+        }
+        button:hover {
+            background: #ff6600;
+            box-shadow: 0 0 12px rgba(255, 102, 0, 0.5);
+        }
+        button.preset {
+            background: #2d5a7a;
+            font-size: 11px;
+            padding: 8px;
+        }
+        button.preset:hover {
+            background: #3d7aaa;
+        }
+        button.eruption {
+            background: #ff2222;
+            font-size: 14px;
+            padding: 14px;
+            margin-top: 8px;
+        }
+        button.eruption:hover {
+            background: #ff4444;
+            box-shadow: 0 0 16px rgba(255, 34, 34, 0.7);
+        }
+        .legend {
+            background: rgba(0, 0, 0, 0.2);
+            border-left: 3px solid #4da8da;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 10px;
+            line-height: 1.6;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 4px;
+        }
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 2px;
+        }
+        canvas {
+            border: 2px solid #333;
+            border-radius: 8px;
+            background: #0a0f15;
+            display: block;
+        }
+        .eruption-type {
+            margin-top: 8px;
+            padding: 8px;
+            background: rgba(255, 68, 68, 0.1);
+            border-left: 3px solid #ffaa00;
+            border-radius: 4px;
+            font-size: 11px;
+        }
+        .eruption-type-label {
+            color: #999;
+            display: block;
+        }
+        .eruption-type-value {
+            color: #ffaa00;
+            font-weight: 700;
+            display: block;
+            margin-top: 2px;
+        }
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+            }
+            .sidebar {
+                width: 100%;
+            }
+            .canvas-area {
+                min-width: 100%;
+            }
+            canvas {
+                max-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <div>
+                <div class="title">🌋 Volcanic Eruption</div>
+                <div class="subtitle">Magma Dynamics Simulator</div>
+            </div>
+
+            <div class="control-group">
+                <label>Chamber Pressure (MPa)</label>
+                <input type="range" id="pressure" min="1" max="200" value="50" step="1">
+                <div class="value-display"><span id="pressureVal">50</span> MPa</div>
+                <div class="stat-box">
+                    <span class="stat-label">Chamber Status</span>
+                    <span class="stat-value" id="chamberStatus">Building...</span>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label>Temperature (°C)</label>
+                <input type="range" id="temperature" min="700" max="1200" value="1000" step="10">
+                <div class="value-display"><span id="temperatureVal">1000</span> °C</div>
+                <div class="stat-box">
+                    <span class="stat-label">Magma Viscosity</span>
+                    <span class="stat-value" id="viscosity">~10³ Pa·s</span>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label>Volatile Content (%)</label>
+                <input type="range" id="volatiles" min="0" max="30" value="10" step="1">
+                <div class="value-display"><span id="volatilesVal">10</span> % H₂O/CO₂</div>
+                <div class="stat-box">
+                    <span class="stat-label">Gas Pressure Contrib.</span>
+                    <span class="stat-value" id="gasPressure">+10 MPa</span>
+                </div>
+            </div>
+
+            <div class="eruption-type">
+                <span class="eruption-type-label">Predicted Eruption Type</span>
+                <span class="eruption-type-value" id="eruptionType">Effusive (low energy)</span>
+            </div>
+
+            <button class="eruption" onclick="triggerEruption()">⬆️ ERUPT!</button>
+
+            <div class="button-group" style="margin-top: 12px;">
+                <button class="preset" onclick="loadPreset('stromboli')">📍 Stromboli</button>
+                <button class="preset" onclick="loadPreset('sthelens')">📍 Mt. St. Helens</button>
+                <button class="preset" onclick="loadPreset('eyjafjallajokull')">📍 Eyjafjallajökull</button>
+            </div>
+
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #ff4444;"></div>
+                    <span>Magma Chamber</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #ff6600;"></div>
+                    <span>Lava Flow</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #999999;"></div>
+                    <span>Pyroclastic Surge</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #cccccc;"></div>
+                    <span>Ash Column</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="canvas-area">
+            <canvas id="volcanoCanvas" width="500" height="600"></canvas>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('volcanoCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        const pressureSlider = document.getElementById('pressure');
+        const temperatureSlider = document.getElementById('temperature');
+        const volatilesSlider = document.getElementById('volatiles');
+        
+        let eruptionActive = false;
+        let eruptionTime = 0;
+        let eruptionDuration = 0;
+        let eruptionType = 'effusive';
+        
+        // Real volcanology formulas
+        function calculateViscosity(tempC) {
+            // Simplified Arrhenius-like model for magma viscosity
+            // Lower temp = higher viscosity exponentially
+            const tempK = tempC + 273;
+            const refTemp = 1100 + 273;
+            const refViscosity = 100; // Pa·s at reference temp
+            return refViscosity * Math.exp(10 * (1/tempK - 1/refTemp));
+        }
+        
+        function calculateGasPressure(volatiles, basePressure) {
+            // Gas pressure contribution from dissolved volatiles
+            // Each % of volatiles adds ~5-10 MPa depending on depth
+            return basePressure * (1 + volatiles * 0.15);
+        }
+        
+        function predictEruptionType(pressure, temp, volatiles) {
+            const viscosity = calculateViscosity(temp);
+            
+            if (pressure < 40 && viscosity < 1000 && volatiles < 15) {
+                return { type: 'Effusive (Hawaiian)', color: '#ff6600', label: 'Low-energy lava flows' };
+            } else if (pressure < 100 && viscosity < 10000 && volatiles < 20) {
+                return { type: 'Strombolian', color: '#ff8844', label: 'Pulsing burst eruptions' };
+            } else if (pressure < 160 && temp < 1000) {
+                return { type: 'Plinian (Explosive)', color: '#ff2222', label: 'Pyroclastic column' };
+            } else {
+                return { type: 'Phreatomagmatic', color: '#ff0088', label: 'Steam + magma mixing' };
+            }
+        }
+        
+        function calculateVEI(pressure, volatiles, volume) {
+            // Volcanic Explosivity Index: VEI = log10(volume in m³) - 7
+            const vei = Math.log10(volume) - 7;
+            return Math.max(0, Math.min(8, vei));
+        }
+        
+        function updateStats() {
+            const pressure = parseFloat(pressureSlider.value);
+            const temp = parseFloat(temperatureSlider.value);
+            const volatiles = parseFloat(volatilesSlider.value);
+            
+            document.getElementById('pressureVal').textContent = pressure;
+            document.getElementById('temperatureVal').textContent = temp;
+            document.getElementById('volatilesVal').textContent = volatiles;
+            
+            const viscosity = calculateViscosity(temp);
+            let viscosityStr;
+            if (viscosity < 10) viscosityStr = '~1 Pa·s (very fluid)';
+            else if (viscosity < 100) viscosityStr = '~10 Pa·s (fluid)';
+            else if (viscosity < 1000) viscosityStr = '~100 Pa·s (flowing)';
+            else if (viscosity < 10000) viscosityStr = '~10³ Pa·s';
+            else if (viscosity < 100000) viscosityStr = '~10⁴ Pa·s (thick)';
+            else viscosityStr = '~10⁵+ Pa·s (very thick)';
+            
+            document.getElementById('viscosity').textContent = viscosityStr;
+            
+            const gasPressure = (volatiles * 10).toFixed(0);
+            document.getElementById('gasPressure').textContent = `+${gasPressure} MPa`;
+            
+            const stressLevel = (pressure / 200 * 100).toFixed(0);
+            const chamberStatus = stressLevel > 80 ? '⚠️ Critical Pressure' : 
+                                  stressLevel > 50 ? '🔴 High Stress' :
+                                  stressLevel > 25 ? '🟡 Moderate' : '🟢 Stable';
+            document.getElementById('chamberStatus').textContent = chamberStatus;
+            
+            const pred = predictEruptionType(pressure, temp, volatiles);
+            document.getElementById('eruptionType').textContent = pred.type;
+            eruptionType = pred.type.toLowerCase();
+        }
+        
+        function drawVolcano() {
+            const pressure = parseFloat(pressureSlider.value);
+            const temp = parseFloat(temperatureSlider.value);
+            const volatiles = parseFloat(volatilesSlider.value);
+            
+            ctx.fillStyle = '#0a0f15';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw ground (dark blue)
+            ctx.fillStyle = '#1a3a5a';
+            ctx.fillRect(0, 350, canvas.width, canvas.height - 350);
+            
+            // Grid lines for depth reference
+            ctx.strokeStyle = '#2a5a7a';
+            ctx.lineWidth = 1;
+            ctx.font = '10px Space Mono';
+            ctx.fillStyle = '#5a8aaa';
+            for (let i = 1; i < 5; i++) {
+                const y = 350 + (i * 50);
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvas.width, y);
+                ctx.stroke();
+                ctx.fillText(`-${i}km`, 10, y - 5);
+            }
+            
+            // Magma chamber size varies with pressure (more pressure = expansion)
+            const chamberRadius = 40 + (pressure / 200) * 60;
+            const chamberGlow = 30 + (pressure / 200) * 40;
+            
+            // Magma chamber color shifts with temperature (red → yellow)
+            const tempNorm = (temp - 700) / 500;
+            const r = Math.floor(255);
+            const g = Math.floor(100 + tempNorm * 170);
+            const b = 0;
+            const chamberColor = `rgb(${r}, ${g}, ${b})`;
+            const glowColor = `rgba(255, ${g}, 0, 0.3)`;
+            
+            // Draw magma chamber glow
+            ctx.fillStyle = glowColor;
+            ctx.beginPath();
+            ctx.arc(canvas.width / 2, 450, chamberGlow, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Draw magma chamber
+            ctx.fillStyle = chamberColor;
+            ctx.beginPath();
+            ctx.arc(canvas.width / 2, 450, chamberRadius, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Conduit (magma tube)
+            ctx.strokeStyle = '#ff4444';
+            ctx.lineWidth = 20;
+            ctx.beginPath();
+            ctx.moveTo(canvas.width / 2, 450 - chamberRadius);
+            ctx.lineTo(canvas.width / 2, 200);
+            ctx.stroke();
+            
+            // Draw volcano cone (mountain shape)
+            const peakX = canvas.width / 2;
+            const peakY = 100;
+            const baseX1 = peakX - 150;
+            const baseX2 = peakX + 150;
+            const baseY = 350;
+            
+            ctx.fillStyle = '#5a4a3a';
+            ctx.beginPath();
+            ctx.moveTo(baseX1, baseY);
+            ctx.lineTo(peakX, peakY);
+            ctx.lineTo(baseX2, baseY);
+            ctx.fill();
+            
+            // Draw crater
+            ctx.fillStyle = '#2a1a0a';
+            ctx.beginPath();
+            ctx.arc(peakX, peakY, 20, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Draw eruption if active
+            if (eruptionActive) {
+                const progress = eruptionTime / eruptionDuration;
+                
+                if (eruptionType.includes('effusive')) {
+                    // Slow lava flows down sides
+                    const flowDistance = progress * 100;
+                    ctx.fillStyle = 'rgba(255, 102, 0, 0.8)';
+                    ctx.beginPath();
+                    ctx.moveTo(peakX - 15, peakY);
+                    ctx.lineTo(peakX - 15 - flowDistance * 0.5, baseY);
+                    ctx.lineTo(peakX - 15 - flowDistance * 0.6, baseY);
+                    ctx.fill();
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(peakX + 15, peakY);
+                    ctx.lineTo(peakX + 15 + flowDistance * 0.5, baseY);
+                    ctx.lineTo(peakX + 15 + flowDistance * 0.6, baseY);
+                    ctx.fill();
+                    
+                    // Smoke
+                    ctx.fillStyle = `rgba(240, 240, 240, ${0.5 * (1 - progress)})`;
+                    ctx.beginPath();
+                    ctx.arc(peakX, peakY - 20 - progress * 80, 25 * (1 - progress), 0, Math.PI * 2);
+                    ctx.fill();
+                } else {
+                    // Explosive eruption - pyroclastic surge and ash column
+                    
+                    // Pyroclastic surge (fast horizontal flow)
+                    const surgeDistance = progress * 200;
+                    ctx.fillStyle = 'rgba(102, 102, 102, 0.7)';
+                    for (let i = 0; i < 3; i++) {
+                        ctx.beginPath();
+                        ctx.ellipse(peakX - surgeDistance - i * 30, baseY - 20, surgeDistance * 0.8, 30, 0, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.beginPath();
+                        ctx.ellipse(peakX + surgeDistance + i * 30, baseY - 20, surgeDistance * 0.8, 30, 0, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                    
+                    // Ash column rising
+                    const ashHeight = progress * 200;
+                    ctx.fillStyle = `rgba(200, 200, 200, ${0.6 * (1 - progress * 0.5)})`;
+                    ctx.beginPath();
+                    ctx.ellipse(peakX, peakY - ashHeight, 30 + progress * 40, ashHeight, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // Bright eruption glow
+                    ctx.fillStyle = `rgba(255, 100, 0, ${0.5 * (1 - progress)})`;
+                    ctx.beginPath();
+                    ctx.arc(peakX, peakY, 40 * (1 - progress), 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                
+                eruptionTime += 16; // ~60fps
+                if (eruptionTime >= eruptionDuration) {
+                    eruptionActive = false;
+                    eruptionTime = 0;
+                }
+            }
+            
+            // Pressure indicator bars
+            ctx.fillStyle = '#2a5a7a';
+            ctx.fillRect(20, 20, 100, 20);
+            ctx.fillStyle = '#ff6600';
+            ctx.fillRect(20, 20, (pressure / 200) * 100, 20);
+            ctx.strokeStyle = '#aaa';
+            ctx.strokeRect(20, 20, 100, 20);
+            ctx.fillStyle = '#aaa';
+            ctx.font = '11px Space Mono';
+            ctx.fillText('Pressure', 125, 35);
+            
+            // Temperature indicator
+            ctx.fillStyle = '#2a5a7a';
+            ctx.fillRect(20, 50, 100, 20);
+            const tempNormBar = (temp - 700) / 500;
+            ctx.fillStyle = `rgb(255, ${Math.floor(100 + tempNormBar * 170)}, 0)`;
+            ctx.fillRect(20, 50, tempNormBar * 100, 20);
+            ctx.strokeStyle = '#aaa';
+            ctx.strokeRect(20, 50, 100, 20);
+            ctx.fillStyle = '#aaa';
+            ctx.fillText('Temperature', 125, 65);
+            
+            // Volatiles indicator
+            ctx.fillStyle = '#2a5a7a';
+            ctx.fillRect(20, 80, 100, 20);
+            ctx.fillStyle = '#4da8da';
+            ctx.fillRect(20, 80, (volatiles / 30) * 100, 20);
+            ctx.strokeStyle = '#aaa';
+            ctx.strokeRect(20, 80, 100, 20);
+            ctx.fillStyle = '#aaa';
+            ctx.fillText('Volatiles', 125, 95);
+        }
+        
+        function animate() {
+            updateStats();
+            drawVolcano();
+            requestAnimationFrame(animate);
+        }
+        
+        function triggerEruption() {
+            if (!eruptionActive) {
+                eruptionActive = true;
+                eruptionTime = 0;
+                const pressure = parseFloat(pressureSlider.value);
+                const temp = parseFloat(temperatureSlider.value);
+                // Duration scales with intensity
+                eruptionDuration = 1000 + (pressure / 200) * 1500;
+            }
+        }
+        
+        function loadPreset(preset) {
+            if (preset === 'stromboli') {
+                // Frequent low-energy eruptions
+                pressureSlider.value = 45;
+                temperatureSlider.value = 1050;
+                volatilesSlider.value = 8;
+            } else if (preset === 'sthelens') {
+                // Catastrophic 1980
+                pressureSlider.value = 180;
+                temperatureSlider.value = 900;
+                volatilesSlider.value = 22;
+            } else if (preset === 'eyjafjallajokull') {
+                // Ash column 10km
+                pressureSlider.value = 140;
+                temperatureSlider.value = 950;
+                volatilesSlider.value = 18;
+            }
+            updateStats();
+            triggerEruption();
+        }
+        
+        pressureSlider.addEventListener('input', updateStats);
+        temperatureSlider.addEventListener('input', updateStats);
+        volatilesSlider.addEventListener('input', updateStats);
+        
+        updateStats();
+        animate();
+    </script>
+</body>
+</html>
