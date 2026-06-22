@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Etymology Tree</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Space+Mono:wght@400&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { 
+      font-family: 'Space Mono', monospace; 
+      background: #0f1419; 
+      color: #e0e0e0; 
+      height: 100vh; 
+      display: flex; 
+      overflow: hidden;
+    }
+    .container { 
+      display: flex; 
+      width: 100%; 
+      height: 100%; 
+    }
+    .sidebar { 
+      width: 300px; 
+      background: #1a2332; 
+      border-right: 1px solid #333; 
+      padding: 20px; 
+      overflow-y: auto; 
+      display: flex; 
+      flex-direction: column; 
+      gap: 12px;
+    }
+    .sidebar h1 { 
+      font-family: 'Playfair Display', serif; 
+      font-size: 18px; 
+      color: #4da8da; 
+    }
+    .search-box { 
+      display: flex; 
+      flex-direction: column; 
+      gap: 6px;
+    }
+    .search-box input { 
+      padding: 8px; 
+      background: #0f1419; 
+      border: 1px solid #4da8da; 
+      color: #e0e0e0; 
+      border-radius: 4px; 
+      font-family: 'Space Mono', monospace;
+      font-size: 13px;
+    }
+    .search-box button { 
+      padding: 6px 10px; 
+      background: #4da8da; 
+      border: none; 
+      color: #0f1419; 
+      border-radius: 4px; 
+      cursor: pointer; 
+      font-weight: bold;
+      font-size: 12px;
+    }
+    .search-box button:hover { background: #5eb8ea; }
+    .info-box { 
+      background: #252e3f; 
+      border-left: 3px solid #4da8da; 
+      padding: 10px; 
+      border-radius: 4px; 
+      font-size: 11px; 
+      line-height: 1.5;
+    }
+    .info-box strong { color: #4da8da; }
+    .language-legend { 
+      display: grid; 
+      grid-template-columns: 1fr 1fr; 
+      gap: 6px; 
+      font-size: 10px;
+    }
+    .lang-item { 
+      display: flex; 
+      align-items: center; 
+      gap: 4px;
+    }
+    .lang-dot { 
+      width: 6px; 
+      height: 6px; 
+      border-radius: 50%; 
+    }
+    .canvas-container { 
+      flex: 1; 
+      position: relative; 
+      overflow: hidden;
+    }
+    canvas { 
+      display: block; 
+      width: 100%; 
+      height: 100%;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="sidebar">
+      <h1>Etymology</h1>
+      
+      <div class="search-box">
+        <label style="font-size: 11px; color: #888;">Word</label>
+        <input type="text" id="wordInput" placeholder="kitchen..." value="kitchen">
+        <button onclick="exploreWord()">Search</button>
+      </div>
+
+      <div class="info-box" id="infoBox">
+        <strong>Kitchen</strong><br>
+        From Latin <i>coquina</i>, ~1150 AD<br>
+        Root: <i>coquere</i> (to cook)
+      </div>
+
+      <div style="border-top: 1px solid #333; padding-top: 10px;">
+        <label style="font-size: 11px; color: #4da8da;">Languages</label>
+        <div class="language-legend">
+          <div class="lang-item"><div class="lang-dot" style="background: #ff4444;"></div>OE</div>
+          <div class="lang-item"><div class="lang-dot" style="background: #44ff44;"></div>Latin</div>
+          <div class="lang-item"><div class="lang-dot" style="background: #4444ff;"></div>Germanic</div>
+          <div class="lang-item"><div class="lang-dot" style="background: #ffaa44;"></div>Greek</div>
+          <div class="lang-item"><div class="lang-dot" style="background: #ffdd44;"></div>Arabic</div>
+          <div class="lang-item"><div class="lang-dot" style="background: #ff44ff;"></div>Romance</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="canvas-container">
+      <canvas id="canvas"></canvas>
+    </div>
+  </div>
+
+  <script>
+    const etymologyDB = {
+      kitchen: {
+        word: 'Kitchen', def: 'Place for cooking', year: 1150,
+        root: { word: 'coquina', lang: 'Latin', year: 100, def: 'cooking place' },
+        branches: [
+          { word: 'Küche', lang: 'Germanic', year: 850, def: 'German kitchen' },
+          { word: 'keuken', lang: 'Germanic', year: 900, def: 'Dutch kitchen' },
+          { word: 'coquere', lang: 'Latin', year: 100, def: 'to cook (root)' },
+          { word: 'kitchenette', lang: 'OE', year: 1950, def: 'small kitchen' },
+          { word: 'cookery', lang: 'OE', year: 1400, def: 'art of cooking' }
+        ]
+      },
+      sentiment: {
+        word: 'Sentiment', def: 'Feeling or emotion', year: 1769,
+        root: { word: 'sentire', lang: 'Latin', year: 100, def: 'to feel' },
+        branches: [
+          { word: 'sentiment', lang: 'Romance', year: 1500, def: 'French feeling' },
+          { word: 'sentimiento', lang: 'Romance', year: 1500, def: 'Spanish feeling' },
+          { word: 'sentimental', lang: 'OE', year: 1800, def: 'emotional' },
+          { word: 'sense', lang: 'OE', year: 1300, def: 'perception' },
+          { word: 'sensible', lang: 'OE', year: 1400, def: 'aware' }
+        ]
+      },
+      algorithm: {
+        word: 'Algorithm', def: 'Step-by-step procedure', year: 1881,
+        root: { word: 'al-Khwarizmi', lang: 'Arabic', year: 820, def: 'mathematician' },
+        branches: [
+          { word: 'algorism', lang: 'Arabic', year: 1200, def: 'algorithm (old)' },
+          { word: 'logarithm', lang: 'Greek', year: 1614, def: 'log (math)' },
+          { word: 'arithmos', lang: 'Greek', year: -100, def: 'number' },
+          { word: 'algebraic', lang: 'Arabic', year: 1500, def: 'algebra-related' },
+          { word: 'algorithmic', lang: 'OE', year: 1976, def: 'computer science' }
+        ]
+      }
+    };
+
+    const langColors = {
+      'OE': '#ff4444', 'Latin': '#44ff44', 'Germanic': '#4444ff',
+      'Greek': '#ffaa44', 'Arabic': '#ffdd44', 'Romance': '#ff44ff'
+    };
+
+    let currentData = etymologyDB.kitchen;
+    let nodes = [];
+    let links = [];
+    let canvas, ctx;
+
+    class Node {
+      constructor(word, lang, x, y, type) {
+        this.word = word;
+        this.lang = lang;
+        this.x = x;
+        this.y = y;
+        this.vx = 0;
+        this.vy = 0;
+        this.type = type;
+        this.r = type === 'root' ? 10 : 6;
+      }
+    }
+
+    function initTree() {
+      nodes = [];
+      links = [];
+      
+      let root = new Node(currentData.root.word, currentData.root.lang, 200, 200, 'root');
+      nodes.push(root);
+
+      let center = new Node(currentData.word, 'OE', 200, 80, 'center');
+      nodes.push(center);
+      links.push([1, 0]);
+
+      currentData.branches.forEach((b, i) => {
+        let angle = (i / currentData.branches.length) * Math.PI * 2;
+        let x = 200 + Math.cos(angle) * 70;
+        let y = 200 + Math.sin(angle) * 70;
+        nodes.push(new Node(b.word, b.lang, x, y, 'branch'));
+        links.push([nodes.length - 1, 1]);
+      });
+    }
+
+    function simulate() {
+      // Repulsion + spring + damping
+      for (let i = 0; i < nodes.length; i++) {
+        for (let j = i + 1; j < nodes.length; j++) {
+          let dx = nodes[j].x - nodes[i].x;
+          let dy = nodes[j].y - nodes[i].y;
+          let d = Math.hypot(dx, dy) || 1;
+          let f = 40 / (d * d) * 0.05;
+          nodes[i].vx -= (dx / d) * f;
+          nodes[i].vy -= (dy / d) * f;
+          nodes[j].vx += (dx / d) * f;
+          nodes[j].vy += (dy / d) * f;
+        }
+      }
+
+      links.forEach(([i, j]) => {
+        let dx = nodes[j].x - nodes[i].x;
+        let dy = nodes[j].y - nodes[i].y;
+        let d = Math.hypot(dx, dy) || 1;
+        let f = (d - 50) * 0.01;
+        nodes[i].vx += (dx / d) * f;
+        nodes[i].vy += (dy / d) * f;
+        nodes[j].vx -= (dx / d) * f;
+        nodes[j].vy -= (dy / d) * f;
+      });
+
+      nodes.forEach((n, i) => {
+        n.vx *= 0.92;
+        n.vy *= 0.92;
+        if (i === 0) {
+          n.x = 200;
+          n.y = 200;
+          n.vx = n.vy = 0;
+        } else {
+          n.x += n.vx;
+          n.y += n.vy;
+        }
+      });
+    }
+
+    function render() {
+      ctx.fillStyle = '#0f1419';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.strokeStyle = '#4da8da33';
+      ctx.lineWidth = 2;
+      links.forEach(([i, j]) => {
+        ctx.beginPath();
+        ctx.moveTo(nodes[i].x, nodes[i].y);
+        ctx.lineTo(nodes[j].x, nodes[j].y);
+        ctx.stroke();
+      });
+
+      nodes.forEach(n => {
+        ctx.fillStyle = langColors[n.lang] || '#888';
+        ctx.beginPath();
+        ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
+        ctx.fill();
+        
+        ctx.fillStyle = '#e0e0e0';
+        ctx.font = 'bold 10px Space Mono';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        ctx.fillText(n.word, n.x, n.y + n.r + 6);
+      });
+    }
+
+    function animate() {
+      simulate();
+      render();
+      requestAnimationFrame(animate);
+    }
+
+    function exploreWord() {
+      let w = document.getElementById('wordInput').value.toLowerCase().trim();
+      if (etymologyDB[w]) {
+        currentData = etymologyDB[w];
+        initTree();
+        document.getElementById('infoBox').innerHTML = `
+          <strong>${currentData.word}</strong><br>
+          From <i>${currentData.root.word}</i> (${currentData.root.lang}, ~${currentData.root.year} AD)<br>
+          English: ~${currentData.year} AD
+        `;
+      }
+    }
+
+    function resizeCanvas() {
+      let box = document.querySelector('.canvas-container');
+      canvas.width = box.clientWidth;
+      canvas.height = box.clientHeight;
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      canvas = document.getElementById('canvas');
+      ctx = canvas.getContext('2d');
+      resizeCanvas();
+      initTree();
+      animate();
+    });
+
+    window.addEventListener('resize', resizeCanvas);
+  </script>
+</body>
+</html>
