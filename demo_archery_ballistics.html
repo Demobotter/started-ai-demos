@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Archery Ballistics</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Space+Mono:wght@400&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: "Space Mono", monospace; background: #1a1a1a; color: #ddd; display: flex; height: 100vh; overflow: hidden; }
+    .sidebar { width: 280px; padding: 20px; background: #111; border-right: 1px solid #333; overflow-y: auto; }
+    .main { flex: 1; display: flex; flex-direction: column; }
+    h1 { font-family: "Playfair Display", serif; font-size: 28px; margin-bottom: 20px; color: #fff; }
+    h2 { font-family: "Playfair Display", serif; font-size: 18px; margin-top: 16px; margin-bottom: 8px; color: #4da8da; }
+    .control-group { margin-bottom: 16px; }
+    label { display: block; font-size: 12px; text-transform: uppercase; color: #999; margin-bottom: 4px; }
+    input[type="range"] { width: 100%; cursor: pointer; }
+    input[type="number"] { width: 100%; padding: 4px 6px; background: #222; border: 1px solid #333; color: #ddd; font-family: "Space Mono"; font-size: 11px; }
+    .stats-box { background: #0a1428; border-left: 3px solid #2d9d5f; padding: 8px; margin-bottom: 8px; font-size: 11px; line-height: 1.4; }
+    .stat-label { color: #999; }
+    .stat-value { color: #4da8da; font-weight: bold; }
+    button { padding: 8px 12px; background: #2d9d5f; border: none; color: #fff; cursor: pointer; font-family: "Space Mono"; font-size: 11px; text-transform: uppercase; border-radius: 4px; width: 100%; margin-top: 8px; transition: background 0.2s; }
+    button:hover { background: #3dae6f; }
+    button:active { background: #1d8d4f; }
+    .distance-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 8px; }
+    .distance-buttons button { margin: 0; padding: 6px; font-size: 10px; }
+    canvas { display: block; background: linear-gradient(180deg, #87ceeb 0%, #e0f6ff 100%); }
+    .shot-log { background: #0a1428; padding: 8px; font-size: 10px; max-height: 120px; overflow-y: auto; border: 1px solid #333; border-radius: 4px; margin-top: 8px; }
+    .log-entry { color: #7dd3fc; margin-bottom: 4px; border-bottom: 1px solid #1a3a5a; padding-bottom: 4px; }
+    @media (max-width: 800px) {
+      body { flex-direction: column; }
+      .sidebar { width: 100%; max-height: 200px; border-right: none; border-bottom: 1px solid #333; }
+      canvas { max-height: 400px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="sidebar">
+    <h1>🏹 Archery</h1>
+    
+    <div class="control-group">
+      <label>Angle (degrees)</label>
+      <input type="range" id="angleSlider" min="0" max="90" value="45" step="1">
+      <span id="angleDisplay">45°</span>
+    </div>
+    
+    <div class="control-group">
+      <label>Velocity (m/s)</label>
+      <input type="range" id="velocitySlider" min="10" max="100" value="50" step="2">
+      <span id="velocityDisplay">50 m/s</span>
+    </div>
+    
+    <div class="control-group">
+      <label>Wind (m/s, left to right)</label>
+      <input type="range" id="windSlider" min="-20" max="20" value="0" step="1">
+      <span id="windDisplay">0 m/s</span>
+    </div>
+    
+    <div class="control-group">
+      <label>Arrow Mass</label>
+      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px;">
+        <button onclick="setMass(15)" style="background: #444;">Light (15g)</button>
+        <button onclick="setMass(30)" style="background: #2d9d5f;">Medium (30g)</button>
+        <button onclick="setMass(50)" style="background: #444;">Heavy (50g)</button>
+      </div>
+    </div>
+    
+    <h2>Target Distance</h2>
+    <div class="distance-buttons">
+      <button onclick="setDistance(30)">30m</button>
+      <button onclick="setDistance(50)">50m</button>
+      <button onclick="setDistance(100)">100m</button>
+    </div>
+    
+    <div class="stats-box" style="margin-top: 16px;">
+      <div><span class="stat-label">Current Mass:</span> <span class="stat-value" id="massDisplay">30g</span></div>
+      <div><span class="stat-label">Distance:</span> <span class="stat-value" id="distanceDisplay">30m</span></div>
+      <div><span class="stat-label">Cumulative Score:</span> <span class="stat-value" id="scoreDisplay">0</span></div>
+    </div>
+    
+    <button onclick="fireArrow()" style="margin-top: 16px; background: #d32f2f; font-size: 12px; padding: 12px;">FIRE</button>
+    
+    <h2>Last Shot</h2>
+    <div class="stats-box">
+      <div><span class="stat-label">Range:</span> <span class="stat-value" id="rangeResult">—</span></div>
+      <div><span class="stat-label">Impact:</span> <span class="stat-value" id="impactResult">—</span></div>
+      <div><span class="stat-label">Wind Drift:</span> <span class="stat-value" id="driftResult">—</span></div>
+      <div><span class="stat-label">Points:</span> <span class="stat-value" id="pointsResult">—</span></div>
+    </div>
+    
+    <h2>Shot Log</h2>
+    <div class="shot-log" id="shotLog"></div>
+  </div>
+  
+  <div class="main">
+    <canvas id="canvas"></canvas>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    // Physics constants
+    const g = 9.81;
+    const airDensity = 1.225;
+    const dragCoeff = 0.5;
+    const arrowArea = 0.001;
+    
+    let angle = 45;
+    let velocity = 50;
+    let wind = 0;
+    let mass = 30;
+    let targetDistance = 30;
+    let cumulativeScore = 0;
+    let trajectory = null;
+    let isAnimating = false;
+    
+    function resizeCanvas() {
+      canvas.width = canvas.parentElement.clientWidth;
+      canvas.height = canvas.parentElement.clientHeight;
+    }
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+    
+    document.getElementById('angleSlider').addEventListener('input', (e) => {
+      angle = parseFloat(e.target.value);
+      document.getElementById('angleDisplay').textContent = angle + '°';
+      drawScene();
+    });
+    
+    document.getElementById('velocitySlider').addEventListener('input', (e) => {
+      velocity = parseFloat(e.target.value);
+      document.getElementById('velocityDisplay').textContent = velocity + ' m/s';
+      drawScene();
+    });
+    
+    document.getElementById('windSlider').addEventListener('input', (e) => {
+      wind = parseFloat(e.target.value);
+      document.getElementById('windDisplay').textContent = wind + ' m/s';
+      document.getElementById('windDisplay').style.color = wind > 0 ? '#d32f2f' : wind < 0 ? '#4da8da' : '#999';
+      drawScene();
+    });
+    
+    function setMass(m) {
+      mass = m;
+      document.getElementById('massDisplay').textContent = m + 'g';
+      drawScene();
+    }
+    
+    function setDistance(d) {
+      targetDistance = d;
+      document.getElementById('distanceDisplay').textContent = d + 'm';
+      drawScene();
+    }
+    
+    function calculateTrajectory(initialAngle, initialVel, windSpeed, arrowMass) {
+      const angleRad = (initialAngle * Math.PI) / 180;
+      const vx0 = initialVel * Math.cos(angleRad);
+      const vy0 = initialVel * Math.sin(angleRad);
+      
+      const points = [];
+      const dt = 0.01;
+      let t = 0;
+      let x = 0, y = 0, vx = vx0, vy = vy0;
+      
+      const arrowMassKg = arrowMass / 1000;
+      const dragFactor = 0.5 * airDensity * dragCoeff * arrowArea / arrowMassKg;
+      
+      while (y >= 0 && x <= 150) {
+        points.push({ x, y, vx, vy });
+        
+        // Air drag
+        const speed = Math.sqrt(vx * vx + vy * vy);
+        const dragMag = dragFactor * speed;
+        const dragX = (vx / speed) * dragMag * dt;
+        const dragY = (vy / speed) * dragMag * dt;
+        
+        vx -= dragX;
+        vy -= dragY + g * dt;
+        
+        // Wind deflection (horizontal acceleration)
+        const windAccel = windSpeed / arrowMassKg * 0.01;
+        vx += windAccel;
+        
+        x += vx * dt;
+        y += vy * dt;
+        t += dt;
+      }
+      
+      return { points, landX: x, landY: y };
+    }
+    
+    function fireArrow() {
+      if (isAnimating) return;
+      isAnimating = true;
+      
+      const traj = calculateTrajectory(angle, velocity, wind, mass);
+      const impactDistance = Math.abs(traj.landX - targetDistance);
+      
+      let points = 0;
+      let impactLabel = '';
+      if (impactDistance <= 0.5) {
+        points = 10;
+        impactLabel = 'Bullseye!';
+      } else if (impactDistance <= 1.0) {
+        points = 5;
+        impactLabel = 'Inner ring';
+      } else if (impactDistance <= 2.0) {
+        points = 2;
+        impactLabel = 'Outer ring';
+      } else {
+        points = 0;
+        impactLabel = 'Miss';
+      }
+      
+      cumulativeScore += points;
+      document.getElementById('scoreDisplay').textContent = cumulativeScore;
+      document.getElementById('rangeDisplay').textContent = traj.landX.toFixed(1) + 'm';
+      document.getElementById('impactResult').textContent = impactLabel + ' (' + impactDistance.toFixed(2) + 'm off)';
+      document.getElementById('driftResult').textContent = (wind > 0 ? '+' : '') + (traj.landX - targetDistance).toFixed(2) + 'm';
+      document.getElementById('pointsResult').textContent = points;
+      
+      const logEntry = document.createElement('div');
+      logEntry.className = 'log-entry';
+      logEntry.textContent = `${angle}° ${velocity}m/s w${wind > 0 ? '+' : ''}${wind} → ${traj.landX.toFixed(1)}m [${points}pts]`;
+      document.getElementById('shotLog').insertBefore(logEntry, document.getElementById('shotLog').firstChild);
+      
+      trajectory = traj;
+      animateArrow(traj.points);
+    }
+    
+    function animateArrow(points) {
+      let frame = 0;
+      const animate = () => {
+        drawScene(frame, points);
+        frame++;
+        if (frame < points.length) {
+          requestAnimationFrame(animate);
+        } else {
+          isAnimating = false;
+          trajectory = null;
+        }
+      };
+      animate();
+    }
+    
+    function drawScene(frameIdx = -1, animPoints = null) {
+      const ppm = Math.min(canvas.width, canvas.height) / 120; // pixels per meter
+      
+      // Sky and ground
+      ctx.fillStyle = '#87ceeb';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      const groundY = canvas.height * 0.75;
+      ctx.fillStyle = '#2d5016';
+      ctx.fillRect(0, groundY, canvas.width, canvas.height - groundY);
+      
+      // Grid and distance markers
+      ctx.strokeStyle = '#ccc';
+      ctx.lineWidth = 1;
+      ctx.globalAlpha = 0.3;
+      for (let d = 0; d <= 120; d += 10) {
+        const px = 20 + d * ppm;
+        ctx.beginPath();
+        ctx.moveTo(px, groundY - 20);
+        ctx.lineTo(px, groundY);
+        ctx.stroke();
+        ctx.fillStyle = '#999';
+        ctx.font = '10px Space Mono';
+        ctx.textAlign = 'center';
+        ctx.fillText(d + 'm', px, groundY + 15);
+      }
+      ctx.globalAlpha = 1.0;
+      
+      // Archer
+      const archerX = 20;
+      ctx.fillStyle = '#5c4033';
+      ctx.fillRect(archerX - 6, groundY - 30, 12, 30);
+      ctx.beginPath();
+      ctx.arc(archerX, groundY - 35, 5, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Target at targetDistance
+      const targetX = 20 + targetDistance * ppm;
+      ctx.fillStyle = '#d32f2f';
+      ctx.beginPath();
+      ctx.arc(targetX, groundY - 10, 20, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.beginPath();
+      ctx.arc(targetX, groundY - 10, 15, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#ffd700';
+      ctx.beginPath();
+      ctx.arc(targetX, groundY - 10, 8, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Wind indicator
+      ctx.fillStyle = '#4da8da';
+      const windArrowX = canvas.width - 60;
+      const windMag = Math.abs(wind) * 3;
+      const windDir = wind > 0 ? 1 : -1;
+      ctx.fillRect(windArrowX, 20, windDir * windMag, 4);
+      ctx.fillStyle = '#7dd3fc';
+      ctx.font = '11px Space Mono';
+      ctx.textAlign = 'center';
+      ctx.fillText('Wind: ' + wind + 'm/s', windArrowX, 10);
+      
+      // Trajectory line (prediction)
+      if (!animPoints && trajectory) {
+        ctx.strokeStyle = 'rgba(77, 168, 218, 0.4)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        const p0 = trajectory.points[0];
+        ctx.moveTo(archerX + p0.x * ppm, groundY - p0.y * ppm);
+        for (let i = 1; i < trajectory.points.length; i += 2) {
+          const p = trajectory.points[i];
+          ctx.lineTo(archerX + p.x * ppm, groundY - p.y * ppm);
+        }
+        ctx.stroke();
+      }
+      
+      // Animated arrow
+      if (animPoints && frameIdx >= 0 && frameIdx < animPoints.length) {
+        const p = animPoints[frameIdx];
+        const arrowX = archerX + p.x * ppm;
+        const arrowY = groundY - p.y * ppm;
+        
+        // Arrow shaft
+        ctx.strokeStyle = '#d4a574';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(arrowX - 8, arrowY);
+        ctx.lineTo(arrowX, arrowY);
+        ctx.stroke();
+        
+        // Arrow tip
+        ctx.fillStyle = '#c0c0c0';
+        ctx.beginPath();
+        ctx.arc(arrowX, arrowY, 4, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      
+      // Stats overlay
+      ctx.fillStyle = 'rgba(10, 20, 40, 0.8)';
+      ctx.fillRect(10, 10, 200, 140);
+      ctx.fillStyle = '#7dd3fc';
+      ctx.font = '11px Space Mono';
+      ctx.textAlign = 'left';
+      ctx.fillText('Angle: ' + angle + '°', 20, 30);
+      ctx.fillText('Velocity: ' + velocity + ' m/s', 20, 50);
+      ctx.fillText('Mass: ' + mass + 'g', 20, 70);
+      ctx.fillText('Target: ' + targetDistance + 'm', 20, 90);
+      ctx.fillText('Score: ' + cumulativeScore, 20, 110);
+    }
+    
+    drawScene();
+  </script>
+</body>
+</html>
