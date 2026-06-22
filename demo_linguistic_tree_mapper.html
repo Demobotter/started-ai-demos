@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Etymology Tree Mapper</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Space Mono', monospace;
+            background: linear-gradient(135deg, #0F1419 0%, #1a1f2e 100%);
+            color: #e0e7ff;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 20px;
+            height: calc(100vh - 40px);
+        }
+        .sidebar {
+            background: rgba(20, 25, 40, 0.8);
+            border: 1px solid rgba(77, 168, 218, 0.2);
+            border-radius: 8px;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        .header h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 28px;
+            color: #4da8da;
+            margin-bottom: 5px;
+        }
+        .header p {
+            font-size: 11px;
+            color: #7dd3fc;
+            opacity: 0.8;
+        }
+        .search-box {
+            display: flex;
+            gap: 8px;
+        }
+        .search-box input {
+            flex: 1;
+            padding: 10px;
+            background: rgba(77, 168, 218, 0.1);
+            border: 1px solid #4da8da;
+            border-radius: 4px;
+            color: #e0e7ff;
+            font-family: 'Space Mono', monospace;
+            font-size: 13px;
+        }
+        .search-box button {
+            padding: 10px 15px;
+            background: #4da8da;
+            border: none;
+            border-radius: 4px;
+            color: #0F1419;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .search-box button:hover { background: #5eb8e8; }
+        .section-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 14px;
+            color: #4da8da;
+            margin-top: 10px;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .legend {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            font-size: 12px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .legend-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+        .language-old-english { background: #ff6b6b; }
+        .language-latin { background: #4ecdc4; }
+        .language-germanic { background: #45b7d1; }
+        .language-romance { background: #f9ca24; }
+        .language-greek { background: #6c5ce7; }
+        .language-arabic { background: #fd79a8; }
+        .language-proto { background: #a29bfe; }
+        .language-other { background: #74b9ff; }
+        .stats-box {
+            background: rgba(45, 157, 95, 0.15);
+            border-left: 3px solid #2d9d5f;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+        .stats-label {
+            color: #7dd3fc;
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 10px;
+            letter-spacing: 0.5px;
+        }
+        .stats-value {
+            color: #e0e7ff;
+            margin-top: 3px;
+        }
+        .canvas-container {
+            background: rgba(20, 25, 40, 0.8);
+            border: 1px solid rgba(77, 168, 218, 0.2);
+            border-radius: 8px;
+            position: relative;
+            overflow: hidden;
+        }
+        canvas { display: block; width: 100%; height: 100%; }
+        .info-panel {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(15, 20, 25, 0.95);
+            border: 1px solid #4da8da;
+            border-radius: 4px;
+            padding: 12px;
+            max-width: 280px;
+            font-size: 12px;
+            z-index: 10;
+            display: none;
+        }
+        .info-panel.active { display: block; }
+        .info-panel .word { font-family: 'Playfair Display', serif; font-size: 16px; color: #4da8da; margin-bottom: 5px; }
+        .info-panel .origin { color: #7dd3fc; margin-bottom: 3px; }
+        .info-panel .date { color: #a0aec0; font-size: 11px; }
+        @media (max-width: 1024px) {
+            .container { grid-template-columns: 1fr; height: auto; }
+            .sidebar { max-height: 300px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <div class="header">
+                <h1>Etymology</h1>
+                <p>Trace word origins & families</p>
+            </div>
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="Enter a word..." value="kitchen">
+                <button id="searchBtn">Search</button>
+            </div>
+            <div class="section-title">Language Legend</div>
+            <div class="legend">
+                <div class="legend-item"><div class="legend-dot language-old-english"></div> <span>Old English</span></div>
+                <div class="legend-item"><div class="legend-dot language-latin"></div> <span>Latin</span></div>
+                <div class="legend-item"><div class="legend-dot language-germanic"></div> <span>Germanic</span></div>
+                <div class="legend-item"><div class="legend-dot language-romance"></div> <span>Romance</span></div>
+                <div class="legend-item"><div class="legend-dot language-greek"></div> <span>Greek</span></div>
+                <div class="legend-item"><div class="legend-dot language-arabic"></div> <span>Arabic</span></div>
+                <div class="legend-item"><div class="legend-dot language-proto"></div> <span>Proto-Indo-European</span></div>
+            </div>
+            <div class="section-title">Current Word</div>
+            <div id="statsBox" class="stats-box">
+                <div class="stats-label">Word</div>
+                <div class="stats-value" id="wordName">kitchen</div>
+                <div class="stats-label" style="margin-top: 8px;">Origin</div>
+                <div class="stats-value" id="wordOrigin">Old English</div>
+                <div class="stats-label" style="margin-top: 8px;">First Attested</div>
+                <div class="stats-value" id="wordDate">~1000 AD</div>
+                <div class="stats-label" style="margin-top: 8px;">Etymology</div>
+                <div class="stats-value" id="wordEtym" style="font-size: 11px;">From Old English cycene, from Latin coquina (to cook)</div>
+            </div>
+        </div>
+        <div class="canvas-container">
+            <canvas id="treeCanvas"></canvas>
+            <div class="info-panel" id="infoPanel">
+                <div class="word" id="infoPanelWord"></div>
+                <div class="origin" id="infoPanelOrigin"></div>
+                <div class="date" id="infoPanelDate"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Real etymology database (curated historical data)
+        const etymologyDB = {
+            kitchen: {
+                word: 'kitchen',
+                origin: 'Old English',
+                date: '~1000 AD',
+                etymology: 'From Old English cycene, from Latin coquina (cooking place), from coquere (to cook)',
+                tree: [
+                    { id: 'root', word: 'kitchen', lang: 'Old English', x: 0, y: 0, date: '1000 AD', definition: 'Room where food is prepared' },
+                    { id: 'latin', word: 'coquina', lang: 'Latin', x: -200, y: 150, date: '100 AD', definition: 'Kitchen, cooking place', parent: 'root' },
+                    { id: 'latin-verb', word: 'coquere', lang: 'Latin', x: -300, y: 300, date: '200 BC', definition: 'To cook, prepare food', parent: 'latin' },
+                    { id: 'german', word: 'Küche', lang: 'Germanic', x: 150, y: 150, date: '950 AD', definition: 'Kitchen (modern German)', parent: 'root' },
+                    { id: 'dutch', word: 'keuken', lang: 'Germanic', x: 220, y: 180, date: '900 AD', definition: 'Kitchen (Dutch)', parent: 'root' },
+                    { id: 'pie', word: 'pek- (*pec-)', lang: 'Proto-Indo-European', x: -350, y: 450, date: '3000 BC', definition: 'To cook, ripen, mature', parent: 'latin-verb' },
+                    { id: 'modern', word: 'kitchenette', lang: 'Old English', x: 80, y: -150, date: '1920 AD', definition: 'Small kitchen', parent: 'root' },
+                ]
+            },
+            sentiment: {
+                word: 'sentiment',
+                origin: 'Latin',
+                date: '~1300 AD',
+                etymology: 'From Old French sentiment, from Latin sentimentum, from sentire (to feel)',
+                tree: [
+                    { id: 'root', word: 'sentiment', lang: 'Romance', x: 0, y: 0, date: '1300 AD', definition: 'Feeling or emotion' },
+                    { id: 'french', word: 'sentiment', lang: 'Romance', x: -150, y: 120, date: '1200 AD', definition: 'Feeling (Old French)', parent: 'root' },
+                    { id: 'latin', word: 'sentimentum', lang: 'Latin', x: -250, y: 240, date: '100 AD', definition: 'Perception, feeling', parent: 'french' },
+                    { id: 'sentire', word: 'sentire', lang: 'Latin', x: -350, y: 350, date: '200 BC', definition: 'To perceive, feel, think', parent: 'latin' },
+                    { id: 'sense', word: 'sense', lang: 'Old English', x: 120, y: 120, date: '1200 AD', definition: 'Faculty of perception', parent: 'root' },
+                    { id: 'spanish', word: 'sentimiento', lang: 'Romance', x: -100, y: 150, date: '1200 AD', definition: 'Feeling (Spanish)', parent: 'latin' },
+                    { id: 'pie', word: 'sent- (root)', lang: 'Proto-Indo-European', x: -350, y: 480, date: '3000 BC', definition: 'Path, way, journey (metaphor for perception)', parent: 'sentire' },
+                ]
+            },
+            algorithm: {
+                word: 'algorithm',
+                origin: 'Arabic',
+                date: '~1200 AD',
+                etymology: 'From Arabic al-Khwarizmi (name of 9th-century mathematician); see also "algorism"',
+                tree: [
+                    { id: 'root', word: 'algorithm', lang: 'Other', x: 0, y: 0, date: '1200 AD', definition: 'Step-by-step procedure for computation' },
+                    { id: 'algorism', word: 'algorism', lang: 'Other', x: -150, y: 100, date: '1100 AD', definition: 'Art of computing with Arabic numerals', parent: 'root' },
+                    { id: 'arabic', word: 'al-Khwarizmi', lang: 'Arabic', x: -280, y: 220, date: '780-850 AD', definition: 'Persian mathematician (name)', parent: 'algorism' },
+                    { id: 'khwarezm', word: 'Khwarezm', lang: 'Arabic', x: -350, y: 330, date: '500 AD', definition: 'Ancient region of Central Asia', parent: 'arabic' },
+                    { id: 'arabic-num', word: 'Arabic numerals', lang: 'Arabic', x: 100, y: 120, date: '900 AD', definition: 'Number system (0-9) from Middle East', parent: 'root' },
+                ]
+            },
+            democracy: {
+                word: 'democracy',
+                origin: 'Greek',
+                date: '~1500 AD',
+                etymology: 'From Greek demos (people) + kratos (power/rule); compound of Greek roots',
+                tree: [
+                    { id: 'root', word: 'democracy', lang: 'Greek', x: 0, y: 0, date: '1500 AD', definition: 'Government by the people' },
+                    { id: 'demos', word: 'demos', lang: 'Greek', x: -180, y: 120, date: '400 BC', definition: 'The people, common people', parent: 'root' },
+                    { id: 'kratos', word: 'kratos', lang: 'Greek', x: 180, y: 120, date: '400 BC', definition: 'Strength, power, rule', parent: 'root' },
+                    { id: 'epidemic', word: 'epidemic', lang: 'Greek', x: -280, y: 240, date: '1600 AD', definition: 'Among the people (widespread)', parent: 'demos' },
+                    { id: 'autocrat', word: 'autocrat', lang: 'Greek', x: 280, y: 240, date: '1600 AD', definition: 'Self-ruler', parent: 'kratos' },
+                ]
+            }
+        };
+
+        const languageColors = {
+            'Old English': '#ff6b6b',
+            'Latin': '#4ecdc4',
+            'Germanic': '#45b7d1',
+            'Romance': '#f9ca24',
+            'Greek': '#6c5ce7',
+            'Arabic': '#fd79a8',
+            'Proto-Indo-European': '#a29bfe',
+            'Other': '#74b9ff'
+        };
+
+        let currentWord = 'kitchen';
+        let nodes = [];
+        let selectedNode = null;
+
+        const canvas = document.getElementById('treeCanvas');
+        const ctx = canvas.getContext('2d');
+        const infoPanel = document.getElementById('infoPanel');
+
+        function resizeCanvas() {
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+            draw();
+        }
+
+        function loadWord(word) {
+            const data = etymologyDB[word.toLowerCase()];
+            if (!data) return alert('Word not found. Try: kitchen, sentiment, algorithm, democracy');
+            
+            currentWord = word.toLowerCase();
+            nodes = JSON.parse(JSON.stringify(data.tree));
+            selectedNode = null;
+            infoPanel.classList.remove('active');
+
+            // Center nodes
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            nodes.forEach(n => {
+                n.x += centerX;
+                n.y += centerY;
+                n.vx = 0;
+                n.vy = 0;
+            });
+
+            // Update sidebar
+            document.getElementById('wordName').textContent = data.word;
+            document.getElementById('wordOrigin').textContent = data.origin;
+            document.getElementById('wordDate').textContent = data.date;
+            document.getElementById('wordEtym').textContent = data.etymology;
+
+            draw();
+        }
+
+        function drawLine(x1, y1, x2, y2, opacity = 0.3) {
+            ctx.strokeStyle = `rgba(125, 211, 252, ${opacity})`;
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.stroke();
+        }
+
+        function drawNode(node) {
+            const color = languageColors[node.lang] || '#74b9ff';
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.arc(node.x, node.y, 15, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Highlight selected
+            if (node.id === (selectedNode ? selectedNode.id : null)) {
+                ctx.strokeStyle = '#4da8da';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.arc(node.x, node.y, 18, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+
+            // Label
+            ctx.fillStyle = '#0F1419';
+            ctx.font = '11px "Space Mono"';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(node.word.substring(0, 8), node.x, node.y);
+        }
+
+        function draw() {
+            ctx.fillStyle = '#0F1419';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw parent-child lines
+            nodes.forEach(node => {
+                if (node.parent) {
+                    const parent = nodes.find(n => n.id === node.parent);
+                    if (parent) {
+                        const opacity = selectedNode && (selectedNode.id === node.id || selectedNode.id === parent.id) ? 0.8 : 0.3;
+                        drawLine(parent.x, parent.y, node.x, node.y, opacity);
+                    }
+                }
+            });
+
+            // Draw nodes
+            nodes.forEach(drawNode);
+
+            // Draw grid
+            ctx.strokeStyle = 'rgba(125, 211, 252, 0.05)';
+            ctx.lineWidth = 0.5;
+            for (let i = 0; i < canvas.width; i += 50) {
+                ctx.beginPath();
+                ctx.moveTo(i, 0);
+                ctx.lineTo(i, canvas.height);
+                ctx.stroke();
+            }
+            for (let i = 0; i < canvas.height; i += 50) {
+                ctx.beginPath();
+                ctx.moveTo(0, i);
+                ctx.lineTo(canvas.width, i);
+                ctx.stroke();
+            }
+        }
+
+        canvas.addEventListener('click', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            for (let node of nodes) {
+                if (Math.sqrt((node.x - x) ** 2 + (node.y - y) ** 2) < 20) {
+                    selectedNode = node;
+                    document.getElementById('infoPanelWord').textContent = node.word;
+                    document.getElementById('infoPanelOrigin').textContent = `${node.lang} • ${node.date}`;
+                    document.getElementById('infoPanelDate').textContent = node.definition;
+                    infoPanel.classList.add('active');
+                    draw();
+                    return;
+                }
+            }
+            selectedNode = null;
+            infoPanel.classList.remove('active');
+            draw();
+        });
+
+        document.getElementById('searchBtn').addEventListener('click', () => {
+            const word = document.getElementById('searchInput').value.trim();
+            if (word) loadWord(word);
+        });
+
+        document.getElementById('searchInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                const word = document.getElementById('searchInput').value.trim();
+                if (word) loadWord(word);
+            }
+        });
+
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+        loadWord('kitchen');
+    </script>
+</body>
+</html>
