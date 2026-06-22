@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tidal Force Dynamics</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Space+Mono:wght@400&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #0a0e27;
+            color: #e0e0e0;
+            font-family: 'Space Mono', monospace;
+            display: flex;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+        .container {
+            display: flex;
+            width: 100%;
+            height: 100vh;
+        }
+        .sidebar {
+            width: 280px;
+            background: #0f1535;
+            padding: 20px;
+            overflow-y: auto;
+            border-right: 1px solid #2d9d5f;
+        }
+        .main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 28px;
+            margin-bottom: 20px;
+            text-align: center;
+            color: #00d9ff;
+        }
+        canvas {
+            border: 2px solid #2d9d5f;
+            background: #000;
+            cursor: crosshair;
+            max-width: 100%;
+            height: auto;
+        }
+        .control-group {
+            margin-bottom: 24px;
+        }
+        .control-group label {
+            display: block;
+            font-size: 12px;
+            color: #4da8da;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+        .phase-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        .phase-btn {
+            padding: 10px;
+            background: #1a3a5a;
+            border: 2px solid #2d9d5f;
+            color: #e0e0e0;
+            font-family: 'Space Mono', monospace;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .phase-btn:hover {
+            background: #2d5a7a;
+        }
+        .phase-btn.active {
+            background: #00d9ff;
+            color: #000;
+            border-color: #00d9ff;
+        }
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            background: #2d5a7a;
+            border-radius: 3px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #00d9ff;
+            cursor: pointer;
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #00d9ff;
+            cursor: pointer;
+            border: none;
+        }
+        .value-display {
+            font-size: 11px;
+            color: #4fd46e;
+            margin-top: 4px;
+            text-align: center;
+        }
+        .stats-box {
+            background: #1a3a5a;
+            border-left: 4px solid #2d9d5f;
+            padding: 12px;
+            margin: 12px 0;
+            border-radius: 4px;
+            font-size: 11px;
+        }
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 4px 0;
+        }
+        .stat-label {
+            color: #4da8da;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .stat-value {
+            color: #00d9ff;
+            font-weight: bold;
+        }
+        .toggle-group {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+        }
+        .toggle-btn {
+            flex: 1;
+            padding: 8px;
+            background: #1a3a5a;
+            border: 1px solid #2d9d5f;
+            color: #e0e0e0;
+            font-family: 'Space Mono', monospace;
+            font-size: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .toggle-btn.active {
+            background: #4fd46e;
+            color: #000;
+            border-color: #4fd46e;
+        }
+        .legend {
+            margin-top: 16px;
+            padding: 12px;
+            background: #1a3a5a;
+            border-radius: 4px;
+            font-size: 10px;
+            border-left: 4px solid #ffd700;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 4px 0;
+        }
+        .legend-color {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            margin-right: 8px;
+            border-radius: 2px;
+        }
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+            }
+            .sidebar {
+                width: 100%;
+                border-right: none;
+                border-bottom: 1px solid #2d9d5f;
+                max-height: 200px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <h3 style="font-family: 'Playfair Display', serif; margin-bottom: 16px; color: #00d9ff;">Controls</h3>
+            
+            <div class="control-group">
+                <label>Moon Phase</label>
+                <div class="phase-buttons">
+                    <button class="phase-btn active" data-phase="0" title="New Moon">🌑 New</button>
+                    <button class="phase-btn" data-phase="1" title="First Quarter">🌓 Waxing</button>
+                    <button class="phase-btn" data-phase="2" title="Full Moon">🌕 Full</button>
+                    <button class="phase-btn" data-phase="3" title="Last Quarter">🌗 Waning</button>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label>Latitude (°)</label>
+                <input type="range" id="latitudeSlider" min="0" max="90" value="45" step="1">
+                <div class="value-display" id="latitudeDisplay">45°</div>
+            </div>
+
+            <div class="control-group">
+                <label>Time of Day (hours)</label>
+                <input type="range" id="timeSlider" min="0" max="24" value="12" step="0.5">
+                <div class="value-display" id="timeDisplay">12:00</div>
+            </div>
+
+            <div class="control-group">
+                <label>Sun-Moon Angle (°)</label>
+                <input type="range" id="angleSlider" min="0" max="360" value="0" step="1">
+                <div class="value-display" id="angleDisplay">0° (Spring)</div>
+            </div>
+
+            <div class="stats-box">
+                <div class="stat-row">
+                    <span class="stat-label">Tidal Type</span>
+                    <span class="stat-value" id="tidalType">Spring</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Range (m)</span>
+                    <span class="stat-value" id="tidalRange">2.2</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Height (m)</span>
+                    <span class="stat-value" id="tidalHeight">0.0</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Force (N/kg)</span>
+                    <span class="stat-value" id="tidalForce">0.0</span>
+                </div>
+            </div>
+
+            <div class="legend">
+                <div style="color: #ffd700; margin-bottom: 8px; font-weight: bold;">Legend</div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #ffd700;"></div>
+                    <span>Sun</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #f4f1de;"></div>
+                    <span>Moon</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #00d9ff;"></div>
+                    <span>Tidal Bulge</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #4fd46e;"></div>
+                    <span>Measurement</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="main">
+            <h1>🌊 Tidal Force Dynamics</h1>
+            <canvas id="tidalCanvas" width="800" height="800"></canvas>
+        </div>
+    </div>
+
+    <script>
+        // Constants
+        const G = 6.674e-11; // gravitational constant
+        const EARTH_RADIUS = 6.371e6; // meters
+        const MOON_MASS = 7.34e22; // kg
+        const SUN_MASS = 1.989e30; // kg
+        const MOON_DISTANCE = 3.844e8; // meters
+        const SUN_DISTANCE = 1.496e11; // meters
+
+        // Canvas and context
+        const canvas = document.getElementById('tidalCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // State
+        let state = {
+            phase: 0,
+            latitude: 45,
+            time: 12,
+            sunMoonAngle: 0
+        };
+
+        // Calculate tidal force
+        function calculateTidalForce(latitude, sunMoonAngle) {
+            // Moon's tidal force (gradient at Earth's surface)
+            const moonForce = (2 * G * MOON_MASS * EARTH_RADIUS) / Math.pow(MOON_DISTANCE, 3);
+            
+            // Sun's tidal force
+            const sunForce = (2 * G * SUN_MASS * EARTH_RADIUS) / Math.pow(SUN_DISTANCE, 3);
+            
+            // Combine based on sun-moon angle
+            const angle = (sunMoonAngle * Math.PI) / 180;
+            const combined = moonForce + sunForce * Math.cos(angle);
+            
+            // Latitude effect (tidal range is max at poles, min at equator)
+            const latRad = (latitude * Math.PI) / 180;
+            const latitudeEffect = Math.sin(2 * latRad);
+            
+            return { moonForce, sunForce, combined, latitudeEffect };
+        }
+
+        // Tidal range based on phase and latitude
+        function getTidalRange(sunMoonAngle, latitude) {
+            const angle = (sunMoonAngle * Math.PI) / 180;
+            const latRad = (latitude * Math.PI) / 180;
+            
+            // Spring tide: angle ~0° or 180° → range ~2.2m
+            // Neap tide: angle ~90° or 270° → range ~0.6m
+            const springNeap = 0.8 + 0.7 * Math.cos(2 * angle);
+            
+            // Latitude modulation (max at poles ~60°, min at equator)
+            const latEffect = Math.abs(Math.sin(2 * latRad));
+            
+            return springNeap * (0.4 + 0.6 * latEffect);
+        }
+
+        // Get tidal height at given time
+        function getTidalHeight(time, range) {
+            // Semidiurnal (2 highs per day) + diurnal (1 high per day)
+            const diurnal = 0.5 * range * Math.sin((time * Math.PI) / 12);
+            const semidiurnal = 0.8 * range * Math.cos((time * Math.PI) / 6);
+            return diurnal + semidiurnal;
+        }
+
+        // Draw visualization
+        function draw() {
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const earthRadius = 80;
+
+            // Draw Earth
+            ctx.fillStyle = '#4da8da';
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, earthRadius, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Draw continents (simple pattern)
+            ctx.fillStyle = '#2d7a4a';
+            ctx.fillRect(centerX - 50, centerY - 60, 40, 30);
+            ctx.fillRect(centerX + 20, centerY - 40, 35, 45);
+
+            // Calculate forces
+            const forces = calculateTidalForce(state.latitude, state.sunMoonAngle);
+            const range = getTidalRange(state.sunMoonAngle, state.latitude);
+
+            // Draw tidal bulges (exaggerated by 5x)
+            const bulgeHeight = 30 * (range / 2.2);
+            const bulgeWidth = 40;
+
+            // Near-side bulge (moon side)
+            ctx.fillStyle = '#00d9ff';
+            ctx.globalAlpha = 0.7;
+            ctx.beginPath();
+            ctx.ellipse(centerX + earthRadius + bulgeWidth / 2, centerY, bulgeWidth, bulgeHeight, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Far-side bulge (opposite)
+            ctx.beginPath();
+            ctx.ellipse(centerX - earthRadius - bulgeWidth / 2, centerY, bulgeWidth, bulgeHeight, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.globalAlpha = 1.0;
+
+            // Draw latitude band
+            ctx.strokeStyle = '#4fd46e';
+            ctx.globalAlpha = 0.3;
+            ctx.lineWidth = 2;
+            const latRad = (state.latitude * Math.PI) / 180;
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, earthRadius * Math.cos(latRad), 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.globalAlpha = 1.0;
+
+            // Draw moon position
+            const moonAngle = ((state.time * 360) / 24 + state.sunMoonAngle) * (Math.PI / 180);
+            const moonDistance = 200;
+            const moonX = centerX + Math.cos(moonAngle) * moonDistance;
+            const moonY = centerY + Math.sin(moonAngle) * moonDistance;
+
+            ctx.fillStyle = '#f4f1de';
+            ctx.beginPath();
+            ctx.arc(moonX, moonY, 12, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Draw moon phase
+            ctx.fillStyle = '#0a0e27';
+            ctx.globalAlpha = 0.8;
+            const phaseShade = state.phase * 0.5;
+            ctx.beginPath();
+            ctx.arc(moonX + 6 - phaseShade * 12, moonY, 12, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.globalAlpha = 1.0;
+
+            // Draw sun position
+            const sunAngle = (state.sunMoonAngle * Math.PI) / 180;
+            const sunDistance = 250;
+            const sunX = centerX + Math.cos(sunAngle) * sunDistance;
+            const sunY = centerY + Math.sin(sunAngle) * sunDistance;
+
+            ctx.fillStyle = '#ffd700';
+            ctx.beginPath();
+            ctx.arc(sunX, sunY, 10, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Draw connecting line
+            ctx.strokeStyle = '#666';
+            ctx.globalAlpha = 0.3;
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(sunX, sunY);
+            ctx.lineTo(moonX, moonY);
+            ctx.stroke();
+            ctx.globalAlpha = 1.0;
+
+            // Draw tidal height graph at bottom
+            const graphX = 50;
+            const graphY = canvas.height - 100;
+            const graphWidth = canvas.width - 100;
+            const graphHeight = 80;
+
+            // Graph background
+            ctx.fillStyle = '#1a3a5a';
+            ctx.fillRect(graphX, graphY, graphWidth, graphHeight);
+            ctx.strokeStyle = '#2d9d5f';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(graphX, graphY, graphWidth, graphHeight);
+
+            // Draw 24h tidal curve
+            ctx.strokeStyle = '#4fd46e';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            for (let h = 0; h <= 24; h += 0.5) {
+                const height = getTidalHeight(h, range);
+                const x = graphX + (h / 24) * graphWidth;
+                const y = graphY + graphHeight / 2 - (height / range) * (graphHeight * 0.4);
+                if (h === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+
+            // Mark current time
+            const currentX = graphX + (state.time / 24) * graphWidth;
+            const currentHeight = getTidalHeight(state.time, range);
+            const currentY = graphY + graphHeight / 2 - (currentHeight / range) * (graphHeight * 0.4);
+
+            ctx.fillStyle = '#00d9ff';
+            ctx.beginPath();
+            ctx.arc(currentX, currentY, 5, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Labels
+            ctx.fillStyle = '#4da8da';
+            ctx.font = '10px "Space Mono"';
+            ctx.textAlign = 'center';
+            ctx.fillText('0h', graphX, graphY + graphHeight + 15);
+            ctx.fillText('12h', graphX + graphWidth / 2, graphY + graphHeight + 15);
+            ctx.fillText('24h', graphX + graphWidth, graphY + graphHeight + 15);
+        }
+
+        function updateStats() {
+            const range = getTidalRange(state.sunMoonAngle, state.latitude);
+            const height = getTidalHeight(state.time, range);
+            const forces = calculateTidalForce(state.latitude, state.sunMoonAngle);
+
+            // Tidal type
+            const angle = state.sunMoonAngle % 180;
+            const tidalType = (angle < 45 || angle > 135) ? 'Spring' : 'Neap';
+            document.getElementById('tidalType').textContent = tidalType;
+
+            // Range
+            document.getElementById('tidalRange').textContent = range.toFixed(2);
+
+            // Height
+            document.getElementById('tidalHeight').textContent = height.toFixed(2);
+
+            // Force
+            const tidalForce = Math.abs(forces.combined) * 1e6; // scale for visibility
+            document.getElementById('tidalForce').textContent = tidalForce.toFixed(3);
+
+            draw();
+        }
+
+        // Event listeners
+        document.querySelectorAll('.phase-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                document.querySelectorAll('.phase-btn').forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
+                state.phase = parseInt(e.target.dataset.phase);
+                updateStats();
+            });
+        });
+
+        document.getElementById('latitudeSlider').addEventListener('input', (e) => {
+            state.latitude = parseFloat(e.target.value);
+            document.getElementById('latitudeDisplay').textContent = state.latitude.toFixed(0) + '°';
+            updateStats();
+        });
+
+        document.getElementById('timeSlider').addEventListener('input', (e) => {
+            state.time = parseFloat(e.target.value);
+            const hours = Math.floor(state.time);
+            const minutes = Math.round((state.time - hours) * 60);
+            document.getElementById('timeDisplay').textContent = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+            updateStats();
+        });
+
+        document.getElementById('angleSlider').addEventListener('input', (e) => {
+            state.sunMoonAngle = parseFloat(e.target.value);
+            const angle = state.sunMoonAngle % 180;
+            const tidalType = (angle < 45 || angle > 135) ? 'Spring' : 'Neap';
+            document.getElementById('angleDisplay').textContent = state.sunMoonAngle.toFixed(0) + '° (' + tidalType + ')';
+            updateStats();
+        });
+
+        // Initial draw
+        updateStats();
+    </script>
+</body>
+</html>
