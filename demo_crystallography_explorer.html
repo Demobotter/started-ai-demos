@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Crystallography Explorer — Crystal Structures & Mineral Properties</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Space Mono', monospace;
+      background: linear-gradient(135deg, #1a1a3e 0%, #2d1b4e 100%);
+      color: #e0e0e0;
+      height: 100vh;
+      display: flex;
+      overflow: hidden;
+    }
+    .container { display: flex; width: 100%; height: 100%; }
+    .sidebar {
+      width: 320px;
+      background: rgba(20, 15, 40, 0.95);
+      border-right: 2px solid #4da8da;
+      padding: 24px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .sidebar h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: 26px;
+      color: #4da8da;
+      margin-bottom: 12px;
+    }
+    .sidebar h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: 16px;
+      color: #7dd3fc;
+      margin-top: 16px;
+      margin-bottom: 8px;
+    }
+    .mineral-selector {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .mineral-btn {
+      padding: 10px 8px;
+      background: #16213e;
+      border: 2px solid #4da8da;
+      color: #4da8da;
+      font-family: 'Space Mono', monospace;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      border-radius: 6px;
+      transition: all 0.2s;
+      text-align: center;
+    }
+    .mineral-btn:hover {
+      background: #1d3a5a;
+      color: #7dd3fc;
+    }
+    .mineral-btn.active {
+      background: #4da8da;
+      color: #16213e;
+      border-color: #4da8da;
+    }
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .control-label {
+      font-size: 12px;
+      color: #7dd3fc;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .slider-container {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .slider-value {
+      min-width: 40px;
+      text-align: right;
+      font-size: 11px;
+      color: #4da8da;
+      font-weight: 700;
+    }
+    input[type="range"] {
+      flex: 1;
+      height: 4px;
+      border-radius: 2px;
+      background: #16213e;
+      outline: none;
+      -webkit-appearance: none;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #4da8da;
+      cursor: pointer;
+    }
+    input[type="range"]::-moz-range-thumb {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #4da8da;
+      cursor: pointer;
+      border: none;
+    }
+    .mode-buttons {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 6px;
+    }
+    .mode-btn {
+      padding: 8px;
+      background: #16213e;
+      border: 2px solid #4da8da;
+      color: #4da8da;
+      font-family: 'Space Mono', monospace;
+      font-size: 10px;
+      font-weight: 600;
+      cursor: pointer;
+      border-radius: 4px;
+      transition: all 0.2s;
+      text-align: center;
+    }
+    .mode-btn:hover {
+      background: #1d3a5a;
+    }
+    .mode-btn.active {
+      background: #4da8da;
+      color: #16213e;
+    }
+    .toggle-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .toggle-btn {
+      padding: 8px 12px;
+      background: #16213e;
+      border: 2px solid #4da8da;
+      color: #4da8da;
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      border-radius: 4px;
+      transition: all 0.2s;
+      text-align: center;
+    }
+    .toggle-btn:hover {
+      background: #1d3a5a;
+    }
+    .toggle-btn.active {
+      background: #4da8da;
+      color: #16213e;
+    }
+    .stats-box {
+      background: #16213e;
+      border-left: 3px solid #2d9d5f;
+      padding: 12px;
+      border-radius: 4px;
+      font-size: 11px;
+      line-height: 1.6;
+    }
+    .stats-box-title {
+      color: #7dd3fc;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+    .stats-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 4px;
+    }
+    .stats-label {
+      color: #b0bec5;
+    }
+    .stats-value {
+      color: #4da8da;
+      font-family: 'Space Mono', monospace;
+      font-weight: 700;
+    }
+    .canvas-container {
+      flex: 1;
+      background: linear-gradient(135deg, #1a1a3e 0%, #0f0f2e 100%);
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    canvas {
+      max-width: 100%;
+      max-height: 100%;
+      display: block;
+    }
+    @media (max-width: 768px) {
+      .container { flex-direction: column; }
+      .sidebar { width: 100%; max-height: 200px; padding: 16px; }
+      .canvas-container { flex: 1; }
+      .mineral-selector { grid-template-columns: 1fr 1fr 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="sidebar">
+      <h1>💎 Crystallography</h1>
+
+      <div>
+        <h2>Mineral</h2>
+        <div class="mineral-selector">
+          <button class="mineral-btn active" data-mineral="halite">Halite (NaCl)</button>
+          <button class="mineral-btn" data-mineral="diamond">Diamond (C)</button>
+          <button class="mineral-btn" data-mineral="quartz">Quartz (SiO₂)</button>
+          <button class="mineral-btn" data-mineral="graphite">Graphite (C)</button>
+          <button class="mineral-btn" data-mineral="mica">Mica (KAl₂...)</button>
+          <button class="mineral-btn" data-mineral="calcite">Calcite (CaCO₃)</button>
+          <button class="mineral-btn" data-mineral="magnetite">Magnetite (Fe₃O₄)</button>
+          <button class="mineral-btn" data-mineral="fluorite">Fluorite (CaF₂)</button>
+        </div>
+      </div>
+
+      <div>
+        <h2>Rotation</h2>
+        <div class="control-group">
+          <label class="control-label">X-Axis</label>
+          <div class="slider-container">
+            <input type="range" id="rotX" min="-180" max="180" value="0">
+            <span class="slider-value" id="rotXVal">0°</span>
+          </div>
+        </div>
+        <div class="control-group">
+          <label class="control-label">Y-Axis</label>
+          <div class="slider-container">
+            <input type="range" id="rotY" min="-180" max="180" value="20">
+            <span class="slider-value" id="rotYVal">20°</span>
+          </div>
+        </div>
+        <div class="control-group">
+          <label class="control-label">Z-Axis</label>
+          <div class="slider-container">
+            <input type="range" id="rotZ" min="-180" max="180" value="0">
+            <span class="slider-value" id="rotZVal">0°</span>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <h2>Zoom</h2>
+        <div class="control-group">
+          <div class="slider-container">
+            <input type="range" id="zoom" min="0.5" max="3" step="0.1" value="1">
+            <span class="slider-value" id="zoomVal">1.0x</span>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <h2>Structure</h2>
+        <div class="mode-buttons">
+          <button class="mode-btn active" data-mode="ballstick">Ball &amp; Stick</button>
+          <button class="mode-btn" data-mode="spacefill">Space Fill</button>
+          <button class="mode-btn" data-mode="wireframe">Wireframe</button>
+        </div>
+      </div>
+
+      <div class="toggle-group">
+        <button class="toggle-btn active" id="toggleUnitCell">Show Unit Cell</button>
+        <button class="toggle-btn active" id="toggleBonds">Show Bonds</button>
+      </div>
+
+      <div class="stats-box">
+        <div class="stats-box-title" id="mineralName">Halite</div>
+        <div class="stats-row">
+          <span class="stats-label">Crystal System</span>
+          <span class="stats-value" id="statSystem">Cubic</span>
+        </div>
+        <div class="stats-row">
+          <span class="stats-label">Hardness</span>
+          <span class="stats-value" id="statHardness">2.5</span>
+        </div>
+        <div class="stats-row">
+          <span class="stats-label">Density</span>
+          <span class="stats-value" id="statDensity">2.16 g/cm³</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="canvas-container">
+      <canvas id="canvas"></canvas>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    let resizeTimeout;
+
+    function resizeCanvas() {
+      const container = canvas.parentElement;
+      canvas.width = container.clientWidth;
+      canvas.height = container.clientHeight;
+    }
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimeout);
+      resizeTimeout = setTimeout(resizeCanvas, 100);
+    });
+    resizeCanvas();
+
+    const minerals = {
+      halite: {
+        name: 'Halite (NaCl)',
+        system: 'Cubic',
+        hardness: 2.5,
+        density: 2.16,
+        atoms: [
+          { x: 0, y: 0, z: 0, color: '#0077be', r: 8 },
+          { x: 0.5, y: 0.5, z: 0, color: '#0077be', r: 8 },
+          { x: 0.5, y: 0, z: 0.5, color: '#0077be', r: 8 },
+          { x: 0, y: 0.5, z: 0.5, color: '#0077be', r: 8 },
+          { x: 0.5, y: 0, z: 0, color: '#31a24c', r: 10 },
+          { x: 0, y: 0.5, z: 0, color: '#31a24c', r: 10 },
+          { x: 0, y: 0, z: 0.5, color: '#31a24c', r: 10 },
+          { x: 0.5, y: 0.5, z: 0.5, color: '#31a24c', r: 10 },
+        ]
+      },
+      diamond: {
+        name: 'Diamond (C)',
+        system: 'Cubic',
+        hardness: 10,
+        density: 3.52,
+        atoms: [
+          { x: 0, y: 0, z: 0, color: '#757575', r: 7 },
+          { x: 0.25, y: 0.25, z: 0.25, color: '#757575', r: 7 },
+          { x: 0.5, y: 0.5, z: 0, color: '#757575', r: 7 },
+          { x: 0.75, y: 0.75, z: 0.25, color: '#757575', r: 7 },
+          { x: 0.5, y: 0, z: 0.5, color: '#757575', r: 7 },
+          { x: 0.75, y: 0.25, z: 0.75, color: '#757575', r: 7 },
+          { x: 0, y: 0.5, z: 0.5, color: '#757575', r: 7 },
+          { x: 0.25, y: 0.75, z: 0.75, color: '#757575', r: 7 },
+        ]
+      },
+      quartz: {
+        name: 'Quartz (SiO₂)',
+        system: 'Hexagonal',
+        hardness: 7,
+        density: 2.65,
+        atoms: [
+          { x: 0.47, y: 0, z: 0.12, color: '#fbc02d', r: 7 },
+          { x: 0.47, y: 0.47, z: 0.45, color: '#fbc02d', r: 7 },
+          { x: 0, y: 0.47, z: 0.78, color: '#fbc02d', r: 7 },
+          { x: 0.41, y: 0.27, z: 0.12, color: '#d32f2f', r: 6 },
+          { x: 0.27, y: 0.41, z: 0.21, color: '#d32f2f', r: 6 },
+          { x: 0.67, y: 0.07, z: 0.19, color: '#d32f2f', r: 6 },
+          { x: 0.41, y: 0.68, z: 0.45, color: '#d32f2f', r: 6 },
+          { x: 0.27, y: 0.74, z: 0.54, color: '#d32f2f', r: 6 },
+        ]
+      },
+      graphite: {
+        name: 'Graphite (C)',
+        system: 'Hexagonal',
+        hardness: 1,
+        density: 2.22,
+        atoms: [
+          { x: 0, y: 0, z: 0, color: '#757575', r: 7 },
+          { x: 0.667, y: 0.333, z: 0, color: '#757575', r: 7 },
+          { x: 0.333, y: 0.667, z: 0, color: '#757575', r: 7 },
+          { x: 0.333, y: 0.667, z: 0.5, color: '#646464', r: 7 },
+          { x: 0, y: 0, z: 0.5, color: '#646464', r: 7 },
+          { x: 0.667, y: 0.333, z: 0.5, color: '#646464', r: 7 },
+        ]
+      },
+      mica: {
+        name: 'Mica',
+        system: 'Monoclinic',
+        hardness: 2.5,
+        density: 2.76,
+        atoms: [
+          { x: 0, y: 0, z: 0.5, color: '#e91e63', r: 11 },
+          { x: 0.33, y: 0.25, z: 0.2, color: '#9575cd', r: 7 },
+          { x: 0.67, y: 0.75, z: 0.3, color: '#fbc02d', r: 7 },
+          { x: 0, y: 0.5, z: 0.15, color: '#9575cd', r: 7 },
+          { x: 0.2, y: 0.15, z: 0.25, color: '#d32f2f', r: 6 },
+          { x: 0.5, y: 0.6, z: 0.35, color: '#d32f2f', r: 6 },
+        ]
+      },
+      calcite: {
+        name: 'Calcite (CaCO₃)',
+        system: 'Rhombohedral',
+        hardness: 3,
+        density: 2.71,
+        atoms: [
+          { x: 0, y: 0, z: 0, color: '#f5f5f5', r: 9 },
+          { x: 0.333, y: 0.667, z: 0.333, color: '#f5f5f5', r: 9 },
+          { x: 0.667, y: 0.333, z: 0.667, color: '#f5f5f5', r: 9 },
+          { x: 0, y: 0, z: 0.25, color: '#b71c1c', r: 6 },
+          { x: 0.2, y: 0.1, z: 0.27, color: '#d32f2f', r: 6 },
+          { x: -0.2, y: 0.1, z: 0.27, color: '#d32f2f', r: 6 },
+        ]
+      },
+      magnetite: {
+        name: 'Magnetite (Fe₃O₄)',
+        system: 'Cubic',
+        hardness: 6,
+        density: 5.18,
+        atoms: [
+          { x: 0.125, y: 0.125, z: 0.125, color: '#0d47a1', r: 8 },
+          { x: 0.875, y: 0.875, z: 0.875, color: '#0d47a1', r: 8 },
+          { x: 0.5, y: 0.5, z: 0.5, color: '#9e9e9e', r: 8 },
+          { x: 0.25, y: 0.25, z: 0.25, color: '#d32f2f', r: 6 },
+          { x: 0.75, y: 0.75, z: 0.25, color: '#d32f2f', r: 6 },
+          { x: 0.75, y: 0.25, z: 0.75, color: '#d32f2f', r: 6 },
+          { x: 0.25, y: 0.75, z: 0.75, color: '#d32f2f', r: 6 },
+        ]
+      },
+      fluorite: {
+        name: 'Fluorite (CaF₂)',
+        system: 'Cubic',
+        hardness: 4,
+        density: 3.18,
+        atoms: [
+          { x: 0, y: 0, z: 0, color: '#f5f5f5', r: 8 },
+          { x: 0.5, y: 0.5, z: 0.5, color: '#f5f5f5', r: 8 },
+          { x: 0.25, y: 0.25, z: 0.25, color: '#4dd0e1', r: 6 },
+          { x: 0.75, y: 0.75, z: 0.25, color: '#4dd0e1', r: 6 },
+          { x: 0.75, y: 0.25, z: 0.75, color: '#4dd0e1', r: 6 },
+          { x: 0.25, y: 0.75, z: 0.75, color: '#4dd0e1', r: 6 },
+          { x: 0.25, y: 0.25, z: 0.75, color: '#4dd0e1', r: 6 },
+          { x: 0.25, y: 0.75, z: 0.25, color: '#4dd0e1', r: 6 },
+        ]
+      }
+    };
+
+    let current = 'halite';
+    let rx = 0, ry = 20, rz = 0, zoom = 1;
+
+    function rotX(a) {
+      const c = Math.cos(a), s = Math.sin(a);
+      return [1,0,0, 0,c,-s, 0,s,c];
+    }
+    function rotY(a) {
+      const c = Math.cos(a), s = Math.sin(a);
+      return [c,0,s, 0,1,0, -s,0,c];
+    }
+    function rotZ(a) {
+      const c = Math.cos(a), s = Math.sin(a);
+      return [c,-s,0, s,c,0, 0,0,1];
+    }
+    function mul(a, b) {
+      const r = Array(9).fill(0);
+      for(let i=0;i<3;i++) for(let j=0;j<3;j++) for(let k=0;k<3;k++) r[i*3+j] += a[i*3+k]*b[k*3+j];
+      return r;
+    }
+    function transform(p, m) {
+      return [p[0]*m[0]+p[1]*m[1]+p[2]*m[2], p[0]*m[3]+p[1]*m[4]+p[2]*m[5], p[0]*m[6]+p[1]*m[7]+p[2]*m[8]];
+    }
+
+    function draw() {
+      ctx.fillStyle = 'rgba(26, 26, 62, 0.8)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      let m = rotX(rx*Math.PI/180);
+      m = mul(rotY(ry*Math.PI/180), m);
+      m = mul(rotZ(rz*Math.PI/180), m);
+
+      const mineral = minerals[current];
+      const cx = canvas.width/2, cy = canvas.height/2;
+
+      // Draw unit cell
+      ctx.strokeStyle = 'rgba(176, 190, 197, 0.2)';
+      ctx.lineWidth = 1;
+      const corners = [[0,0,0],[1,0,0],[1,1,0],[0,1,0],[0,0,1],[1,0,1],[1,1,1],[0,1,1]];
+      const proj = corners.map(c => {
+        const t = transform([(c[0]-0.5)*100, (c[1]-0.5)*100, (c[2]-0.5)*100], m);
+        return [cx+t[0]*zoom, cy+t[1]*zoom, t[2]];
+      });
+      [[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]].forEach(e => {
+        ctx.beginPath();
+        ctx.moveTo(proj[e[0]][0], proj[e[0]][1]);
+        ctx.lineTo(proj[e[1]][0], proj[e[1]][1]);
+        ctx.stroke();
+      });
+
+      // Transform and draw atoms
+      const atoms = mineral.atoms.map((a, i) => {
+        const t = transform([(a.x-0.5)*100, (a.y-0.5)*100, (a.z-0.5)*100], m);
+        return { ...a, x: cx+t[0]*zoom, y: cy+t[1]*zoom, z: t[2], i };
+      }).sort((a,b) => a.z-b.z);
+
+      atoms.forEach(a => {
+        ctx.fillStyle = a.color;
+        ctx.beginPath();
+        ctx.arc(a.x, a.y, a.r*zoom, 0, Math.PI*2);
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      });
+    }
+
+    document.querySelectorAll('.mineral-btn').forEach(b => {
+      b.addEventListener('click', e => {
+        document.querySelectorAll('.mineral-btn').forEach(x => x.classList.remove('active'));
+        e.target.classList.add('active');
+        current = e.target.dataset.mineral;
+        const m = minerals[current];
+        document.getElementById('mineralName').textContent = m.name;
+        document.getElementById('statSystem').textContent = m.system;
+        document.getElementById('statHardness').textContent = m.hardness;
+        document.getElementById('statDensity').textContent = m.density + ' g/cm³';
+        draw();
+      });
+    });
+
+    ['rotX', 'rotY', 'rotZ'].forEach(id => {
+      document.getElementById(id).addEventListener('input', e => {
+        const v = parseFloat(e.target.value);
+        if(id==='rotX') { rx=v; document.getElementById('rotXVal').textContent=v+'°'; }
+        if(id==='rotY') { ry=v; document.getElementById('rotYVal').textContent=v+'°'; }
+        if(id==='rotZ') { rz=v; document.getElementById('rotZVal').textContent=v+'°'; }
+        draw();
+      });
+    });
+
+    document.getElementById('zoom').addEventListener('input', e => {
+      zoom = parseFloat(e.target.value);
+      document.getElementById('zoomVal').textContent = zoom.toFixed(1)+'x';
+      draw();
+    });
+
+    document.querySelectorAll('.mode-btn').forEach(b => {
+      b.addEventListener('click', e => {
+        document.querySelectorAll('.mode-btn').forEach(x => x.classList.remove('active'));
+        e.target.classList.add('active');
+      });
+    });
+
+    setInterval(draw, 16);
+    draw();
+  </script>
+</body>
+</html>
