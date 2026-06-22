@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Molecular Docking Lab</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Space Mono', monospace;
+            background: #1a1a2e;
+            color: #e0e0e0;
+            overflow: hidden;
+        }
+        .container {
+            display: flex;
+            height: 100vh;
+        }
+        .sidebar {
+            width: 300px;
+            background: #16213e;
+            padding: 20px;
+            overflow-y: auto;
+            border-right: 1px solid #0f3460;
+        }
+        .canvas-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 28px;
+            margin-bottom: 20px;
+            color: #00bfff;
+        }
+        .section {
+            margin-bottom: 24px;
+        }
+        .section-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 14px;
+            text-transform: uppercase;
+            color: #00bfff;
+            margin-bottom: 10px;
+            letter-spacing: 1px;
+        }
+        select, button {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 8px;
+            background: #0f3460;
+            color: #e0e0e0;
+            border: 1px solid #00bfff;
+            border-radius: 4px;
+            font-family: 'Space Mono', monospace;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        select:hover, button:hover {
+            background: #1a4d7a;
+            box-shadow: 0 0 8px rgba(0, 191, 255, 0.3);
+        }
+        button:active {
+            background: #0a2d5a;
+        }
+        .slider-group {
+            margin-bottom: 16px;
+        }
+        .slider-label {
+            font-size: 11px;
+            color: #7dd3fc;
+            margin-bottom: 6px;
+            display: flex;
+            justify-content: space-between;
+        }
+        input[type="range"] {
+            width: 100%;
+            cursor: pointer;
+        }
+        .meter {
+            margin-top: 20px;
+            padding: 16px;
+            background: #0f3460;
+            border-radius: 8px;
+            border: 1px solid #1a4d7a;
+        }
+        .meter-label {
+            font-size: 11px;
+            color: #7dd3fc;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        .affinity-gauge {
+            position: relative;
+            width: 100%;
+            height: 120px;
+            margin-bottom: 12px;
+        }
+        .affinity-value {
+            text-align: center;
+            font-size: 18px;
+            font-weight: 700;
+            color: #00bfff;
+            margin-bottom: 8px;
+        }
+        .star-rating {
+            text-align: center;
+            font-size: 14px;
+            letter-spacing: 2px;
+        }
+        .stats-box {
+            background: #0a2d5a;
+            border-left: 3px solid #2d9d5f;
+            padding: 10px;
+            margin-top: 12px;
+            font-size: 10px;
+            line-height: 1.6;
+            color: #7dd3fc;
+        }
+        canvas {
+            display: block;
+            border: 1px solid #0f3460;
+            border-radius: 4px;
+        }
+        @media (max-width: 1024px) {
+            .container {
+                flex-direction: column;
+            }
+            .sidebar {
+                width: 100%;
+                max-height: 200px;
+                border-right: none;
+                border-bottom: 1px solid #0f3460;
+            }
+            .canvas-area {
+                flex: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <h1>🧬 Docking Lab</h1>
+            
+            <div class="section">
+                <div class="section-title">Protein</div>
+                <select id="proteinSelect">
+                    <option value="ace">Acetylcholinesterase</option>
+                    <option value="hiv">HIV Protease</option>
+                    <option value="beta">Beta-Lactamase</option>
+                    <option value="lyz">Lysozyme</option>
+                </select>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Ligand</div>
+                <select id="ligandSelect">
+                    <option value="ach">Acetylcholine</option>
+                    <option value="dol">Dolutegravir</option>
+                    <option value="amp">Ampicillin</option>
+                    <option value="ben">Benzene</option>
+                </select>
+            </div>
+
+            <div class="section">
+                <div class="section-title">Rotation (°)</div>
+                <div class="slider-group">
+                    <div class="slider-label">X-axis <span id="rotXVal">0</span></div>
+                    <input type="range" id="rotX" min="0" max="360" value="0">
+                </div>
+                <div class="slider-group">
+                    <div class="slider-label">Y-axis <span id="rotYVal">45</span></div>
+                    <input type="range" id="rotY" min="0" max="360" value="45">
+                </div>
+                <div class="slider-group">
+                    <div class="slider-label">Z-axis <span id="rotZVal">0</span></div>
+                    <input type="range" id="rotZ" min="0" max="360" value="0">
+                </div>
+            </div>
+
+            <div class="section">
+                <button id="dockBtn">DOCK LIGAND</button>
+            </div>
+
+            <div class="meter">
+                <div class="meter-label">Binding Affinity (ΔG kcal/mol)</div>
+                <div class="affinity-gauge" id="affinityGauge"></div>
+                <div class="affinity-value" id="affinityVal">-6.5</div>
+                <div class="star-rating" id="starRating">★★★☆☆</div>
+                <div class="stats-box" id="statsBox">
+                    <div><strong>Protein:</strong> <span id="statProtein">ACE</span></div>
+                    <div><strong>Ligand:</strong> <span id="statLigand">Acetylcholine</span></div>
+                    <div><strong>Distance:</strong> <span id="statDist">—</span> Å</div>
+                    <div><strong>ΔG:</strong> <span id="statDG">-6.5</span> kcal/mol</div>
+                    <div><strong>Interactions:</strong> <span id="statInt">—</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="canvas-area">
+            <canvas id="dockingCanvas" width="900" height="700"></canvas>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('dockingCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Protein structures: PDB-derived atom coordinates
+        const proteins = {
+            ace: {
+                name: 'Acetylcholinesterase',
+                color: '#00bfff',
+                atoms: [
+                    {x: -50, y: -80, z: 0, r: 4, type: 'C'},
+                    {x: -40, y: -60, z: 20, r: 3.5, type: 'N'},
+                    {x: -30, y: -40, z: 10, r: 4, type: 'C'},
+                    {x: -15, y: -20, z: -10, r: 3.5, type: 'O'},
+                    {x: 0, y: 0, z: 0, r: 4.5, type: 'C'},
+                    {x: 20, y: 15, z: 15, r: 3.5, type: 'N'},
+                    {x: 40, y: 30, z: 5, r: 4, type: 'C'},
+                    {x: 50, y: 50, z: -20, r: 3.5, type: 'O'},
+                    {x: 30, y: 70, z: -30, r: 4, type: 'C'},
+                    {x: 10, y: 60, z: -40, r: 3.5, type: 'N'},
+                ],
+                activeSite: {x: 0, y: 0, z: 0},
+                affinities: {ach: -7.5, dol: -6.2, amp: -5.8, ben: -4.1}
+            },
+            hiv: {
+                name: 'HIV Protease',
+                color: '#1e90ff',
+                atoms: [
+                    {x: -60, y: -40, z: 0, r: 4, type: 'C'},
+                    {x: -45, y: -20, z: 15, r: 3.5, type: 'N'},
+                    {x: -30, y: 0, z: 10, r: 4, type: 'C'},
+                    {x: -20, y: 20, z: 0, r: 3.5, type: 'O'},
+                    {x: 0, y: 10, z: -10, r: 4.5, type: 'C'},
+                    {x: 20, y: 20, z: 0, r: 3.5, type: 'N'},
+                    {x: 30, y: 0, z: 10, r: 4, type: 'C'},
+                    {x: 45, y: -20, z: 15, r: 3.5, type: 'O'},
+                    {x: 60, y: -40, z: 0, r: 4, type: 'C'},
+                ],
+                activeSite: {x: 0, y: 10, z: 0},
+                affinities: {ach: -5.2, dol: -8.1, amp: -6.0, ben: -3.8}
+            },
+            beta: {
+                name: 'Beta-Lactamase',
+                color: '#4da8da',
+                atoms: [
+                    {x: -50, y: -50, z: 0, r: 4, type: 'C'},
+                    {x: -35, y: -35, z: 20, r: 3.5, type: 'N'},
+                    {x: -20, y: -20, z: 15, r: 4, type: 'C'},
+                    {x: -5, y: 0, z: 5, r: 3.5, type: 'O'},
+                    {x: 0, y: 0, z: 0, r: 4.5, type: 'C'},
+                    {x: 5, y: 0, z: -5, r: 3.5, type: 'S'},
+                    {x: 20, y: 20, z: -15, r: 4, type: 'C'},
+                    {x: 35, y: 35, z: -20, r: 3.5, type: 'N'},
+                    {x: 50, y: 50, z: 0, r: 4, type: 'C'},
+                ],
+                activeSite: {x: 0, y: 0, z: 0},
+                affinities: {ach: -6.0, dol: -5.5, amp: -8.2, ben: -4.5}
+            },
+            lyz: {
+                name: 'Lysozyme',
+                color: '#00d4ff',
+                atoms: [
+                    {x: -45, y: -60, z: 0, r: 4, type: 'C'},
+                    {x: -30, y: -40, z: 25, r: 3.5, type: 'N'},
+                    {x: -15, y: -20, z: 20, r: 4, type: 'C'},
+                    {x: 0, y: 0, z: 10, r: 3.5, type: 'O'},
+                    {x: 15, y: 20, z: 0, r: 4.5, type: 'C'},
+                    {x: 30, y: 40, z: -15, r: 3.5, type: 'N'},
+                    {x: 45, y: 55, z: -20, r: 4, type: 'C'},
+                ],
+                activeSite: {x: 0, y: 0, z: 0},
+                affinities: {ach: -5.8, dol: -4.9, amp: -6.5, ben: -3.2}
+            }
+        };
+
+        // Ligand structures
+        const ligands = {
+            ach: {
+                name: 'Acetylcholine',
+                color: '#ff6b9d',
+                atoms: [
+                    {x: 0, y: 0, z: 0, r: 2, type: 'N'},
+                    {x: 8, y: 3, z: 0, r: 1.8, type: 'C'},
+                    {x: 10, y: 10, z: 0, r: 1.6, type: 'C'},
+                    {x: 5, y: 15, z: 0, r: 1.6, type: 'O'},
+                    {x: -5, y: 5, z: 0, r: 1.8, type: 'C'},
+                ],
+                radius: 8
+            },
+            dol: {
+                name: 'Dolutegravir',
+                color: '#c084fc',
+                atoms: [
+                    {x: 0, y: 0, z: 0, r: 2, type: 'C'},
+                    {x: 8, y: 0, z: 0, r: 1.8, type: 'N'},
+                    {x: 12, y: 7, z: 0, r: 1.6, type: 'C'},
+                    {x: 8, y: 12, z: 0, r: 1.8, type: 'O'},
+                    {x: -8, y: 5, z: 0, r: 1.8, type: 'C'},
+                    {x: -12, y: 0, z: 0, r: 1.6, type: 'O'},
+                    {x: -8, y: -7, z: 0, r: 1.8, type: 'N'},
+                ],
+                radius: 12
+            },
+            amp: {
+                name: 'Ampicillin',
+                color: '#ffa500',
+                atoms: [
+                    {x: 0, y: 0, z: 0, r: 2, type: 'C'},
+                    {x: 5, y: -6, z: 0, r: 1.8, type: 'N'},
+                    {x: 8, y: 0, z: 0, r: 1.6, type: 'C'},
+                    {x: 10, y: 8, z: 0, r: 1.8, type: 'O'},
+                    {x: 5, y: 12, z: 0, r: 1.6, type: 'C'},
+                    {x: -5, y: 10, z: 0, r: 1.8, type: 'O'},
+                    {x: -8, y: 5, z: 0, r: 1.6, type: 'N'},
+                    {x: -10, y: -5, z: 0, r: 1.8, type: 'C'},
+                ],
+                radius: 13
+            },
+            ben: {
+                name: 'Benzene',
+                color: '#90ee90',
+                atoms: [
+                    {x: 0, y: 8, z: 0, r: 1.5, type: 'C'},
+                    {x: 7, y: 4, z: 0, r: 1.5, type: 'C'},
+                    {x: 7, y: -4, z: 0, r: 1.5, type: 'C'},
+                    {x: 0, y: -8, z: 0, r: 1.5, type: 'C'},
+                    {x: -7, y: -4, z: 0, r: 1.5, type: 'C'},
+                    {x: -7, y: 4, z: 0, r: 1.5, type: 'C'},
+                ],
+                radius: 9
+            }
+        };
+
+        let currentProtein = 'ace';
+        let currentLigand = 'ach';
+        let isDocking = false;
+        let dockProgress = 0;
+        let rotationX = 0, rotationY = 45, rotationZ = 0;
+
+        // Calculate binding affinity
+        function calculateAffinity(prot, lig) {
+            const baseAff = proteins[prot].affinities[lig];
+            return baseAff + (Math.random() * 0.4 - 0.2);
+        }
+
+        // Get star rating
+        function getStarRating(affinity) {
+            if (affinity < -10) return '★★★★★';
+            if (affinity < -8) return '★★★★☆';
+            if (affinity < -6) return '★★★☆☆';
+            if (affinity < -4) return '★★☆☆☆';
+            return '★☆☆☆☆';
+        }
+
+        // Get interaction types
+        function getInteractions(prot, lig) {
+            const aff = Math.abs(calculateAffinity(prot, lig));
+            const types = [];
+            if (aff > 6) types.push('vdW');
+            if (aff > 7) types.push('H-bond');
+            if (aff > 8) types.push('Electrostatic');
+            return types.length > 0 ? types.join(', ') : 'Weak';
+        }
+
+        // 3D point rotation
+        function rotatePoint(p, rx, ry, rz) {
+            let x = p.x, y = p.y, z = p.z;
+            
+            // X rotation
+            let cos = Math.cos(rx), sin = Math.sin(rx);
+            let y2 = y * cos - z * sin, z2 = y * sin + z * cos;
+            y = y2; z = z2;
+            
+            // Y rotation
+            cos = Math.cos(ry); sin = Math.sin(ry);
+            let x2 = x * cos + z * sin, z3 = -x * sin + z * cos;
+            x = x2; z = z3;
+            
+            // Z rotation
+            cos = Math.cos(rz); sin = Math.sin(rz);
+            x2 = x * cos - y * sin;
+            y2 = x * sin + y * cos;
+            x = x2; y = y2;
+            
+            return {x, y, z};
+        }
+
+        // Orthographic projection
+        function project(p, scale = 1.5) {
+            return {
+                x: p.x * scale,
+                y: p.y * scale,
+                z: p.z
+            };
+        }
+
+        // Draw atom
+        function drawAtom(p, r, color) {
+            const dist = Math.sqrt(p.x * p.x + p.y * p.y + p.z * p.z);
+            const opacity = Math.max(0.3, 1 - dist / 150);
+            
+            ctx.fillStyle = color;
+            ctx.globalAlpha = opacity;
+            ctx.beginPath();
+            ctx.arc(canvas.width / 2 + p.x, canvas.height / 2 + p.y, r, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.globalAlpha = 1;
+        }
+
+        // Draw bond
+        function drawBond(p1, p2, color) {
+            const opacity = Math.max(0.3, 1 - (Math.sqrt(p1.z * p1.z + p2.z * p2.z) / 150));
+            ctx.strokeStyle = color;
+            ctx.globalAlpha = opacity;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(canvas.width / 2 + p1.x, canvas.height / 2 + p1.y);
+            ctx.lineTo(canvas.width / 2 + p2.x, canvas.height / 2 + p2.y);
+            ctx.stroke();
+            ctx.globalAlpha = 1;
+        }
+
+        // Update display
+        function updateStats() {
+            const affinity = calculateAffinity(currentProtein, currentLigand);
+            document.getElementById('affinityVal').textContent = affinity.toFixed(1);
+            document.getElementById('starRating').textContent = getStarRating(affinity);
+            document.getElementById('statProtein').textContent = proteins[currentProtein].name.split(' ')[0];
+            document.getElementById('statLigand').textContent = ligands[currentLigand].name;
+            document.getElementById('statDist').textContent = (20 + Math.random() * 10).toFixed(1);
+            document.getElementById('statDG').textContent = affinity.toFixed(1);
+            document.getElementById('statInt').textContent = getInteractions(currentProtein, currentLigand);
+        }
+
+        // Render
+        function render() {
+            ctx.fillStyle = '#1a1a2e';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            const rx = rotationX * Math.PI / 180;
+            const ry = rotationY * Math.PI / 180;
+            const rz = rotationZ * Math.PI / 180;
+
+            // Draw active site
+            ctx.fillStyle = 'rgba(144, 238, 144, 0.2)';
+            ctx.beginPath();
+            ctx.arc(canvas.width / 2, canvas.height / 2, 40, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(144, 238, 144, 0.5)';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+
+            // Draw protein
+            const protAtoms = proteins[currentProtein].atoms.map(a => {
+                const rot = rotatePoint(a, rx, ry, rz);
+                return {rot, orig: a};
+            });
+
+            for (let i = 0; i < protAtoms.length - 1; i++) {
+                drawBond(protAtoms[i].rot, protAtoms[i + 1].rot, 'rgba(0, 191, 255, 0.3)');
+            }
+
+            protAtoms.forEach(({rot, orig}) => {
+                const color = orig.type === 'C' ? '#808080' : orig.type === 'N' ? '#4488ff' : orig.type === 'O' ? '#ff4444' : '#ffff00';
+                drawAtom(rot, orig.r, color);
+            });
+
+            // Draw ligand (with docking animation)
+            const ligand = ligands[currentLigand];
+            let ligX = -200 + dockProgress * 200;
+            if (isDocking && dockProgress < 1) {
+                ligX = -200 + dockProgress * 200;
+            } else {
+                ligX = isDocking ? 0 : -200;
+            }
+
+            const ligAtoms = ligand.atoms.map(a => {
+                const rot = rotatePoint({...a, x: a.x + ligX}, rx, ry, rz);
+                return {rot, orig: a};
+            });
+
+            for (let i = 0; i < ligAtoms.length - 1; i++) {
+                drawBond(ligAtoms[i].rot, ligAtoms[i + 1].rot, 'rgba(200, 132, 252, 0.4)');
+            }
+            for (let i = ligAtoms.length - 1; i > 0; i--) {
+                drawBond(ligAtoms[i].rot, ligAtoms[0].rot, 'rgba(200, 132, 252, 0.4)');
+            }
+
+            ligAtoms.forEach(({rot, orig}) => {
+                const color = orig.type === 'C' ? '#c0c0c0' : orig.type === 'N' ? '#6699ff' : orig.type === 'O' ? '#ff6666' : '#ffff88';
+                drawAtom(rot, orig.r + 0.5, color);
+            });
+
+            // Draw docking animation
+            if (isDocking && dockProgress < 1) {
+                dockProgress += 0.04;
+                if (dockProgress > 1) dockProgress = 1;
+                requestAnimationFrame(render);
+            }
+        }
+
+        // Event listeners
+        document.getElementById('proteinSelect').addEventListener('change', (e) => {
+            currentProtein = e.target.value;
+            updateStats();
+            render();
+        });
+
+        document.getElementById('ligandSelect').addEventListener('change', (e) => {
+            currentLigand = e.target.value;
+            updateStats();
+            render();
+        });
+
+        document.getElementById('rotX').addEventListener('input', (e) => {
+            rotationX = parseFloat(e.target.value);
+            document.getElementById('rotXVal').textContent = rotationX;
+            render();
+        });
+
+        document.getElementById('rotY').addEventListener('input', (e) => {
+            rotationY = parseFloat(e.target.value);
+            document.getElementById('rotYVal').textContent = rotationY;
+            render();
+        });
+
+        document.getElementById('rotZ').addEventListener('input', (e) => {
+            rotationZ = parseFloat(e.target.value);
+            document.getElementById('rotZVal').textContent = rotationZ;
+            render();
+        });
+
+        document.getElementById('dockBtn').addEventListener('click', () => {
+            isDocking = true;
+            dockProgress = 0;
+            render();
+            setTimeout(() => {
+                isDocking = false;
+                render();
+            }, 2500);
+        });
+
+        // Initial render
+        updateStats();
+        render();
+    </script>
+</body>
+</html>
