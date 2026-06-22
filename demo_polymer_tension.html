@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Polymer Tension</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Space+Mono:wght@400&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Space Mono', monospace;
+      background: linear-gradient(135deg, #1a1a1a 0%, #2d1a3d 100%);
+      color: #e0e0e0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .container {
+      max-width: 1200px;
+      width: 100%;
+      display: flex;
+      gap: 30px;
+      background: rgba(26, 26, 26, 0.95);
+      border-radius: 8px;
+      padding: 30px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+    }
+    .sidebar {
+      width: 300px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    label {
+      font-family: 'Playfair Display', serif;
+      font-size: 14px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #7dd3fc;
+    }
+    select, button {
+      padding: 10px;
+      border-radius: 4px;
+      border: 1px solid #444;
+      background: #2a2a2a;
+      color: #e0e0e0;
+      font-family: 'Space Mono', monospace;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    select:hover, button:hover {
+      background: #3a3a3a;
+      border-color: #7dd3fc;
+    }
+    button.load-test {
+      background: linear-gradient(135deg, #2d9d5f, #1f6d42);
+      border: 1px solid #2d9d5f;
+      font-weight: 700;
+      margin-top: 10px;
+    }
+    button.load-test:hover {
+      background: linear-gradient(135deg, #3ab86f, #2a7f50);
+      border-color: #3ab86f;
+    }
+    .slider-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    input[type="range"] {
+      width: 100%;
+      cursor: pointer;
+    }
+    .slider-value {
+      font-size: 12px;
+      color: #ffd700;
+      text-align: right;
+    }
+    .stats-box {
+      background: rgba(45, 157, 95, 0.1);
+      border-left: 3px solid #2d9d5f;
+      padding: 12px;
+      border-radius: 4px;
+      font-size: 12px;
+      line-height: 1.6;
+    }
+    .stat-label {
+      color: #7dd3fc;
+      font-weight: 700;
+    }
+    .stat-value {
+      color: #ffd700;
+    }
+    .canvas-section {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+    canvas {
+      border-radius: 6px;
+      background: #1a1a1a;
+      border: 1px solid #444;
+      flex: 1;
+      min-height: 500px;
+    }
+    .toggle-group {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .toggle-btn {
+      padding: 8px 12px;
+      font-size: 11px;
+      background: #2a2a2a;
+      border: 1px solid #444;
+      color: #7dd3fc;
+      cursor: pointer;
+      border-radius: 4px;
+      transition: all 0.2s;
+    }
+    .toggle-btn.active {
+      background: #2d9d5f;
+      border-color: #2d9d5f;
+      color: #1a1a1a;
+    }
+    @media (max-width: 900px) {
+      .container {
+        flex-direction: column;
+      }
+      .sidebar {
+        width: 100%;
+      }
+      canvas {
+        min-height: 400px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="sidebar">
+      <div class="control-group">
+        <label>Polymer Type</label>
+        <select id="polymerSelect">
+          <option value="PET">PET (Polyester)</option>
+          <option value="HDPE">HDPE (High-Density PE)</option>
+          <option value="PVC">PVC (Polyvinyl Chloride)</option>
+          <option value="LDPE">LDPE (Low-Density PE)</option>
+          <option value="PP">Polypropylene</option>
+          <option value="PS">Polystyrene</option>
+          <option value="ABS">ABS (Acrylonitrile-Butadiene)</option>
+          <option value="Nylon">Nylon-6</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <label>Stress Applied (MPa)</label>
+        <div class="slider-group">
+          <input type="range" id="stressSlider" min="0" max="100" value="0" step="1">
+          <div class="slider-value"><span id="stressValue">0</span> MPa</div>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <label>Animation Speed</label>
+        <div class="slider-group">
+          <input type="range" id="speedSlider" min="0.1" max="5" value="1" step="0.1">
+          <div class="slider-value"><span id="speedValue">1.0</span>×</div>
+        </div>
+      </div>
+
+      <button class="load-test">Load & Test</button>
+
+      <div class="stats-box">
+        <div><span class="stat-label">Tensile Strength:</span><br><span class="stat-value" id="statTS">72</span> MPa</div>
+        <div style="margin-top: 8px;"><span class="stat-label">Young's Modulus:</span><br><span class="stat-value" id="statYM">3.0</span> GPa</div>
+        <div style="margin-top: 8px;"><span class="stat-label">Elongation @ Break:</span><br><span class="stat-value" id="statEB">300</span>%</div>
+        <div style="margin-top: 8px;"><span class="stat-label">Density:</span><br><span class="stat-value" id="statDens">1.38</span> g/cm³</div>
+        <div style="margin-top: 8px;"><span class="stat-label">Melting Point:</span><br><span class="stat-value" id="statMelt">260</span>°C</div>
+      </div>
+
+      <div class="control-group">
+        <label>Display Options</label>
+        <div class="toggle-group">
+          <button class="toggle-btn active" data-toggle="curve">Stress-Strain</button>
+          <button class="toggle-btn" data-toggle="molecular">Molecular</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="canvas-section">
+      <canvas id="canvas"></canvas>
+    </div>
+  </div>
+
+  <script>
+    const polymers = {
+      PET: {
+        tensileStrength: 72,
+        youngsModulus: 3.0,
+        elongationAtBreak: 300,
+        density: 1.38,
+        meltingPoint: 260,
+        applications: "Bottles, films, textiles"
+      },
+      HDPE: {
+        tensileStrength: 37,
+        youngsModulus: 0.9,
+        elongationAtBreak: 500,
+        density: 0.96,
+        meltingPoint: 137,
+        applications: "Bags, pipes, containers"
+      },
+      PVC: {
+        tensileStrength: 50,
+        youngsModulus: 3.0,
+        elongationAtBreak: 40,
+        density: 1.38,
+        meltingPoint: 212,
+        applications: "Pipes, vinyl, tubing"
+      },
+      LDPE: {
+        tensileStrength: 25,
+        youngsModulus: 0.2,
+        elongationAtBreak: 600,
+        density: 0.92,
+        meltingPoint: 115,
+        applications: "Films, bags, squeeze bottles"
+      },
+      PP: {
+        tensileStrength: 40,
+        youngsModulus: 1.5,
+        elongationAtBreak: 400,
+        density: 0.90,
+        meltingPoint: 165,
+        applications: "Auto parts, hinges, containers"
+      },
+      PS: {
+        tensileStrength: 55,
+        youngsModulus: 3.0,
+        elongationAtBreak: 2,
+        density: 1.05,
+        meltingPoint: 210,
+        applications: "Foam, insulation, cups"
+      },
+      ABS: {
+        tensileStrength: 50,
+        youngsModulus: 2.3,
+        elongationAtBreak: 50,
+        density: 1.05,
+        meltingPoint: 240,
+        applications: "LEGO, automotive, appliances"
+      },
+      Nylon: {
+        tensileStrength: 85,
+        youngsModulus: 2.4,
+        elongationAtBreak: 200,
+        density: 1.14,
+        meltingPoint: 215,
+        applications: "Fishing line, textiles, gears"
+      }
+    };
+
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const polymerSelect = document.getElementById('polymerSelect');
+    const stressSlider = document.getElementById('stressSlider');
+    const speedSlider = document.getElementById('speedSlider');
+    const stressValue = document.getElementById('stressValue');
+    const speedValue = document.getElementById('speedValue');
+    let showCurve = true;
+    let showMolecular = false;
+    let ruptured = false;
+
+    function resizeCanvas() {
+      const rect = canvas.parentElement.getBoundingClientRect();
+      canvas.width = rect.width;
+      canvas.height = rect.height;
+    }
+
+    function updateStats() {
+      const polymer = polymers[polymerSelect.value];
+      document.getElementById('statTS').textContent = polymer.tensileStrength;
+      document.getElementById('statYM').textContent = polymer.youngsModulus.toFixed(1);
+      document.getElementById('statEB').textContent = polymer.elongationAtBreak;
+      document.getElementById('statDens').textContent = polymer.density.toFixed(2);
+      document.getElementById('statMelt').textContent = polymer.meltingPoint;
+    }
+
+    function getColor(stress, tensileStrength, elongation) {
+      const ratio = stress / tensileStrength;
+      if (ratio < 0.3) return '#2d9d5f'; // green - elastic
+      if (ratio < 0.8) return '#ffd700'; // yellow - plastic
+      return '#cc0000'; // red - near rupture
+    }
+
+    function drawSample(currentStress, maxStress, elongation) {
+      const sampleX = canvas.width * 0.25;
+      const sampleY = canvas.height * 0.5;
+      const baseWidth = 50;
+      const baseHeight = 250;
+
+      const strainFraction = Math.min(currentStress / maxStress, 1.0);
+      const currentHeight = baseHeight * (1 + (elongation / 100) * strainFraction);
+      const currentWidth = baseWidth * Math.max(0.3, 1 - (strainFraction * 0.6));
+
+      const color = getColor(currentStress, maxStress, elongation);
+
+      // Draw sample bar
+      ctx.fillStyle = color;
+      ctx.globalAlpha = 0.9;
+      ctx.fillRect(
+        sampleX - currentWidth / 2,
+        sampleY - currentHeight / 2,
+        currentWidth,
+        currentHeight
+      );
+      ctx.globalAlpha = 1.0;
+
+      // Draw outline
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2;
+      ctx.strokeRect(
+        sampleX - currentWidth / 2,
+        sampleY - currentHeight / 2,
+        currentWidth,
+        currentHeight
+      );
+
+      // Draw stress indicator
+      ctx.fillStyle = '#7dd3fc';
+      ctx.font = 'bold 14px "Space Mono"';
+      ctx.textAlign = 'center';
+      ctx.fillText(
+        `Strain: ${Math.round(strainFraction * elongation)}%`,
+        sampleX,
+        sampleY + currentHeight / 2 + 40
+      );
+    }
+
+    function drawStressStrainCurve(currentStress, maxStress, youngsMod, elongation) {
+      const graphX = 50;
+      const graphY = canvas.height - 100;
+      const graphWidth = 200;
+      const graphHeight = 150;
+
+      // Axes
+      ctx.strokeStyle = '#444';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(graphX, graphY);
+      ctx.lineTo(graphX + graphWidth, graphY);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(graphX, graphY);
+      ctx.lineTo(graphX, graphY - graphHeight);
+      ctx.stroke();
+
+      // Labels
+      ctx.fillStyle = '#7dd3fc';
+      ctx.font = '11px "Space Mono"';
+      ctx.textAlign = 'center';
+      ctx.fillText('Strain (%)', graphX + graphWidth / 2, graphY + 20);
+      ctx.save();
+      ctx.translate(graphX - 20, graphY - graphHeight / 2);
+      ctx.rotate(-Math.PI / 2);
+      ctx.fillText('Stress (MPa)', 0, 0);
+      ctx.restore();
+
+      // Draw stress-strain curve
+      ctx.strokeStyle = '#2d9d5f';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      for (let strainPercent = 0; strainPercent <= elongation; strainPercent += 2) {
+        const stressAtStrain = (maxStress * Math.min(strainPercent / elongation, 1.0));
+        const x = graphX + (strainPercent / elongation) * graphWidth;
+        const y = graphY - (stressAtStrain / maxStress) * graphHeight;
+        if (strainPercent === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+
+      // Current point on curve
+      const strainFraction = Math.min(currentStress / maxStress, 1.0);
+      const curveX = graphX + strainFraction * graphWidth;
+      const curveY = graphY - (currentStress / maxStress) * graphHeight;
+
+      ctx.fillStyle = '#ffd700';
+      ctx.beginPath();
+      ctx.arc(curveX, curveY, 5, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Rupture threshold line
+      ctx.strokeStyle = '#cc0000';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([5, 5]);
+      ctx.beginPath();
+      ctx.moveTo(graphX, graphY - graphHeight);
+      ctx.lineTo(graphX + graphWidth, graphY - graphHeight);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    function drawMolecularStructure(strainFraction) {
+      const molX = canvas.width * 0.75;
+      const molY = canvas.height * 0.5;
+      const chainLength = 150;
+
+      ctx.strokeStyle = '#4da8da';
+      ctx.lineWidth = 1.5;
+
+      // Draw polymer chain as connected dots
+      for (let i = 0; i < 12; i++) {
+        const x = molX - chainLength / 2 + (i / 11) * chainLength;
+        const y = molY + Math.sin(i * 0.5) * 15 * (1 - strainFraction * 0.5);
+
+        ctx.fillStyle = '#7dd3fc';
+        ctx.beginPath();
+        ctx.arc(x, y, 3, 0, Math.PI * 2);
+        ctx.fill();
+
+        if (i > 0) {
+          const prevX = molX - chainLength / 2 + ((i - 1) / 11) * chainLength;
+          const prevY = molY + Math.sin((i - 1) * 0.5) * 15 * (1 - strainFraction * 0.5);
+          ctx.beginPath();
+          ctx.moveTo(prevX, prevY);
+          ctx.lineTo(x, y);
+          ctx.stroke();
+        }
+      }
+
+      ctx.fillStyle = '#7dd3fc';
+      ctx.font = 'bold 12px "Space Mono"';
+      ctx.textAlign = 'center';
+      ctx.fillText('Polymer Chains', molX, molY + 80);
+    }
+
+    function draw() {
+      resizeCanvas();
+      ctx.fillStyle = '#1a1a1a';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      const polymer = polymers[polymerSelect.value];
+      const currentStress = parseFloat(stressSlider.value);
+      const maxStress = polymer.tensileStrength;
+
+      if (currentStress >= maxStress && !ruptured) {
+        ruptured = true;
+      }
+
+      // Draw polymer sample
+      drawSample(currentStress, maxStress, polymer.elongationAtBreak);
+
+      // Draw stress-strain curve
+      if (showCurve) {
+        drawStressStrainCurve(currentStress, maxStress, polymer.youngsModulus, polymer.elongationAtBreak);
+      }
+
+      // Draw molecular structure
+      const strainFraction = Math.min(currentStress / maxStress, 1.0);
+      if (showMolecular) {
+        drawMolecularStructure(strainFraction);
+      }
+
+      // Title
+      ctx.fillStyle = '#e0e0e0';
+      ctx.font = 'bold 18px "Playfair Display"';
+      ctx.textAlign = 'center';
+      ctx.fillText(`${polymerSelect.value} Tensile Test`, canvas.width / 2, 30);
+
+      requestAnimationFrame(draw);
+    }
+
+    function handleLoadTest() {
+      ruptured = false;
+      const animationSpeed = parseFloat(speedSlider.value);
+      const maxStress = polymers[polymerSelect.value].tensileStrength;
+      const startTime = Date.now();
+
+      function animate() {
+        const elapsed = (Date.now() - startTime) / 1000;
+        const progress = Math.min((elapsed * animationSpeed) / 3, 1.0);
+        stressSlider.value = progress * maxStress;
+        stressValue.textContent = Math.round(stressSlider.value);
+
+        if (progress < 1.0) {
+          requestAnimationFrame(animate);
+        }
+      }
+
+      animate();
+    }
+
+    // Event listeners
+    polymerSelect.addEventListener('change', () => {
+      updateStats();
+      stressSlider.value = 0;
+      stressValue.textContent = '0';
+      ruptured = false;
+    });
+
+    stressSlider.addEventListener('input', (e) => {
+      stressValue.textContent = Math.round(e.target.value);
+    });
+
+    speedSlider.addEventListener('input', (e) => {
+      speedValue.textContent = parseFloat(e.target.value).toFixed(1);
+    });
+
+    document.querySelector('.load-test').addEventListener('click', handleLoadTest);
+
+    document.querySelectorAll('[data-toggle]').forEach(btn => {
+      btn.addEventListener('click', function() {
+        const toggle = this.dataset.toggle;
+        if (toggle === 'curve') {
+          showCurve = !showCurve;
+        } else if (toggle === 'molecular') {
+          showMolecular = !showMolecular;
+        }
+        this.classList.toggle('active');
+      });
+    });
+
+    updateStats();
+    draw();
+  </script>
+</body>
+</html>
