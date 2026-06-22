@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Protein Fold</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Space+Mono:wght@400&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Space Mono', monospace;
+      background: linear-gradient(135deg, #0F1419 0%, #1a1f2e 100%);
+      color: #e0e0e0;
+      overflow: hidden;
+      height: 100vh;
+    }
+    .container {
+      display: flex;
+      height: 100vh;
+      gap: 20px;
+      padding: 20px;
+    }
+    .sidebar {
+      width: 280px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 12px;
+      padding: 20px;
+      overflow-y: auto;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .main-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+    h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: 28px;
+      margin-bottom: 4px;
+      color: #ffffff;
+    }
+    .subtitle {
+      font-size: 11px;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 20px;
+    }
+    .control-group {
+      margin-bottom: 24px;
+    }
+    .control-group label {
+      display: block;
+      font-size: 12px;
+      text-transform: uppercase;
+      color: #888;
+      margin-bottom: 8px;
+      letter-spacing: 0.5px;
+    }
+    input[type="range"] {
+      width: 100%;
+      height: 6px;
+      border-radius: 3px;
+      background: rgba(255, 255, 255, 0.1);
+      outline: none;
+      -webkit-appearance: none;
+      accent-color: #4DA8DA;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #4DA8DA;
+      cursor: pointer;
+      box-shadow: 0 0 8px rgba(77, 168, 218, 0.4);
+    }
+    input[type="range"]::-moz-range-thumb {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #4DA8DA;
+      cursor: pointer;
+      border: none;
+      box-shadow: 0 0 8px rgba(77, 168, 218, 0.4);
+    }
+    .value-display {
+      font-size: 13px;
+      color: #4DA8DA;
+      margin-top: 4px;
+      font-weight: bold;
+    }
+    .structure-buttons {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+    button {
+      padding: 8px 12px;
+      background: rgba(77, 168, 218, 0.15);
+      border: 1px solid rgba(77, 168, 218, 0.3);
+      color: #4DA8DA;
+      border-radius: 6px;
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    button:hover {
+      background: rgba(77, 168, 218, 0.25);
+      border-color: rgba(77, 168, 218, 0.6);
+    }
+    button.active {
+      background: rgba(77, 168, 218, 0.4);
+      border-color: #4DA8DA;
+      box-shadow: 0 0 12px rgba(77, 168, 218, 0.3);
+    }
+    .stats-box {
+      background: rgba(255, 255, 255, 0.02);
+      border-left: 3px solid #2D9D5F;
+      padding: 12px;
+      border-radius: 6px;
+      margin-bottom: 12px;
+      font-size: 11px;
+    }
+    .stat-label {
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 2px;
+    }
+    .stat-value {
+      font-size: 14px;
+      color: #ffffff;
+      font-weight: bold;
+    }
+    canvas {
+      border-radius: 8px;
+      background: rgba(15, 20, 25, 0.7);
+      border: 1px solid rgba(77, 168, 218, 0.2);
+      flex: 1;
+    }
+    .toggle-group {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+    .toggle-btn {
+      flex: 1;
+      padding: 8px 12px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #888;
+      border-radius: 6px;
+      font-family: 'Space Mono', monospace;
+      font-size: 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .toggle-btn.active {
+      background: rgba(77, 168, 218, 0.3);
+      border-color: #4DA8DA;
+      color: #4DA8DA;
+    }
+    @media (max-width: 900px) {
+      .container {
+        flex-direction: column;
+      }
+      .sidebar {
+        width: 100%;
+        max-height: 200px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="sidebar">
+      <h1>Protein Fold</h1>
+      <div class="subtitle">Interactive Simulator</div>
+
+      <div class="control-group">
+        <label>Structure Type</label>
+        <div class="structure-buttons">
+          <button class="struct-btn active" data-struct="helix">α-Helix</button>
+          <button class="struct-btn" data-struct="sheet">β-Sheet</button>
+          <button class="struct-btn" data-struct="coil">Coil</button>
+          <button class="struct-btn" data-struct="native">Native</button>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <label>Temperature (°C)</label>
+        <input type="range" id="tempSlider" min="0" max="100" value="37">
+        <div class="value-display"><span id="tempValue">37</span>°C</div>
+      </div>
+
+      <div class="control-group">
+        <label>pH</label>
+        <input type="range" id="phSlider" min="3" max="11" value="7">
+        <div class="value-display">pH <span id="phValue">7.0</span></div>
+      </div>
+
+      <div class="control-group">
+        <label>Hydrophobic/Hydrophilic</label>
+        <input type="range" id="hydroSlider" min="0" max="100" value="50">
+        <div class="value-display"><span id="hydroValue">50</span>%</div>
+      </div>
+
+      <div class="control-group">
+        <label>Display</label>
+        <div class="toggle-group">
+          <button class="toggle-btn active" id="toggleHbonds">H-Bonds</button>
+          <button class="toggle-btn" id="toggleCharges">Charges</button>
+        </div>
+      </div>
+
+      <div class="stats-box">
+        <div class="stat-label">Structure</div>
+        <div class="stat-value" id="structName">α-Helix</div>
+      </div>
+
+      <div class="stats-box">
+        <div class="stat-label">Stability</div>
+        <div class="stat-value" id="stability">78%</div>
+      </div>
+
+      <div class="stats-box">
+        <div class="stat-label">Surface Exposed</div>
+        <div class="stat-value" id="exposed">42%</div>
+      </div>
+
+      <div class="stats-box">
+        <div class="stat-label">Secondary Structure</div>
+        <div class="stat-value" id="composition">65% α 0% β 35% coil</div>
+      </div>
+    </div>
+
+    <div class="main-area">
+      <canvas id="canvas"></canvas>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    let animationId;
+
+    function resizeCanvas() {
+      canvas.width = canvas.parentElement.clientWidth;
+      canvas.height = canvas.parentElement.clientHeight;
+    }
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+
+    // Protein state
+    let protein = {
+      structure: 'helix',
+      temperature: 37,
+      pH: 7,
+      hydrophobic: 50,
+      showHbonds: true,
+      showCharges: false,
+      residues: []
+    };
+
+    // Initialize residues (50-residue backbone)
+    function initResidues() {
+      protein.residues = [];
+      for (let i = 0; i < 50; i++) {
+        protein.residues.push({
+          id: i,
+          x: 0,
+          y: 0,
+          z: 0,
+          type: i % 4 === 0 ? 'hydrophobic' : i % 3 === 0 ? 'charged' : 'polar',
+          charge: i % 3 === 0 ? (i % 2 === 0 ? 1 : -1) : 0,
+          vx: Math.random() * 0.02 - 0.01,
+          vy: Math.random() * 0.02 - 0.01,
+          vz: Math.random() * 0.02 - 0.01
+        });
+      }
+    }
+    initResidues();
+
+    function generateStructure(type) {
+      const residues = protein.residues;
+      const centerX = canvas.width / 2;
+      const centerY = canvas.height / 2;
+
+      if (type === 'helix') {
+        residues.forEach((r, i) => {
+          const angle = (i / 3.6) * Math.PI / 180; // ~100° per 10 residues
+          const height = (i / residues.length) * 200 - 100;
+          r.x = centerX + Math.cos(angle) * 60;
+          r.y = centerY + height;
+          r.z = Math.sin(angle) * 60;
+        });
+      } else if (type === 'sheet') {
+        let col = 0, row = 0;
+        residues.forEach((r, i) => {
+          if (i % 10 === 0) { col = 0; row += 1; }
+          r.x = centerX - 150 + col * 30;
+          r.y = centerY - 100 + row * 30;
+          r.z = (col % 2) * 20;
+          col++;
+        });
+      } else if (type === 'coil') {
+        residues.forEach((r, i) => {
+          const t = i / residues.length;
+          r.x = centerX + Math.sin(t * 6 * Math.PI) * 80;
+          r.y = centerY + Math.cos(t * 4 * Math.PI) * 80;
+          r.z = (t - 0.5) * 100;
+        });
+      } else if (type === 'native') {
+        // Tertiary fold: helix core + sheet wings + coil tails
+        residues.forEach((r, i) => {
+          const t = i / residues.length;
+          if (i < 15) {
+            // N-terminal helix
+            const angle = (i / 4.2) * Math.PI / 180;
+            r.x = centerX - 100 + Math.cos(angle) * 50;
+            r.y = centerY - 80 + (i / 15) * 60;
+            r.z = Math.sin(angle) * 50;
+          } else if (i < 35) {
+            // Central sheet
+            const col = (i - 15) / 2;
+            r.x = centerX - 50 + (col % 10) * 20;
+            r.y = centerY + 20 + Math.floor(col / 10) * 40;
+            r.z = Math.sin((i - 15) / 20 * Math.PI) * 40;
+          } else {
+            // C-terminal coil
+            const offset = i - 35;
+            r.x = centerX + 80 + Math.sin(offset / 15 * 2 * Math.PI) * 40;
+            r.y = centerY - 20 + offset / 15 * 80;
+            r.z = Math.cos(offset / 15 * 2 * Math.PI) * 30;
+          }
+        });
+      }
+    }
+
+    function applyPhysics() {
+      const residues = protein.residues;
+      const temp = protein.temperature;
+      const pH = protein.pH;
+
+      // Thermal motion
+      residues.forEach(r => {
+        const thermalScale = (temp / 37) * 0.003;
+        r.vx += (Math.random() - 0.5) * thermalScale;
+        r.vy += (Math.random() - 0.5) * thermalScale;
+        r.vz += (Math.random() - 0.5) * thermalScale;
+        r.vx *= 0.95;
+        r.vy *= 0.95;
+        r.vz *= 0.95;
+      });
+
+      // Electrostatic interactions (pH affects charge)
+      const pHFactor = Math.abs(pH - 7) / 4;
+      for (let i = 0; i < residues.length; i++) {
+        for (let j = i + 1; j < Math.min(i + 6, residues.length); j++) {
+          const dx = residues[j].x - residues[i].x;
+          const dy = residues[j].y - residues[i].y;
+          const dz = residues[j].z - residues[i].z;
+          const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+          if (dist > 5 && dist < 100) {
+            const chargeInteraction = residues[i].charge * residues[j].charge;
+            const force = chargeInteraction * pHFactor / (dist + 1);
+            residues[i].vx -= (dx / dist) * force * 0.0001;
+            residues[i].vy -= (dy / dist) * force * 0.0001;
+            residues[i].vz -= (dz / dist) * force * 0.0001;
+          }
+        }
+      }
+
+      // Hydrophobic collapse
+      const hydroFactor = protein.hydrophobic / 100;
+      residues.forEach((r, i) => {
+        if (r.type === 'hydrophobic') {
+          r.vx -= (r.x - canvas.width / 2) * 0.0001 * hydroFactor;
+          r.vy -= (r.y - canvas.height / 2) * 0.0001 * hydroFactor;
+        }
+      });
+
+      // Update positions with velocity damping
+      residues.forEach(r => {
+        r.x += r.vx;
+        r.y += r.vy;
+        r.z += r.vz;
+      });
+    }
+
+    function calculateStability() {
+      let score = 50;
+      const temp = protein.temperature;
+      const pH = protein.pH;
+      const residues = protein.residues;
+
+      // Temperature penalty
+      if (temp < 20 || temp > 50) score -= Math.abs(temp - 37) * 0.5;
+
+      // pH penalty
+      if (pH < 5 || pH > 9) score -= Math.abs(pH - 7) * 2;
+
+      // H-bond approximation (backbone proximity)
+      let hbonds = 0;
+      for (let i = 0; i < residues.length - 1; i++) {
+        const dx = residues[i + 1].x - residues[i].x;
+        const dy = residues[i + 1].y - residues[i].y;
+        const dz = residues[i + 1].z - residues[i].z;
+        const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+        if (dist < 40) hbonds++;
+      }
+      score += (hbonds / residues.length) * 20;
+
+      return Math.max(10, Math.min(95, score));
+    }
+
+    function calculateComposition() {
+      // Rough estimate based on structure type
+      const type = protein.structure;
+      if (type === 'helix') return '70% α 0% β 30% coil';
+      if (type === 'sheet') return '5% α 80% β 15% coil';
+      if (type === 'coil') return '10% α 10% β 80% coil';
+      if (type === 'native') return '35% α 40% β 25% coil';
+    }
+
+    function calculateExposed() {
+      // Estimate based on hydrophobic slider
+      return Math.max(20, Math.min(70, 100 - protein.hydrophobic / 2));
+    }
+
+    function render() {
+      ctx.fillStyle = 'rgba(15, 20, 25, 0.9)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      const residues = protein.residues;
+
+      // Draw backbone ribbon
+      ctx.strokeStyle = 'rgba(200, 200, 200, 0.6)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(residues[0].x, residues[0].y);
+      for (let i = 1; i < residues.length; i++) {
+        ctx.lineTo(residues[i].x, residues[i].y);
+      }
+      ctx.stroke();
+
+      // Draw residues as circles
+      residues.forEach((r, i) => {
+        // Color by type
+        if (r.type === 'hydrophobic') {
+          ctx.fillStyle = '#FF8C42';
+        } else if (r.type === 'charged') {
+          ctx.fillStyle = r.charge > 0 ? '#FFD700' : '#FF6B6B';
+        } else {
+          ctx.fillStyle = '#4DA8DA';
+        }
+
+        const size = 6;
+        ctx.beginPath();
+        ctx.arc(r.x, r.y, size, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Glow for charged residues if toggled
+        if (protein.showCharges && r.charge !== 0) {
+          ctx.strokeStyle = r.charge > 0 ? 'rgba(255, 215, 0, 0.3)' : 'rgba(255, 107, 107, 0.3)';
+          ctx.lineWidth = 8;
+          ctx.beginPath();
+          ctx.arc(r.x, r.y, size, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+      });
+
+      // Draw hydrogen bonds if enabled
+      if (protein.showHbonds) {
+        ctx.strokeStyle = 'rgba(77, 168, 218, 0.2)';
+        ctx.lineWidth = 1;
+        for (let i = 0; i < residues.length; i++) {
+          for (let j = i + 3; j < Math.min(i + 8, residues.length); j++) {
+            const dx = residues[j].x - residues[i].x;
+            const dy = residues[j].y - residues[i].y;
+            const dz = residues[j].z - residues[i].z;
+            const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+            if (dist < 50) {
+              ctx.beginPath();
+              ctx.moveTo(residues[i].x, residues[i].y);
+              ctx.lineTo(residues[j].x, residues[j].y);
+              ctx.stroke();
+            }
+          }
+        }
+      }
+
+      // Update stats
+      document.getElementById('stability').textContent = Math.round(calculateStability()) + '%';
+      document.getElementById('exposed').textContent = Math.round(calculateExposed()) + '%';
+      document.getElementById('composition').textContent = calculateComposition();
+    }
+
+    function animate() {
+      applyPhysics();
+      render();
+      animationId = requestAnimationFrame(animate);
+    }
+
+    // Event listeners
+    document.querySelectorAll('.struct-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        document.querySelectorAll('.struct-btn').forEach(b => b.classList.remove('active'));
+        e.target.classList.add('active');
+        protein.structure = e.target.dataset.struct;
+        document.getElementById('structName').textContent = {
+          helix: 'α-Helix',
+          sheet: 'β-Sheet',
+          coil: 'Coil',
+          native: 'Native Fold'
+        }[protein.structure];
+        generateStructure(protein.structure);
+      });
+    });
+
+    document.getElementById('tempSlider').addEventListener('input', (e) => {
+      protein.temperature = parseInt(e.target.value);
+      document.getElementById('tempValue').textContent = protein.temperature;
+    });
+
+    document.getElementById('phSlider').addEventListener('input', (e) => {
+      protein.pH = parseFloat(e.target.value);
+      document.getElementById('phValue').textContent = protein.pH.toFixed(1);
+    });
+
+    document.getElementById('hydroSlider').addEventListener('input', (e) => {
+      protein.hydrophobic = parseInt(e.target.value);
+      document.getElementById('hydroValue').textContent = protein.hydrophobic;
+    });
+
+    document.getElementById('toggleHbonds').addEventListener('click', (e) => {
+      protein.showHbonds = !protein.showHbonds;
+      e.target.classList.toggle('active');
+    });
+
+    document.getElementById('toggleCharges').addEventListener('click', (e) => {
+      protein.showCharges = !protein.showCharges;
+      e.target.classList.toggle('active');
+    });
+
+    generateStructure('helix');
+    animate();
+  </script>
+</body>
+</html>
