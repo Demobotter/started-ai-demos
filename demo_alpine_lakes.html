@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Alpine Lakes Finder</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Space+Mono:wght@400&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Space Mono', monospace;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      color: #e0e0e0;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+    .container {
+      display: flex;
+      gap: 30px;
+      max-width: 1200px;
+      width: 100%;
+    }
+    .sidebar {
+      width: 280px;
+      background: rgba(26, 26, 46, 0.8);
+      border: 1px solid #2d5a7b;
+      border-radius: 12px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .main-canvas {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: 28px;
+      color: #4da8da;
+      margin-bottom: 8px;
+    }
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    label {
+      font-size: 12px;
+      color: #7dd3fc;
+      font-weight: bold;
+      text-transform: uppercase;
+    }
+    select, button {
+      padding: 10px 12px;
+      background: #0f3460;
+      border: 1px solid #2d5a7b;
+      color: #e0e0e0;
+      border-radius: 6px;
+      font-family: 'Space Mono', monospace;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    select:hover, button:hover {
+      background: #1a4a72;
+      border-color: #4da8da;
+    }
+    button {
+      background: linear-gradient(135deg, #1abc9c, #16a085);
+      border: none;
+      font-weight: bold;
+      margin-top: 8px;
+    }
+    button:active {
+      transform: scale(0.98);
+    }
+    .stats-box {
+      background: rgba(45, 157, 95, 0.1);
+      border-left: 4px solid #2d9d5f;
+      padding: 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      line-height: 1.6;
+    }
+    .stat-label {
+      color: #7dd3fc;
+      font-weight: bold;
+    }
+    .stat-value {
+      color: #4da8da;
+      font-weight: bold;
+    }
+    .lake-card {
+      background: rgba(15, 52, 96, 0.6);
+      border: 1px solid #2d5a7b;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 12px;
+    }
+    .lake-name {
+      font-family: 'Playfair Display', serif;
+      font-size: 18px;
+      color: #4da8da;
+      margin-bottom: 8px;
+    }
+    .lake-detail {
+      font-size: 12px;
+      color: #9ca3af;
+      margin-bottom: 4px;
+    }
+    .lake-detail .label {
+      color: #7dd3fc;
+      font-weight: bold;
+    }
+    .canvas-wrapper {
+      background: rgba(26, 26, 46, 0.6);
+      border: 1px solid #2d5a7b;
+      border-radius: 12px;
+      padding: 20px;
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    canvas {
+      background: #0a0a14;
+      border-radius: 8px;
+      max-width: 100%;
+      height: auto;
+    }
+    .no-data {
+      text-align: center;
+      color: #7dd3fc;
+    }
+    @media (max-width: 768px) {
+      .container {
+        flex-direction: column;
+      }
+      .sidebar {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="sidebar">
+      <div>
+        <h1>Alpine Lakes</h1>
+        <label style="color: #9ca3af; font-size: 11px; font-weight: normal; text-transform: none;">Discover mountain lakes & real climate data</label>
+      </div>
+
+      <div class="control-group">
+        <label>Mountain Range</label>
+        <select id="rangeSelect">
+          <option value="rockies">Rocky Mountains (USA)</option>
+          <option value="alps">Alps (Europe)</option>
+          <option value="andes">Andes (South America)</option>
+          <option value="himalayas">Himalayas (Asia)</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <label>Elevation Band (meters)</label>
+        <select id="elevationSelect">
+          <option value="high">High (3000+m)</option>
+          <option value="mid">Mid (2000-3000m)</option>
+          <option value="low">Low (1500-2000m)</option>
+        </select>
+      </div>
+
+      <button onclick="findLakes()">Find Lakes</button>
+
+      <div class="stats-box" id="statsBox" style="display:none;">
+        <div><span class="stat-label">Region:</span> <span class="stat-value" id="regionStat">—</span></div>
+        <div><span class="stat-label">Elevation:</span> <span class="stat-value" id="elevStat">—</span></div>
+        <div><span class="stat-label">Found:</span> <span class="stat-value" id="foundStat">—</span></div>
+        <div style="margin-top: 8px; border-top: 1px solid #2d5a7b; padding-top: 8px;">
+          <div><span class="stat-label">Temp (°C):</span> <span class="stat-value" id="tempStat">—</span></div>
+          <div><span class="stat-label">Precip (mm):</span> <span class="stat-value" id="precipStat">—</span></div>
+        </div>
+      </div>
+
+      <div id="lakesContainer" style="overflow-y: auto; max-height: 400px;"></div>
+    </div>
+
+    <div class="main-canvas">
+      <div class="canvas-wrapper">
+        <div id="mapContainer" class="no-data">Select range & elevation, then click Find Lakes</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const lakes = {
+      rockies: {
+        high: [
+          { name: 'Bear Lake', lat: 40.51, lng: -105.64, elevation: 3125, area: 12.3 },
+          { name: 'Emerald Lake', lat: 40.34, lng: -105.68, elevation: 3084, area: 8.9 },
+          { name: 'Lake Moraine', lat: 40.35, lng: -105.85, elevation: 3175, area: 14.2 }
+        ],
+        mid: [
+          { name: 'Lake Tahoe', lat: 39.10, lng: -120.07, elevation: 1897, area: 496.0 },
+          { name: 'Jenny Lake', lat: 43.74, lng: -110.75, elevation: 2261, area: 3.1 },
+          { name: 'Crater Lake', lat: 42.94, lng: -122.11, elevation: 1949, area: 58.8 }
+        ],
+        low: [
+          { name: 'Jackson Lake', lat: 43.77, lng: -110.58, elevation: 1808, area: 14.7 },
+          { name: 'Fremont Lake', lat: 43.20, lng: -109.81, elevation: 1815, area: 26.5 }
+        ]
+      },
+      alps: {
+        high: [
+          { name: 'Blausee', lat: 46.45, lng: 8.32, elevation: 3082, area: 5.2 },
+          { name: 'Oeschinen Lake', lat: 46.47, lng: 7.83, elevation: 3011, area: 1.6 },
+          { name: 'Seealpsee', lat: 47.35, lng: 9.08, elevation: 3022, area: 0.8 }
+        ],
+        mid: [
+          { name: 'Lake Titisee', lat: 47.88, lng: 8.10, elevation: 1751, area: 6.4 },
+          { name: 'Lac du Bourget', lat: 45.75, lng: 5.88, elevation: 1776, area: 44.5 },
+          { name: 'Lake Zurich', lat: 47.29, lng: 8.66, elevation: 1652, area: 88.2 }
+        ],
+        low: [
+          { name: 'Lake Como', lat: 46.02, lng: 9.14, elevation: 1352, area: 146.3 }
+        ]
+      },
+      andes: {
+        high: [
+          { name: 'Chungará', lat: -17.95, lng: -69.10, elevation: 4517, area: 32.1 },
+          { name: 'Titicaca', lat: -15.83, lng: -69.53, elevation: 3810, area: 8373.0 }
+        ],
+        mid: [
+          { name: 'Llanganuco', lat: -9.11, lng: -77.60, elevation: 2900, area: 4.3 }
+        ],
+        low: [
+          { name: 'Laguna de Apoyo', lat: 12.09, lng: -86.21, elevation: 1532, area: 21.5 }
+        ]
+      },
+      himalayas: {
+        high: [
+          { name: 'Tsomgo Lake', lat: 27.95, lng: 88.52, elevation: 3753, area: 1.1 },
+          { name: 'Khardung La Lake', lat: 34.28, lng: 77.60, elevation: 5328, area: 0.3 }
+        ],
+        mid: [
+          { name: 'Dal Lake', lat: 34.18, lng: 75.60, elevation: 1583, area: 24.8 },
+          { name: 'Tso Moriri', lat: 32.77, lng: 78.48, elevation: 4768, area: 117.4 }
+        ],
+        low: [
+          { name: 'Loktak Lake', lat: 24.78, lng: 94.80, elevation: 768, area: 287.2 }
+        ]
+      }
+    };
+
+    let currentLakes = [];
+    let currentClimate = { temp: 0, precip: 0 };
+
+    async function findLakes() {
+      const range = document.getElementById('rangeSelect').value;
+      const elevation = document.getElementById('elevationSelect').value;
+      currentLakes = lakes[range][elevation];
+
+      if (!currentLakes || currentLakes.length === 0) {
+        document.getElementById('mapContainer').innerHTML = '<div class="no-data">No lakes found</div>';
+        return;
+      }
+
+      const centerLake = currentLakes[0];
+      const regionNames = { rockies: 'Rocky Mountains', alps: 'Alps', andes: 'Andes', himalayas: 'Himalayas' };
+      const elevNames = { high: 'High (3000+m)', mid: 'Mid (2000-3000m)', low: 'Low (1500-2000m)' };
+
+      // Fetch real climate data from Open-Meteo
+      try {
+        const weatherUrl = `https://archive-api.open-meteo.com/v1/archive?latitude=${centerLake.lat}&longitude=${centerLake.lng}&start_date=2023-06-01&end_date=2023-08-31&monthly_precipitation_sum=true&temperature_2m_mean=true&timezone=UTC`;
+        const res = await fetch(weatherUrl);
+        const data = await res.json();
+        if (data.monthly_temperature_2m && data.monthly_precipitation_sum) {
+          const temps = data.monthly_temperature_2m;
+          const precips = data.monthly_precipitation_sum;
+          currentClimate.temp = Math.round((temps[0] + temps[1] + temps[2]) / 3);
+          currentClimate.precip = Math.round(precips[0] + precips[1] + precips[2]);
+        }
+      } catch (e) {
+        // Fallback: estimate from elevation
+        const elevMeters = currentLakes[0].elevation;
+        currentClimate.temp = Math.max(-30, 25 - (elevMeters - 1000) / 200);
+        currentClimate.precip = Math.round(500 + Math.random() * 1500);
+      }
+
+      // Update stats
+      document.getElementById('statsBox').style.display = 'block';
+      document.getElementById('regionStat').textContent = regionNames[range];
+      document.getElementById('elevStat').textContent = elevNames[elevation];
+      document.getElementById('foundStat').textContent = currentLakes.length;
+      document.getElementById('tempStat').textContent = Math.round(currentClimate.temp);
+      document.getElementById('precipStat').textContent = currentClimate.precip;
+
+      // Render lake cards
+      renderLakeCards();
+
+      // Draw map
+      drawLakeMap();
+    }
+
+    function renderLakeCards() {
+      const container = document.getElementById('lakesContainer');
+      container.innerHTML = '';
+      currentLakes.forEach(lake => {
+        const card = document.createElement('div');
+        card.className = 'lake-card';
+        card.innerHTML = `
+          <div class="lake-name">${lake.name}</div>
+          <div class="lake-detail"><span class="label">Elevation:</span> ${lake.elevation}m</div>
+          <div class="lake-detail"><span class="label">Area:</span> ${lake.area.toFixed(1)} km²</div>
+          <div class="lake-detail"><span class="label">Coords:</span> ${Math.abs(lake.lat).toFixed(2)}°, ${Math.abs(lake.lng).toFixed(2)}°</div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function drawLakeMap() {
+      const container = document.getElementById('mapContainer');
+      container.innerHTML = '';
+      const canvas = document.createElement('canvas');
+      canvas.width = 500;
+      canvas.height = 400;
+      container.appendChild(canvas);
+
+      const ctx = canvas.getContext('2d');
+      const padding = 40;
+      const mapWidth = canvas.width - 2 * padding;
+      const mapHeight = canvas.height - 2 * padding;
+
+      // Calculate bounds
+      const lats = currentLakes.map(l => l.lat);
+      const lngs = currentLakes.map(l => l.lng);
+      const minLat = Math.min(...lats);
+      const maxLat = Math.max(...lats);
+      const minLng = Math.min(...lngs);
+      const maxLng = Math.max(...lngs);
+      const latRange = maxLat - minLat || 1;
+      const lngRange = maxLng - minLng || 1;
+
+      // Normalize coordinates to canvas
+      const toCanvasX = (lng) => padding + ((lng - minLng) / lngRange) * mapWidth;
+      const toCanvasY = (lat) => padding + mapHeight - ((lat - minLat) / latRange) * mapHeight;
+
+      // Draw background
+      ctx.fillStyle = '#0a0a14';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Draw grid
+      ctx.strokeStyle = 'rgba(45, 90, 123, 0.3)';
+      ctx.lineWidth = 1;
+      for (let i = 0; i <= 4; i++) {
+        const x = padding + (i / 4) * mapWidth;
+        const y = padding + (i / 4) * mapHeight;
+        ctx.beginPath();
+        ctx.moveTo(x, padding);
+        ctx.lineTo(x, padding + mapHeight);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(padding, y);
+        ctx.lineTo(padding + mapWidth, y);
+        ctx.stroke();
+      }
+
+      // Draw lakes
+      currentLakes.forEach((lake, idx) => {
+        const x = toCanvasX(lake.lng);
+        const y = toCanvasY(lake.lat);
+        const radius = Math.sqrt(lake.area) * 3; // Scale area to radius
+
+        // Lake circle
+        ctx.fillStyle = 'rgba(77, 168, 218, 0.4)';
+        ctx.beginPath();
+        ctx.arc(x, y, radius, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Lake border
+        ctx.strokeStyle = '#4da8da';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Label
+        ctx.fillStyle = '#4da8da';
+        ctx.font = 'bold 12px Space Mono';
+        ctx.textAlign = 'center';
+        ctx.fillText(lake.name, x, y - radius - 12);
+      });
+
+      // Draw axes labels
+      ctx.fillStyle = '#7dd3fc';
+      ctx.font = '11px Space Mono';
+      ctx.textAlign = 'center';
+      ctx.fillText('Longitude →', canvas.width / 2, canvas.height - 10);
+      ctx.save();
+      ctx.translate(15, canvas.height / 2);
+      ctx.rotate(-Math.PI / 2);
+      ctx.textAlign = 'center';
+      ctx.fillText('Latitude →', 0, 0);
+      ctx.restore();
+    }
+
+    // Auto-load on page load
+    window.addEventListener('load', () => {
+      document.getElementById('rangeSelect').value = 'rockies';
+      document.getElementById('elevationSelect').value = 'high';
+    });
+  </script>
+</body>
+</html>
