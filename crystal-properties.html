@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crystal Properties Explorer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Space+Mono:wght@400&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Space Mono', monospace;
+            background: linear-gradient(135deg, #0f1a2e 0%, #1a2a4a 100%);
+            color: #e0e0e0;
+            min-height: 100vh;
+            display: flex;
+            padding: 20px;
+        }
+        .container { display: flex; gap: 30px; max-width: 1400px; margin: 0 auto; width: 100%; }
+        
+        /* SIDEBAR */
+        .sidebar {
+            width: 280px;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .sidebar h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+        .section {
+            background: rgba(77, 168, 218, 0.08);
+            border-left: 3px solid #4da8da;
+            padding: 15px;
+            border-radius: 4px;
+        }
+        .section-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            font-size: 13px;
+            text-transform: uppercase;
+            color: #4da8da;
+        }
+        select, button {
+            width: 100%;
+            padding: 10px;
+            background: #1a3a4a;
+            border: 1px solid #4da8da;
+            color: #e0e0e0;
+            font-family: 'Space Mono', monospace;
+            font-size: 12px;
+            border-radius: 3px;
+            cursor: pointer;
+            margin-bottom: 8px;
+            transition: all 0.2s;
+        }
+        select:hover, button:hover {
+            background: #2a4a5a;
+            border-color: #7dd3fc;
+        }
+        select:focus, button:focus {
+            outline: none;
+            box-shadow: 0 0 8px rgba(77, 168, 218, 0.4);
+        }
+        .stats-box {
+            background: rgba(0, 0, 0, 0.3);
+            border-left: 3px solid #2d9d5f;
+            padding: 12px;
+            margin-bottom: 10px;
+            border-radius: 3px;
+            font-size: 12px;
+        }
+        .stat-label { color: #4da8da; margin-bottom: 3px; }
+        .stat-value { color: #7dd3fc; font-weight: bold; font-size: 14px; }
+        
+        /* CANVAS */
+        .canvas-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        canvas {
+            border: 1px solid #4da8da;
+            background: #0f1a2e;
+            border-radius: 4px;
+            flex: 1;
+            min-height: 600px;
+        }
+        .controls-row {
+            display: flex;
+            gap: 10px;
+        }
+        .controls-row button {
+            flex: 1;
+            padding: 8px;
+        }
+        .toggle {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .toggle input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+        }
+        .toggle label { cursor: pointer; font-size: 12px; }
+        
+        /* RESPONSIVE */
+        @media (max-width: 900px) {
+            .container { flex-direction: column; }
+            .sidebar { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- SIDEBAR -->
+        <div class="sidebar">
+            <h1>💎 Crystals</h1>
+            
+            <div class="section">
+                <div class="section-title">Select Gem</div>
+                <select id="gemSelect">
+                    <option value="diamond">Diamond</option>
+                    <option value="ruby">Ruby</option>
+                    <option value="sapphire">Sapphire</option>
+                    <option value="emerald">Emerald</option>
+                    <option value="amethyst">Amethyst</option>
+                    <option value="topaz">Topaz</option>
+                    <option value="garnet">Garnet</option>
+                    <option value="fluorite">Fluorite</option>
+                    <option value="quartz">Quartz</option>
+                    <option value="tourmaline">Tourmaline</option>
+                    <option value="opal">Opal</option>
+                    <option value="tanzanite">Tanzanite</option>
+                    <option value="peridot">Peridot</option>
+                    <option value="malachite">Malachite</option>
+                    <option value="calcite">Calcite</option>
+                </select>
+                <button id="viewBtn">View Properties</button>
+            </div>
+            
+            <div class="section">
+                <div class="section-title">Properties</div>
+                <div class="stats-box">
+                    <div class="stat-label">Hardness (Mohs)</div>
+                    <div class="stat-value" id="hardnessStat">—</div>
+                </div>
+                <div class="stats-box">
+                    <div class="stat-label">Density (g/cm³)</div>
+                    <div class="stat-value" id="densityStat">—</div>
+                </div>
+                <div class="stats-box">
+                    <div class="stat-label">Refractive Index</div>
+                    <div class="stat-value" id="riStat">—</div>
+                </div>
+                <div class="stats-box">
+                    <div class="stat-label">Crystal System</div>
+                    <div class="stat-value" id="systemStat">—</div>
+                </div>
+                <div class="stats-box">
+                    <div class="stat-label">Color Origin</div>
+                    <div class="stat-value" id="colorStat">—</div>
+                </div>
+            </div>
+            
+            <div class="section">
+                <div class="section-title">Formation</div>
+                <div class="stats-box">
+                    <div class="stat-label">Environment</div>
+                    <div class="stat-value" id="formationStat">—</div>
+                </div>
+                <div class="stats-box">
+                    <div class="stat-label">Rarity</div>
+                    <div class="stat-value" id="rarityStat">—</div>
+                </div>
+                <div class="stats-box">
+                    <div class="stat-label">Treatments</div>
+                    <div class="stat-value" id="treatmentStat">—</div>
+                </div>
+            </div>
+            
+            <div class="section">
+                <div class="toggle">
+                    <input type="checkbox" id="refToggle">
+                    <label for="refToggle">Show Refraction</label>
+                </div>
+                <div class="toggle">
+                    <input type="checkbox" id="gridToggle">
+                    <label for="gridToggle">Show Crystal Grid</label>
+                </div>
+            </div>
+        </div>
+        
+        <!-- CANVAS AREA -->
+        <div class="canvas-area">
+            <canvas id="canvas"></canvas>
+            <div class="controls-row">
+                <button id="rotateLeftBtn">← Rotate Left</button>
+                <button id="rotateRightBtn">Rotate Right →</button>
+                <button id="compareBtn">Compare 2 Gems</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = canvas.offsetWidth;
+        canvas.height = canvas.offsetHeight;
+
+        // MINERALOGY DATA — authentic Mohs hardness, density, RI, crystal system, color origin, formation
+        const gems = {
+            diamond: {
+                name: 'Diamond', color: '#e8e8ff', hardness: 10, density: 3.52, ri: 2.42,
+                system: 'Cubic', colorOrigin: 'Carbon atoms, intrinsic', 
+                formation: 'Mantle > 120 km, 1200°C, kimberlite pipes',
+                rarity: 'Very Rare', treatment: 'Cutting, polishing only',
+                atomColor: '#cccccc'
+            },
+            ruby: {
+                name: 'Ruby', color: '#b41e3e', hardness: 9, density: 3.97, ri: 1.77,
+                system: 'Hexagonal', colorOrigin: 'Chromium (Cr³⁺) impurities',
+                formation: 'Metamorphic corundum, Al-rich rocks, 700-800°C',
+                rarity: 'Very Rare', treatment: 'Heat treatment common',
+                atomColor: '#cc0000'
+            },
+            sapphire: {
+                name: 'Sapphire', color: '#0f52ba', hardness: 9, density: 3.97, ri: 1.77,
+                system: 'Hexagonal', colorOrigin: 'Fe²⁺/Ti⁴⁺ impurities (blue)',
+                formation: 'Metamorphic corundum, 700-800°C',
+                rarity: 'Very Rare', treatment: 'Heat treatment standard',
+                atomColor: '#0033cc'
+            },
+            emerald: {
+                name: 'Emerald', color: '#50c878', hardness: 7.5, density: 2.76, ri: 1.58,
+                system: 'Hexagonal', colorOrigin: 'Chromium/Vanadium impurities',
+                formation: 'Hydrothermal pegmatites, 300-500°C',
+                rarity: 'Rare', treatment: 'Oiling (fracture filling)',
+                atomColor: '#00aa00'
+            },
+            amethyst: {
+                name: 'Amethyst', color: '#9966cc', hardness: 7, density: 2.65, ri: 1.54,
+                system: 'Trigonal', colorOrigin: 'Fe²⁺/Fe³⁺ irradiation',
+                formation: 'Volcanic cavities, hydrothermal',
+                rarity: 'Common', treatment: 'Heat treatment (violet stability)',
+                atomColor: '#9900cc'
+            },
+            topaz: {
+                name: 'Topaz', color: '#fff8dc', hardness: 8, density: 3.56, ri: 1.62,
+                system: 'Orthorhombic', colorOrigin: 'Trace elements (Fe, Cr)',
+                formation: 'Pegmatites, high-temperature hydrothermal',
+                rarity: 'Common', treatment: 'Irradiation (blue color)',
+                atomColor: '#ffdd00'
+            },
+            garnet: {
+                name: 'Garnet', color: '#b41e3e', hardness: 7, density: 3.82, ri: 1.72,
+                system: 'Cubic', colorOrigin: 'Fe³⁺, Mn²⁺ impurities',
+                formation: 'Metamorphic rocks, high-pressure zones',
+                rarity: 'Common', treatment: 'Cutting only',
+                atomColor: '#cc2200'
+            },
+            fluorite: {
+                name: 'Fluorite', color: '#a335ee', hardness: 4, density: 3.18, ri: 1.43,
+                system: 'Cubic', colorOrigin: 'Color centers from radiation',
+                formation: 'Hydrothermal veins, moderate temperature',
+                rarity: 'Common', treatment: 'Heat treatment',
+                atomColor: '#8800ff'
+            },
+            quartz: {
+                name: 'Quartz', color: '#ffffff', hardness: 7, density: 2.65, ri: 1.54,
+                system: 'Trigonal', colorOrigin: 'Intrinsic (clear) or trace Fe/Ti',
+                formation: 'Igneous, hydrothermal, sedimentary',
+                rarity: 'Very Common', treatment: 'Irradiation (color)',
+                atomColor: '#eeeeee'
+            },
+            tourmaline: {
+                name: 'Tourmaline', color: '#ff1493', hardness: 7.5, density: 3.06, ri: 1.62,
+                system: 'Trigonal', colorOrigin: 'Transition metals (Fe, Mn, Cu)',
+                formation: 'Pegmatites, contact metamorphic',
+                rarity: 'Common', treatment: 'Heat treatment',
+                atomColor: '#ff0099'
+            },
+            opal: {
+                name: 'Opal', color: '#ffd700', hardness: 5.5, density: 2.15, ri: 1.45,
+                system: 'Amorphous', colorOrigin: 'Nanosphere diffraction (play-of-color)',
+                formation: 'Hydrothermal silica, water trapping',
+                rarity: 'Rare', treatment: 'Stabilization (resin coating)',
+                atomColor: '#ff8800'
+            },
+            tanzanite: {
+                name: 'Tanzanite', color: '#0066cc', hardness: 6.5, density: 3.35, ri: 1.69,
+                system: 'Orthorhombic', colorOrigin: 'V³⁺ impurities',
+                formation: 'Metamorphic, single locality (Tanzania)',
+                rarity: 'Very Rare', treatment: 'Heat treatment (blue)',
+                atomColor: '#0055aa'
+            },
+            peridot: {
+                name: 'Peridot', color: '#7cb342', hardness: 6.5, density: 3.32, ri: 1.65,
+                system: 'Orthorhombic', colorOrigin: 'Fe²⁺ in olivine structure',
+                formation: 'Mantle xenoliths, basaltic lava',
+                rarity: 'Common', treatment: 'Cutting only',
+                atomColor: '#88cc00'
+            },
+            malachite: {
+                name: 'Malachite', color: '#00aa44', hardness: 3.5, density: 3.80, ri: 1.66,
+                system: 'Monoclinic', colorOrigin: 'Cu²⁺ carbonate (bright green)',
+                formation: 'Oxidation zone of copper ore deposits',
+                rarity: 'Common', treatment: 'Cabochon polishing',
+                atomColor: '#00dd55'
+            },
+            calcite: {
+                name: 'Calcite', color: '#f5f5f5', hardness: 3, density: 2.71, ri: 1.59,
+                system: 'Trigonal', colorOrigin: 'Intrinsic (clear) or Mn²⁺/Fe²⁺',
+                formation: 'Sedimentary, metamorphic, hydrothermal',
+                rarity: 'Very Common', treatment: 'None typical',
+                atomColor: '#f0f0f0'
+            }
+        };
+
+        let currentGem = 'diamond';
+        let rotation = 0;
+        let showRefraction = false;
+        let showGrid = false;
+        let refAngle = 45; // Refraction angle slider
+
+        document.getElementById('viewBtn').addEventListener('click', updateDisplay);
+        document.getElementById('gemSelect').addEventListener('change', (e) => {
+            currentGem = e.target.value;
+            updateDisplay();
+        });
+        document.getElementById('refToggle').addEventListener('change', (e) => {
+            showRefraction = e.target.checked;
+            drawCrystal();
+        });
+        document.getElementById('gridToggle').addEventListener('change', (e) => {
+            showGrid = e.target.checked;
+            drawCrystal();
+        });
+        document.getElementById('rotateLeftBtn').addEventListener('click', () => {
+            rotation -= 15;
+            drawCrystal();
+        });
+        document.getElementById('rotateRightBtn').addEventListener('click', () => {
+            rotation += 15;
+            drawCrystal();
+        });
+        document.getElementById('compareBtn').addEventListener('click', () => {
+            // Simple comparison: show hardness + RI of current gem vs next gem
+            let gemList = Object.keys(gems);
+            let nextIdx = (gemList.indexOf(currentGem) + 1) % gemList.length;
+            let nextGem = gems[gemList[nextIdx]];
+            let curr = gems[currentGem];
+            alert(`Comparison:\n${curr.name}: Hardness ${curr.hardness}, RI ${curr.ri}, Density ${curr.density}\nvs\n${nextGem.name}: Hardness ${nextGem.hardness}, RI ${nextGem.ri}, Density ${nextGem.density}`);
+        });
+
+        function updateDisplay() {
+            let gem = gems[currentGem];
+            document.getElementById('hardnessStat').textContent = gem.hardness;
+            document.getElementById('densityStat').textContent = gem.density;
+            document.getElementById('riStat').textContent = gem.ri;
+            document.getElementById('systemStat').textContent = gem.system;
+            document.getElementById('colorStat').textContent = gem.colorOrigin;
+            document.getElementById('formationStat').textContent = gem.formation;
+            document.getElementById('rarityStat').textContent = gem.rarity;
+            document.getElementById('treatmentStat').textContent = gem.treatment;
+            rotation = 0;
+            drawCrystal();
+        }
+
+        function drawCrystal() {
+            let gem = gems[currentGem];
+            ctx.fillStyle = '#0f1a2e';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            ctx.save();
+            ctx.translate(canvas.width / 2, canvas.height / 2);
+            ctx.rotate((rotation * Math.PI) / 180);
+
+            // Draw crystal structure based on system
+            if (gem.system === 'Cubic') {
+                drawCube(gem);
+            } else if (gem.system === 'Hexagonal' || gem.system === 'Trigonal') {
+                drawHexagonal(gem);
+            } else if (gem.system === 'Orthorhombic' || gem.system === 'Monoclinic') {
+                drawOrthorhombic(gem);
+            } else if (gem.system === 'Amorphous') {
+                drawAmorphous(gem);
+            }
+
+            // Draw refraction rays if enabled
+            if (showRefraction) {
+                drawRefractionRays(gem);
+            }
+
+            ctx.restore();
+
+            // Draw title and stats overlay
+            ctx.fillStyle = '#7dd3fc';
+            ctx.font = 'bold 18px Playfair Display, serif';
+            ctx.fillText(gem.name + ' Crystal', 20, 40);
+
+            ctx.fillStyle = '#4da8da';
+            ctx.font = '12px Space Mono, monospace';
+            ctx.fillText(`Rotation: ${rotation}°`, 20, 70);
+            ctx.fillText(`Hardness: ${gem.hardness} | RI: ${gem.ri}`, 20, 90);
+        }
+
+        function drawCube(gem) {
+            let size = 120;
+            let color = gem.color;
+            
+            // Draw cube faces
+            ctx.fillStyle = color + '44';
+            ctx.strokeStyle = gem.atomColor;
+            ctx.lineWidth = 2;
+            
+            // Front face
+            ctx.fillRect(-size/2, -size/2, size, size);
+            ctx.strokeRect(-size/2, -size/2, size, size);
+            
+            // Draw grid if enabled
+            if (showGrid) {
+                ctx.strokeStyle = '#333';
+                ctx.lineWidth = 0.5;
+                for (let i = 1; i < 3; i++) {
+                    ctx.beginPath();
+                    ctx.moveTo(-size/2 + (i * size / 3), -size/2);
+                    ctx.lineTo(-size/2 + (i * size / 3), size/2);
+                    ctx.stroke();
+                    ctx.beginPath();
+                    ctx.moveTo(-size/2, -size/2 + (i * size / 3));
+                    ctx.lineTo(size/2, -size/2 + (i * size / 3));
+                    ctx.stroke();
+                }
+            }
+
+            // Draw atoms at vertices
+            let atomSize = 6;
+            let positions = [
+                [-size/2, -size/2], [size/2, -size/2],
+                [-size/2, size/2], [size/2, size/2]
+            ];
+            ctx.fillStyle = gem.atomColor;
+            positions.forEach(pos => {
+                ctx.beginPath();
+                ctx.arc(pos[0], pos[1], atomSize, 0, Math.PI * 2);
+                ctx.fill();
+            });
+        }
+
+        function drawHexagonal(gem) {
+            let size = 100;
+            let color = gem.color;
+            
+            ctx.fillStyle = color + '44';
+            ctx.strokeStyle = gem.atomColor;
+            ctx.lineWidth = 2;
+            
+            // Draw hexagonal prism (simplified 2D projection)
+            ctx.beginPath();
+            for (let i = 0; i < 6; i++) {
+                let angle = (i * Math.PI) / 3;
+                let x = size * Math.cos(angle);
+                let y = size * Math.sin(angle);
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            // Draw atomic lattice if grid enabled
+            if (showGrid) {
+                ctx.strokeStyle = '#333';
+                ctx.lineWidth = 0.5;
+                for (let i = 0; i < 4; i++) {
+                    let angle = (i * Math.PI) / 3;
+                    ctx.beginPath();
+                    ctx.moveTo(0, 0);
+                    ctx.lineTo(size * Math.cos(angle), size * Math.sin(angle));
+                    ctx.stroke();
+                }
+            }
+
+            // Draw atoms at vertices
+            let atomSize = 5;
+            ctx.fillStyle = gem.atomColor;
+            for (let i = 0; i < 6; i++) {
+                let angle = (i * Math.PI) / 3;
+                let x = size * Math.cos(angle);
+                let y = size * Math.sin(angle);
+                ctx.beginPath();
+                ctx.arc(x, y, atomSize, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        function drawOrthorhombic(gem) {
+            let w = 100, h = 140;
+            let color = gem.color;
+            
+            ctx.fillStyle = color + '44';
+            ctx.strokeStyle = gem.atomColor;
+            ctx.lineWidth = 2;
+            ctx.fillRect(-w/2, -h/2, w, h);
+            ctx.strokeRect(-w/2, -h/2, w, h);
+
+            if (showGrid) {
+                ctx.strokeStyle = '#333';
+                ctx.lineWidth = 0.5;
+                for (let i = 1; i < 3; i++) {
+                    ctx.beginPath();
+                    ctx.moveTo(-w/2 + (i * w / 3), -h/2);
+                    ctx.lineTo(-w/2 + (i * w / 3), h/2);
+                    ctx.stroke();
+                }
+            }
+
+            // Atoms at corners
+            ctx.fillStyle = gem.atomColor;
+            let positions = [
+                [-w/2, -h/2], [w/2, -h/2],
+                [-w/2, h/2], [w/2, h/2]
+            ];
+            positions.forEach(pos => {
+                ctx.beginPath();
+                ctx.arc(pos[0], pos[1], 5, 0, Math.PI * 2);
+                ctx.fill();
+            });
+        }
+
+        function drawAmorphous(gem) {
+            // Opal — amorphous cloud with nanosphere dots
+            let color = gem.color;
+            ctx.fillStyle = color + '33';
+            
+            // Organic blob shape
+            ctx.beginPath();
+            for (let i = 0; i < 12; i++) {
+                let angle = (i / 12) * Math.PI * 2;
+                let r = 80 + Math.sin(i * 0.7) * 30;
+                let x = r * Math.cos(angle);
+                let y = r * Math.sin(angle);
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.closePath();
+            ctx.fill();
+            
+            ctx.strokeStyle = gem.atomColor;
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+
+            // Draw nanosphere dots (play-of-color illusion)
+            for (let i = 0; i < 40; i++) {
+                let angle = Math.random() * Math.PI * 2;
+                let r = Math.random() * 70;
+                let x = r * Math.cos(angle);
+                let y = r * Math.sin(angle);
+                ctx.fillStyle = ['#ff6600', '#ffff00', '#00ff00', '#00ffff', '#0066ff', '#ff00ff'][Math.floor(Math.random() * 6)];
+                ctx.beginPath();
+                ctx.arc(x, y, 2 + Math.random() * 2, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        function drawRefractionRays(gem) {
+            // Light entering crystal, bending via Snell's law
+            let angle = refAngle * Math.PI / 180;
+            let ri = gem.ri;
+            
+            // Simplified Snell's law: n1*sin(θ1) = n2*sin(θ2)
+            // n1 (air) = 1.0, n2 (gem) = ri
+            let sinTheta2 = Math.sin(angle) / ri;
+            let refractedAngle = Math.asin(Math.min(sinTheta2, 1));
+
+            // Draw incident ray
+            ctx.strokeStyle = '#ffd700';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(-200, -150);
+            ctx.lineTo(0, 0);
+            ctx.stroke();
+
+            // Draw refracted ray
+            ctx.strokeStyle = '#ffff00';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            let refX = Math.sin(refractedAngle) * 150;
+            let refY = Math.cos(refractedAngle) * 150;
+            ctx.lineTo(refX, refY);
+            ctx.stroke();
+
+            // Draw normal line
+            ctx.strokeStyle = '#999';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([4, 4]);
+            ctx.beginPath();
+            ctx.moveTo(0, -150);
+            ctx.lineTo(0, 150);
+            ctx.stroke();
+            ctx.setLineDash([]);
+        }
+
+        // Initialize
+        updateDisplay();
+
+        // Responsive canvas resize
+        window.addEventListener('resize', () => {
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+            drawCrystal();
+        });
+    </script>
+</body>
+</html>
