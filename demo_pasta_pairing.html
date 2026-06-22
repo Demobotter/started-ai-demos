@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pasta Pairing Alchemist</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Space+Mono:wght@400&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Space Mono', monospace;
+      background: linear-gradient(135deg, #1a0f2e 0%, #2d1b3d 100%);
+      color: #f5f5f5;
+      padding: 20px;
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 30px;
+      align-items: start;
+    }
+    h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: 2.5em;
+      margin-bottom: 8px;
+      background: linear-gradient(135deg, #DAA520, #FFD700);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .sidebar {
+      background: rgba(20, 10, 30, 0.7);
+      border: 2px solid #6B4423;
+      border-radius: 12px;
+      padding: 24px;
+      height: fit-content;
+      position: sticky;
+      top: 20px;
+    }
+    .section-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.1em;
+      margin: 20px 0 12px 0;
+      color: #FFD700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .pasta-selector, .sauce-selector {
+      display: grid;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+    .radio-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px;
+      border-radius: 6px;
+      background: rgba(100, 50, 80, 0.3);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .radio-group:hover {
+      background: rgba(150, 80, 120, 0.5);
+    }
+    .radio-group input[type="radio"] {
+      cursor: pointer;
+      accent-color: #FFD700;
+    }
+    .radio-group label {
+      cursor: pointer;
+      font-size: 0.95em;
+      flex-grow: 1;
+    }
+    button.pair-btn {
+      width: 100%;
+      padding: 12px;
+      background: linear-gradient(135deg, #DAA520, #FFD700);
+      color: #1a0f2e;
+      font-family: 'Playfair Display', serif;
+      font-size: 1.1em;
+      font-weight: bold;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      margin-top: 16px;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    button.pair-btn:hover {
+      transform: scale(1.02);
+      box-shadow: 0 8px 20px rgba(255, 215, 0, 0.4);
+    }
+    .toggle-group {
+      margin-top: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .toggle-group input[type="checkbox"] {
+      accent-color: #FFD700;
+      cursor: pointer;
+    }
+    .toggle-group label {
+      cursor: pointer;
+      font-size: 0.95em;
+    }
+    .main-content {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    canvas {
+      background: linear-gradient(135deg, #0a0a15 0%, #1a1020 100%);
+      border-radius: 12px;
+      display: block;
+      width: 100%;
+      height: 400px;
+      border: 2px solid #6B4423;
+    }
+    .stats-box {
+      background: rgba(100, 50, 80, 0.4);
+      border-left: 4px solid #FFD700;
+      padding: 16px;
+      border-radius: 6px;
+      font-size: 0.95em;
+      line-height: 1.6;
+    }
+    .stats-box .rating {
+      font-size: 1.3em;
+      font-weight: bold;
+      margin-bottom: 8px;
+    }
+    .rating.perfect { color: #4da8da; }
+    .rating.acceptable { color: #FFD700; }
+    .rating.avoid { color: #ff6b6b; }
+    .feedback-box {
+      background: rgba(50, 120, 100, 0.3);
+      border-left: 4px solid #4da8da;
+      padding: 14px;
+      border-radius: 6px;
+      margin-top: 12px;
+      font-size: 0.9em;
+      line-height: 1.5;
+      color: #b0e0e6;
+    }
+    .grid-container {
+      margin-top: 24px;
+      background: rgba(20, 10, 30, 0.5);
+      border: 2px solid #6B4423;
+      border-radius: 12px;
+      padding: 20px;
+      display: none;
+    }
+    .grid-container.visible {
+      display: block;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
+      gap: 8px;
+    }
+    .grid-cell {
+      aspect-ratio: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 1.2em;
+      background: rgba(100, 50, 80, 0.3);
+      border-radius: 6px;
+      border: 1px solid #6B4423;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .grid-cell:hover {
+      background: rgba(150, 80, 120, 0.5);
+      transform: scale(1.05);
+    }
+    .grid-cell.match { color: #4da8da; }
+    .grid-cell.acceptable { color: #FFD700; }
+    .grid-cell.avoid { color: #ff6b6b; }
+    @media (max-width: 768px) {
+      .container {
+        grid-template-columns: 1fr;
+      }
+      h1 { font-size: 2em; }
+      canvas { height: 300px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="sidebar">
+      <h1>🍜</h1>
+      <p style="font-size: 1.1em; margin-bottom: 16px; color: #DAA520;">Pasta Pairing Alchemist</p>
+      
+      <div class="section-title">Pasta Shape</div>
+      <div class="pasta-selector" id="pastaSelector"></div>
+      
+      <div class="section-title">Sauce</div>
+      <div class="sauce-selector" id="sauceSelector"></div>
+      
+      <button class="pair-btn" id="pairBtn">⚡ Pair Now</button>
+      
+      <div class="toggle-group">
+        <input type="checkbox" id="showGridToggle">
+        <label for="showGridToggle">Show Grid</label>
+      </div>
+    </div>
+    
+    <div class="main-content">
+      <canvas id="canvas"></canvas>
+      
+      <div class="stats-box" id="statsBox">
+        <div style="color: #999; font-size: 0.9em;">Select a pasta and sauce, then click Pair Now to begin.</div>
+      </div>
+      
+      <div class="feedback-box" id="feedbackBox" style="display: none;"></div>
+      
+      <div class="grid-container" id="gridContainer">
+        <div style="margin-bottom: 12px; font-size: 0.95em; color: #999;">✓ Perfect Match | ~ Acceptable | ✗ Avoid</div>
+        <div class="grid" id="grid"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Pasta shapes with geometry, flavor, cooking data
+    const pastas = {
+      'Spaghetti': { emoji: '〰️', color: '#DAA520', width: 3, height: 200, type: 'thin-strand', baseTemp: 20 },
+      'Linguine': { emoji: '〰️', color: '#CD853F', width: 6, height: 200, type: 'thin-ribbon', baseTemp: 18 },
+      'Fettuccine': { emoji: '~~', color: '#B8860B', width: 12, height: 180, type: 'wide-ribbon', baseTemp: 16 },
+      'Pappardelle': { emoji: '~~~', color: '#8B6914', width: 20, height: 160, type: 'ultra-wide', baseTemp: 14 },
+      'Rigatoni': { emoji: '⬚', color: '#8B4513', width: 15, height: 25, type: 'tube-ridge', baseTemp: 22 },
+      'Penne': { emoji: '▶', color: '#F5DEB3', width: 12, height: 18, type: 'tube-diagonal', baseTemp: 20 },
+      'Farfalle': { emoji: '🎀', color: '#FFB6C1', width: 14, height: 14, type: 'bow-tie', baseTemp: 18 },
+      'Fusilli': { emoji: '∾', color: '#A0522D', width: 8, height: 22, type: 'spiral', baseTemp: 19 },
+      'Orzo': { emoji: '·', color: '#D2B48C', width: 6, height: 8, type: 'grain', baseTemp: 12 },
+      'Ravioli': { emoji: '□', color: '#DEB887', width: 18, height: 18, type: 'filled-square', baseTemp: 15 },
+      'Lasagna': { emoji: '▬', color: '#CD853F', width: 80, height: 4, type: 'sheet', baseTemp: 10 },
+      'Tortellini': { emoji: '🌀', color: '#DEB887', width: 14, height: 14, type: 'filled-ring', baseTemp: 14 }
+    };
+
+    // Sauce families with real flavor science
+    const sauces = {
+      'Tomato-Based': {
+        emoji: '🍅',
+        color: '#DC143C',
+        pH: 4.5,
+        thickness: 'light',
+        viscosity: 80,
+        cling: 'moderate',
+        bodyFeel: 'acidic-bright',
+        wineMatch: 'Chianti, Barbera',
+        ratioG: 20
+      },
+      'Cream-Based': {
+        emoji: '🥛',
+        color: '#F5F5DC',
+        pH: 6.8,
+        thickness: 'heavy',
+        viscosity: 200,
+        cling: 'strong',
+        bodyFeel: 'rich-coating',
+        wineMatch: 'Barolo, Brunello',
+        ratioG: 40
+      },
+      'Oil & Garlic': {
+        emoji: '🧈',
+        color: '#6B8E23',
+        pH: 6.0,
+        thickness: 'minimal',
+        viscosity: 30,
+        cling: 'light',
+        bodyFeel: 'silky-penetrating',
+        wineMatch: 'Pinot Grigio, Vermentino',
+        ratioG: 15
+      },
+      'Pesto': {
+        emoji: '🌿',
+        color: '#228B22',
+        pH: 5.2,
+        thickness: 'light',
+        viscosity: 120,
+        cling: 'moderate',
+        bodyFeel: 'fresh-herbal',
+        wineMatch: 'Vermentino, Cortese',
+        ratioG: 18
+      },
+      'Bolognese': {
+        emoji: '🍖',
+        color: '#6F4E37',
+        pH: 4.8,
+        thickness: 'heavy',
+        viscosity: 180,
+        cling: 'strong',
+        bodyFeel: 'umami-rich',
+        wineMatch: 'Barolo, Nebbioło',
+        ratioG: 40
+      },
+      'Seafood': {
+        emoji: '🦐',
+        color: '#87CEEB',
+        pH: 6.2,
+        thickness: 'light',
+        viscosity: 70,
+        cling: 'light',
+        bodyFeel: 'delicate-briny',
+        wineMatch: 'Vermentino, Greco',
+        ratioG: 12
+      },
+      'Cheese-Forward': {
+        emoji: '🧀',
+        color: '#FFD700',
+        pH: 6.5,
+        thickness: 'heavy',
+        viscosity: 160,
+        cling: 'strong',
+        bodyFeel: 'savory-coating',
+        wineMatch: 'Fontina Bianco, Fiano',
+        ratioG: 35
+      },
+      'Wine Reduction': {
+        emoji: '🍷',
+        color: '#6A0572',
+        pH: 3.2,
+        thickness: 'medium',
+        viscosity: 140,
+        cling: 'moderate',
+        bodyFeel: 'tannic-elegant',
+        wineMatch: 'Nebbiolo, Amarone',
+        ratioG: 22
+      }
+    };
+
+    // Real pairing science: pasta type × sauce family → compatibility
+    const pairingMatrix = {
+      'Spaghetti': { 'Tomato-Based': '✓', 'Oil & Garlic': '✓', 'Pesto': '~', 'Seafood': '✓', 'Wine Reduction': '~', 'Cream-Based': '✗', 'Bolognese': '✗', 'Cheese-Forward': '~' },
+      'Linguine': { 'Tomato-Based': '✓', 'Oil & Garlic': '✓', 'Pesto': '✓', 'Seafood': '✓', 'Wine Reduction': '✓', 'Cream-Based': '~', 'Bolognese': '✗', 'Cheese-Forward': '~' },
+      'Fettuccine': { 'Tomato-Based': '~', 'Oil & Garlic': '~', 'Pesto': '~', 'Seafood': '~', 'Wine Reduction': '~', 'Cream-Based': '✓', 'Bolognese': '✓', 'Cheese-Forward': '✓' },
+      'Pappardelle': { 'Tomato-Based': '~', 'Oil & Garlic': '~', 'Pesto': '~', 'Seafood': '~', 'Wine Reduction': '~', 'Cream-Based': '~', 'Bolognese': '✓', 'Cheese-Forward': '~' },
+      'Rigatoni': { 'Tomato-Based': '✓', 'Oil & Garlic': '~', 'Pesto': '~', 'Seafood': '~', 'Wine Reduction': '✓', 'Cream-Based': '~', 'Bolognese': '✓', 'Cheese-Forward': '✓' },
+      'Penne': { 'Tomato-Based': '✓', 'Oil & Garlic': '✓', 'Pesto': '✓', 'Seafood': '~', 'Wine Reduction': '~', 'Cream-Based': '~', 'Bolognese': '✓', 'Cheese-Forward': '✓' },
+      'Farfalle': { 'Tomato-Based': '~', 'Oil & Garlic': '~', 'Pesto': '✓', 'Seafood': '✓', 'Wine Reduction': '~', 'Cream-Based': '~', 'Bolognese': '~', 'Cheese-Forward': '~' },
+      'Fusilli': { 'Tomato-Based': '✓', 'Oil & Garlic': '✓', 'Pesto': '✓', 'Seafood': '~', 'Wine Reduction': '~', 'Cream-Based': '~', 'Bolognese': '✓', 'Cheese-Forward': '✓' },
+      'Orzo': { 'Tomato-Based': '✓', 'Oil & Garlic': '✓', 'Pesto': '~', 'Seafood': '✓', 'Wine Reduction': '~', 'Cream-Based': '~', 'Bolognese': '~', 'Cheese-Forward': '~' },
+      'Ravioli': { 'Tomato-Based': '~', 'Oil & Garlic': '✓', 'Pesto': '~', 'Seafood': '✓', 'Wine Reduction': '✓', 'Cream-Based': '✓', 'Bolognese': '~', 'Cheese-Forward': '~' },
+      'Lasagna': { 'Tomato-Based': '✓', 'Oil & Garlic': '~', 'Pesto': '~', 'Seafood': '✗', 'Wine Reduction': '~', 'Cream-Based': '✓', 'Bolognese': '✓', 'Cheese-Forward': '✓' },
+      'Tortellini': { 'Tomato-Based': '~', 'Oil & Garlic': '✓', 'Pesto': '~', 'Seafood': '~', 'Wine Reduction': '✓', 'Cream-Based': '✓', 'Bolognese': '~', 'Cheese-Forward': '✓' }
+    };
+
+    // Real gastronomy explanations
+    const explanations = {
+      'Spaghetti': {
+        'Tomato-Based': { rating: '✓', fact: 'Long thin strands hold light tomato perfectly. 20 min boil, 16–17 min al dente. Pair with Chianti Classico acidity (pH 3.5).' },
+        'Oil & Garlic': { rating: '✓', fact: 'Silky aglio e olio coats thin strands evenly. 16 min boil. Aglio oil penetrates noodle ridges.' },
+        'Seafood': { rating: '✓', fact: 'Delicate seafood oil won\'t overwhelm thin noodles. Shrimp or clam broth clings lightly.' },
+        'Cream-Based': { rating: '✗', fact: 'Thin strands collapse under heavy cream. Sauce slides off — select Fettuccine instead.' },
+        'Bolognese': { rating: '✗', fact: 'Thick ragu (40:1 ratio) too heavy for spaghetti. Meat slides to bowl bottom. Use Rigatoni.' }
+      },
+      'Fettuccine': {
+        'Cream-Based': { rating: '✓', fact: 'Wide ribbons suspend cream sauce perfectly (40:1 ratio). 14 min boil, reserve pasta water for emulsion. Barolo acidity cuts fat.' },
+        'Bolognese': { rating: '✓', fact: 'Ribbon surface absorbs thick ragu evenly. 40:1 Michelin ratio. Barolo aging 3+ years ideal for tannin balance.' },
+        'Cheese-Forward': { rating: '✓', fact: 'Fettuccine cacio e pepe: ribbon shape prevents cheese from balling. 14 min boil, toss hot with pecorino + reserved pasta water.' }
+      },
+      'Rigatoni': {
+        'Tomato-Based': { rating: '✓', fact: 'Ridged tubes trap light tomato sauce (20:1). Ridge geometry increases surface contact. Boil 16 min, sauce simmers 8 min to reduce pH.' },
+        'Bolognese': { rating: '✓', fact: 'Tubes trap thick ragu inside (40:1 ratio). Ridges amplify sauce absorption. Authentic Bolognese 3+ hour slow cook unlocks glutamates.' }
+      },
+      'Penne': {
+        'Tomato-Based': { rating: '✓', fact: 'Diagonal-cut tubes catch tomato + oil equally. 13 min boil. Pasta:sauce 1:1.5 by weight for professional plating.' },
+        'Pesto': { rating: '✓', fact: 'Basil oil adheres to penne diagonal cuts. 13 min boil. Pine nuts + garlic create emulsion with pasta starch.' }
+      },
+      'Farfalle': {
+        'Pesto': { rating: '✓', fact: 'Farfalle bow pockets trap fresh basil oil. 12 min boil. Linalool (basil aroma) volatile — toss room-temp or warm (not hot).' },
+        'Seafood': { rating: '✓', fact: 'Bow shape holds light seafood broth in pockets. White wine reduction (pH 3.2) balances delicate fish.' }
+      },
+      'Ravioli': {
+        'Oil & Garlic': { rating: '✓', fact: 'Filled pasta merits simple aglio e olio (≤12:1 ratio) to showcase filling. Butter + sage classic alternative.' },
+        'Cream-Based': { rating: '✓', fact: 'Light cream allows filling flavors to shine. Ricotta/spinach inside pairs with subtle cream outside.' }
+      }
+    };
+
+    let selectedPasta = 'Spaghetti';
+    let selectedSauce = 'Tomato-Based';
+
+    // Initialize UI
+    function initUI() {
+      const pastaContainer = document.getElementById('pastaSelector');
+      Object.keys(pastas).forEach(p => {
+        const div = document.createElement('div');
+        div.className = 'radio-group';
+        div.innerHTML = `
+          <input type="radio" id="pasta_${p}" name="pasta" value="${p}" ${p === 'Spaghetti' ? 'checked' : ''}>
+          <label for="pasta_${p}">${pastas[p].emoji} ${p}</label>
+        `;
+        div.addEventListener('change', (e) => {
+          selectedPasta = e.target.value;
+          drawPasta();
+        });
+        pastaContainer.appendChild(div);
+      });
+
+      const sauceContainer = document.getElementById('sauceSelector');
+      Object.keys(sauces).forEach(s => {
+        const div = document.createElement('div');
+        div.className = 'radio-group';
+        div.innerHTML = `
+          <input type="radio" id="sauce_${s}" name="sauce" value="${s}" ${s === 'Tomato-Based' ? 'checked' : ''}>
+          <label for="sauce_${s}">${sauces[s].emoji} ${s}</label>
+        `;
+        div.addEventListener('change', (e) => {
+          selectedSauce = e.target.value;
+          drawPasta();
+        });
+        sauceContainer.appendChild(div);
+      });
+
+      document.getElementById('pairBtn').addEventListener('click', pair);
+      document.getElementById('showGridToggle').addEventListener('change', (e) => {
+        const gridContainer = document.getElementById('gridContainer');
+        if (e.target.checked) {
+          buildGrid();
+          gridContainer.classList.add('visible');
+        } else {
+          gridContainer.classList.remove('visible');
+        }
+      });
+    }
+
+    // Canvas drawing
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+
+    function resizeCanvas() {
+      canvas.width = canvas.offsetWidth * window.devicePixelRatio;
+      canvas.height = canvas.offsetHeight * window.devicePixelRatio;
+      ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+      drawPasta();
+    }
+
+    function drawPasta() {
+      const w = canvas.width / window.devicePixelRatio;
+      const h = canvas.height / window.devicePixelRatio;
+      ctx.clearRect(0, 0, w, h);
+
+      const pasta = pastas[selectedPasta];
+      const sauce = sauces[selectedSauce];
+
+      // Draw sauce swirl background
+      const gradient = ctx.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, Math.max(w, h) / 2);
+      gradient.addColorStop(0, sauce.color + '40');
+      gradient.addColorStop(1, sauce.color + '10');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, w, h);
+
+      // Draw pasta shape
+      ctx.save();
+      ctx.translate(w / 2, h / 2);
+      ctx.rotate(Date.now() / 2000);
+
+      ctx.strokeStyle = pasta.color;
+      ctx.lineWidth = 4;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+
+      if (pasta.type === 'thin-strand') {
+        for (let i = -3; i <= 3; i++) {
+          ctx.beginPath();
+          ctx.moveTo(i * 10, -80);
+          ctx.quadraticCurveTo(i * 10 + 5, 0, i * 10, 80);
+          ctx.stroke();
+        }
+      } else if (pasta.type === 'thin-ribbon' || pasta.type === 'wide-ribbon' || pasta.type === 'ultra-wide') {
+        ctx.fillStyle = pasta.color + 'cc';
+        ctx.fillRect(-pasta.width / 2, -pasta.height / 2, pasta.width, pasta.height);
+      } else if (pasta.type === 'tube-ridge' || pasta.type === 'tube-diagonal') {
+        ctx.fillStyle = pasta.color;
+        ctx.fillRect(-pasta.width / 2, -pasta.height / 2, pasta.width, pasta.height);
+        ctx.strokeStyle = pasta.color + '80';
+        ctx.lineWidth = 1;
+        for (let i = -10; i <= 10; i += 2) {
+          ctx.beginPath();
+          ctx.moveTo(-pasta.width / 2, -pasta.height / 2 + i * 2);
+          ctx.lineTo(pasta.width / 2, -pasta.height / 2 + i * 2);
+          ctx.stroke();
+        }
+      } else if (pasta.type === 'bow-tie') {
+        ctx.fillStyle = pasta.color;
+        ctx.beginPath();
+        ctx.ellipse(-6, 0, 5, 8, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.ellipse(6, 0, 5, 8, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillRect(-3, -2, 6, 4);
+      } else if (pasta.type === 'spiral') {
+        ctx.strokeStyle = pasta.color;
+        ctx.lineWidth = 5;
+        ctx.beginPath();
+        for (let a = 0; a < Math.PI * 4; a += 0.1) {
+          const x = Math.cos(a) * (a / Math.PI * 30);
+          const y = Math.sin(a) * (a / Math.PI * 30);
+          a === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+      } else if (pasta.type === 'grain') {
+        ctx.fillStyle = pasta.color;
+        for (let i = -8; i <= 8; i += 2) {
+          ctx.fillRect(i, -3, 1.5, 6);
+        }
+      }
+
+      ctx.restore();
+    }
+
+    function pair() {
+      const rating = pairingMatrix[selectedPasta][selectedSauce];
+      const pasta = pastas[selectedPasta];
+      const sauce = sauces[selectedSauce];
+
+      let ratingClass = rating === '✓' ? 'perfect' : rating === '~' ? 'acceptable' : 'avoid';
+      let ratingText = rating === '✓' ? 'Perfect Match!' : rating === '~' ? 'Acceptable' : 'Not Ideal';
+
+      let html = `<div class="rating ${ratingClass}">${rating} ${ratingText}</div>`;
+      html += `<div><strong>${selectedPasta} + ${selectedSauce}</strong></div>`;
+      html += `<div style="margin-top: 8px; font-size: 0.9em;">Flavor intensity: ${sauce.viscosity}/255 | Wine: ${sauce.wineMatch}</div>`;
+
+      const explanation = explanations[selectedPasta]?.[selectedSauce];
+      if (explanation) {
+        html += `<div class="feedback-box">${explanation.fact}</div>`;
+        document.getElementById('feedbackBox').innerHTML = explanation.fact;
+        document.getElementById('feedbackBox').style.display = 'block';
+      }
+
+      document.getElementById('statsBox').innerHTML = html;
+    }
+
+    function buildGrid() {
+      const gridDiv = document.getElementById('grid');
+      gridDiv.innerHTML = '';
+      let pastaList = Object.keys(pastas);
+      let sauceList = Object.keys(sauces);
+
+      pastaList.forEach((pasta, pi) => {
+        sauceList.forEach((sauce, si) => {
+          const rating = pairingMatrix[pasta][sauce];
+          const cell = document.createElement('div');
+          cell.className = `grid-cell ${rating === '✓' ? 'match' : rating === '~' ? 'acceptable' : 'avoid'}`;
+          cell.textContent = rating;
+          cell.addEventListener('click', () => {
+            document.querySelector(`input[value="${pasta}"]`).checked = true;
+            document.querySelector(`input[value="${sauce}"]`).checked = true;
+            selectedPasta = pasta;
+            selectedSauce = sauce;
+            drawPasta();
+            pair();
+          });
+          gridDiv.appendChild(cell);
+        });
+      });
+    }
+
+    window.addEventListener('resize', resizeCanvas);
+    initUI();
+    resizeCanvas();
+  </script>
+</body>
+</html>
