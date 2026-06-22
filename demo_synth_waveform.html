@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Synth Waveform Explorer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Space Mono', monospace;
+            background: #f5f1e8;
+            color: #4a4238;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+            display: flex;
+            flex-direction: row;
+        }
+        .sidebar {
+            width: 280px;
+            background: #faf8f3;
+            padding: 24px;
+            border-right: 1px solid #e0d5c7;
+            overflow-y: auto;
+            max-height: 100vh;
+        }
+        .main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 24px;
+            gap: 16px;
+        }
+        h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 28px;
+            color: #2c1810;
+            margin-bottom: 24px;
+            text-align: center;
+        }
+        .section-label {
+            font-weight: 700;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #8b7355;
+            margin-top: 16px;
+            margin-bottom: 8px;
+        }
+        .waveform-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        button.waveform-btn {
+            padding: 10px 16px;
+            border: 2px solid #d4c5b9;
+            background: white;
+            color: #4a4238;
+            border-radius: 6px;
+            font-family: 'Space Mono', monospace;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: left;
+        }
+        button.waveform-btn:hover {
+            border-color: #a89080;
+            background: #faf8f3;
+        }
+        button.waveform-btn.active {
+            border-color: #2c1810;
+            background: #2c1810;
+            color: white;
+        }
+        .slider-group {
+            margin-bottom: 16px;
+        }
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+            font-size: 12px;
+        }
+        .slider-label .value {
+            font-family: 'Space Mono', monospace;
+            font-weight: 700;
+        }
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #e0d5c7;
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #2c1810;
+            cursor: pointer;
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #2c1810;
+            cursor: pointer;
+            border: none;
+        }
+        .control-buttons {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        .control-buttons button {
+            flex: 1;
+            padding: 10px;
+            border: 2px solid #d4c5b9;
+            background: white;
+            color: #4a4238;
+            border-radius: 6px;
+            font-family: 'Space Mono', monospace;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .control-buttons button:hover {
+            border-color: #a89080;
+            background: #faf8f3;
+        }
+        .control-buttons button.active {
+            background: #2c1810;
+            color: white;
+            border-color: #2c1810;
+        }
+        .tabs {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 12px;
+            border-bottom: 2px solid #e0d5c7;
+        }
+        .tab-btn {
+            padding: 8px 16px;
+            background: transparent;
+            border: none;
+            color: #8b7355;
+            font-family: 'Space Mono', monospace;
+            font-weight: 700;
+            font-size: 12px;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .tab-btn:hover {
+            color: #4a4238;
+        }
+        .tab-btn.active {
+            color: #2c1810;
+            border-bottom-color: #2c1810;
+        }
+        canvas {
+            background: white;
+            border: 1px solid #e0d5c7;
+            border-radius: 8px;
+            width: 100%;
+            max-width: 900px;
+            height: auto;
+            aspect-ratio: 16 / 10;
+        }
+        .stats-box {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            width: 100%;
+            margin-top: 12px;
+        }
+        .stat {
+            background: #f5f1e8;
+            padding: 10px;
+            border-radius: 6px;
+            border-left: 3px solid #2c1810;
+            font-size: 11px;
+        }
+        .stat-label {
+            color: #8b7355;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+        .stat-value {
+            font-family: 'Space Mono', monospace;
+            font-weight: 700;
+            color: #2c1810;
+            margin-top: 2px;
+        }
+        .toggle-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 12px 0;
+            cursor: pointer;
+            user-select: none;
+        }
+        .toggle-label input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            accent-color: #2c1810;
+        }
+        .toggle-label span {
+            font-size: 13px;
+        }
+        @media (max-width: 900px) {
+            .container {
+                flex-direction: column;
+            }
+            .sidebar {
+                width: 100%;
+                border-right: none;
+                border-bottom: 1px solid #e0d5c7;
+                max-height: auto;
+            }
+            .main {
+                padding: 16px;
+            }
+            h1 {
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <h1 style="margin-bottom: 8px;">🎸</h1>
+            <div class="section-label">Waveform</div>
+            <div class="waveform-buttons">
+                <button class="waveform-btn active" data-wave="sine">Sine</button>
+                <button class="waveform-btn" data-wave="square">Square</button>
+                <button class="waveform-btn" data-wave="triangle">Triangle</button>
+                <button class="waveform-btn" data-wave="sawtooth">Sawtooth</button>
+            </div>
+            
+            <div class="slider-group">
+                <div class="slider-label">
+                    <span>Frequency (Hz)</span>
+                    <span class="value" id="freqValue">440</span>
+                </div>
+                <input type="range" id="freqSlider" min="20" max="2000" value="440" step="10">
+            </div>
+            
+            <div class="slider-group">
+                <div class="slider-label">
+                    <span>Amplitude</span>
+                    <span class="value" id="ampValue">100%</span>
+                </div>
+                <input type="range" id="ampSlider" min="10" max="100" value="100" step="5">
+            </div>
+            
+            <div class="control-buttons">
+                <button id="playBtn">Play</button>
+                <button id="stopBtn">Stop</button>
+            </div>
+            
+            <div class="toggle-label">
+                <input type="checkbox" id="spectrumToggle">
+                <span>Show Spectrum</span>
+            </div>
+        </div>
+        
+        <div class="main">
+            <div class="tabs" id="tabs">
+                <button class="tab-btn active" data-tab="waveform">Waveform</button>
+                <button class="tab-btn" data-tab="spectrum">Harmonics</button>
+            </div>
+            <canvas id="canvas" width="900" height="560"></canvas>
+            <div class="stats-box">
+                <div class="stat">
+                    <div class="stat-label">Period</div>
+                    <div class="stat-value" id="periodValue">2.27 ms</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-label">Wavelength</div>
+                    <div class="stat-value" id="wavelengthValue">780 mm</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-label">Current Wave</div>
+                    <div class="stat-value" id="waveValue">Sine</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-label">Amplitude</div>
+                    <div class="stat-value" id="displayAmpValue">100%</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const freqSlider = document.getElementById('freqSlider');
+        const ampSlider = document.getElementById('ampSlider');
+        const freqValue = document.getElementById('freqValue');
+        const ampValue = document.getElementById('ampValue');
+        const playBtn = document.getElementById('playBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const spectrumToggle = document.getElementById('spectrumToggle');
+        const tabs = document.querySelectorAll('.tab-btn');
+        const waveButtons = document.querySelectorAll('.waveform-btn');
+        
+        let currentWave = 'sine';
+        let frequency = 440;
+        let amplitude = 1;
+        let showSpectrum = false;
+        let activeTab = 'waveform';
+        let isPlaying = false;
+        let audioContext = null;
+        let oscillator = null;
+        let gainNode = null;
+        
+        // Waveform selection
+        waveButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                waveButtons.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentWave = btn.dataset.wave;
+                if (isPlaying) {
+                    stopAudio();
+                    playAudio();
+                }
+                updateStats();
+                draw();
+            });
+        });
+        
+        // Frequency slider
+        freqSlider.addEventListener('input', (e) => {
+            frequency = parseInt(e.target.value);
+            freqValue.textContent = frequency;
+            updateStats();
+            if (isPlaying && oscillator) {
+                oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
+            }
+            draw();
+        });
+        
+        // Amplitude slider
+        ampSlider.addEventListener('input', (e) => {
+            amplitude = parseInt(e.target.value) / 100;
+            ampValue.textContent = e.target.value + '%';
+            updateStats();
+            if (isPlaying && gainNode) {
+                gainNode.gain.setValueAtTime(amplitude * 0.3, audioContext.currentTime);
+            }
+            draw();
+        });
+        
+        // Tabs
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                tabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                activeTab = tab.dataset.tab;
+                draw();
+            });
+        });
+        
+        // Spectrum toggle
+        spectrumToggle.addEventListener('change', () => {
+            showSpectrum = spectrumToggle.checked;
+            if (showSpectrum) activeTab = 'spectrum';
+            draw();
+        });
+        
+        // Audio controls
+        function playAudio() {
+            if (isPlaying) return;
+            
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            
+            oscillator = audioContext.createOscillator();
+            gainNode = audioContext.createGain();
+            
+            oscillator.type = currentWave;
+            oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
+            gainNode.gain.setValueAtTime(amplitude * 0.3, audioContext.currentTime);
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            oscillator.start();
+            
+            isPlaying = true;
+            playBtn.classList.add('active');
+            stopBtn.classList.remove('active');
+        }
+        
+        function stopAudio() {
+            if (!isPlaying) return;
+            oscillator.stop();
+            isPlaying = false;
+            playBtn.classList.remove('active');
+            stopBtn.classList.add('active');
+        }
+        
+        playBtn.addEventListener('click', playAudio);
+        stopBtn.addEventListener('click', stopAudio);
+        
+        // Update stats
+        function updateStats() {
+            const period = 1000 / frequency;
+            const wavelength = 343000 / frequency;
+            document.getElementById('periodValue').textContent = period.toFixed(2) + ' ms';
+            document.getElementById('wavelengthValue').textContent = wavelength.toFixed(0) + ' mm';
+            document.getElementById('waveValue').textContent = currentWave.charAt(0).toUpperCase() + currentWave.slice(1);
+            document.getElementById('displayAmpValue').textContent = (amplitude * 100).toFixed(0) + '%';
+        }
+        
+        // Drawing functions
+        function drawWaveform() {
+            const width = canvas.width;
+            const height = canvas.height;
+            const centerY = height / 2;
+            const maxAmplitude = (height / 2) * 0.8;
+            
+            // Grid
+            ctx.strokeStyle = '#c9c0b0';
+            ctx.lineWidth = 1;
+            const periodPixels = width / 2;
+            for (let i = 0; i < width; i += periodPixels / 4) {
+                ctx.beginPath();
+                ctx.moveTo(i, 0);
+                ctx.lineTo(i, height);
+                ctx.stroke();
+            }
+            for (let i = 0; i < height; i += height / 4) {
+                ctx.beginPath();
+                ctx.moveTo(0, i);
+                ctx.lineTo(width, i);
+                ctx.stroke();
+            }
+            
+            // Axes
+            ctx.strokeStyle = '#4a4238';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(0, centerY);
+            ctx.lineTo(width, centerY);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(0, height);
+            ctx.stroke();
+            
+            // Waveform colors
+            const colors = {
+                sine: '#5c8fb8',
+                square: '#ff6b6b',
+                triangle: '#2d9d5f',
+                sawtooth: '#f0a202'
+            };
+            
+            ctx.strokeStyle = colors[currentWave];
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            
+            const samples = width;
+            for (let x = 0; x < samples; x++) {
+                const t = (x / periodPixels) * Math.PI * 2;
+                let y;
+                
+                switch (currentWave) {
+                    case 'sine':
+                        y = Math.sin(t);
+                        break;
+                    case 'square':
+                        y = Math.sign(Math.sin(t));
+                        break;
+                    case 'triangle':
+                        y = Math.asin(Math.sin(t)) * (2 / Math.PI);
+                        break;
+                    case 'sawtooth':
+                        y = 2 * (t / (2 * Math.PI) - Math.floor(t / (2 * Math.PI) + 0.5));
+                        break;
+                }
+                
+                const screenY = centerY - y * maxAmplitude * amplitude;
+                if (x === 0) ctx.moveTo(x, screenY);
+                else ctx.lineTo(x, screenY);
+            }
+            
+            ctx.stroke();
+            
+            // Labels
+            ctx.fillStyle = '#4a4238';
+            ctx.font = '12px "Space Mono"';
+            ctx.textAlign = 'left';
+            ctx.fillText('Amplitude', 10, 20);
+            ctx.fillText('Time', width - 60, height - 10);
+        }
+        
+        function getHarmonics(wave) {
+            const harmonics = [];
+            const maxHarmonics = 8;
+            
+            switch (wave) {
+                case 'sine':
+                    harmonics.push({ n: 1, amp: 1 });
+                    break;
+                case 'square':
+                    for (let n = 1; n <= maxHarmonics; n += 2) {
+                        harmonics.push({ n, amp: 4 / (Math.PI * n) });
+                    }
+                    break;
+                case 'triangle':
+                    for (let n = 1; n <= maxHarmonics; n += 2) {
+                        harmonics.push({ n, amp: 8 / (Math.PI * Math.PI * n * n) * (n % 4 === 1 ? 1 : -1) });
+                    }
+                    break;
+                case 'sawtooth':
+                    for (let n = 1; n <= maxHarmonics; n++) {
+                        harmonics.push({ n, amp: 2 / (Math.PI * n) * (n % 2 === 0 ? -1 : 1) });
+                    }
+                    break;
+            }
+            
+            return harmonics;
+        }
+        
+        function drawSpectrum() {
+            const width = canvas.width;
+            const height = canvas.height;
+            const padding = 60;
+            const graphWidth = width - padding * 2;
+            const graphHeight = height - padding * 2;
+            const centerY = height / 2;
+            
+            // Background
+            ctx.fillStyle = '#f5f1e8';
+            ctx.fillRect(padding, padding, graphWidth, graphHeight);
+            
+            // Axes
+            ctx.strokeStyle = '#4a4238';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(padding, centerY);
+            ctx.lineTo(width - padding, centerY);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(padding, padding);
+            ctx.lineTo(padding, height - padding);
+            ctx.stroke();
+            
+            // Labels
+            ctx.fillStyle = '#4a4238';
+            ctx.font = '12px "Space Mono"';
+            ctx.textAlign = 'center';
+            ctx.fillText('Frequency (× fundamental)', width / 2, height - 20);
+            ctx.textAlign = 'right';
+            ctx.fillText('Amplitude (dB)', 30, height / 2);
+            
+            // Harmonics
+            const harmonics = getHarmonics(currentWave);
+            const colors = {
+                sine: '#5c8fb8',
+                square: '#ff6b6b',
+                triangle: '#2d9d5f',
+                sawtooth: '#f0a202'
+            };
+            
+            const maxHarmonics = Math.max(...harmonics.map(h => h.n));
+            const barWidth = graphWidth / (maxHarmonics + 1);
+            
+            harmonics.forEach(h => {
+                const x = padding + (h.n * barWidth);
+                const dB = 20 * Math.log10(Math.abs(h.amp) * amplitude + 0.01);
+                const normalizedDB = Math.max(0, Math.min(1, (dB + 40) / 40));
+                const barHeight = normalizedDB * graphHeight;
+                const y = centerY - barHeight / 2;
+                
+                ctx.fillStyle = colors[currentWave];
+                ctx.globalAlpha = 0.7;
+                ctx.fillRect(x - barWidth / 3, centerY, barWidth * 2 / 3, -barHeight);
+                ctx.globalAlpha = 1;
+                
+                ctx.fillStyle = '#4a4238';
+                ctx.font = '11px "Space Mono"';
+                ctx.textAlign = 'center';
+                ctx.fillText(h.n, x, height - padding + 20);
+            });
+        }
+        
+        function draw() {
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            if (activeTab === 'waveform' && !showSpectrum) {
+                drawWaveform();
+            } else {
+                drawSpectrum();
+            }
+        }
+        
+        updateStats();
+        draw();
+        
+        window.addEventListener('resize', () => {
+            const rect = canvas.getBoundingClientRect();
+            if (rect.width > 0) {
+                canvas.width = rect.width;
+                draw();
+            }
+        });
+    </script>
+</body>
+</html>
