@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chord Explorer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Space+Mono:wght@400&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Space Mono', monospace;
+            background: linear-gradient(135deg, #f5f1e8 0%, #ede8de 100%);
+            color: #2c2c2c;
+            display: flex;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            display: flex;
+            gap: 30px;
+            max-width: 1400px;
+            margin: 0 auto;
+            width: 100%;
+        }
+        .sidebar {
+            width: 280px;
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .main-area {
+            flex: 1;
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+        h2 {
+            font-family: 'Playfair Display', serif;
+            font-size: 24px;
+            color: #2c2c2c;
+            margin-bottom: 10px;
+        }
+        h3 {
+            font-family: 'Playfair Display', serif;
+            font-size: 18px;
+            color: #2c2c2c;
+            margin: 15px 0 10px 0;
+        }
+        .section-label {
+            font-size: 12px;
+            font-weight: bold;
+            color: #999;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+        select, input[type="range"], input[type="number"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-family: 'Space Mono', monospace;
+            font-size: 14px;
+            margin-bottom: 12px;
+        }
+        .button-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        .progression-btn {
+            padding: 8px 12px;
+            background: #f0f0f0;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: 'Space Mono', monospace;
+            font-size: 13px;
+            font-weight: bold;
+            color: #2c2c2c;
+            transition: all 0.2s;
+        }
+        .progression-btn:hover {
+            background: #e8e8e8;
+            border-color: #999;
+        }
+        .progression-btn.selected {
+            background: #66bb6a;
+            color: white;
+            border-color: #66bb6a;
+        }
+        .progression-btn.playing {
+            background: #d4af37;
+            color: white;
+            border-color: #d4af37;
+        }
+        .control-btn {
+            padding: 10px;
+            background: #66bb6a;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: 'Space Mono', monospace;
+            font-size: 14px;
+            font-weight: bold;
+            width: 100%;
+            transition: all 0.2s;
+        }
+        .control-btn:hover {
+            background: #5aaa5e;
+        }
+        .stat-box {
+            background: #f9f9f9;
+            border-left: 4px solid #66bb6a;
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 12px;
+        }
+        .stat-label {
+            color: #999;
+            text-transform: uppercase;
+            font-size: 10px;
+            letter-spacing: 1px;
+        }
+        .stat-value {
+            font-size: 14px;
+            font-weight: bold;
+            color: #2c2c2c;
+            margin-top: 4px;
+        }
+        canvas {
+            border: 1px solid #eee;
+            border-radius: 8px;
+            display: block;
+            width: 100%;
+            height: auto;
+        }
+        .tabs {
+            display: flex;
+            gap: 10px;
+            border-bottom: 2px solid #eee;
+            margin-bottom: 15px;
+        }
+        .tab-btn {
+            padding: 10px 15px;
+            background: transparent;
+            border: none;
+            border-bottom: 3px solid transparent;
+            cursor: pointer;
+            font-family: 'Space Mono', monospace;
+            font-weight: bold;
+            color: #999;
+            transition: all 0.2s;
+        }
+        .tab-btn.active {
+            color: #2c2c2c;
+            border-bottom-color: #66bb6a;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .preset-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+        .preset-btn {
+            padding: 8px;
+            background: #f0f0f0;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: 'Space Mono', monospace;
+            font-size: 11px;
+            transition: all 0.2s;
+        }
+        .preset-btn:hover {
+            background: #e8e8e8;
+        }
+        @media (max-width: 1024px) {
+            .container {
+                flex-direction: column;
+            }
+            .sidebar {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <div>
+                <h2>🎼 Chord<br>Explorer</h2>
+                <p style="font-size: 12px; color: #999; line-height: 1.5;">Build progressions in any key. Hear real harmonic function.</p>
+            </div>
+
+            <div>
+                <div class="section-label">Key</div>
+                <select id="keySelect">
+                    <option value="C">C Major</option>
+                    <option value="G">G Major</option>
+                    <option value="D">D Major</option>
+                    <option value="F">F Major</option>
+                    <option value="A">A Major</option>
+                    <option value="E">E Major</option>
+                    <option value="B">B Major</option>
+                    <option value="Cm">C Minor</option>
+                    <option value="Am">A Minor</option>
+                    <option value="Em">E Minor</option>
+                    <option value="Dm">D Minor</option>
+                </select>
+            </div>
+
+            <div>
+                <div class="section-label">Progression Buttons</div>
+                <div class="button-group">
+                    <button class="progression-btn" data-degree="I">I</button>
+                    <button class="progression-btn" data-degree="ii">ii</button>
+                    <button class="progression-btn" data-degree="iii">iii</button>
+                    <button class="progression-btn" data-degree="IV">IV</button>
+                    <button class="progression-btn" data-degree="V">V</button>
+                    <button class="progression-btn" data-degree="vi">vi</button>
+                    <button class="progression-btn" data-degree="vii°">vii°</button>
+                </div>
+            </div>
+
+            <div>
+                <div class="section-label">Voicing</div>
+                <select id="voicingSelect">
+                    <option value="root">Root Position</option>
+                    <option value="first">First Inversion</option>
+                    <option value="second">Second Inversion</option>
+                </select>
+            </div>
+
+            <div>
+                <div class="section-label">Beat Length</div>
+                <select id="beatSelect">
+                    <option value="0.5">½ Beat</option>
+                    <option value="1" selected>1 Beat</option>
+                    <option value="2">2 Beats</option>
+                    <option value="4">4 Beats</option>
+                </select>
+            </div>
+
+            <div>
+                <div class="section-label">Tempo (BPM)</div>
+                <input type="range" id="tempoSlider" min="60" max="180" value="120">
+                <div style="text-align: center; font-weight: bold;" id="tempoValue">120</div>
+            </div>
+
+            <div>
+                <button class="control-btn" id="playBtn">▶ Play</button>
+                <button class="control-btn" id="stopBtn" style="background: #999; margin-top: 8px;">⏹ Stop</button>
+                <button class="control-btn" id="clearBtn" style="background: #d9534f; margin-top: 8px;">✕ Clear</button>
+            </div>
+
+            <div>
+                <div class="section-label">Presets</div>
+                <div class="preset-row">
+                    <button class="preset-btn" data-preset="classic">I–IV–V–I</button>
+                    <button class="preset-btn" data-preset="sad">I–vi–IV–V</button>
+                    <button class="preset-btn" data-preset="jazz">ii–V–I</button>
+                    <button class="preset-btn" data-preset="pop">I–iii–vi–IV</button>
+                </div>
+            </div>
+
+            <div id="statsBox" style="margin-top: auto;">
+                <h3>Now Playing</h3>
+                <div class="stat-box">
+                    <div class="stat-label">Current Chord</div>
+                    <div class="stat-value" id="currentChordStat">—</div>
+                </div>
+                <div class="stat-box" style="margin-top: 10px;">
+                    <div class="stat-label">Function</div>
+                    <div class="stat-value" id="functionStat">—</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="main-area">
+            <div class="tabs">
+                <button class="tab-btn active" data-tab="builder">Builder</button>
+                <button class="tab-btn" data-tab="staff">Staff Notation</button>
+                <button class="tab-btn" data-tab="waveform">Waveform</button>
+            </div>
+
+            <div id="builder" class="tab-content active">
+                <h3>Your Progression</h3>
+                <div id="progressionDisplay" style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 15px; min-height: 50px;">
+                    <div style="color: #999; font-size: 14px;">Click buttons above to build a progression</div>
+                </div>
+            </div>
+
+            <div id="staff" class="tab-content">
+                <canvas id="staffCanvas" width="900" height="300"></canvas>
+            </div>
+
+            <div id="waveform" class="tab-content">
+                <canvas id="waveformCanvas" width="900" height="300"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Note frequencies (Hz) for equal temperament A4 = 440 Hz
+        const noteFreqs = {
+            'C': 261.63, 'D': 293.66, 'E': 329.63, 'F': 349.23,
+            'G': 391.99, 'A': 440, 'B': 493.88
+        };
+
+        const keys = {
+            'C': { tonic: 'C', scale: ['C', 'D', 'E', 'F', 'G', 'A', 'B'], chords: { 'I': ['C', 'E', 'G'], 'ii': ['D', 'F', 'A'], 'iii': ['E', 'G', 'B'], 'IV': ['F', 'A', 'C'], 'V': ['G', 'B', 'D'], 'vi': ['A', 'C', 'E'], 'vii°': ['B', 'D', 'F'] } },
+            'G': { tonic: 'G', scale: ['G', 'A', 'B', 'C', 'D', 'E', 'F#'], chords: { 'I': ['G', 'B', 'D'], 'ii': ['A', 'C', 'E'], 'iii': ['B', 'D', 'F#'], 'IV': ['C', 'E', 'G'], 'V': ['D', 'F#', 'A'], 'vi': ['E', 'G', 'B'], 'vii°': ['F#', 'A', 'C'] } },
+            'D': { tonic: 'D', scale: ['D', 'E', 'F#', 'G', 'A', 'B', 'C#'], chords: { 'I': ['D', 'F#', 'A'], 'ii': ['E', 'G', 'B'], 'iii': ['F#', 'A', 'C#'], 'IV': ['G', 'B', 'D'], 'V': ['A', 'C#', 'E'], 'vi': ['B', 'D', 'F#'], 'vii°': ['C#', 'E', 'G'] } },
+            'F': { tonic: 'F', scale: ['F', 'G', 'A', 'Bb', 'C', 'D', 'E'], chords: { 'I': ['F', 'A', 'C'], 'ii': ['G', 'Bb', 'D'], 'iii': ['A', 'C', 'E'], 'IV': ['Bb', 'D', 'F'], 'V': ['C', 'E', 'G'], 'vi': ['D', 'F', 'A'], 'vii°': ['E', 'G', 'Bb'] } },
+            'A': { tonic: 'A', scale: ['A', 'B', 'C#', 'D', 'E', 'F#', 'G#'], chords: { 'I': ['A', 'C#', 'E'], 'ii': ['B', 'D', 'F#'], 'iii': ['C#', 'E', 'G#'], 'IV': ['D', 'F#', 'A'], 'V': ['E', 'G#', 'B'], 'vi': ['F#', 'A', 'C#'], 'vii°': ['G#', 'B', 'D'] } },
+            'E': { tonic: 'E', scale: ['E', 'F#', 'G#', 'A', 'B', 'C#', 'D#'], chords: { 'I': ['E', 'G#', 'B'], 'ii': ['F#', 'A', 'C#'], 'iii': ['G#', 'B', 'D#'], 'IV': ['A', 'C#', 'E'], 'V': ['B', 'D#', 'F#'], 'vi': ['C#', 'E', 'G#'], 'vii°': ['D#', 'F#', 'A'] } },
+            'B': { tonic: 'B', scale: ['B', 'C#', 'D#', 'E', 'F#', 'G#', 'A#'], chords: { 'I': ['B', 'D#', 'F#'], 'ii': ['C#', 'E', 'G#'], 'iii': ['D#', 'F#', 'A#'], 'IV': ['E', 'G#', 'B'], 'V': ['F#', 'A#', 'C#'], 'vi': ['G#', 'B', 'D#'], 'vii°': ['A#', 'C#', 'E'] } },
+            'Cm': { tonic: 'C', scale: ['C', 'D', 'Eb', 'F', 'G', 'Ab', 'B'], chords: { 'I': ['C', 'Eb', 'G'], 'ii': ['D', 'F', 'Ab'], 'III': ['Eb', 'G', 'B'], 'IV': ['F', 'Ab', 'C'], 'V': ['G', 'B', 'D'], 'VI': ['Ab', 'C', 'Eb'], 'VII': ['B', 'D', 'F'] } },
+            'Am': { tonic: 'A', scale: ['A', 'B', 'C', 'D', 'E', 'F', 'G'], chords: { 'I': ['A', 'C', 'E'], 'ii': ['B', 'D', 'F'], 'III': ['C', 'E', 'G'], 'IV': ['D', 'F', 'A'], 'V': ['E', 'G', 'B'], 'VI': ['F', 'A', 'C'], 'VII': ['G', 'B', 'D'] } },
+            'Em': { tonic: 'E', scale: ['E', 'F#', 'G', 'A', 'B', 'C', 'D'], chords: { 'I': ['E', 'G', 'B'], 'ii': ['F#', 'A', 'C'], 'III': ['G', 'B', 'D'], 'IV': ['A', 'C', 'E'], 'V': ['B', 'D', 'F#'], 'VI': ['C', 'E', 'G'], 'VII': ['D', 'F#', 'A'] } },
+            'Dm': { tonic: 'D', scale: ['D', 'E', 'F', 'G', 'A', 'Bb', 'C'], chords: { 'I': ['D', 'F', 'A'], 'ii': ['E', 'G', 'B'], 'III': ['F', 'A', 'C'], 'IV': ['G', 'Bb', 'D'], 'V': ['A', 'C', 'E'], 'VI': ['Bb', 'D', 'F'], 'VII': ['C', 'E', 'G'] } }
+        };
+
+        const chordFunctions = {
+            'I': 'Tonic', 'IV': 'Subdominant', 'V': 'Dominant', 'vi': 'Relative Minor',
+            'ii': 'Supertonic', 'iii': 'Mediant', 'vii°': 'Leading Tone',
+            'III': 'Mediant', 'VI': 'Submediant', 'VII': 'Subtonic'
+        };
+
+        function getFreq(noteName, octaveOffset = 0) {
+            const base = noteFreqs[noteName.replace(/[#b]/, '')];
+            const semitone = noteName.includes('#') ? 1 : noteName.includes('b') ? -1 : 0;
+            return base * Math.pow(2, (octaveOffset * 12 + semitone) / 12);
+        }
+
+        let audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        let oscillators = [];
+        let progression = [];
+        let isPlaying = false;
+        let playIndex = 0;
+        let currentOscillators = [];
+
+        function synthChord(notes, duration) {
+            return new Promise(resolve => {
+                currentOscillators.forEach(o => o.stop());
+                currentOscillators = [];
+                const now = audioCtx.currentTime;
+                notes.forEach(note => {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.frequency.value = getFreq(note, -1);
+                    osc.type = 'sine';
+                    gain.gain.setValueAtTime(0.15, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + duration);
+                    osc.start(now);
+                    osc.stop(now + duration);
+                    currentOscillators.push(osc);
+                });
+                setTimeout(resolve, duration * 1000);
+            });
+        }
+
+        async function playProgression() {
+            if (!progression.length) return;
+            isPlaying = true;
+            const beatDur = (60 / parseInt(document.getElementById('tempoSlider').value)) * parseFloat(document.getElementById('beatSelect').value);
+            for (let i = 0; i < progression.length && isPlaying; i++) {
+                playIndex = i;
+                const chord = progression[i];
+                updateStats(chord);
+                const key = document.getElementById('keySelect').value;
+                const keyData = keys[key];
+                const chordNotes = keyData.chords[chord];
+                await synthChord(chordNotes, beatDur);
+            }
+            isPlaying = false;
+            updateStats(null);
+        }
+
+        function updateStats(chord) {
+            if (!chord) {
+                document.getElementById('currentChordStat').textContent = '—';
+                document.getElementById('functionStat').textContent = '—';
+                return;
+            }
+            const key = document.getElementById('keySelect').value;
+            document.getElementById('currentChordStat').textContent = chord + ' in ' + key;
+            document.getElementById('functionStat').textContent = chordFunctions[chord] || '—';
+        }
+
+        function renderProgression() {
+            const display = document.getElementById('progressionDisplay');
+            if (!progression.length) {
+                display.innerHTML = '<div style="color: #999; font-size: 14px;">Click buttons above to build a progression</div>';
+                return;
+            }
+            display.innerHTML = progression.map((c, i) => `<button class="progression-btn selected" onclick="removeChord(${i})">${c}</button>`).join('');
+        }
+
+        function removeChord(index) {
+            progression.splice(index, 1);
+            renderProgression();
+        }
+
+        document.querySelectorAll('.progression-btn[data-degree]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                progression.push(btn.dataset.degree);
+                renderProgression();
+            });
+        });
+
+        document.getElementById('playBtn').addEventListener('click', playProgression);
+        document.getElementById('stopBtn').addEventListener('click', () => {
+            isPlaying = false;
+            currentOscillators.forEach(o => o.stop());
+            currentOscillators = [];
+        });
+
+        document.getElementById('clearBtn').addEventListener('click', () => {
+            progression = [];
+            renderProgression();
+            updateStats(null);
+        });
+
+        document.querySelectorAll('.preset-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const presets = {
+                    'classic': ['I', 'IV', 'V', 'I'],
+                    'sad': ['I', 'vi', 'IV', 'V'],
+                    'jazz': ['ii', 'V', 'I'],
+                    'pop': ['I', 'iii', 'vi', 'IV']
+                };
+                progression = presets[btn.dataset.preset] || [];
+                renderProgression();
+            });
+        });
+
+        document.getElementById('tempoSlider').addEventListener('input', (e) => {
+            document.getElementById('tempoValue').textContent = e.target.value;
+        });
+
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                btn.classList.add('active');
+                document.getElementById(btn.dataset.tab).classList.add('active');
+                if (btn.dataset.tab === 'staff') renderStaff();
+                if (btn.dataset.tab === 'waveform') renderWaveform();
+            });
+        });
+
+        function renderStaff() {
+            const canvas = document.getElementById('staffCanvas');
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.strokeStyle = '#999';
+            ctx.lineWidth = 2;
+            const y0 = 80;
+            const lineSpacing = 15;
+            for (let i = 0; i < 5; i++) {
+                ctx.beginPath();
+                ctx.moveTo(40, y0 + i * lineSpacing);
+                ctx.lineTo(canvas.width - 40, y0 + i * lineSpacing);
+                ctx.stroke();
+            }
+            ctx.fillStyle = '#2c2c2c';
+            ctx.font = 'bold 40px serif';
+            ctx.fillText('𝄞', 50, y0 + 30);
+            if (progression.length) {
+                const noteMap = { 'C': -2, 'D': -1, 'E': 0, 'F': 1, 'G': 2, 'A': 3, 'B': 4 };
+                const key = document.getElementById('keySelect').value;
+                const keyData = keys[key];
+                let xPos = 120;
+                progression.forEach(chord => {
+                    const chordNotes = keyData.chords[chord];
+                    ctx.fillStyle = '#66bb6a';
+                    chordNotes.forEach(note => {
+                        const pos = noteMap[note.replace(/[#b]/, '')];
+                        const y = y0 + 2 * lineSpacing - pos * lineSpacing / 2;
+                        ctx.beginPath();
+                        ctx.arc(xPos, y, 6, 0, Math.PI * 2);
+                        ctx.fill();
+                    });
+                    xPos += 50;
+                });
+            }
+        }
+
+        function renderWaveform() {
+            const canvas = document.getElementById('waveformCanvas');
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.strokeStyle = '#66bb6a';
+            ctx.lineWidth = 2;
+            const key = document.getElementById('keySelect').value;
+            const keyData = keys[key];
+            const chordNotes = progression.length ? keyData.chords[progression[0]] : keyData.chords['I'];
+            ctx.beginPath();
+            const samples = 1000;
+            for (let i = 0; i < samples; i++) {
+                const t = (i / samples) * 0.05;
+                let y = 0;
+                chordNotes.forEach(note => {
+                    const freq = getFreq(note, -1);
+                    y += Math.sin(2 * Math.PI * freq * t) / chordNotes.length;
+                });
+                const x = (i / samples) * (canvas.width - 80) + 40;
+                const yCanvas = canvas.height / 2 - y * 50;
+                if (i === 0) ctx.moveTo(x, yCanvas);
+                else ctx.lineTo(x, yCanvas);
+            }
+            ctx.stroke();
+        }
+    </script>
+</body>
+</html>
