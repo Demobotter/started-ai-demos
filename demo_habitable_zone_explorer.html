@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Habitable Zone Explorer</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: linear-gradient(135deg, #0b1929 0%, #1a2d45 100%);
+      color: #e0e7ff;
+      font-family: 'Space Mono', monospace;
+      overflow: hidden;
+    }
+    .container {
+      display: flex;
+      height: 100vh;
+      gap: 20px;
+      padding: 20px;
+    }
+    .sidebar {
+      width: 300px;
+      background: rgba(15, 30, 60, 0.8);
+      border-radius: 12px;
+      padding: 20px;
+      border: 1px solid #2d5a8c;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .canvas-area {
+      flex: 1;
+      background: rgba(20, 40, 80, 0.6);
+      border-radius: 12px;
+      border: 1px solid #2d5a8c;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    canvas {
+      max-width: 100%;
+      max-height: 100%;
+    }
+    h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: 28px;
+      margin-bottom: 5px;
+      color: #4da8da;
+    }
+    .subtitle {
+      font-size: 11px;
+      color: #7dd3fc;
+      margin-bottom: 15px;
+      opacity: 0.8;
+    }
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .control-label {
+      font-size: 12px;
+      font-weight: 700;
+      color: #4da8da;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    select, input[type="range"], input[type="number"] {
+      background: #0a1928;
+      color: #e0e7ff;
+      border: 1px solid #2d5a8c;
+      padding: 8px;
+      border-radius: 6px;
+      font-family: 'Space Mono', monospace;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    input[type="range"] {
+      width: 100%;
+      height: 6px;
+      padding: 0;
+    }
+    .slider-value {
+      font-size: 12px;
+      color: #7dd3fc;
+      text-align: right;
+    }
+    .stats-box {
+      background: rgba(45, 157, 95, 0.15);
+      border-left: 3px solid #2d9d5f;
+      padding: 12px;
+      border-radius: 6px;
+      font-size: 11px;
+      line-height: 1.6;
+    }
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 4px;
+    }
+    .stat-label {
+      color: #7dd3fc;
+    }
+    .stat-value {
+      font-weight: 700;
+      color: #4da8da;
+    }
+    .habitability-indicator {
+      text-align: center;
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid rgba(45, 157, 95, 0.3);
+      font-weight: 700;
+    }
+    .habitability-yes {
+      color: #4ade80;
+    }
+    .habitability-no {
+      color: #f87171;
+    }
+    @media (max-width: 1200px) {
+      .container {
+        flex-direction: column;
+        gap: 15px;
+      }
+      .sidebar {
+        width: 100%;
+        height: auto;
+        max-height: 200px;
+      }
+      .canvas-area {
+        height: 500px;
+      }
+      canvas {
+        width: 100% !important;
+        height: 100% !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="sidebar">
+      <div>
+        <h1>🪐 Habitable Zone</h1>
+        <p class="subtitle">Explore exoplanet habitability</p>
+      </div>
+
+      <div class="control-group">
+        <label class="control-label">Star Type</label>
+        <select id="starSelect">
+          <option value="sun">Sun (G2V)</option>
+          <option value="proxima">Proxima Centauri (M5.5V)</option>
+          <option value="sirius">Sirius A (A1V)</option>
+          <option value="betelgeuse">Betelgeuse (M1-2)</option>
+          <option value="trappist">TRAPPIST-1 (M8V)</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <label class="control-label">Orbital Distance (AU)</label>
+        <input type="range" id="distanceSlider" min="0.1" max="5" step="0.1" value="1">
+        <div class="slider-value"><span id="distanceValue">1.0</span> AU</div>
+      </div>
+
+      <div class="control-group">
+        <label class="control-label">Planet Mass (Earth masses)</label>
+        <input type="range" id="massSlider" min="0.1" max="10" step="0.1" value="1">
+        <div class="slider-value"><span id="massValue">1.0</span> M⊕</div>
+      </div>
+
+      <div class="control-group">
+        <label class="control-label">Orbit Eccentricity</label>
+        <input type="range" id="eccentricitySlider" min="0" max="0.8" step="0.05" value="0">
+        <div class="slider-value"><span id="eccentricityValue">0.0</span></div>
+      </div>
+
+      <div class="control-group">
+        <label class="control-label">Surface Pressure (atm)</label>
+        <input type="range" id="pressureSlider" min="0.1" max="5" step="0.1" value="1">
+        <div class="slider-value"><span id="pressureValue">1.0</span> atm</div>
+      </div>
+
+      <div class="control-group">
+        <label class="control-label">Albedo (Reflectivity)</label>
+        <input type="range" id="albedoSlider" min="0.1" max="0.9" step="0.05" value="0.3">
+        <div class="slider-value"><span id="albedoValue">0.30</span></div>
+      </div>
+
+      <div class="stats-box">
+        <div class="stat-row">
+          <span class="stat-label">Star:</span>
+          <span class="stat-value" id="starName">Sun</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Luminosity:</span>
+          <span class="stat-value" id="luminosity">1.0 L☉</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Temperature:</span>
+          <span class="stat-value" id="tempValue">288 K</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Flux:</span>
+          <span class="stat-value" id="fluxValue">1361 W/m²</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">HZ Inner:</span>
+          <span class="stat-value" id="hzInner">0.95 AU</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">HZ Outer:</span>
+          <span class="stat-value" id="hzOuter">1.37 AU</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Water Phase:</span>
+          <span class="stat-value" id="waterPhase">Liquid</span>
+        </div>
+        <div class="habitability-indicator">
+          <span id="habitability">✓ HABITABLE</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="canvas-area">
+      <canvas id="canvas" width="900" height="700"></canvas>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+
+    // Star data: luminosity, temp, color
+    const stars = {
+      sun: { luminosity: 1.0, temp: 5778, color: '#FFFF00', name: 'Sun' },
+      proxima: { luminosity: 0.0017, temp: 3042, color: '#DC143C', name: 'Proxima Centauri' },
+      sirius: { luminosity: 25.4, temp: 9940, color: '#4169E1', name: 'Sirius A' },
+      betelgeuse: { luminosity: 170000, temp: 3500, color: '#FF6600', name: 'Betelgeuse' },
+      trappist: { luminosity: 0.0005, temp: 2566, color: '#8B0000', name: 'TRAPPIST-1' }
+    };
+
+    let currentStar = 'sun';
+    let distance = 1;
+    let mass = 1;
+    let eccentricity = 0;
+    let pressure = 1;
+    let albedo = 0.3;
+    let time = 0;
+
+    // Stefan-Boltzmann constant (for simplified calculation)
+    const STEFAN_BOLTZMANN = 5.67e-8;
+
+    function calculateHabitableZone(luminosity) {
+      const hzInner = Math.sqrt(luminosity / 1.1);
+      const hzOuter = Math.sqrt(luminosity / 0.53);
+      return { inner: hzInner, outer: hzOuter };
+    }
+
+    function calculateEquilibriumTemp(luminosity, distance, albedo, pressure) {
+      // T_eq = [L / (16π d²)]^0.25 × (1 - albedo)^0.25 × greenhouse_factor
+      let tempBase = 314 * Math.pow(1 - albedo, 0.25) * Math.pow(luminosity / (distance * distance), 0.25);
+      
+      // Greenhouse effect: higher pressure = stronger warming
+      const greenhouseFactor = 1 + (pressure - 1) * 0.15;
+      const tempFinal = tempBase * Math.sqrt(greenhouseFactor);
+      
+      return tempFinal;
+    }
+
+    function calculateIncomingFlux(luminosity, distance) {
+      return luminosity * 1361 / (distance * distance);
+    }
+
+    function getWaterPhase(temp, pressure) {
+      // Approximate boiling point: 1 atm = 373K, 5 atm = 425K, 0.1 atm = 318K
+      let boilingPoint = 373 + (pressure - 1) * 13;
+      
+      if (temp < 273) return 'Ice';
+      if (temp > boilingPoint) return 'Vapor';
+      return 'Liquid';
+    }
+
+    function drawScene() {
+      // Clear canvas
+      ctx.fillStyle = 'rgba(11, 25, 41, 0.9)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Draw starfield background
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+      for (let i = 0; i < 200; i++) {
+        const x = (i * 137) % canvas.width;
+        const y = (i * 73) % canvas.height;
+        const size = (i % 5) * 0.3;
+        ctx.fillRect(x, y, size, size);
+      }
+
+      const centerX = canvas.width / 2;
+      const centerY = canvas.height / 2;
+      const scale = 80; // pixels per AU
+
+      const star = stars[currentStar];
+      const hz = calculateHabitableZone(star.luminosity);
+      const temp = calculateEquilibriumTemp(star.luminosity, distance, albedo, pressure);
+      const flux = calculateIncomingFlux(star.luminosity, distance);
+
+      // Draw habitable zone ring
+      const hzInnerRadius = hz.inner * scale;
+      const hzOuterRadius = hz.outer * scale;
+      
+      ctx.strokeStyle = 'rgba(0, 255, 0, 0.3)';
+      ctx.lineWidth = 8;
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, (hzInnerRadius + hzOuterRadius) / 2, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // Pulsing glow
+      const glowAlpha = 0.2 + 0.1 * Math.sin(time * 0.02);
+      ctx.strokeStyle = `rgba(0, 255, 0, ${glowAlpha})`;
+      ctx.lineWidth = 15;
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, (hzInnerRadius + hzOuterRadius) / 2, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // Draw star
+      const starRadius = Math.min(Math.pow(star.luminosity, 0.3) * 15, 50);
+      const gradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, starRadius);
+      gradient.addColorStop(0, star.color);
+      gradient.addColorStop(1, 'rgba(255, 200, 0, 0.3)');
+      ctx.fillStyle = gradient;
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, starRadius, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Draw orbital path (ellipse)
+      const semiMajor = distance * scale;
+      const semiMinor = semiMajor * (1 - eccentricity * 0.5);
+      ctx.strokeStyle = 'rgba(100, 150, 200, 0.3)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      for (let angle = 0; angle < Math.PI * 2; angle += 0.05) {
+        const r = semiMajor * semiMinor / Math.sqrt(
+          (semiMinor * Math.cos(angle)) ** 2 + (semiMajor * Math.sin(angle)) ** 2
+        );
+        const x = centerX + r * Math.cos(angle);
+        const y = centerY + r * Math.sin(angle);
+        if (angle === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+
+      // Calculate planet position on orbit
+      const trueAnomaly = time * 0.01 + eccentricity * 0.2;
+      const r = semiMajor * semiMinor / Math.sqrt(
+        (semiMinor * Math.cos(trueAnomaly)) ** 2 + (semiMajor * Math.sin(trueAnomaly)) ** 2
+      );
+      const planetX = centerX + r * Math.cos(trueAnomaly);
+      const planetY = centerY + r * Math.sin(trueAnomaly);
+
+      // Color planet by temperature
+      let planetColor;
+      if (temp < 200) planetColor = '#F0F8FF'; // frozen white
+      else if (temp < 273) planetColor = '#E0F0FF'; // icy blue
+      else if (temp < 310) planetColor = '#4DA8DA'; // habitable blue
+      else if (temp < 400) planetColor = '#FFA500'; // warm orange
+      else planetColor = '#FF4444'; // hot red
+
+      ctx.fillStyle = planetColor;
+      ctx.beginPath();
+      ctx.arc(planetX, planetY, 12, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Planet glow
+      ctx.strokeStyle = planetColor;
+      ctx.globalAlpha = 0.4 - Math.abs(Math.sin(time * 0.015)) * 0.2;
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.arc(planetX, planetY, 16, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+
+      // Draw labels
+      ctx.fillStyle = '#7dd3fc';
+      ctx.font = '12px Space Mono';
+      ctx.textAlign = 'center';
+      ctx.fillText(star.name, centerX, 30);
+      ctx.fillText(`${distance.toFixed(2)} AU`, planetX, planetY - 30);
+
+      time++;
+    }
+
+    function updateStats() {
+      const star = stars[currentStar];
+      const hz = calculateHabitableZone(star.luminosity);
+      const temp = calculateEquilibriumTemp(star.luminosity, distance, albedo, pressure);
+      const flux = calculateIncomingFlux(star.luminosity, distance);
+      const waterPhase = getWaterPhase(temp, pressure);
+      const isHabitable = distance >= hz.inner && distance <= hz.outer && temp > 273 && temp < 373;
+
+      // Update sidebar
+      document.getElementById('starName').textContent = star.name;
+      document.getElementById('luminosity').textContent = star.luminosity.toFixed(4) + ' L☉';
+      document.getElementById('tempValue').textContent = Math.round(temp) + ' K';
+      document.getElementById('fluxValue').textContent = Math.round(flux) + ' W/m²';
+      document.getElementById('hzInner').textContent = hz.inner.toFixed(2) + ' AU';
+      document.getElementById('hzOuter').textContent = hz.outer.toFixed(2) + ' AU';
+      document.getElementById('waterPhase').textContent = waterPhase;
+
+      const habitabilityEl = document.getElementById('habitability');
+      if (isHabitable) {
+        habitabilityEl.textContent = '✓ HABITABLE';
+        habitabilityEl.className = 'habitability-yes';
+      } else {
+        habitabilityEl.textContent = '✗ UNINHABITABLE';
+        habitabilityEl.className = 'habitability-no';
+      }
+    }
+
+    function animate() {
+      drawScene();
+      updateStats();
+      requestAnimationFrame(animate);
+    }
+
+    // Event listeners
+    document.getElementById('starSelect').addEventListener('change', (e) => {
+      currentStar = e.target.value;
+    });
+
+    document.getElementById('distanceSlider').addEventListener('input', (e) => {
+      distance = parseFloat(e.target.value);
+      document.getElementById('distanceValue').textContent = distance.toFixed(1);
+    });
+
+    document.getElementById('massSlider').addEventListener('input', (e) => {
+      mass = parseFloat(e.target.value);
+      document.getElementById('massValue').textContent = mass.toFixed(1);
+    });
+
+    document.getElementById('eccentricitySlider').addEventListener('input', (e) => {
+      eccentricity = parseFloat(e.target.value);
+      document.getElementById('eccentricityValue').textContent = eccentricity.toFixed(2);
+    });
+
+    document.getElementById('pressureSlider').addEventListener('input', (e) => {
+      pressure = parseFloat(e.target.value);
+      document.getElementById('pressureValue').textContent = pressure.toFixed(1);
+    });
+
+    document.getElementById('albedoSlider').addEventListener('input', (e) => {
+      albedo = parseFloat(e.target.value);
+      document.getElementById('albedoValue').textContent = albedo.toFixed(2);
+    });
+
+    animate();
+  </script>
+</body>
+</html>
