@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chord Progression Visualizer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Space+Mono:wght@400&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Space Mono', monospace;
+            background: #0f1419;
+            color: #e8e4d8;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 16px;
+        }
+        .container {
+            max-width: 1100px;
+            width: 100%;
+            display: flex;
+            gap: 24px;
+            background: #1a1f2a;
+            border-radius: 8px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+            overflow: hidden;
+        }
+        .sidebar {
+            width: 280px;
+            background: #0f1419;
+            padding: 24px;
+            border-right: 1px solid #2a3142;
+            overflow-y: auto;
+            max-height: 100vh;
+        }
+        .main {
+            flex: 1;
+            padding: 32px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+        h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 26px;
+            color: #4da8da;
+            margin-bottom: 20px;
+        }
+        h2 {
+            font-family: 'Playfair Display', serif;
+            font-size: 16px;
+            color: #7dd3fc;
+            margin: 12px 0 8px 0;
+        }
+        .key-selector {
+            margin-bottom: 16px;
+        }
+        .key-btn {
+            display: block;
+            width: 100%;
+            padding: 8px 12px;
+            margin: 3px 0;
+            border: 1px solid #2a3142;
+            border-radius: 4px;
+            background: #1a1f2a;
+            color: #e8e4d8;
+            cursor: pointer;
+            font-family: 'Space Mono', monospace;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+        .key-btn:hover {
+            border-color: #4da8da;
+            background: #242a38;
+        }
+        .key-btn.active {
+            background: #4da8da;
+            color: #0f1419;
+            border-color: #4da8da;
+            font-weight: bold;
+        }
+        .progression-selector {
+            margin-bottom: 16px;
+        }
+        .prog-btn {
+            display: block;
+            width: 100%;
+            padding: 8px 12px;
+            margin: 3px 0;
+            border: 1px solid #2a3142;
+            border-radius: 4px;
+            background: #1a1f2a;
+            color: #e8e4d8;
+            cursor: pointer;
+            font-family: 'Space Mono', monospace;
+            font-size: 12px;
+            text-align: left;
+            transition: all 0.2s;
+        }
+        .prog-btn:hover {
+            border-color: #7dd3fc;
+            background: #242a38;
+        }
+        .prog-btn.active {
+            background: #7dd3fc;
+            color: #0f1419;
+            border-color: #7dd3fc;
+            font-weight: bold;
+        }
+        .slider-group {
+            margin: 12px 0;
+        }
+        .slider-label {
+            font-size: 11px;
+            color: #999;
+            margin-bottom: 4px;
+            display: block;
+        }
+        input[type="range"] {
+            width: 100%;
+            height: 3px;
+            background: #2a3142;
+            border-radius: 2px;
+            cursor: pointer;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 12px;
+            height: 12px;
+            background: #4da8da;
+            cursor: pointer;
+            border-radius: 50%;
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 12px;
+            height: 12px;
+            background: #4da8da;
+            cursor: pointer;
+            border: none;
+            border-radius: 50%;
+        }
+        .visualizer-container {
+            position: relative;
+            width: 100%;
+            height: 320px;
+            background: #0f1419;
+            border: 1px solid #2a3142;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+        canvas {
+            width: 100%;
+            height: 100%;
+        }
+        .stats-panel {
+            background: #0f1419;
+            border: 1px solid #2a3142;
+            border-radius: 6px;
+            padding: 16px;
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 16px;
+        }
+        .stat-box {
+            border-left: 3px solid #4da8da;
+            padding-left: 12px;
+        }
+        .stat-label {
+            font-size: 10px;
+            color: #666;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+        .stat-value {
+            font-family: 'Playfair Display', serif;
+            font-size: 18px;
+            color: #7dd3fc;
+        }
+        .chord-list {
+            grid-column: 1 / -1;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .chord-tag {
+            padding: 6px 12px;
+            background: #2a3142;
+            border: 1px solid #4da8da;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #7dd3fc;
+        }
+        @media (max-width: 1024px) {
+            .container {
+                flex-direction: column;
+            }
+            .sidebar {
+                width: 100%;
+                border-right: none;
+                border-bottom: 1px solid #2a3142;
+            }
+            .stats-panel {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <h1>♪ Harmony</h1>
+            
+            <h2>Key</h2>
+            <div class="key-selector" id="keySelector"></div>
+            
+            <h2>Progression</h2>
+            <div class="progression-selector" id="progressionSelector"></div>
+            
+            <h2>Tempo</h2>
+            <div class="slider-group">
+                <span class="slider-label">BPM: <span id="bpmDisplay">120</span></span>
+                <input type="range" id="tempoSlider" min="60" max="200" value="120" step="10">
+            </div>
+            
+            <h2>Emotional Tone</h2>
+            <div id="toneInfo" style="font-size: 11px; color: #999; line-height: 1.4;"></div>
+        </div>
+        
+        <div class="main">
+            <div class="visualizer-container">
+                <canvas id="canvas"></canvas>
+            </div>
+            
+            <div class="stats-panel">
+                <div class="stat-box">
+                    <div class="stat-label">Current Key</div>
+                    <div class="stat-value" id="keyDisplay">C Major</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Progression Type</div>
+                    <div class="stat-value" id="progTypeDisplay">Pop</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Roman Numerals</div>
+                    <div class="stat-value" id="romanDisplay">I–V–vi–IV</div>
+                </div>
+                
+                <div class="chord-list" id="chordList"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        let dpi = window.devicePixelRatio || 1;
+        
+        function resizeCanvas() {
+            let rect = canvas.getBoundingClientRect();
+            canvas.width = rect.width * dpi;
+            canvas.height = rect.height * dpi;
+            ctx.scale(dpi, dpi);
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+        
+        // Music theory data
+        const keys = ['C Major', 'G Major', 'D Major', 'A Major', 'E Major', 'F Major', 'Bb Major', 'Eb Major', 'Ab Major', 'A Minor', 'E Minor', 'D Minor'];
+        
+        const progressions = [
+            { name: 'I–V–vi–IV', numerals: ['I', 'V', 'vi', 'IV'], tone: 'Uplifting pop energy', energy: 75 },
+            { name: 'vi–IV–I–V', numerals: ['vi', 'IV', 'I', 'V'], tone: 'Emotional, introspective', energy: 50 },
+            { name: 'I–IV–V', numerals: ['I', 'IV', 'V'], tone: 'Classic blues backbone', energy: 60 },
+            { name: 'I–vi–IV–V', numerals: ['I', 'vi', 'IV', 'V'], tone: 'Timeless, melancholic', energy: 55 },
+            { name: 'ii–V–I', numerals: ['ii', 'V', 'I'], tone: 'Jazz sophistication', energy: 65 },
+            { name: 'I–iii–vi–IV', numerals: ['I', 'iii', 'vi', 'IV'], tone: 'Gentle, dreamy flow', energy: 40 }
+        ];
+        
+        // Chord notes for each key
+        const chordNotes = {
+            'C Major': { I: ['C', 'E', 'G'], ii: ['D', 'F', 'A'], iii: ['E', 'G', 'B'], IV: ['F', 'A', 'C'], V: ['G', 'B', 'D'], vi: ['A', 'C', 'E'] },
+            'G Major': { I: ['G', 'B', 'D'], ii: ['A', 'C', 'E'], iii: ['B', 'D', 'F#'], IV: ['C', 'E', 'G'], V: ['D', 'F#', 'A'], vi: ['E', 'G', 'B'] },
+            'A Minor': { i: ['A', 'C', 'E'], ii: ['B', 'D', 'F'], III: ['C', 'E', 'G'], iv: ['D', 'F', 'A'], v: ['E', 'G', 'B'], VI: ['F', 'A', 'C'] },
+            'E Minor': { i: ['E', 'G', 'B'], ii: ['F#', 'A', 'C'], III: ['G', 'B', 'D'], iv: ['A', 'C', 'E'], v: ['B', 'D', 'F#'], VI: ['C', 'E', 'G'] },
+            'D Major': { I: ['D', 'F#', 'A'], ii: ['E', 'G', 'B'], iii: ['F#', 'A', 'C#'], IV: ['G', 'B', 'D'], V: ['A', 'C#', 'E'], vi: ['B', 'D', 'F#'] }
+        };
+        
+        // Fallback for keys not explicitly defined
+        function getChordForKey(key, numeral) {
+            const data = chordNotes[key];
+            if (data && data[numeral]) return data[numeral];
+            return ['C', 'E', 'G'];
+        }
+        
+        let selectedKey = 0;
+        let selectedProgression = 0;
+        let tempo = 120;
+        
+        function drawChordVisualization() {
+            let w = canvas.width / dpi;
+            let h = canvas.height / dpi;
+            
+            ctx.fillStyle = '#0f1419';
+            ctx.fillRect(0, 0, w, h);
+            
+            const progression = progressions[selectedProgression];
+            const numChords = progression.numerals.length;
+            const chordWidth = w / numChords;
+            
+            // Draw each chord column
+            progression.numerals.forEach((roman, idx) => {
+                const x = idx * chordWidth;
+                
+                // Background
+                ctx.fillStyle = idx % 2 === 0 ? '#1a1f2a' : '#242a38';
+                ctx.fillRect(x, 0, chordWidth, h);
+                
+                // Vertical grid
+                ctx.strokeStyle = '#2a3142';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(x + chordWidth, 0);
+                ctx.lineTo(x + chordWidth, h);
+                ctx.stroke();
+                
+                // Roman numeral label
+                ctx.fillStyle = '#4da8da';
+                ctx.font = 'bold 18px "Playfair Display"';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'top';
+                ctx.fillText(roman, x + chordWidth / 2, 16);
+                
+                // Visualization: vertical bars for note heights
+                const notes = getChordForKey(keys[selectedKey], roman);
+                const noteHeights = { 'C': 1, 'D': 1.3, 'E': 1.6, 'F': 2, 'G': 2.3, 'A': 2.6, 'B': 3, 'F#': 1.8, 'C#': 1.2 };
+                
+                const barWidth = chordWidth / 5;
+                notes.forEach((note, i) => {
+                    const barX = x + (i + 1) * (chordWidth / 4);
+                    const height = h * 0.4 * (noteHeights[note] || 1.5);
+                    
+                    ctx.fillStyle = ['#ff6b6b', '#4ecdc4', '#45b7d1'][i];
+                    ctx.fillRect(barX - barWidth / 2, h - 60 - height, barWidth, height);
+                });
+                
+                // Note names
+                ctx.fillStyle = '#e8e4d8';
+                ctx.font = '11px "Space Mono"';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'bottom';
+                notes.forEach((note, i) => {
+                    const noteX = x + (i + 1) * (chordWidth / 4);
+                    ctx.fillText(note, noteX, h - 40);
+                });
+            });
+            
+            // Energy level indicator bar
+            ctx.fillStyle = '#2a3142';
+            ctx.fillRect(0, h - 20, w, 20);
+            ctx.fillStyle = '#4da8da';
+            ctx.fillRect(0, h - 20, w * (progression.energy / 100), 20);
+            
+            ctx.fillStyle = '#e8e4d8';
+            ctx.font = '10px "Space Mono"';
+            ctx.textAlign = 'right';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(`Energy: ${progression.energy}%`, w - 12, h - 10);
+        }
+        
+        function updateUI() {
+            const key = keys[selectedKey];
+            const prog = progressions[selectedProgression];
+            
+            document.getElementById('keyDisplay').textContent = key;
+            document.getElementById('progTypeDisplay').textContent = prog.name;
+            document.getElementById('romanDisplay').textContent = prog.numerals.join('–');
+            document.getElementById('bpmDisplay').textContent = tempo;
+            
+            const toneText = `${prog.tone}. Energy: ${prog.energy}/100. BPM: ${tempo}`;
+            document.getElementById('toneInfo').textContent = toneText;
+            
+            // Chord names
+            const chordNames = prog.numerals.map(r => getChordForKey(key, r).join('-')).join(', ');
+            let chordHTML = prog.numerals.map((r, i) => {
+                const notes = getChordForKey(key, r);
+                return `<div class="chord-tag">${r}: ${notes.join('–')}</div>`;
+            }).join('');
+            document.getElementById('chordList').innerHTML = chordHTML;
+            
+            document.querySelector('.key-btn.active')?.classList.remove('active');
+            document.querySelectorAll('.key-btn')[selectedKey].classList.add('active');
+            
+            document.querySelector('.prog-btn.active')?.classList.remove('active');
+            document.querySelectorAll('.prog-btn')[selectedProgression].classList.add('active');
+            
+            drawChordVisualization();
+        }
+        
+        function initUI() {
+            // Key selector
+            let keyHTML = keys.map((k, i) => 
+                `<button class="key-btn ${i === 0 ? 'active' : ''}" data-index="${i}">${k}</button>`
+            ).join('');
+            document.getElementById('keySelector').innerHTML = keyHTML;
+            document.querySelectorAll('.key-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    selectedKey = parseInt(btn.dataset.index);
+                    updateUI();
+                });
+            });
+            
+            // Progression selector
+            let progHTML = progressions.map((p, i) => 
+                `<button class="prog-btn ${i === 0 ? 'active' : ''}" data-index="${i}">${p.name}</button>`
+            ).join('');
+            document.getElementById('progressionSelector').innerHTML = progHTML;
+            document.querySelectorAll('.prog-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    selectedProgression = parseInt(btn.dataset.index);
+                    updateUI();
+                });
+            });
+            
+            // Tempo slider
+            document.getElementById('tempoSlider').addEventListener('input', (e) => {
+                tempo = parseInt(e.target.value);
+                updateUI();
+            });
+            
+            updateUI();
+        }
+        
+        initUI();
+    </script>
+</body>
+</html>
