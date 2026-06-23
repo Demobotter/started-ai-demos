@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Forest Growth Simulator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Space+Mono:wght@400&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Space Mono', monospace;
+            background: linear-gradient(180deg, #1a472a 0%, #2d5a3d 100%);
+            color: #a8e6c1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 1.5rem;
+        }
+        .container {
+            background: rgba(10, 30, 20, 0.95);
+            border: 2px solid #64c84f;
+            border-radius: 12px;
+            padding: 2rem;
+            max-width: 1200px;
+            width: 100%;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        }
+        h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            color: #64c84f;
+            text-align: center;
+        }
+        .subtitle {
+            text-align: center;
+            color: #a8e6c1;
+            margin-bottom: 2rem;
+            font-size: 0.95rem;
+        }
+        .content {
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 2rem;
+            align-items: start;
+        }
+        canvas {
+            width: 100%;
+            height: 600px;
+            background: #0a1a14;
+            border: 1px solid #4da8da;
+            border-radius: 8px;
+            display: block;
+        }
+        .controls {
+            background: rgba(20, 40, 30, 0.8);
+            border: 1px solid #4da8da;
+            border-radius: 8px;
+            padding: 1.5rem;
+            overflow-y: auto;
+            max-height: 700px;
+        }
+        .control-group {
+            margin-bottom: 1.5rem;
+        }
+        .control-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+            color: #64c84f;
+            font-weight: bold;
+        }
+        .control-value {
+            display: inline-block;
+            color: #4da8da;
+            font-size: 0.85rem;
+            margin-left: 0.5rem;
+        }
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #1f4d7f;
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #64c84f;
+            cursor: pointer;
+            box-shadow: 0 0 8px rgba(100, 200, 79, 0.6);
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #64c84f;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 0 8px rgba(100, 200, 79, 0.6);
+        }
+        select {
+            width: 100%;
+            padding: 0.6rem;
+            background: #1f4d7f;
+            color: #a8e6c1;
+            border: 1px solid #4da8da;
+            border-radius: 4px;
+            font-family: 'Space Mono', monospace;
+            cursor: pointer;
+        }
+        button {
+            width: 100%;
+            padding: 0.8rem;
+            background: #64c84f;
+            color: #0a1a14;
+            border: none;
+            border-radius: 4px;
+            font-family: 'Space Mono', monospace;
+            font-weight: bold;
+            cursor: pointer;
+            margin-bottom: 1rem;
+            transition: all 0.2s;
+        }
+        button:hover {
+            background: #7dd3fc;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(100, 200, 79, 0.4);
+        }
+        .stats-box {
+            background: rgba(77, 168, 218, 0.1);
+            border-left: 4px solid #4da8da;
+            padding: 1rem;
+            margin-top: 1.5rem;
+            border-radius: 4px;
+        }
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9rem;
+            margin-bottom: 0.6rem;
+            color: #a8e6c1;
+        }
+        .stat-label {
+            color: #7dd3fc;
+        }
+        .stat-value {
+            color: #64c84f;
+            font-weight: bold;
+        }
+        .tool-info {
+            background: rgba(100, 200, 79, 0.1);
+            border: 1px solid #64c84f;
+            padding: 0.8rem;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            margin-top: 1rem;
+            color: #a8e6c1;
+        }
+        @media (max-width: 900px) {
+            .content {
+                grid-template-columns: 1fr;
+            }
+            h1 {
+                font-size: 1.8rem;
+            }
+            canvas {
+                height: 400px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌲 Forest Growth Simulator</h1>
+        <p class="subtitle">Watch trees grow, compete, and adapt to rainfall, disease, and logging.</p>
+        
+        <div class="content">
+            <canvas id="forest-canvas"></canvas>
+            <div class="controls">
+                <div class="control-group">
+                    <label class="control-label">Initial Population <span class="control-value" id="pop-val">250</span></label>
+                    <input type="range" id="initial-pop" min="50" max="400" value="250" step="10">
+                </div>
+
+                <div class="control-group">
+                    <label class="control-label">Rainfall (mm/yr) <span class="control-value" id="rain-val">300</span></label>
+                    <input type="range" id="rainfall" min="50" max="500" value="300" step="25">
+                </div>
+
+                <div class="control-group">
+                    <label class="control-label">Species Mix</label>
+                    <select id="species-mix">
+                        <option value="mixed">Mixed Forest</option>
+                        <option value="oak">Oak Dominant</option>
+                        <option value="pine">Pine Dominant</option>
+                        <option value="birch">Birch Dominant</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label class="control-label" style="display: flex; align-items: center;">
+                        <input type="checkbox" id="disease-toggle" style="width: auto; margin-right: 0.5rem; cursor: pointer;">
+                        <span>Disease Active</span>
+                    </label>
+                </div>
+
+                <div class="control-group">
+                    <label class="control-label">Logging Tool</label>
+                    <button id="toggle-logging" style="margin-bottom: 0.5rem;">Enable Logging</button>
+                    <button id="reset-btn">Reset Forest</button>
+                </div>
+
+                <div class="stats-box">
+                    <div class="stat-row">
+                        <span class="stat-label">Tree Count:</span>
+                        <span class="stat-value" id="tree-count">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Avg Age (yrs):</span>
+                        <span class="stat-value" id="avg-age">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Density (trees/ha):</span>
+                        <span class="stat-value" id="density">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Health Index:</span>
+                        <span class="stat-value" id="health">0%</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Generations:</span>
+                        <span class="stat-value" id="generations">0</span>
+                    </div>
+                </div>
+
+                <div class="tool-info">
+                    <strong>Click trees to harvest.</strong> Enable logging mode and click any tree to cut it. Cut trees expose space for young growth.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('forest-canvas');
+        const ctx = canvas.getContext('2d');
+        
+        function resizeCanvas() {
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        const FOREST_WIDTH = 1000;
+        const FOREST_HEIGHT = 800;
+        const HECTARE_AREA = 10000; // m² per hectare
+
+        class Tree {
+            constructor(x, y, species = 'oak') {
+                this.x = x;
+                this.y = y;
+                this.age = 0; // years
+                this.species = species; // oak, pine, birch
+                this.health = 100; // 0-100%
+                this.size = 3; // radius in pixels
+                this.alive = true;
+                this.maxAge = species === 'oak' ? 100 : species === 'pine' ? 120 : 80;
+            }
+
+            grow(rainfall, density) {
+                if (!this.alive) return;
+                
+                this.age += 0.1; // ~10 growth steps per year
+                const rainBonus = Math.min(rainfall / 200, 1.5);
+                const densityPenalty = Math.max(1 - density / 400, 0.3);
+                
+                // Growth rate affected by rainfall and competition
+                this.size = Math.min(15 + this.age * 0.3 * rainBonus * densityPenalty, 30);
+                
+                // Health decreases with age
+                this.health = Math.max(100 - (this.age / this.maxAge) * 80, 20);
+                
+                // Die of old age
+                if (this.age > this.maxAge) {
+                    this.alive = false;
+                }
+            }
+
+            applyDisease(diseaseActive, trees) {
+                if (!this.alive || !diseaseActive) return;
+                
+                // 0.2% chance per frame when disease is active
+                if (Math.random() < 0.002) {
+                    this.health = Math.max(this.health - 50, 0);
+                    if (this.health === 0) this.alive = false;
+                }
+                
+                // Disease spreads to nearby trees
+                if (this.health < 40) {
+                    trees.forEach(other => {
+                        if (other !== this && other.alive) {
+                            const dist = Math.hypot(this.x - other.x, this.y - other.y);
+                            if (dist < 80 && Math.random() < 0.01) {
+                                other.health = Math.max(other.health - 20, 0);
+                            }
+                        }
+                    });
+                }
+            }
+
+            draw(ctx, scale) {
+                if (!this.alive) return;
+                
+                const screenX = (this.x / FOREST_WIDTH) * canvas.width;
+                const screenY = (this.y / FOREST_HEIGHT) * canvas.height;
+                const radius = this.size * scale;
+
+                // Color by health
+                let hue;
+                if (this.health > 70) hue = 120; // green
+                else if (this.health > 40) hue = 50; // yellow
+                else hue = 30; // orange-brown
+                
+                ctx.fillStyle = `hsl(${hue}, 80%, 45%)`;
+                ctx.beginPath();
+                ctx.arc(screenX, screenY, radius, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Outline
+                ctx.strokeStyle = `hsl(${hue}, 100%, 35%)`;
+                ctx.lineWidth = 1;
+                ctx.stroke();
+            }
+        }
+
+        let forest = [];
+        let loggingMode = false;
+        let generation = 0;
+        let frameCount = 0;
+
+        function initForest() {
+            forest = [];
+            generation = 0;
+            const popSize = parseInt(document.getElementById('initial-pop').value);
+            const speciesMix = document.getElementById('species-mix').value;
+            
+            for (let i = 0; i < popSize; i++) {
+                let species = 'oak';
+                if (speciesMix === 'oak') species = 'oak';
+                else if (speciesMix === 'pine') species = 'pine';
+                else if (speciesMix === 'birch') species = 'birch';
+                else species = ['oak', 'pine', 'birch'][Math.floor(Math.random() * 3)];
+                
+                const tree = new Tree(
+                    Math.random() * FOREST_WIDTH,
+                    Math.random() * FOREST_HEIGHT,
+                    species
+                );
+                forest.push(tree);
+            }
+        }
+
+        function naturalRegeneration() {
+            // ~10% of empty space regenerates with seedlings
+            if (Math.random() < 0.1 && forest.length < 500) {
+                const x = Math.random() * FOREST_WIDTH;
+                const y = Math.random() * FOREST_HEIGHT;
+                const speciesMix = document.getElementById('species-mix').value;
+                let species = 'oak';
+                if (speciesMix === 'oak') species = 'oak';
+                else if (speciesMix === 'pine') species = 'pine';
+                else if (speciesMix === 'birch') species = 'birch';
+                else species = ['oak', 'pine', 'birch'][Math.floor(Math.random() * 3)];
+                
+                forest.push(new Tree(x, y, species));
+            }
+        }
+
+        function updateStats() {
+            const alive = forest.filter(t => t.alive);
+            const treeCount = alive.length;
+            const avgAge = treeCount > 0 ? (alive.reduce((s, t) => s + t.age, 0) / treeCount).toFixed(1) : 0;
+            const forestArea = (FOREST_WIDTH * FOREST_HEIGHT) / HECTARE_AREA;
+            const density = (treeCount / forestArea).toFixed(0);
+            const avgHealth = treeCount > 0 ? (alive.reduce((s, t) => s + t.health, 0) / treeCount).toFixed(0) : 0;
+            
+            document.getElementById('tree-count').textContent = treeCount;
+            document.getElementById('avg-age').textContent = avgAge;
+            document.getElementById('density').textContent = density;
+            document.getElementById('health').textContent = avgHealth + '%';
+            document.getElementById('generations').textContent = generation;
+        }
+
+        function animate() {
+            frameCount++;
+            
+            // Update every 10 frames = ~1 year at 60fps
+            if (frameCount % 10 === 0) {
+                generation++;
+                
+                const rainfall = parseInt(document.getElementById('rainfall').value);
+                const diseaseActive = document.getElementById('disease-toggle').checked;
+                const alive = forest.filter(t => t.alive);
+                const density = alive.length;
+                
+                forest.forEach(tree => {
+                    tree.grow(rainfall, density);
+                    tree.applyDisease(diseaseActive, forest);
+                });
+                
+                naturalRegeneration();
+                updateStats();
+            }
+
+            // Draw
+            ctx.fillStyle = '#0a1a14';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Grid
+            ctx.strokeStyle = 'rgba(77, 168, 218, 0.1)';
+            ctx.lineWidth = 1;
+            for (let i = 0; i <= 10; i++) {
+                const x = (i / 10) * canvas.width;
+                const y = (i / 10) * canvas.height;
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvas.height);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvas.width, y);
+                ctx.stroke();
+            }
+
+            const scale = Math.min(canvas.width / FOREST_WIDTH, canvas.height / FOREST_HEIGHT) * 0.8;
+            forest.forEach(tree => tree.draw(ctx, scale));
+
+            requestAnimationFrame(animate);
+        }
+
+        // Event listeners
+        document.getElementById('initial-pop').addEventListener('input', (e) => {
+            document.getElementById('pop-val').textContent = e.target.value;
+        });
+        
+        document.getElementById('rainfall').addEventListener('input', (e) => {
+            document.getElementById('rain-val').textContent = e.target.value;
+        });
+
+        document.getElementById('toggle-logging').addEventListener('click', () => {
+            loggingMode = !loggingMode;
+            const btn = document.getElementById('toggle-logging');
+            if (loggingMode) {
+                btn.textContent = '⏹ Disable Logging';
+                btn.style.background = '#ff6b6b';
+            } else {
+                btn.textContent = 'Enable Logging';
+                btn.style.background = '#64c84f';
+            }
+        });
+
+        document.getElementById('reset-btn').addEventListener('click', () => {
+            initForest();
+            updateStats();
+        });
+
+        canvas.addEventListener('click', (e) => {
+            if (!loggingMode) return;
+            
+            const rect = canvas.getBoundingClientRect();
+            const clickX = (e.clientX - rect.left) / canvas.width * FOREST_WIDTH;
+            const clickY = (e.clientY - rect.top) / canvas.height * FOREST_HEIGHT;
+            
+            // Log nearest tree within click radius
+            forest.forEach(tree => {
+                const dist = Math.hypot(tree.x - clickX, tree.y - clickY);
+                if (dist < 50 && tree.alive) {
+                    tree.alive = false;
+                }
+            });
+        });
+
+        // Init
+        initForest();
+        updateStats();
+        animate();
+    </script>
+</body>
+</html>
