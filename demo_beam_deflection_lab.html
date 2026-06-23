@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Beam Deflection Lab</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600&family=Space+Mono:wght@400&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: 'Space Mono', monospace;
+      background: linear-gradient(135deg, #0f3460 0%, #1a4d8f 100%);
+      color: #e0e0e0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .container {
+      width: 100%;
+      max-width: 1200px;
+      background: rgba(15, 52, 96, 0.95);
+      border-radius: 12px;
+      padding: 40px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    }
+    h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: 2.5em;
+      margin-bottom: 10px;
+      color: #00d9ff;
+      text-align: center;
+    }
+    .subtitle {
+      text-align: center;
+      color: #a0b0c0;
+      margin-bottom: 30px;
+      font-size: 0.9em;
+    }
+    .content {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 30px;
+      margin-bottom: 30px;
+    }
+    @media (max-width: 900px) {
+      .content {
+        grid-template-columns: 1fr;
+      }
+    }
+    .controls {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .control-group {
+      background: rgba(26, 77, 143, 0.6);
+      padding: 15px;
+      border-radius: 8px;
+      border-left: 3px solid #00d9ff;
+    }
+    .control-group label {
+      display: block;
+      font-size: 0.85em;
+      color: #7dd3fc;
+      margin-bottom: 8px;
+      font-weight: bold;
+    }
+    select, input[type="range"] {
+      width: 100%;
+      padding: 8px;
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid #00d9ff;
+      border-radius: 4px;
+      color: #e0e0e0;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.9em;
+    }
+    input[type="range"] {
+      padding: 5px;
+    }
+    .slider-value {
+      display: block;
+      margin-top: 6px;
+      font-size: 0.85em;
+      color: #00ff88;
+      font-weight: bold;
+    }
+    .checkbox-group {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .checkbox-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      cursor: pointer;
+      accent-color: #00d9ff;
+    }
+    input[type="checkbox"] + label {
+      cursor: pointer;
+      font-size: 0.9em;
+      color: #a0b0c0;
+    }
+    .canvas-container {
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 8px;
+      padding: 20px;
+      border: 1px solid #00d9ff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    canvas {
+      max-width: 100%;
+      border-radius: 4px;
+      background: rgba(10, 20, 40, 0.8);
+    }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin-top: 30px;
+    }
+    .stat-box {
+      background: rgba(26, 77, 143, 0.6);
+      padding: 15px;
+      border-radius: 8px;
+      border-left: 3px solid #2d9d5f;
+    }
+    .stat-label {
+      font-size: 0.8em;
+      color: #7dd3fc;
+      margin-bottom: 5px;
+    }
+    .stat-value {
+      font-size: 1.3em;
+      color: #00ff88;
+      font-weight: bold;
+    }
+    .warning {
+      color: #ff6b6b;
+    }
+    .safe {
+      color: #2d9d5f;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🏗️ Beam Deflection Lab</h1>
+    <p class="subtitle">Interactive structural engineering: watch how materials and geometry determine bending</p>
+
+    <div class="content">
+      <div class="controls">
+        <div class="control-group">
+          <label for="material">Material</label>
+          <select id="material">
+            <option value="steel">Steel (E = 200 GPa)</option>
+            <option value="aluminum">Aluminum (E = 70 GPa)</option>
+            <option value="timber">Timber (E = 11 GPa)</option>
+            <option value="concrete">Concrete (E = 25 GPa)</option>
+          </select>
+        </div>
+
+        <div class="control-group">
+          <label for="geometry">Cross-Section</label>
+          <select id="geometry">
+            <option value="rectangular">Rectangular 100×200mm</option>
+            <option value="ibeam">I-Beam (200mm height)</option>
+            <option value="tbeam">T-Beam (200mm height)</option>
+            <option value="hollow">Hollow Square 200×200mm</option>
+            <option value="circular">Circular Ø200mm</option>
+          </select>
+        </div>
+
+        <div class="control-group">
+          <label for="length">Beam Length: <span class="slider-value"><span id="lengthVal">2</span>m</span></label>
+          <input type="range" id="length" min="1" max="10" value="2" step="0.5">
+        </div>
+
+        <div class="control-group">
+          <label for="load">Point Load: <span class="slider-value"><span id="loadVal">2</span> kN</span></label>
+          <input type="range" id="load" min="0" max="10" value="2" step="0.5">
+        </div>
+
+        <div class="control-group checkbox-group">
+          <div class="checkbox-item">
+            <input type="checkbox" id="showMoment">
+            <label for="showMoment">Show Bending Moment Diagram</label>
+          </div>
+          <div class="checkbox-item">
+            <input type="checkbox" id="showStress">
+            <label for="showStress">Show Stress Distribution</label>
+          </div>
+          <div class="checkbox-item">
+            <input type="checkbox" id="showShear">
+            <label for="showShear">Show Shear Force Diagram</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="canvas-container">
+        <canvas id="beamCanvas" width="500" height="400"></canvas>
+      </div>
+    </div>
+
+    <div class="stats">
+      <div class="stat-box">
+        <div class="stat-label">Material</div>
+        <div class="stat-value" id="statMaterial">Steel</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Young's Modulus (E)</div>
+        <div class="stat-value" id="statE">200 GPa</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Moment of Inertia (I)</div>
+        <div class="stat-value" id="statI">6,667 cm⁴</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Beam Length</div>
+        <div class="stat-value" id="statLength">2 m</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Applied Load</div>
+        <div class="stat-value" id="statLoad">2 kN</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Max Deflection (δ)</div>
+        <div class="stat-value" id="statDeflection">0.40 mm</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Slope at Free End (θ)</div>
+        <div class="stat-value" id="statSlope">0.02°</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Max Bending Stress (σ)</div>
+        <div class="stat-value" id="statStress">6 MPa</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Safety Margin</div>
+        <div class="stat-value" id="statSafety" class="safe">97%</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Material properties: Young's modulus (N/mm²) and yield strength (MPa)
+    const materials = {
+      steel: { E: 200000, yield: 250, color: '#d4a574' },
+      aluminum: { E: 70000, yield: 110, color: '#c0c0c0' },
+      timber: { E: 11000, yield: 35, color: '#8b7355' },
+      concrete: { E: 25000, yield: 25, color: '#a9a9a9' }
+    };
+
+    // Geometry: moment of inertia (mm⁴)
+    // Rectangular 100×200: I = b*h³/12 = 100*200³/12 = 66,666,667 mm⁴
+    const geometries = {
+      rectangular: { I: 66666667, label: '100×200mm' },
+      ibeam: { I: 133333334, label: 'I-Beam' },         // Double (more efficient)
+      tbeam: { I: 90000000, label: 'T-Beam' },          // 1.35x (less efficient than I)
+      hollow: { I: 150000000, label: 'Hollow Square' }, // Most efficient (hollow)
+      circular: { I: 78539816, label: 'Ø200mm' }        // π*d⁴/64 for d=200mm
+    };
+
+    const canvas = document.getElementById('beamCanvas');
+    const ctx = canvas.getContext('2d');
+
+    const inputs = {
+      material: document.getElementById('material'),
+      geometry: document.getElementById('geometry'),
+      length: document.getElementById('length'),
+      load: document.getElementById('load'),
+      showMoment: document.getElementById('showMoment'),
+      showStress: document.getElementById('showStress'),
+      showShear: document.getElementById('showShear')
+    };
+
+    function update() {
+      const material = inputs.material.value;
+      const geometry = inputs.geometry.value;
+      const L = parseFloat(inputs.length.value); // meters
+      const P = parseFloat(inputs.load.value);   // kN
+
+      const matData = materials[material];
+      const geoData = geometries[geometry];
+
+      // Update slider values
+      document.getElementById('lengthVal').textContent = L.toFixed(1);
+      document.getElementById('loadVal').textContent = P.toFixed(1);
+
+      // Update stats
+      document.getElementById('statMaterial').textContent = material.charAt(0).toUpperCase() + material.slice(1);
+      document.getElementById('statE').textContent = (matData.E / 1000) + ' GPa';
+      document.getElementById('statI').textContent = (geoData.I / 10000).toFixed(0) + ' cm⁴';
+      document.getElementById('statLength').textContent = L.toFixed(1) + ' m';
+      document.getElementById('statLoad').textContent = P.toFixed(1) + ' kN';
+
+      // Calculate deflection: δ = (P × L³) / (3 × E × I)
+      // P in N = P in kN × 1000
+      // L in mm = L in m × 1000
+      // E in N/mm², I in mm⁴
+      const P_N = P * 1000;
+      const L_mm = L * 1000;
+      const E = matData.E;        // N/mm²
+      const I = geoData.I;         // mm⁴
+
+      const delta_mm = (P_N * Math.pow(L_mm, 3)) / (3 * E * I);
+      document.getElementById('statDeflection').textContent = delta_mm.toFixed(2) + ' mm';
+
+      // Calculate slope: θ = (P × L²) / (2 × E × I) in radians
+      const theta_rad = (P_N * Math.pow(L_mm, 2)) / (2 * E * I);
+      const theta_deg = (theta_rad * 180) / Math.PI;
+      document.getElementById('statSlope').textContent = theta_deg.toFixed(2) + '°';
+
+      // Calculate max bending stress: σ = (M × y) / I
+      // M = P × L at the support
+      // y = h/2 = 100mm (distance to extreme fiber for 200mm beam)
+      const M = P_N * L_mm;  // N·mm
+      const y = 100;         // mm
+      const sigma_Nmm2 = (M * y) / I;
+      document.getElementById('statStress').textContent = sigma_Nmm2.toFixed(1) + ' MPa';
+
+      // Safety margin
+      const safetyPercent = ((matData.yield - sigma_Nmm2) / matData.yield) * 100;
+      const safetyEl = document.getElementById('statSafety');
+      safetyEl.textContent = Math.max(0, safetyPercent.toFixed(0)) + '%';
+      safetyEl.className = safetyPercent > 20 ? 'safe' : 'warning';
+
+      // Draw canvas
+      drawBeam(L, P, delta_mm, matData, geoData, sigma_Nmm2, matData.yield);
+    }
+
+    function drawBeam(L, P, delta, matData, geoData, sigma, yieldStress) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Grid
+      ctx.strokeStyle = '#333';
+      ctx.lineWidth = 0.5;
+      for (let i = 0; i <= 10; i++) {
+        const x = (canvas.width / 10) * i;
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, canvas.height);
+        ctx.stroke();
+      }
+
+      const padding = 40;
+      const beamY = canvas.height / 2 - 20;
+      const beamStart = padding;
+      const beamEnd = canvas.width - padding;
+      const beamLength = beamEnd - beamStart;
+
+      // Draw original beam (gray dashed)
+      ctx.strokeStyle = '#666';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([5, 5]);
+      ctx.beginPath();
+      ctx.moveTo(beamStart, beamY);
+      ctx.lineTo(beamEnd, beamY);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Draw deflected beam (cyan curve) - scale deflection for visibility
+      const deflectionScale = Math.max(1, 50 / (delta + 0.1)); // scale up small deflections for visibility
+      ctx.strokeStyle = '#00d9ff';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      for (let i = 0; i <= beamLength; i += 5) {
+        const x = beamStart + i;
+        const xi = i / beamLength; // normalized position (0=support, 1=free end)
+        // Deflected shape cubic: relative deflection = xi² × (3 - xi)
+        const relativeDeflection = xi * xi * (3 - xi);
+        const actualDeflection = relativeDeflection * delta * deflectionScale;
+        const y = beamY + actualDeflection;
+
+        if (i === 0) {
+          ctx.moveTo(x, y);
+        } else {
+          ctx.lineTo(x, y);
+        }
+      }
+      ctx.stroke();
+
+      // Draw support triangle (left side)
+      const supportX = beamStart;
+      const supportY = beamY + 15;
+      ctx.fillStyle = '#ffaa00';
+      ctx.beginPath();
+      ctx.moveTo(supportX - 8, supportY);
+      ctx.lineTo(supportX + 8, supportY);
+      ctx.lineTo(supportX, supportY - 12);
+      ctx.closePath();
+      ctx.fill();
+
+      // Draw load arrow (right side, red)
+      const arrowX = beamEnd;
+      const arrowY = beamY;
+      ctx.strokeStyle = '#ff6b6b';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(arrowX, arrowY - 30);
+      ctx.lineTo(arrowX, arrowY);
+      ctx.stroke();
+
+      // Arrow head
+      ctx.beginPath();
+      ctx.moveTo(arrowX - 5, arrowY - 10);
+      ctx.lineTo(arrowX, arrowY);
+      ctx.lineTo(arrowX + 5, arrowY - 10);
+      ctx.stroke();
+
+      // Labels
+      ctx.fillStyle = '#7dd3fc';
+      ctx.font = '12px Space Mono';
+      ctx.textAlign = 'center';
+      ctx.fillText(`Support`, supportX, supportY + 25);
+      ctx.fillText(`${parseFloat(inputs.load.value).toFixed(1)} kN`, arrowX, arrowY - 40);
+
+      // Optional diagrams
+      if (inputs.showMoment.checked) {
+        drawMomentDiagram(beamStart, beamEnd, canvas.height - 80);
+      }
+      if (inputs.showStress.checked) {
+        drawStressHeatmap(beamStart, beamEnd, beamY - 50);
+      }
+      if (inputs.showShear.checked) {
+        drawShearDiagram(beamStart, beamEnd, canvas.height - 150);
+      }
+
+      // Dimension callouts
+      ctx.strokeStyle = '#a0b0c0';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([2, 2]);
+      ctx.beginPath();
+      ctx.moveTo(beamStart, beamY + 40);
+      ctx.lineTo(beamEnd, beamY + 40);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = '#a0b0c0';
+      ctx.font = '11px Space Mono';
+      ctx.textAlign = 'center';
+      ctx.fillText(`L = ${parseFloat(inputs.length.value).toFixed(1)}m`, (beamStart + beamEnd) / 2, beamY + 60);
+    }
+
+    function drawMomentDiagram(x1, x2, y) {
+      const P = parseFloat(inputs.load.value);
+      const L = parseFloat(inputs.length.value);
+      const length = x2 - x1;
+      const maxM = P * L;
+
+      ctx.strokeStyle = '#00ff88';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+
+      for (let i = 0; i <= length; i += 5) {
+        const xi = i / length;
+        const M = maxM * xi;
+        const height = (M / maxM) * 40;
+        const x = x1 + i;
+        const yM = y - height;
+
+        if (i === 0) {
+          ctx.moveTo(x, y);
+        } else {
+          ctx.lineTo(x, yM);
+        }
+      }
+      ctx.lineTo(x2, y);
+      ctx.stroke();
+
+      ctx.fillStyle = 'rgba(0, 255, 136, 0.1)';
+      ctx.fill();
+
+      ctx.fillStyle = '#00ff88';
+      ctx.font = '10px Space Mono';
+      ctx.textAlign = 'left';
+      ctx.fillText('Bending Moment (M)', x1 + 5, y - 50);
+    }
+
+    function drawStressHeatmap(x1, x2, y) {
+      const length = x2 - x1;
+      const barWidth = length / 20;
+
+      for (let i = 0; i < 20; i++) {
+        const x = x1 + i * barWidth;
+        const intensity = (i + 1) / 20;
+        const r = Math.floor(255 * intensity);
+        const g = Math.floor(255 * (1 - intensity * 0.5));
+        const b = Math.floor(255 * (1 - intensity));
+
+        ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+        ctx.fillRect(x, y - 20, barWidth, 20);
+      }
+
+      ctx.strokeStyle = '#999';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(x1, y - 20, length, 20);
+
+      ctx.fillStyle = '#ccc';
+      ctx.font = '9px Space Mono';
+      ctx.textAlign = 'center';
+      ctx.fillText('Stress (red = high)', (x1 + x2) / 2, y + 5);
+    }
+
+    function drawShearDiagram(x1, x2, y) {
+      const P = parseFloat(inputs.load.value);
+      const length = x2 - x1;
+
+      ctx.strokeStyle = '#ff99cc';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(x1, y - 30);
+      ctx.lineTo(x2, y - 30);
+      ctx.stroke();
+
+      ctx.strokeStyle = '#ccc';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([2, 2]);
+      ctx.beginPath();
+      ctx.moveTo(x1, y);
+      ctx.lineTo(x2, y);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      ctx.fillStyle = '#ff99cc';
+      ctx.font = '10px Space Mono';
+      ctx.textAlign = 'left';
+      ctx.fillText(`Shear (V = ${P.toFixed(1)} kN)`, x1 + 5, y - 40);
+    }
+
+    // Event listeners
+    inputs.material.addEventListener('change', update);
+    inputs.geometry.addEventListener('change', update);
+    inputs.length.addEventListener('input', update);
+    inputs.load.addEventListener('input', update);
+    inputs.showMoment.addEventListener('change', update);
+    inputs.showStress.addEventListener('change', update);
+    inputs.showShear.addEventListener('change', update);
+
+    // Initial render
+    update();
+  </script>
+</body>
+</html>
