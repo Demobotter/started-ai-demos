@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Watershed Flow Simulator</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Space+Mono:wght@400&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      background: #0a1428;
+      color: #7dd3fc;
+      font-family: 'Space Mono', monospace;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .container {
+      max-width: 900px;
+      width: 100%;
+      background: #0f1e3a;
+      border-radius: 8px;
+      padding: 30px;
+      box-shadow: 0 0 30px rgba(77, 168, 218, 0.2);
+    }
+    h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: 2.5em;
+      margin-bottom: 10px;
+      text-align: center;
+      color: #7dd3fc;
+    }
+    .subtitle {
+      text-align: center;
+      color: #64b5f6;
+      margin-bottom: 25px;
+      font-size: 0.9em;
+    }
+    .content {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 30px;
+      align-items: start;
+    }
+    .canvas-section {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+    canvas {
+      border: 2px solid #4da8da;
+      background: #0a1428;
+      border-radius: 4px;
+      width: 100%;
+      max-width: 400px;
+    }
+    .control-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      background: #0a1d4a;
+      padding: 20px;
+      border-radius: 4px;
+      border-left: 3px solid #4da8da;
+    }
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    label {
+      font-size: 0.9em;
+      color: #7dd3fc;
+      font-weight: bold;
+    }
+    input[type="range"] {
+      cursor: pointer;
+      width: 100%;
+    }
+    select {
+      background: #0f1e3a;
+      color: #7dd3fc;
+      border: 1px solid #4da8da;
+      padding: 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-family: 'Space Mono', monospace;
+    }
+    button {
+      background: #4da8da;
+      color: #0a1428;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-family: 'Space Mono', monospace;
+      font-weight: bold;
+      transition: background 0.2s;
+    }
+    button:hover {
+      background: #7dd3fc;
+    }
+    button.toggle-on {
+      background: #00ff88;
+      color: #0a1428;
+    }
+    .stat-display {
+      background: #0f1e3a;
+      padding: 12px;
+      border-radius: 4px;
+      border-left: 3px solid #4da8da;
+      font-size: 0.85em;
+      line-height: 1.6;
+    }
+    .stat-label {
+      color: #64b5f6;
+    }
+    .stat-value {
+      color: #00ff88;
+      font-weight: bold;
+    }
+    @media (max-width: 768px) {
+      .content {
+        grid-template-columns: 1fr;
+      }
+      h1 {
+        font-size: 2em;
+      }
+      canvas {
+        max-width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>💧 Watershed Flow</h1>
+    <div class="subtitle">Adjust rain, soil, & terrain to watch water infiltrate or flood</div>
+    
+    <div class="content">
+      <div class="canvas-section">
+        <div>
+          <p style="text-align: center; color: #64b5f6; font-size: 0.85em; margin-bottom: 10px;">Terrain & Surface Water</p>
+          <canvas id="terrainCanvas" width="400" height="300"></canvas>
+        </div>
+        <div>
+          <p style="text-align: center; color: #64b5f6; font-size: 0.85em; margin-bottom: 10px;">Groundwater Table Depth</p>
+          <canvas id="groundwaterCanvas" width="400" height="150"></canvas>
+        </div>
+      </div>
+
+      <div class="control-panel">
+        <div class="control-group">
+          <label>Rain Intensity (mm/hour): <span id="rainValue">30</span></label>
+          <input type="range" id="rainSlider" min="0" max="100" value="30">
+        </div>
+
+        <div class="control-group">
+          <label>Soil Type</label>
+          <select id="soilType">
+            <option value="sandy">Sandy (60% infiltration)</option>
+            <option value="loamy" selected>Loamy (30% infiltration)</option>
+            <option value="clay">Clay (10% infiltration)</option>
+            <option value="hardpan">Hardpan (1% infiltration)</option>
+          </select>
+        </div>
+
+        <div class="control-group">
+          <label>Terrain Slope: <span id="slopeValue">30</span>°</label>
+          <input type="range" id="slopeSlider" min="5" max="60" value="30">
+        </div>
+
+        <div class="control-group">
+          <button id="drainToggle">🔷 Drains (OFF)</button>
+          <button id="imperviousToggle">🏗️ Impervious (OFF)</button>
+        </div>
+
+        <div class="stat-display">
+          <div><span class="stat-label">Infiltration Rate:</span> <span class="stat-value" id="infiltRate">30</span> mm/h</div>
+          <div><span class="stat-label">Runoff Rate:</span> <span class="stat-value" id="runoffRate">0</span> mm/h</div>
+          <div><span class="stat-label">Groundwater Depth:</span> <span class="stat-value" id="gwDepth">50</span> cm</div>
+          <div><span class="stat-label">Soil Saturation:</span> <span class="stat-value" id="saturation">0</span>%</div>
+          <div><span class="stat-label">Discharge:</span> <span class="stat-value" id="discharge">0.0</span> L/s</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const terrainCanvas = document.getElementById('terrainCanvas');
+    const groundwaterCanvas = document.getElementById('groundwaterCanvas');
+    const tCtx = terrainCanvas.getContext('2d');
+    const gwCtx = groundwaterCanvas.getContext('2d');
+
+    const rainSlider = document.getElementById('rainSlider');
+    const soilSelect = document.getElementById('soilType');
+    const slopeSlider = document.getElementById('slopeSlider');
+    const drainToggle = document.getElementById('drainToggle');
+    const imperviousToggle = document.getElementById('imperviousToggle');
+
+    let state = {
+      rain: 30,
+      soil: 'loamy',
+      slope: 30,
+      drains: false,
+      impervious: false,
+      particles: [],
+      gwTable: 100,
+      saturation: 0,
+      time: 0
+    };
+
+    const soilInfiltration = {
+      sandy: 0.60,
+      loamy: 0.30,
+      clay: 0.10,
+      hardpan: 0.01
+    };
+
+    // Particle system for raindrops
+    class Particle {
+      constructor(x, y, type = 'rain') {
+        this.x = x;
+        this.y = y;
+        this.type = type; // 'rain', 'infiltrating', 'runoff'
+        this.vx = 0;
+        this.vy = 0;
+      }
+    }
+
+    function generateTerrainPath() {
+      const points = [];
+      const width = terrainCanvas.width;
+      const height = terrainCanvas.height;
+      const slopeRad = (state.slope * Math.PI) / 180;
+
+      // Create a valley/slope terrain
+      for (let x = 0; x <= width; x += 10) {
+        const t = x / width;
+        // Bell curve with slope offset
+        let y = height * 0.5 + Math.sin(t * Math.PI) * (height * 0.25);
+        y += (t - 0.5) * width * Math.tan(slopeRad) * 0.3;
+        points.push({ x, y });
+      }
+      return points;
+    }
+
+    function drawTerrain() {
+      tCtx.clearRect(0, 0, terrainCanvas.width, terrainCanvas.height);
+      
+      const terrainPath = generateTerrainPath();
+      
+      // Draw impervious surface if enabled
+      if (state.impervious) {
+        tCtx.fillStyle = '#2a3a4a';
+        tCtx.fillRect(terrainCanvas.width * 0.4, terrainCanvas.height * 0.35, terrainCanvas.width * 0.2, terrainCanvas.height * 0.3);
+      }
+
+      // Draw terrain
+      tCtx.strokeStyle = '#5a4a3a';
+      tCtx.lineWidth = 2;
+      tCtx.beginPath();
+      tCtx.moveTo(terrainPath[0].x, terrainPath[0].y);
+      for (let i = 1; i < terrainPath.length; i++) {
+        tCtx.lineTo(terrainPath[i].x, terrainPath[i].y);
+      }
+      tCtx.stroke();
+
+      // Draw drainage network if enabled
+      if (state.drains) {
+        tCtx.strokeStyle = '#64b5f6';
+        tCtx.setLineDash([4, 4]);
+        tCtx.lineWidth = 1;
+        tCtx.beginPath();
+        tCtx.moveTo(terrainCanvas.width * 0.25, terrainCanvas.height * 0.6);
+        tCtx.quadraticCurveTo(terrainCanvas.width * 0.5, terrainCanvas.height * 0.7, terrainCanvas.width * 0.75, terrainCanvas.height * 0.8);
+        tCtx.stroke();
+        tCtx.setLineDash([]);
+      }
+
+      // Draw particles
+      state.particles.forEach(p => {
+        if (p.type === 'rain') {
+          tCtx.fillStyle = '#00ccff';
+          tCtx.beginPath();
+          tCtx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+          tCtx.fill();
+        } else if (p.type === 'runoff') {
+          tCtx.fillStyle = '#7dd3fc';
+          tCtx.beginPath();
+          tCtx.arc(p.x, p.y, 2, 0, Math.PI * 2);
+          tCtx.fill();
+        }
+      });
+    }
+
+    function drawGroundwater() {
+      gwCtx.clearRect(0, 0, groundwaterCanvas.width, groundwaterCanvas.height);
+
+      const tableDepth = Math.max(20, Math.min(120, state.gwTable));
+      const depthPercent = (tableDepth / 120) * 100;
+
+      // Draw groundwater layers
+      gwCtx.fillStyle = '#0a1d4a';
+      gwCtx.fillRect(0, 0, groundwaterCanvas.width, groundwaterCanvas.height);
+
+      // Water table
+      gwCtx.fillStyle = '#4da8da';
+      gwCtx.globalAlpha = 0.6;
+      gwCtx.fillRect(0, groundwaterCanvas.height * (tableDepth / 120), groundwaterCanvas.width, groundwaterCanvas.height);
+      gwCtx.globalAlpha = 1;
+
+      // Depth label
+      gwCtx.fillStyle = '#7dd3fc';
+      gwCtx.font = '12px Space Mono';
+      gwCtx.fillText(`Depth: ${Math.round(tableDepth)} cm`, 10, 20);
+      gwCtx.fillText(`Saturation: ${Math.round(state.saturation)}%`, 10, 35);
+    }
+
+    function updateParticles() {
+      const infiltRate = soilInfiltration[state.soil];
+      const terrainPath = generateTerrainPath();
+
+      // Add new raindrops
+      if (state.rain > 0 && Math.random() < state.rain / 100) {
+        for (let i = 0; i < 3; i++) {
+          const x = Math.random() * terrainCanvas.width;
+          state.particles.push(new Particle(x, -10, 'rain'));
+        }
+      }
+
+      // Update existing particles
+      state.particles = state.particles.filter(p => {
+        if (p.type === 'rain') {
+          p.y += 3;
+          
+          // Check if particle hits terrain
+          const terrainY = interpolateTerrainAt(p.x, terrainPath);
+          if (p.y >= terrainY) {
+            if (state.impervious && p.x > terrainCanvas.width * 0.4 && p.x < terrainCanvas.width * 0.6 && p.y < terrainCanvas.height * 0.65) {
+              p.type = 'runoff';
+              p.vy = 2;
+            } else if (Math.random() < infiltRate) {
+              // Infiltrate
+              return false;
+            } else {
+              // Become runoff
+              p.type = 'runoff';
+              p.vy = 1;
+            }
+          }
+        } else if (p.type === 'runoff') {
+          const terrainY = interpolateTerrainAt(p.x, terrainPath);
+          const slope = calculateSlope(p.x, terrainPath);
+          p.vx = Math.sin(slope) * 2;
+          p.vy = 1;
+          p.x += p.vx;
+          p.y += p.vy;
+        }
+
+        return p.y < terrainCanvas.height && p.x > -50 && p.x < terrainCanvas.width + 50;
+      });
+
+      // Update groundwater based on infiltration
+      state.saturation = Math.min(100, state.saturation + (state.rain * infiltRate) * 0.5);
+      state.saturation *= 0.98; // Decay over time
+      state.gwTable = Math.max(30, 100 - state.saturation);
+    }
+
+    function interpolateTerrainAt(x, path) {
+      for (let i = 0; i < path.length - 1; i++) {
+        if (x >= path[i].x && x <= path[i + 1].x) {
+          const t = (x - path[i].x) / (path[i + 1].x - path[i].x);
+          return path[i].y + (path[i + 1].y - path[i].y) * t;
+        }
+      }
+      return terrainCanvas.height;
+    }
+
+    function calculateSlope(x, path) {
+      const next = interpolateTerrainAt(Math.min(x + 10, terrainCanvas.width), path);
+      const current = interpolateTerrainAt(x, path);
+      return Math.atan((next - current) / 10);
+    }
+
+    function updateStats() {
+      const infiltRate = soilInfiltration[state.soil];
+      const actualInfilt = state.rain * infiltRate;
+      const actualRunoff = state.rain * (1 - infiltRate);
+      
+      document.getElementById('rainValue').textContent = state.rain;
+      document.getElementById('slopeValue').textContent = state.slope;
+      document.getElementById('infiltRate').textContent = Math.round(actualInfilt);
+      document.getElementById('runoffRate').textContent = Math.round(actualRunoff);
+      document.getElementById('gwDepth').textContent = Math.round(state.gwTable);
+      document.getElementById('saturation').textContent = Math.round(state.saturation);
+      document.getElementById('discharge').textContent = (actualRunoff / 100).toFixed(2);
+    }
+
+    function animate() {
+      updateParticles();
+      drawTerrain();
+      drawGroundwater();
+      updateStats();
+      requestAnimationFrame(animate);
+    }
+
+    rainSlider.addEventListener('input', (e) => {
+      state.rain = parseInt(e.target.value);
+    });
+
+    soilSelect.addEventListener('change', (e) => {
+      state.soil = e.target.value;
+    });
+
+    slopeSlider.addEventListener('input', (e) => {
+      state.slope = parseInt(e.target.value);
+    });
+
+    drainToggle.addEventListener('click', () => {
+      state.drains = !state.drains;
+      drainToggle.textContent = state.drains ? '🔷 Drains (ON)' : '🔷 Drains (OFF)';
+      drainToggle.classList.toggle('toggle-on');
+    });
+
+    imperviousToggle.addEventListener('click', () => {
+      state.impervious = !state.impervious;
+      imperviousToggle.textContent = state.impervious ? '🏗️ Impervious (ON)' : '🏗️ Impervious (OFF)';
+      imperviousToggle.classList.toggle('toggle-on');
+    });
+
+    animate();
+  </script>
+</body>
+</html>
