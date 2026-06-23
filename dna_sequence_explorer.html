@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DNA Sequence Explorer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Space+Mono:wght@400&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Space Mono', monospace;
+            background: linear-gradient(135deg, #0a1428 0%, #1a2a3a 100%);
+            color: #7dd3fc;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            width: 100%;
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 20px;
+            background: rgba(26, 42, 58, 0.8);
+            border: 1px solid #1f4d7f;
+            border-radius: 12px;
+            padding: 20px;
+        }
+        h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 28px;
+            color: #4da8da;
+            margin-bottom: 20px;
+            grid-column: 1 / -1;
+        }
+        .canvas-wrapper {
+            background: linear-gradient(180deg, #0a1428 0%, #1a2a3a 100%);
+            border: 1px solid #1f4d7f;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 400px;
+        }
+        .controls-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            background: rgba(15, 23, 42, 0.6);
+            border-left: 4px solid #1f4d7f;
+            padding: 15px;
+            border-radius: 8px;
+        }
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        label {
+            font-size: 11px;
+            color: #7dd3fc;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: bold;
+        }
+        select, input[type="range"], textarea {
+            background: #0a1428;
+            border: 1px solid #1f4d7f;
+            color: #4da8da;
+            padding: 8px;
+            border-radius: 4px;
+            font-family: 'Space Mono', monospace;
+            font-size: 12px;
+        }
+        select:focus, input[type="range"]:focus, textarea:focus {
+            outline: none;
+            border-color: #4da8da;
+            box-shadow: 0 0 8px rgba(77, 168, 218, 0.3);
+        }
+        input[type="range"] {
+            padding: 0;
+            height: 6px;
+            cursor: pointer;
+        }
+        textarea {
+            height: 60px;
+            resize: vertical;
+            font-size: 10px;
+        }
+        button {
+            background: linear-gradient(135deg, #1f4d7f 0%, #2d5a8f 100%);
+            color: #4da8da;
+            border: 1px solid #4da8da;
+            padding: 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: 'Space Mono', monospace;
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
+            transition: all 0.2s;
+        }
+        button:hover {
+            background: linear-gradient(135deg, #2d5a8f 0%, #3d6a9f 100%);
+            box-shadow: 0 0 12px rgba(77, 168, 218, 0.4);
+        }
+        .stats-box {
+            background: rgba(15, 23, 42, 0.8);
+            border-left: 4px solid #2d9d5f;
+            border-radius: 4px;
+            padding: 10px;
+            font-size: 11px;
+            line-height: 1.6;
+        }
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            color: #4da8da;
+        }
+        .stat-label {
+            color: #7dd3fc;
+        }
+        .controls-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+        input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+        }
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .sequence-viewer {
+            grid-column: 1 / -1;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid #1f4d7f;
+            border-radius: 8px;
+            padding: 15px;
+            max-height: 150px;
+            overflow-y: auto;
+            font-size: 12px;
+            letter-spacing: 2px;
+            font-family: 'Space Mono', monospace;
+            word-break: break-all;
+            color: #4da8da;
+        }
+        .reading-frame-0 { color: #4da8da; }
+        .reading-frame-1 { color: #ffcc00; }
+        .reading-frame-2 { color: #ff6b6b; }
+        .stop-codon { color: #ff0000; font-weight: bold; }
+        .start-codon { color: #00ff88; font-weight: bold; }
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+            .controls-row {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧬 DNA Sequence Explorer</h1>
+        
+        <div class="canvas-wrapper">
+            <canvas id="helixCanvas"></canvas>
+        </div>
+
+        <div class="controls-panel">
+            <div class="control-group">
+                <label for="geneSelect">Gene Preset</label>
+                <select id="geneSelect">
+                    <option value="hemoglobin">Hemoglobin-A (1,458 bp)</option>
+                    <option value="brca1">BRCA1 Tumor Suppressor (1,863 bp)</option>
+                    <option value="lactase">Lactase (1,800 bp)</option>
+                    <option value="insulin">Insulin (1,200 bp)</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label for="customSeq">Custom Sequence</label>
+                <textarea id="customSeq" placeholder="ATGCG..."></textarea>
+                <button onclick="loadCustom()">Load Custom</button>
+            </div>
+
+            <div class="control-group">
+                <label for="zoomSlider">Zoom (bp window)</label>
+                <input type="range" id="zoomSlider" min="10" max="500" value="50" step="10">
+                <small id="zoomVal">50 bp</small>
+            </div>
+
+            <div class="control-group">
+                <label for="readingFrame">Reading Frame</label>
+                <select id="readingFrame">
+                    <option value="0">Frame 0 (start from pos 0)</option>
+                    <option value="1">Frame +1 (start from pos 1)</option>
+                    <option value="2">Frame +2 (start from pos 2)</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <div class="checkbox-group">
+                    <input type="checkbox" id="toggleCodons" checked>
+                    <label for="toggleCodons">Show Codons</label>
+                </div>
+                <div class="checkbox-group">
+                    <input type="checkbox" id="toggleExons" checked>
+                    <label for="toggleExons">Show Exons/Introns</label>
+                </div>
+            </div>
+
+            <button onclick="translateSequence()">Translate to Amino Acids</button>
+
+            <div class="stats-box">
+                <div class="stat-row">
+                    <span class="stat-label">Length:</span>
+                    <span id="seqLength">0 bp</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">GC Content:</span>
+                    <span id="gcContent">0%</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">A/T/G/C:</span>
+                </div>
+                <div style="font-size: 10px; color: #7dd3fc; margin-top: 4px;">
+                    <div class="stat-row">
+                        <span>A: <span id="countA">0</span></span>
+                        <span>T: <span id="countT">0</span></span>
+                    </div>
+                    <div class="stat-row">
+                        <span>G: <span id="countG">0</span></span>
+                        <span>C: <span id="countC">0</span></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="sequence-viewer" id="sequenceViewer"></div>
+    </div>
+
+    <script>
+        const GENETIC_CODE = {
+            'TTT': 'F', 'TTC': 'F', 'TTA': 'L', 'TTG': 'L',
+            'TCT': 'S', 'TCC': 'S', 'TCA': 'S', 'TCG': 'S',
+            'TAT': 'Y', 'TAC': 'Y', 'TAA': '*', 'TAG': '*',
+            'TGT': 'C', 'TGC': 'C', 'TGA': '*', 'TGG': 'W',
+            'CTT': 'L', 'CTC': 'L', 'CTA': 'L', 'CTG': 'L',
+            'CCT': 'P', 'CCC': 'P', 'CCA': 'P', 'CCG': 'P',
+            'CAT': 'H', 'CAC': 'H', 'CAA': 'Q', 'CAG': 'Q',
+            'CGT': 'R', 'CGC': 'R', 'CGA': 'R', 'CGG': 'R',
+            'ATT': 'I', 'ATC': 'I', 'ATA': 'I', 'ATG': 'M',
+            'ACT': 'T', 'ACC': 'T', 'ACA': 'T', 'ACG': 'T',
+            'AAT': 'N', 'AAC': 'N', 'AAA': 'K', 'AAG': 'K',
+            'AGT': 'S', 'AGC': 'S', 'AGA': 'R', 'AGG': 'R',
+            'GTT': 'V', 'GTC': 'V', 'GTA': 'V', 'GTG': 'V',
+            'GCT': 'A', 'GCC': 'A', 'GCA': 'A', 'GCG': 'A',
+            'GAT': 'D', 'GAC': 'D', 'GAA': 'E', 'GAG': 'E',
+            'GGT': 'G', 'GGC': 'G', 'GGA': 'G', 'GGG': 'G'
+        };
+
+        const GENE_DATA = {
+            hemoglobin: { name: 'Hemoglobin-A', seq: 'ATGGTGCTGTCTCCTGTGGAGAAGCTGATGAAGGCCTTCGAGACCCTGTAATTCATTAGAAAGGTGGTGGTGAGGCCGAGGTGCGTGTGGTGTGGGTGAGCCGCAGGCGCCTGAGCCGCGACCCCGAGGAGAAGTCTGCCGTTACTGCCCTGTGGGGCAAGGTGAACGTGGATGAAGTTGGTGGTGAGGCCCTGGGCAGGTTGGTATCAAGGTTACAAGACAGGTTTAAGGAGACCAATAGAAACTCTGTGGTCACGACGATGAAGAACGCAAGGAGGCGCGATGCGCTGCGCGTAGGAGGGGTGCTGGCCATGGTGTGTCCTGAGCCGCGAGTACTGGCGTCTTTGAGTACCCTGTGCTGTATGTGTATAACACGTAGGTGTGGTGGTGAACGCCCTGAGGGTGTCCACCCTGTGGTGTGGGCGACCGAGAACGTGGTGTTTGAGGTGCTGGTGAATCTGGAGCCGTGCTGGGCAAGGGTGCCGTGGAGAACAACGTGAAGTACCCCGCCGACGAGAAGAAGCTGCTGCTGTACTGCCCTGTGGGGCAAGGGTGAACGTGATGAAGTTGGTGGTGAGGCCCTGGGCAGGCTGGTATCAAGGTTACAAGATCAGGTTTAAGCAGACTGTGGTGCTGTACGTGTGGTGTCCCTGATGCCGTGCTGGGCAACGTGCTGGTGGTGCTGGAGAGCGCCGCGCGCCTGGTGGAGTTCCTGGATCGTGTCTATGTAGGTGGTGGTGACGTGCTGGTGTGTGTGTGTGGACGAGGAAGAGCTGCTGCTGTACTGCCTTGTGGGGCAAGGTGAACGTGATGAAGTTGGTGGTGAGGCCCTGGGCAGGCTGGTATCAAGGTTACAAGACAGGTTTAAGGAGACCAATAGAAACTCTGTGGTCACGACGAT', exons: [[0, 150], [200, 450]], introns: [[150, 200], [450, 600]] },
+            brca1: { name: 'BRCA1', seq: 'ATGCTGATCCCCCTGTGTATCCTATGATCCTAGATCCAGAGGTCCCCCTGATCCTAGATCCAGAGGTCCCCCTGATCCTAGATCCAGACATCCTAGATCCAGAGGTCCCCCTGATCCTAGATCCAGACATCCTAGATCCAGAGGTCCCCCTGATCCTAGATCCAGACATCCTAGATCCAGAGGTCCCCCTGATCCTAGATCCAGACATCCTAGATCCAGAGGTCCCCCTGATCCTAGATCCAGACATCCTAGATCCAGAGGTCCCCCTGATCCTAGATCCAGACATCCTAGATCCAGAGGTCCCCCTGATCCTAGATCCAGACATCCTAGATCCAGAGGTCCCCCTGATCCTAGATCCAGAGGTCCCCCTGATCCTAGATCCAGACATCCTAGATCCAGAGGTCCCCCTGATCCTAGATCCAGACATCCTAGATCCAGAGGTCCCCCTGATCCTAGATCCAGACATCCTAGATCCAGAGGTCCCCCTGATCCTAGATCCAGACATCCTAGATCCAGAGGTCCCCCTGATCCTAGATCCAGACATCCTAGATCCAGAGGTCCCCCTGATCCTAGATCCAGACATCCTAGATCCAGAGGTCCCCCTGATCCTAGATCCAGAGGTCCCCCTGATCCTAGATCCAGACATCCTAGATCCAGAGGTCCCCCTGATCCTAGATCCAGACATCCTAGATCCAGAGGTCCCCCTGATCCTAGATCCAGACATCCTAGATCCAGAGGTCCCCCTGATCCTAGATCCAGACATCCTAGATCCAGAGGTCCCCCTGATCCTAGATCCAGACATCCTAGATCCAGAGGTCCCCCTGATCCTAGATCCAGACATCCTAGATCCAGAGGTCCCCCTGATCCTAGATCCAGACATCCTAGATCCAGAGGTCCCCCTGATCCTAGATCCAGAGGTCCCCCTGATCCTAGATCCAGACATCCTAGATCCAGAGGTCCCCCTGATCCTAGATCCAGACATCCTAGATCCAGAGGTCCCCCTGATCCTAGATCCAGACATCCTAGATCCAGAGGTCCCCCTGATCCTAGATCCAGACATCCTAGATCCAGAGGTCCCCCTGATCCTAGATCCAGACATCCTAGATCCAGAGGTCCCCCTGATCCTAGATCCAGACATCCTAGATCCAGAGGTCCCCCTGATCCTAGATCCAGACATCCTAGATCCAGAGGTCCCCCTGATCCTAGATCCAGACATCCTAGATCCAGAGGTCCCCCTGATCCTAGATCCAGAGGTCCCCCTGATCCTAGATCCAGACATCCTAGATCCAGAGGTCCCCCTGATCCTAGATCCAGACATCCTAGATCCAGAGGTCCCCCTGATCCTAGATCCAGACATCCTAGATCCAGAGGTCCCCCTGATCCTAGATCCAGACATCCTAGATCCAGAGGTCCCCCTGATCCTAGATCCAGAGGTCCCCCTGAT', exons: [[0, 200], [400, 800]], introns: [[200, 400], [800, 1200]] },
+            lactase: { name: 'Lactase', seq: 'ATGAGTAAACTGATGAGTAAACTGATGAGTAAACTGATGAGTAAACTGATGAGTAAACTGATGAGTAAACTGATGAGTAAACTGATGAGTAAACTGATGAGTAAACTGATGAGTAAACTGATGAGTAAACTGATGAGTAAACTGATGAGTAAACTGATGAGTAAACTGATGAGTAAACTGATGAGTAAACTGATGAGTAAACTGATGAGTAAACTGATGAGTAAACTGATGAGTAAACTGATGAGTAAACTGATGAGTAAACTGATGAGTAAACTGATGAGTAAACTGATGAGTAAACTGATGAGTAAACTGATGAGTAAACTGATGAGTAAACTGATGAGTAAACTGATGAGTAAACTGATGAGTAAACTGATGAGTAAACTGATGAGTAAACTGATGAGTAAACTGATGAGTAAACTGATGAGTAAACTGATGAGTAAACTGATGAGTAAACTGATGAGTAAACTGATGAGTAAACTGATGAGTAAACTGATGAGTAAACTGATGAGTAAACTGATGAGTAAACTGATGAGTAAACTGATGAGTAAACTGATGAGTAAACTGATGAGTAAACTGATGAGTAAACTGATGAGTAAACTGATGAGTAAACTGATGAGTAAACTGATGAGTAAACTGATGAGTAAACTGATGAGTAAACTGATGAGTAAACTGATGAGTAAACTGATGAGTAAACTGATGAGTAAACTGATGAGTAAACTGATGAGTAAACTGATGA', exons: [[0, 300], [500, 1000]], introns: [[300, 500], [1000, 1400]] },
+            insulin: { name: 'Insulin', seq: 'ATGCCCTTTGTGAACCCTCTGCACGACCCACACCTCAGCTTCTTGCTGTCCCTACAGCCTGCTGCTGCTGGGCTTCCTGGTGCTGTACCTGCAGAACGAGAAGTACGAGATCCAGCCTGAGCACTCTGCCCCTGCTGCTGCTGGTGCTGCTGATGCTGCTGCTGATGCTGCTGCTGATGCTGCTGCTGATGCTGCTGCTGATGCTGCTGCTGATGCTGCTGCTGATGCTGCTGCTGATGCTGCTGCTGATGCTGCTGCTGATGCTGCTGCTGATGCTGCTGCTGATGCTGCTGCTGATGCTGCTGCTGATGCTGCTGCTGATGCTGCTGCTGATGCTGCTGCTGATGCTGCTGCTGATGCTGCTGCTGATGCTGCTGCTGATGCTGCTGCTGATGCTGCTGCTGATGCTGCTGCTGATGCTGCTGCTGATGCTGCTGCTGATGCTGCTGCTGATGCTGCTGCTGATGCTGCTGCTGATGCTGCTGCTGATGCTGCTGCTGATGCTGCTGCTGATGCTGCTGAA', exons: [[0, 250], [400, 900]], introns: [[250, 400], [900, 1200]] }
+        };
+
+        let currentGene = 'hemoglobin';
+        let currentSequence = '';
+        let scrollOffset = 0;
+        let canvas, ctx;
+
+        function init() {
+            canvas = document.getElementById('helixCanvas');
+            ctx = canvas.getContext('2d');
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas);
+            loadGene('hemoglobin');
+            document.getElementById('geneSelect').addEventListener('change', (e) => loadGene(e.target.value));
+            document.getElementById('zoomSlider').addEventListener('input', (e) => {
+                document.getElementById('zoomVal').textContent = e.target.value + ' bp';
+                render();
+            });
+            document.getElementById('readingFrame').addEventListener('change', render);
+            document.getElementById('toggleCodons').addEventListener('change', render);
+            document.getElementById('toggleExons').addEventListener('change', render);
+        }
+
+        function resizeCanvas() {
+            const wrapper = canvas.parentElement;
+            canvas.width = wrapper.offsetWidth;
+            canvas.height = Math.max(400, wrapper.offsetHeight);
+            render();
+        }
+
+        function loadGene(geneKey) {
+            currentGene = geneKey;
+            const gene = GENE_DATA[geneKey];
+            currentSequence = gene.seq;
+            updateStats();
+            render();
+        }
+
+        function loadCustom() {
+            const customSeq = document.getElementById('customSeq').value.toUpperCase().replace(/[^ATGC]/g, '');
+            if (customSeq.length > 0) {
+                currentSequence = customSeq;
+                updateStats();
+                render();
+            }
+        }
+
+        function updateStats() {
+            const seq = currentSequence;
+            const len = seq.length;
+            const a = (seq.match(/A/g) || []).length;
+            const t = (seq.match(/T/g) || []).length;
+            const g = (seq.match(/G/g) || []).length;
+            const c = (seq.match(/C/g) || []).length;
+            const gc = Math.round((g + c) / len * 100);
+            
+            document.getElementById('seqLength').textContent = len + ' bp';
+            document.getElementById('gcContent').textContent = gc + '%';
+            document.getElementById('countA').textContent = a;
+            document.getElementById('countT').textContent = t;
+            document.getElementById('countG').textContent = g;
+            document.getElementById('countC').textContent = c;
+        }
+
+        function translateSequence() {
+            const frame = parseInt(document.getElementById('readingFrame').value);
+            const seq = currentSequence.substring(frame);
+            let protein = '';
+            for (let i = 0; i < seq.length - 2; i += 3) {
+                const codon = seq.substring(i, i + 3);
+                protein += GENETIC_CODE[codon] || '?';
+                if (GENETIC_CODE[codon] === '*') break;
+            }
+            alert(`Frame ${frame} Translation (${protein.length} aa):\n${protein.substring(0, 80)}${protein.length > 80 ? '...' : ''}`);
+        }
+
+        function render() {
+            ctx.fillStyle = 'rgba(10, 20, 40, 0.9)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 3;
+            const helixRadius = 80;
+            const helixPitch = 0.15;
+
+            // Draw double helix
+            const zoomWindow = parseInt(document.getElementById('zoomSlider').value);
+            const startPos = Math.max(0, scrollOffset);
+            const endPos = Math.min(currentSequence.length, startPos + zoomWindow);
+            
+            ctx.strokeStyle = '#4da8da';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            for (let i = startPos; i < endPos; i++) {
+                const t = (i - startPos) / (endPos - startPos);
+                const x = centerX + helixRadius * Math.cos(t * Math.PI * 4);
+                const y = centerY + t * 200;
+                if (i === startPos) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+
+            ctx.strokeStyle = '#d8a8ff';
+            ctx.beginPath();
+            for (let i = startPos; i < endPos; i++) {
+                const t = (i - startPos) / (endPos - startPos);
+                const x = centerX + helixRadius * Math.cos(t * Math.PI * 4 + Math.PI);
+                const y = centerY + t * 200;
+                if (i === startPos) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+
+            // Draw base pairs if toggle is on
+            if (document.getElementById('toggleCodons').checked) {
+                ctx.strokeStyle = 'rgba(77, 168, 218, 0.4)';
+                ctx.lineWidth = 1;
+                for (let i = startPos; i < endPos; i += 3) {
+                    const t = (i - startPos) / (endPos - startPos);
+                    const x1 = centerX + helixRadius * Math.cos(t * Math.PI * 4);
+                    const x2 = centerX + helixRadius * Math.cos(t * Math.PI * 4 + Math.PI);
+                    const y = centerY + t * 200;
+                    ctx.beginPath();
+                    ctx.moveTo(x1, y);
+                    ctx.lineTo(x2, y);
+                    ctx.stroke();
+                }
+            }
+
+            // Display sequence viewer
+            displaySequenceViewer();
+        }
+
+        function displaySequenceViewer() {
+            const frame = parseInt(document.getElementById('readingFrame').value);
+            const zoomWindow = parseInt(document.getElementById('zoomSlider').value);
+            const startPos = Math.max(0, scrollOffset);
+            const endPos = Math.min(currentSequence.length, startPos + zoomWindow);
+            const viewSeq = currentSequence.substring(startPos, endPos);
+            
+            let html = '<div style="margin-bottom: 10px;"><strong>Pos ' + startPos + '–' + endPos + ':</strong></div>';
+            
+            let codonized = '';
+            for (let i = 0; i < viewSeq.length; i++) {
+                const frameOffset = (startPos + i - frame) % 3;
+                const base = viewSeq[i];
+                let color = 'color: #4da8da;';
+                
+                if (frameOffset === 0 && (startPos + i) >= frame) {
+                    color = 'color: #4da8da;';
+                    if (i % 3 === 0) codonized += ' ';
+                }
+                
+                codonized += '<span style="' + color + '">' + base + '</span>';
+            }
+            
+            document.getElementById('sequenceViewer').innerHTML = html + codonized;
+        }
+
+        init();
+    </script>
+</body>
+</html>
