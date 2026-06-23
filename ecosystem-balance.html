@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ecosystem Balance</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Space+Mono:wght@400&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Space Mono', monospace;
+            background: linear-gradient(135deg, #0d3b0d, #1a4d1a);
+            color: #e8e8e8;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            color: #90ee90;
+            text-align: center;
+        }
+        .subtitle {
+            text-align: center;
+            font-size: 0.9em;
+            color: #a8dba8;
+            margin-bottom: 20px;
+        }
+        .layout {
+            display: grid;
+            grid-template-columns: 1fr 280px;
+            gap: 20px;
+            align-items: start;
+        }
+        .canvas-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        canvas {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid #2d9d5f;
+            border-radius: 8px;
+            display: block;
+            width: 100%;
+            height: auto;
+        }
+        #simulationCanvas {
+            height: 400px;
+        }
+        #graphCanvas {
+            height: 280px;
+        }
+        .phase-section {
+            display: flex;
+            gap: 10px;
+        }
+        #phaseCanvas {
+            flex: 1;
+            height: 220px;
+        }
+        .controls {
+            background: rgba(0, 0, 0, 0.3);
+            border-left: 4px solid #2d9d5f;
+            padding: 15px;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .control-group label {
+            font-size: 0.75em;
+            color: #7dd3fc;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        input[type="range"] {
+            flex: 1;
+            height: 4px;
+            cursor: pointer;
+            accent-color: #90ee90;
+        }
+        .slider-value {
+            font-size: 0.7em;
+            color: #4da8da;
+            min-width: 28px;
+            text-align: right;
+        }
+        button {
+            background: #2d9d5f;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: 'Space Mono', monospace;
+            font-size: 0.8em;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background: #3db56f;
+        }
+        button:active {
+            background: #1f7a47;
+        }
+        .preset-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+        }
+        .preset-buttons button {
+            font-size: 0.7em;
+            padding: 6px;
+        }
+        .stat-box {
+            background: rgba(45, 157, 95, 0.1);
+            border-left: 3px solid #2d9d5f;
+            padding: 8px;
+            border-radius: 4px;
+            font-size: 0.75em;
+        }
+        .stat-label {
+            color: #7dd3fc;
+            text-transform: uppercase;
+            font-size: 0.65em;
+            letter-spacing: 0.5px;
+        }
+        .stat-value {
+            font-size: 1em;
+            color: #4da8da;
+            margin-top: 2px;
+            font-weight: bold;
+        }
+        @media (max-width: 900px) {
+            .layout {
+                grid-template-columns: 1fr;
+            }
+            h1 { font-size: 2em; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌿 Ecosystem Balance</h1>
+        <p class="subtitle">Real predator-prey population dynamics simulator</p>
+        
+        <div class="layout">
+            <div class="canvas-wrapper">
+                <div>
+                    <canvas id="simulationCanvas" width="800" height="400"></canvas>
+                </div>
+                <div>
+                    <canvas id="graphCanvas" width="800" height="280"></canvas>
+                </div>
+                <div class="phase-section">
+                    <canvas id="phaseCanvas" width="800" height="220"></canvas>
+                </div>
+            </div>
+
+            <div class="controls">
+                <div class="control-group">
+                    <label>Prey Birth Rate (α)</label>
+                    <div class="slider-container">
+                        <input type="range" id="alphSlider" min="0.1" max="1.0" step="0.05" value="0.5">
+                        <span class="slider-value" id="alphValue">0.50</span>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Predation Rate (β)</label>
+                    <div class="slider-container">
+                        <input type="range" id="betaSlider" min="0.005" max="0.02" step="0.001" value="0.01">
+                        <span class="slider-value" id="betaValue">0.010</span>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Predator Death (γ)</label>
+                    <div class="slider-container">
+                        <input type="range" id="gammaSlider" min="0.1" max="0.5" step="0.02" value="0.3">
+                        <span class="slider-value" id="gammaValue">0.30</span>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Efficiency (δ)</label>
+                    <div class="slider-container">
+                        <input type="range" id="deltaSlider" min="0.01" max="0.1" step="0.005" value="0.05">
+                        <span class="slider-value" id="deltaValue">0.050</span>
+                    </div>
+                </div>
+
+                <div style="border-top: 1px solid #2d9d5f; padding-top: 12px;">
+                    <button id="startBtn" onclick="toggleSimulation()" style="width: 100%; margin-bottom: 8px;">Start</button>
+                    <button id="resetBtn" onclick="resetSimulation()" style="width: 100%;">Reset</button>
+                </div>
+
+                <div style="border-top: 1px solid #2d9d5f; padding-top: 12px;">
+                    <p style="font-size: 0.7em; color: #7dd3fc; margin-bottom: 8px; text-transform: uppercase;">Presets</p>
+                    <div class="preset-buttons">
+                        <button onclick="setPreset('balanced')">Balanced</button>
+                        <button onclick="setPreset('boombust')">Boom-Bust</button>
+                        <button onclick="setPreset('predator')">Predator-Heavy</button>
+                        <button onclick="setPreset('stable')">Stable</button>
+                    </div>
+                </div>
+
+                <div style="border-top: 1px solid #2d9d5f; padding-top: 12px;">
+                    <div class="stat-box">
+                        <div class="stat-label">Prey Count</div>
+                        <div class="stat-value" id="preyCount">1000</div>
+                    </div>
+                    <div class="stat-box" style="margin-top: 8px;">
+                        <div class="stat-label">Predator Count</div>
+                        <div class="stat-value" id="predatorCount">100</div>
+                    </div>
+                    <div class="stat-box" style="margin-top: 8px;">
+                        <div class="stat-label">Time (days)</div>
+                        <div class="stat-value" id="timeCount">0</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Lotka-Volterra differential equations
+        // dP/dt = α*P - β*P*Q  (prey: grow minus eaten)
+        // dQ/dt = δ*β*P*Q - γ*Q  (predator: born from eating minus natural death)
+
+        let sim = {
+            P: 1000,      // prey
+            Q: 100,       // predators
+            time: 0,
+            running: false,
+            history: [],
+            phaseHistory: [],
+            maxHistoryPoints: 1000,
+            
+            alpha: 0.5,
+            beta: 0.01,
+            gamma: 0.3,
+            delta: 0.05,
+            
+            dt: 0.05      // time step (smaller = more stable)
+        };
+
+        const canvasSim = document.getElementById('simulationCanvas');
+        const ctxSim = canvasSim.getContext('2d');
+        const canvasGraph = document.getElementById('graphCanvas');
+        const ctxGraph = canvasGraph.getContext('2d');
+        const canvasPhase = document.getElementById('phaseCanvas');
+        const ctxPhase = canvasPhase.getContext('2d');
+
+        // Runge-Kutta 4th order integrator
+        function stepSimulation(dt) {
+            const P = sim.P, Q = sim.Q;
+            const a = sim.alpha, b = sim.beta, g = sim.gamma, d = sim.delta;
+
+            // dP/dt, dQ/dt functions
+            const dPdt = (p, q) => a * p - b * p * q;
+            const dQdt = (p, q) => d * b * p * q - g * q;
+
+            const k1P = dPdt(P, Q);
+            const k1Q = dQdt(P, Q);
+
+            const k2P = dPdt(P + 0.5*dt*k1P, Q + 0.5*dt*k1Q);
+            const k2Q = dQdt(P + 0.5*dt*k1P, Q + 0.5*dt*k1Q);
+
+            const k3P = dPdt(P + 0.5*dt*k2P, Q + 0.5*dt*k2Q);
+            const k3Q = dQdt(P + 0.5*dt*k2P, Q + 0.5*dt*k2Q);
+
+            const k4P = dPdt(P + dt*k3P, Q + dt*k3Q);
+            const k4Q = dQdt(P + dt*k3P, Q + dt*k3Q);
+
+            sim.P = Math.max(1, P + (dt/6) * (k1P + 2*k2P + 2*k3P + k4P));
+            sim.Q = Math.max(1, Q + (dt/6) * (k1Q + 2*k2Q + 2*k3Q + k4Q));
+            sim.time += dt;
+
+            // Store history (limit for memory)
+            if (sim.history.length < sim.maxHistoryPoints) {
+                sim.history.push({ P: sim.P, Q: sim.Q, time: sim.time });
+                sim.phaseHistory.push({ P: sim.P, Q: sim.Q });
+            }
+
+            updateStats();
+        }
+
+        function drawSimulation() {
+            const w = canvasSim.width, h = canvasSim.height;
+            ctxSim.fillStyle = 'rgba(0,0,0,0.3)';
+            ctxSim.fillRect(0, 0, w, h);
+
+            // Grid
+            ctxSim.strokeStyle = 'rgba(51, 51, 51, 0.3)';
+            ctxSim.lineWidth = 1;
+            for (let i = 0; i <= 10; i++) {
+                const x = (w / 10) * i;
+                ctxSim.beginPath();
+                ctxSim.moveTo(x, 0);
+                ctxSim.lineTo(x, h);
+                ctxSim.stroke();
+                const y = (h / 10) * i;
+                ctxSim.beginPath();
+                ctxSim.moveTo(0, y);
+                ctxSim.lineTo(w, y);
+                ctxSim.stroke();
+            }
+
+            // Prey (herbivores) as green circles
+            const preyScale = Math.max(w, h) / 8000;
+            ctxSim.fillStyle = '#90ee90';
+            ctxSim.globalAlpha = 0.8;
+            ctxSim.beginPath();
+            ctxSim.arc(w * 0.3, h * 0.5, Math.sqrt(sim.P) * preyScale, 0, Math.PI * 2);
+            ctxSim.fill();
+
+            // Predators (orange circles, offset right)
+            ctxSim.fillStyle = '#ff8c00';
+            ctxSim.globalAlpha = 0.7;
+            ctxSim.beginPath();
+            ctxSim.arc(w * 0.7, h * 0.5, Math.sqrt(sim.Q) * preyScale * 1.5, 0, Math.PI * 2);
+            ctxSim.fill();
+            ctxSim.globalAlpha = 1;
+
+            // Labels
+            ctxSim.fillStyle = '#90ee90';
+            ctxSim.font = 'bold 14px Space Mono';
+            ctxSim.textAlign = 'center';
+            ctxSim.fillText('PREY', w * 0.3, h + 20);
+            ctxSim.fillStyle = '#ff8c00';
+            ctxSim.fillText('PREDATORS', w * 0.7, h + 20);
+        }
+
+        function drawGraph() {
+            const w = canvasGraph.width, h = canvasGraph.height;
+            const padding = 40;
+            const graphW = w - padding * 2;
+            const graphH = h - padding * 2;
+
+            ctxGraph.fillStyle = 'rgba(0,0,0,0.3)';
+            ctxGraph.fillRect(0, 0, w, h);
+
+            if (sim.history.length < 2) return;
+
+            // Find max values for scaling
+            let maxP = Math.max(...sim.history.map(h => h.P)) || 2000;
+            let maxQ = Math.max(...sim.history.map(h => h.Q)) || 200;
+            maxP = Math.max(maxP, 1000);
+            maxQ = Math.max(maxQ, 100);
+
+            // Draw axis
+            ctxGraph.strokeStyle = '#333';
+            ctxGraph.lineWidth = 1;
+            ctxGraph.beginPath();
+            ctxGraph.moveTo(padding, h - padding);
+            ctxGraph.lineTo(w - padding, h - padding);
+            ctxGraph.stroke();
+            ctxGraph.beginPath();
+            ctxGraph.moveTo(padding, padding);
+            ctxGraph.lineTo(padding, h - padding);
+            ctxGraph.stroke();
+
+            // Draw prey line (green)
+            ctxGraph.strokeStyle = '#90ee90';
+            ctxGraph.lineWidth = 2;
+            ctxGraph.beginPath();
+            for (let i = 0; i < sim.history.length; i++) {
+                const point = sim.history[i];
+                const x = padding + (i / sim.history.length) * graphW;
+                const y = h - padding - (point.P / maxP) * graphH;
+                if (i === 0) ctxGraph.moveTo(x, y);
+                else ctxGraph.lineTo(x, y);
+            }
+            ctxGraph.stroke();
+
+            // Draw predator line (orange)
+            ctxGraph.strokeStyle = '#ff8c00';
+            ctxGraph.lineWidth = 2;
+            ctxGraph.beginPath();
+            for (let i = 0; i < sim.history.length; i++) {
+                const point = sim.history[i];
+                const x = padding + (i / sim.history.length) * graphW;
+                const y = h - padding - (point.Q / maxQ) * graphH;
+                if (i === 0) ctxGraph.moveTo(x, y);
+                else ctxGraph.lineTo(x, y);
+            }
+            ctxGraph.stroke();
+
+            // Labels
+            ctxGraph.fillStyle = '#7dd3fc';
+            ctxGraph.font = '12px Space Mono';
+            ctxGraph.textAlign = 'right';
+            ctxGraph.fillText('Prey (Green)', w - 10, 20);
+            ctxGraph.fillStyle = '#ff8c00';
+            ctxGraph.fillText('Predators (Orange)', w - 10, 35);
+        }
+
+        function drawPhasePortrait() {
+            const w = canvasPhase.width, h = canvasPhase.height;
+            const padding = 40;
+            const graphW = w - padding * 2;
+            const graphH = h - padding * 2;
+
+            ctxPhase.fillStyle = 'rgba(0,0,0,0.3)';
+            ctxPhase.fillRect(0, 0, w, h);
+
+            if (sim.phaseHistory.length < 2) return;
+
+            // Find max values
+            let maxP = Math.max(...sim.phaseHistory.map(h => h.P)) || 2000;
+            let maxQ = Math.max(...sim.phaseHistory.map(h => h.Q)) || 200;
+            maxP = Math.max(maxP, 1000);
+            maxQ = Math.max(maxQ, 100);
+
+            // Draw axes
+            ctxPhase.strokeStyle = '#333';
+            ctxPhase.lineWidth = 1;
+            ctxPhase.beginPath();
+            ctxPhase.moveTo(padding, h - padding);
+            ctxPhase.lineTo(w - padding, h - padding);
+            ctxPhase.stroke();
+            ctxPhase.beginPath();
+            ctxPhase.moveTo(padding, padding);
+            ctxPhase.lineTo(padding, h - padding);
+            ctxPhase.stroke();
+
+            // Draw phase trajectory (cyan)
+            ctxPhase.strokeStyle = '#4da8da';
+            ctxPhase.lineWidth = 2;
+            ctxPhase.beginPath();
+            for (let i = 0; i < sim.phaseHistory.length; i++) {
+                const point = sim.phaseHistory[i];
+                const x = padding + (point.P / maxP) * graphW;
+                const y = h - padding - (point.Q / maxQ) * graphH;
+                if (i === 0) ctxPhase.moveTo(x, y);
+                else ctxPhase.lineTo(x, y);
+            }
+            ctxPhase.stroke();
+
+            // Draw current point (red)
+            if (sim.phaseHistory.length > 0) {
+                const latest = sim.phaseHistory[sim.phaseHistory.length - 1];
+                const x = padding + (latest.P / maxP) * graphW;
+                const y = h - padding - (latest.Q / maxQ) * graphH;
+                ctxPhase.fillStyle = '#ff0000';
+                ctxPhase.beginPath();
+                ctxPhase.arc(x, y, 5, 0, Math.PI * 2);
+                ctxPhase.fill();
+            }
+
+            // Labels
+            ctxPhase.fillStyle = '#7dd3fc';
+            ctxPhase.font = '11px Space Mono';
+            ctxPhase.textAlign = 'center';
+            ctxPhase.fillText('Prey (P)', w / 2, h - 5);
+            ctxPhase.textAlign = 'right';
+            ctxPhase.fillText('Predators (Q)', 20, h / 2);
+        }
+
+        function updateStats() {
+            document.getElementById('preyCount').textContent = Math.round(sim.P).toLocaleString();
+            document.getElementById('predatorCount').textContent = Math.round(sim.Q).toLocaleString();
+            document.getElementById('timeCount').textContent = Math.round(sim.time).toLocaleString();
+        }
+
+        function toggleSimulation() {
+            sim.running = !sim.running;
+            document.getElementById('startBtn').textContent = sim.running ? 'Pause' : 'Start';
+        }
+
+        function resetSimulation() {
+            sim.P = 1000;
+            sim.Q = 100;
+            sim.time = 0;
+            sim.history = [];
+            sim.phaseHistory = [];
+            sim.running = false;
+            document.getElementById('startBtn').textContent = 'Start';
+            updateStats();
+            render();
+        }
+
+        function setPreset(name) {
+            const presets = {
+                balanced: { alpha: 0.5, beta: 0.01, gamma: 0.3, delta: 0.05 },
+                boombust: { alpha: 0.8, beta: 0.015, gamma: 0.2, delta: 0.04 },
+                predator: { alpha: 0.3, beta: 0.008, gamma: 0.4, delta: 0.06 },
+                stable: { alpha: 0.4, beta: 0.012, gamma: 0.25, delta: 0.055 }
+            };
+            const p = presets[name];
+            sim.alpha = p.alpha;
+            sim.beta = p.beta;
+            sim.gamma = p.gamma;
+            sim.delta = p.delta;
+            
+            document.getElementById('alphSlider').value = p.alpha;
+            document.getElementById('betaSlider').value = p.beta;
+            document.getElementById('gammaSlider').value = p.gamma;
+            document.getElementById('deltaSlider').value = p.delta;
+            
+            document.getElementById('alphValue').textContent = p.alpha.toFixed(2);
+            document.getElementById('betaValue').textContent = p.beta.toFixed(3);
+            document.getElementById('gammaValue').textContent = p.gamma.toFixed(2);
+            document.getElementById('deltaValue').textContent = p.delta.toFixed(3);
+        }
+
+        // Slider event listeners
+        document.getElementById('alphSlider').addEventListener('input', (e) => {
+            sim.alpha = parseFloat(e.target.value);
+            document.getElementById('alphValue').textContent = sim.alpha.toFixed(2);
+        });
+        document.getElementById('betaSlider').addEventListener('input', (e) => {
+            sim.beta = parseFloat(e.target.value);
+            document.getElementById('betaValue').textContent = sim.beta.toFixed(3);
+        });
+        document.getElementById('gammaSlider').addEventListener('input', (e) => {
+            sim.gamma = parseFloat(e.target.value);
+            document.getElementById('gammaValue').textContent = sim.gamma.toFixed(2);
+        });
+        document.getElementById('deltaSlider').addEventListener('input', (e) => {
+            sim.delta = parseFloat(e.target.value);
+            document.getElementById('deltaValue').textContent = sim.delta.toFixed(3);
+        });
+
+        function render() {
+            if (sim.running) {
+                stepSimulation(sim.dt);
+            }
+            drawSimulation();
+            drawGraph();
+            drawPhasePortrait();
+            requestAnimationFrame(render);
+        }
+
+        // Initialize
+        updateStats();
+        render();
+    </script>
+</body>
+</html>
