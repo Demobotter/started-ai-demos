@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Harmonic Chord Analyzer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Space+Mono:wght@400&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Space Mono', monospace;
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1a3e 100%);
+            color: #4da8da;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            font-family: 'Playfair Display', serif;
+            text-align: center;
+            margin-bottom: 30px;
+            color: #00ffff;
+            font-size: 2.5em;
+        }
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 30px;
+            align-items: start;
+        }
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .control-panel {
+            background: rgba(13, 59, 13, 0.3);
+            border-left: 4px solid #2d9d5f;
+            border-radius: 8px;
+            padding: 20px;
+        }
+        .control-title {
+            color: #2d9d5f;
+            font-weight: bold;
+            margin-bottom: 12px;
+            font-size: 0.95em;
+        }
+        .button-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+        button {
+            background: rgba(45, 157, 95, 0.5);
+            border: 2px solid #2d9d5f;
+            color: #00ffff;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: 'Space Mono', monospace;
+            font-size: 0.85em;
+            transition: all 0.2s;
+        }
+        button:hover {
+            background: rgba(45, 157, 95, 0.8);
+            color: #ffff00;
+        }
+        button.active {
+            background: #2d9d5f;
+            color: #ffff00;
+            border-color: #ffff00;
+        }
+        .slider-group {
+            margin: 12px 0;
+        }
+        .slider-group label {
+            display: block;
+            font-size: 0.85em;
+            margin-bottom: 6px;
+            color: #4da8da;
+        }
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(0, 255, 255, 0.2);
+            outline: none;
+            -webkit-appearance: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #00ffff;
+            cursor: pointer;
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #00ffff;
+            cursor: pointer;
+            border: none;
+        }
+        .stat-box {
+            background: rgba(13, 59, 13, 0.2);
+            border-left: 3px solid #00ffff;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 8px 0;
+            font-size: 0.8em;
+        }
+        .stat-label {
+            color: #7dd3fc;
+            display: block;
+            font-size: 0.75em;
+            margin-bottom: 2px;
+        }
+        .stat-value {
+            color: #00ffff;
+            font-weight: bold;
+            font-size: 1em;
+        }
+        .toggle-group {
+            display: flex;
+            gap: 8px;
+            margin: 12px 0;
+            flex-wrap: wrap;
+        }
+        .toggle-btn {
+            flex: 1;
+            min-width: 100px;
+            font-size: 0.8em;
+            padding: 6px 10px;
+        }
+        canvas {
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1a3e 100%);
+            border: 2px solid #00ffff;
+            border-radius: 8px;
+            display: block;
+            width: 100%;
+            height: auto;
+        }
+        .canvas-wrapper {
+            background: rgba(13, 59, 13, 0.15);
+            border-radius: 8px;
+            padding: 10px;
+        }
+        @media (max-width: 900px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+            .button-group {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎵 Harmonic Chord Analyzer</h1>
+        
+        <div class="main-grid">
+            <div class="sidebar">
+                <div class="control-panel">
+                    <div class="control-title">CHORD SELECTOR</div>
+                    <div class="button-group">
+                        <button class="chord-btn active" data-chord="major">Major</button>
+                        <button class="chord-btn" data-chord="minor">Minor</button>
+                        <button class="chord-btn" data-chord="dom7">Dom 7th</button>
+                        <button class="chord-btn" data-chord="diminished">Diminished</button>
+                        <button class="chord-btn" data-chord="augmented">Augmented</button>
+                        <button class="chord-btn" data-chord="minorminor7">Min 7th</button>
+                    </div>
+                </div>
+
+                <div class="control-panel">
+                    <div class="control-title">OCTAVE</div>
+                    <div class="button-group">
+                        <button class="octave-btn" data-octave="3">C3</button>
+                        <button class="octave-btn active" data-octave="4">C4</button>
+                        <button class="octave-btn" data-octave="5">C5</button>
+                    </div>
+                </div>
+
+                <div class="control-panel">
+                    <div class="control-title">ROOT NOTE</div>
+                    <div class="button-group">
+                        <button class="root-btn active" data-root="C">C</button>
+                        <button class="root-btn" data-root="D">D</button>
+                        <button class="root-btn" data-root="E">E</button>
+                        <button class="root-btn" data-root="F">F</button>
+                        <button class="root-btn" data-root="G">G</button>
+                        <button class="root-btn" data-root="A">A</button>
+                    </div>
+                </div>
+
+                <div class="control-panel">
+                    <div class="control-title">SYNTHESIS SPEED</div>
+                    <div class="slider-group">
+                        <label>Animation Speed: <span id="speedVal">1.0x</span></label>
+                        <input type="range" id="speedSlider" min="0.5" max="2" step="0.1" value="1">
+                    </div>
+                </div>
+
+                <div class="control-panel">
+                    <div class="control-title">DISPLAY OPTIONS</div>
+                    <div class="toggle-group">
+                        <button class="toggle-btn active" id="toggleHarmonics">Harmonics Grid</button>
+                        <button class="toggle-btn active" id="toggleStats">Show Stats</button>
+                    </div>
+                </div>
+
+                <div class="control-panel">
+                    <div class="control-title">REAL-TIME STATS</div>
+                    <div class="stat-box">
+                        <span class="stat-label">FUNDAMENTAL</span>
+                        <span class="stat-value" id="statFundamental">262 Hz</span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="stat-label">CHORD TYPE</span>
+                        <span class="stat-value" id="statChordType">Major Triad</span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="stat-label">ACTIVE NOTES</span>
+                        <span class="stat-value" id="statNotes">3</span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="stat-label">CONSONANCE</span>
+                        <span class="stat-value" id="statConsonance">Consonant</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="canvas-wrapper">
+                <canvas id="analyzerCanvas" width="600" height="500"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('analyzerCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Chord definitions with frequency ratios (intervals in semitones from root)
+        const chords = {
+            major: { intervals: [0, 4, 7], name: 'Major Triad', consonance: 'Consonant' },
+            minor: { intervals: [0, 3, 7], name: 'Minor Triad', consonance: 'Consonant' },
+            dom7: { intervals: [0, 4, 7, 10], name: 'Dominant 7th', consonance: 'Mixed' },
+            diminished: { intervals: [0, 3, 6], name: 'Diminished', consonance: 'Dissonant' },
+            augmented: { intervals: [0, 4, 8], name: 'Augmented', consonance: 'Dissonant' },
+            minorminor7: { intervals: [0, 3, 7, 10], name: 'Minor 7th', consonance: 'Mixed' }
+        };
+
+        // Root note frequencies (A4 = 440 Hz, semitone ratio = 1.059463)
+        const noteFreqs = {
+            'C': 261.63, 'D': 293.66, 'E': 329.63, 'F': 349.23, 'G': 392.00, 'A': 440.00
+        };
+
+        // State
+        let state = {
+            chord: 'major',
+            octave: 4,
+            root: 'C',
+            showHarmonics: true,
+            showStats: true,
+            animSpeed: 1.0,
+            time: 0
+        };
+
+        // Get frequencies for current chord
+        function getChordFrequencies() {
+            const baseFreq = noteFreqs[state.root] * Math.pow(2, state.octave - 4);
+            const chordDef = chords[state.chord];
+            const semitoneRatio = Math.pow(2, 1/12);
+            
+            return chordDef.intervals.map(interval => 
+                baseFreq * Math.pow(semitoneRatio, interval)
+            );
+        }
+
+        // Synthesize waveform
+        function synthesizeWave(freq, amplitude = 1) {
+            return Math.sin(2 * Math.PI * freq * state.time) * amplitude;
+        }
+
+        // Draw oscilloscope-style waveform
+        function drawWaveform() {
+            const freqs = getChordFrequencies();
+            const width = canvas.width;
+            const height = canvas.height;
+            const centerY = height / 2;
+            const duration = 0.05; // 50ms window
+
+            ctx.strokeStyle = '#00ffff';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+
+            for (let x = 0; x < width; x++) {
+                const t = (x / width) * duration + state.time;
+                let y = 0;
+
+                // Sum all frequencies in the chord
+                for (let freq of freqs) {
+                    y += synthesizeWave(freq, 1 / freqs.length);
+                }
+
+                const canvasY = centerY - (y * (height / 3));
+                if (x === 0) ctx.moveTo(x, canvasY);
+                else ctx.lineTo(x, canvasY);
+            }
+            ctx.stroke();
+
+            // Draw center line
+            ctx.strokeStyle = 'rgba(0, 255, 255, 0.2)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(0, centerY);
+            ctx.lineTo(width, centerY);
+            ctx.stroke();
+        }
+
+        // Draw frequency spectrum
+        function drawSpectrum() {
+            const freqs = getChordFrequencies();
+            const width = canvas.width;
+            const height = canvas.height;
+            const centerY = height / 2;
+            const barWidth = 40;
+            const gap = 20;
+            const maxFreq = Math.max(...freqs);
+            const scale = (height / 3) / maxFreq;
+
+            freqs.forEach((freq, i) => {
+                const x = 50 + i * (barWidth + gap);
+                const barHeight = freq * scale;
+
+                // Frequency bar
+                ctx.fillStyle = i === 0 ? '#ffff00' : '#00ffff';
+                ctx.fillRect(x, centerY - barHeight, barWidth, barHeight);
+
+                // Bar outline
+                ctx.strokeStyle = '#4da8da';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(x, centerY - barHeight, barWidth, barHeight);
+
+                // Frequency label
+                ctx.fillStyle = '#4da8da';
+                ctx.font = '11px Space Mono';
+                ctx.textAlign = 'center';
+                ctx.fillText(Math.round(freq) + 'Hz', x + barWidth / 2, centerY + 20);
+            });
+        }
+
+        // Draw harmonics grid
+        function drawHarmonicsGrid() {
+            if (!state.showHarmonics) return;
+
+            const freqs = getChordFrequencies();
+            const fundamental = freqs[0];
+            const width = canvas.width;
+            const height = canvas.height;
+            const centerY = height / 2;
+            const maxFreq = Math.max(...freqs) * 4; // Show up to 4x fundamental
+            const maxHarmonics = 8;
+
+            for (let h = 1; h <= maxHarmonics; h++) {
+                const harmFreq = fundamental * h;
+                if (harmFreq > maxFreq * 1.5) break;
+
+                const alpha = 1 - (h - 1) / maxHarmonics;
+                ctx.strokeStyle = `rgba(0, 68, 255, ${alpha * 0.3})`;
+                ctx.lineWidth = 1;
+                ctx.setLineDash([4, 4]);
+                ctx.beginPath();
+                ctx.moveTo(0, centerY);
+                ctx.lineTo(width, centerY);
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                // Harmonic label
+                ctx.fillStyle = `rgba(0, 68, 255, ${alpha * 0.5})`;
+                ctx.font = '10px Space Mono';
+                ctx.textAlign = 'left';
+                ctx.fillText(`${h}f`, 5, centerY - 5 - (h - 1) * 15);
+            }
+        }
+
+        // Draw stats overlay
+        function drawStats() {
+            if (!state.showStats) return;
+
+            const freqs = getChordFrequencies();
+            const chordDef = chords[state.chord];
+            
+            // Update stat boxes
+            document.getElementById('statFundamental').textContent = Math.round(freqs[0]) + ' Hz';
+            document.getElementById('statChordType').textContent = chordDef.name;
+            document.getElementById('statNotes').textContent = freqs.length;
+            document.getElementById('statConsonance').textContent = chordDef.consonance;
+        }
+
+        // Main animation loop
+        function animate() {
+            // Clear canvas
+            ctx.fillStyle = 'rgba(10, 14, 39, 0.8)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw border
+            ctx.strokeStyle = '#00ffff';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(0, 0, canvas.width, canvas.height);
+
+            // Draw visualization
+            drawHarmonicsGrid();
+            drawWaveform();
+            drawSpectrum();
+            drawStats();
+
+            // Update time
+            state.time += 0.001 * state.animSpeed;
+            if (state.time > 1) state.time -= 1; // Wrap time
+
+            requestAnimationFrame(animate);
+        }
+
+        // Event handlers
+        document.querySelectorAll('.chord-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.chord-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                state.chord = this.dataset.chord;
+            });
+        });
+
+        document.querySelectorAll('.octave-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.octave-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                state.octave = parseInt(this.dataset.octave);
+            });
+        });
+
+        document.querySelectorAll('.root-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.root-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                state.root = this.dataset.root;
+            });
+        });
+
+        document.getElementById('speedSlider').addEventListener('input', function() {
+            state.animSpeed = parseFloat(this.value);
+            document.getElementById('speedVal').textContent = state.animSpeed.toFixed(1) + 'x';
+        });
+
+        document.getElementById('toggleHarmonics').addEventListener('click', function() {
+            state.showHarmonics = !state.showHarmonics;
+            this.classList.toggle('active');
+        });
+
+        document.getElementById('toggleStats').addEventListener('click', function() {
+            state.showStats = !state.showStats;
+            this.classList.toggle('active');
+        });
+
+        // Responsive canvas
+        function resizeCanvas() {
+            const wrapper = canvas.parentElement;
+            const rect = wrapper.getBoundingClientRect();
+            canvas.width = rect.width - 20; // Account for padding
+            canvas.height = Math.min(500, window.innerHeight - 200);
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // Start animation
+        animate();
+    </script>
+</body>
+</html>
