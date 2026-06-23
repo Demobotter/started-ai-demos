@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Load-Bearing Beam Simulator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Space Mono', monospace;
+            background: linear-gradient(135deg, #0f1419 0%, #1a2332 100%);
+            color: #e0e6ed;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 20px;
+            max-width: 1400px;
+            width: 100%;
+        }
+        .canvas-section {
+            background: #1a1a1a;
+            border: 1px solid #2d5f9d;
+            border-radius: 8px;
+            padding: 20px;
+        }
+        .sidebar {
+            background: #1a1a1a;
+            border: 1px solid #2d5f9d;
+            border-radius: 8px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            max-height: 800px;
+            overflow-y: auto;
+        }
+        h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 28px;
+            margin-bottom: 15px;
+            color: #4da8da;
+        }
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        label {
+            font-size: 11px;
+            color: #a0aec0;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        input[type="range"] {
+            width: 100%;
+            height: 4px;
+            border-radius: 2px;
+            background: #2d3748;
+            outline: none;
+            -webkit-appearance: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #4da8da;
+            cursor: pointer;
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #4da8da;
+            cursor: pointer;
+            border: none;
+        }
+        select, input[type="text"] {
+            padding: 8px;
+            background: #2d3748;
+            border: 1px solid #2d5f9d;
+            border-radius: 4px;
+            color: #e0e6ed;
+            font-family: 'Space Mono', monospace;
+            font-size: 12px;
+        }
+        button {
+            padding: 8px 12px;
+            background: #2d9d5f;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: 'Space Mono', monospace;
+            font-size: 12px;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+        button:hover {
+            background: #3dab6f;
+        }
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        input[type="checkbox"] {
+            width: 14px;
+            height: 14px;
+            cursor: pointer;
+        }
+        .stat-box {
+            background: #262e3f;
+            border-left: 3px solid #2d9d5f;
+            padding: 10px;
+            border-radius: 4px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .stat-label {
+            font-size: 10px;
+            color: #a0aec0;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .stat-value {
+            font-size: 16px;
+            font-weight: bold;
+            color: #4da8da;
+            font-family: 'Space Mono', monospace;
+        }
+        .stat-value.warning {
+            color: #ff6b6b;
+        }
+        canvas {
+            width: 100%;
+            height: auto;
+            background: #0f1419;
+            border-radius: 4px;
+            display: block;
+        }
+        .title-section {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            margin-bottom: 20px;
+        }
+        .subtitle {
+            font-size: 12px;
+            color: #a0aec0;
+        }
+        @media (max-width: 900px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+            .sidebar {
+                max-height: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="canvas-section">
+            <div class="title-section">
+                <h1>⚙️ Load-Bearing Beam</h1>
+                <p class="subtitle">Click on beam to add loads. Drag to adjust. Watch stress and deflection in real time.</p>
+            </div>
+            <canvas id="beamCanvas"></canvas>
+        </div>
+
+        <div class="sidebar">
+            <div class="control-group">
+                <label>Material</label>
+                <select id="materialSelect">
+                    <option value="steel">Steel (E=200 GPa)</option>
+                    <option value="aluminum">Aluminum (E=70 GPa)</option>
+                    <option value="wood">Wood (E=10 GPa)</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label>Beam Section</label>
+                <select id="sectionSelect">
+                    <option value="w10">W10×49 (I=184 cm⁴)</option>
+                    <option value="w12">W12×65 (I=533 cm⁴)</option>
+                    <option value="box">Box 200×100 (I=900 cm⁴)</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label>Support Type</label>
+                <select id="supportSelect">
+                    <option value="simple">Simple (Pinned)</option>
+                    <option value="cantilever">Cantilever (Fixed)</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label>Distributed Load (kN/m)</label>
+                <input type="range" id="distributedLoad" min="0" max="10" step="0.5" value="0">
+                <span id="distLoadDisplay">0.0</span>
+            </div>
+
+            <div class="control-group">
+                <label>Point Load Size (kN)</label>
+                <input type="range" id="pointLoadSize" min="1" max="50" step="1" value="10">
+                <span id="pointLoadDisplay">10</span>
+            </div>
+
+            <div style="margin-top: 12px;">
+                <button onclick="clearLoads()" style="width: 100%; background: #5a4a3a;">Clear All Loads</button>
+            </div>
+
+            <div class="stat-box">
+                <span class="stat-label">Max Deflection</span>
+                <span class="stat-value" id="maxDeflection">0.0 mm</span>
+            </div>
+
+            <div class="stat-box">
+                <span class="stat-label">Max Stress</span>
+                <span class="stat-value" id="maxStress">0 MPa</span>
+            </div>
+
+            <div class="stat-box">
+                <span class="stat-label">Safety Factor</span>
+                <span class="stat-value" id="safetyFactor">∞</span>
+            </div>
+
+            <div style="margin-top: 10px;">
+                <label class="checkbox-label">
+                    <input type="checkbox" id="showDiagrams" checked>
+                    Show Diagrams
+                </label>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('beamCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        // State
+        const beam = {
+            length: 4000, // mm
+            loads: [], // {x: mm, force: kN}
+            distributedLoad: 0, // kN/m
+            material: 'steel',
+            section: 'w10',
+            supportType: 'simple',
+        };
+
+        const materials = {
+            steel: { E: 200, yield: 250 }, // GPa, MPa
+            aluminum: { E: 70, yield: 70 },
+            wood: { E: 10, yield: 10 }
+        };
+
+        const sections = {
+            w10: { I: 184, name: 'W10×49' }, // cm⁴
+            w12: { I: 533, name: 'W12×65' },
+            box: { I: 900, name: 'Box 200×100' }
+        };
+
+        function resizeCanvas() {
+            const rect = canvas.parentElement.getBoundingClientRect();
+            canvas.width = rect.width - 40;
+            canvas.height = Math.max(500, window.innerHeight * 0.6);
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        canvas.addEventListener('click', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            const beamCenterY = canvas.height * 0.5;
+            const beamMarginX = 100;
+            const beamPixelLength = canvas.width - beamMarginX * 2;
+
+            // Check if click is on beam
+            if (y > beamCenterY - 30 && y < beamCenterY + 30 &&
+                x > beamMarginX && x < beamMarginX + beamPixelLength) {
+                const beamX = ((x - beamMarginX) / beamPixelLength) * beam.length;
+                const load = parseFloat(document.getElementById('pointLoadSize').value);
+                beam.loads.push({ x: beamX, force: load });
+            }
+        });
+
+        document.getElementById('materialSelect').addEventListener('change', (e) => {
+            beam.material = e.target.value;
+        });
+
+        document.getElementById('sectionSelect').addEventListener('change', (e) => {
+            beam.section = e.target.value;
+        });
+
+        document.getElementById('supportSelect').addEventListener('change', (e) => {
+            beam.supportType = e.target.value;
+        });
+
+        document.getElementById('distributedLoad').addEventListener('input', (e) => {
+            beam.distributedLoad = parseFloat(e.target.value);
+            document.getElementById('distLoadDisplay').textContent = e.target.value;
+        });
+
+        document.getElementById('pointLoadSize').addEventListener('input', (e) => {
+            document.getElementById('pointLoadDisplay').textContent = e.target.value;
+        });
+
+        function clearLoads() {
+            beam.loads = [];
+        }
+
+        function calculateBendingMoment(x, loads, L, w_dist) {
+            let M = 0;
+            
+            if (beam.supportType === 'simple') {
+                // Simple supports: reactions at 0 and L
+                for (let load of loads) {
+                    if (x >= load.x) {
+                        M += load.force * load.x * (L - load.x) / L;
+                    }
+                }
+                // Distributed load contribution
+                if (w_dist > 0) {
+                    M += w_dist * (L * x / 2 - x * x / 2);
+                }
+            } else {
+                // Cantilever: fixed at 0, free at L
+                for (let load of loads) {
+                    if (x >= load.x) {
+                        M += load.force * (x - load.x);
+                    }
+                }
+                if (w_dist > 0) {
+                    M += w_dist * (x * x / 2);
+                }
+            }
+            return M;
+        }
+
+        function calculateDeflection(x, loads, L, w_dist, E, I) {
+            // Simplified deflection using superposition
+            let y = 0;
+            const EI = E * 10000 * I; // Convert E (GPa) and I (cm⁴) to consistent units
+            
+            if (beam.supportType === 'simple') {
+                for (let load of loads) {
+                    let a = load.x;
+                    let P = load.force * 1000; // kN to N
+                    if (x <= a) {
+                        y += (P * a * a * (L - a) * (L - a) * (2 * L - 2 * a - x * x / (a * a) * a)) / (6 * EI * L);
+                    } else {
+                        y += (P * a * a * (L * L - a * a) * (L - x)) / (6 * EI * L);
+                    }
+                }
+            } else {
+                // Cantilever
+                for (let load of loads) {
+                    let P = load.force * 1000;
+                    if (x >= load.x) {
+                        y += (P * (x - load.x) * (x - load.x) * (3 * L - x - 2 * load.x)) / (6 * EI);
+                    }
+                }
+            }
+            return y / 1000; // mm
+        }
+
+        function calculateMaxValues() {
+            const E = materials[beam.material].E;
+            const I = sections[beam.section].I;
+            const yield = materials[beam.material].yield;
+            const L = beam.length;
+            const w = beam.distributedLoad;
+
+            let maxM = 0;
+            let maxDefl = 0;
+            let maxStress = 0;
+
+            // Sample points along beam
+            for (let i = 0; i <= 100; i++) {
+                const x = (i / 100) * L;
+                const M = calculateBendingMoment(x, beam.loads, L, w);
+                const defl = Math.abs(calculateDeflection(x, beam.loads, L, w, E, I));
+                maxM = Math.max(maxM, Math.abs(M));
+                maxDefl = Math.max(maxDefl, defl);
+            }
+
+            // Stress: σ = M * c / I (c is half-height, approx 50mm for I-beam)
+            const c = 50; // mm, approx distance to extreme fiber
+            maxStress = (maxM * c) / I;
+
+            return { maxM, maxDefl, maxStress, yield };
+        }
+
+        function drawBeam() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const beamCenterY = canvas.height * 0.5;
+            const beamMarginX = 100;
+            const beamPixelLength = canvas.width - beamMarginX * 2;
+            const beamPixelHeight = 20;
+            const L = beam.length;
+
+            const { maxM, maxDefl, maxStress, yield } = calculateMaxValues();
+
+            // Draw undeformed beam (dashed)
+            ctx.strokeStyle = '#4a5568';
+            ctx.setLineDash([5, 5]);
+            ctx.lineWidth = 2;
+            ctx.strokeRect(beamMarginX, beamCenterY - beamPixelHeight / 2, beamPixelLength, beamPixelHeight);
+            ctx.setLineDash([]);
+
+            // Draw deformed beam
+            ctx.strokeStyle = '#d4a574';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+
+            const E = materials[beam.material].E;
+            const I = sections[beam.section].I;
+
+            for (let i = 0; i <= 100; i++) {
+                const ratio = i / 100;
+                const x = ratio * L;
+                const defl = calculateDeflection(x, beam.loads, L, beam.distributedLoad, E, I);
+                const px = beamMarginX + ratio * beamPixelLength;
+                const py = beamCenterY - defl * 5; // Scale deflection for visibility
+                
+                if (i === 0) {
+                    ctx.moveTo(px, py);
+                } else {
+                    ctx.lineTo(px, py);
+                }
+            }
+            ctx.stroke();
+
+            // Draw supports
+            ctx.fillStyle = '#2d3748';
+            if (beam.supportType === 'simple') {
+                // Left pin
+                ctx.fillRect(beamMarginX - 15, beamCenterY + beamPixelHeight / 2, 30, 15);
+                ctx.fillRect(beamMarginX - 10, beamCenterY + beamPixelHeight / 2 + 10, 20, 8);
+                // Right pin
+                ctx.fillRect(beamMarginX + beamPixelLength - 15, beamCenterY + beamPixelHeight / 2, 30, 15);
+                ctx.fillRect(beamMarginX + beamPixelLength - 10, beamCenterY + beamPixelHeight / 2 + 10, 20, 8);
+            } else {
+                // Cantilever fixed end
+                ctx.fillRect(beamMarginX - 20, beamCenterY - 25, 15, 50);
+            }
+
+            // Draw loads
+            ctx.strokeStyle = '#ff6b6b';
+            ctx.fillStyle = '#ff6b6b';
+            ctx.lineWidth = 2;
+            for (let load of beam.loads) {
+                const px = beamMarginX + (load.x / L) * beamPixelLength;
+                const arrowLength = Math.min(load.force * 5, 80);
+                
+                // Load arrow
+                ctx.beginPath();
+                ctx.moveTo(px, beamCenterY - beamPixelHeight / 2 - 20);
+                ctx.lineTo(px, beamCenterY - beamPixelHeight / 2 - 20 - arrowLength);
+                ctx.stroke();
+
+                // Arrowhead
+                ctx.beginPath();
+                ctx.moveTo(px, beamCenterY - beamPixelHeight / 2 - 20 - arrowLength);
+                ctx.lineTo(px - 5, beamCenterY - beamPixelHeight / 2 - 20 - arrowLength + 10);
+                ctx.lineTo(px + 5, beamCenterY - beamPixelHeight / 2 - 20 - arrowLength + 10);
+                ctx.closePath();
+                ctx.fill();
+
+                // Load label
+                ctx.fillStyle = '#e0e6ed';
+                ctx.font = 'bold 11px "Space Mono"';
+                ctx.textAlign = 'center';
+                ctx.fillText(load.force.toFixed(1) + ' kN', px, beamCenterY - beamPixelHeight / 2 - 35 - arrowLength);
+            }
+
+            // Draw distributed load if present
+            if (beam.distributedLoad > 0) {
+                ctx.strokeStyle = '#ff8888';
+                ctx.lineWidth = 1;
+                const spacing = beamPixelLength / 20;
+                for (let i = 0; i < 20; i++) {
+                    const px = beamMarginX + i * spacing;
+                    const arrowLen = beam.distributedLoad * 3;
+                    ctx.beginPath();
+                    ctx.moveTo(px, beamCenterY - beamPixelHeight / 2 - 10);
+                    ctx.lineTo(px, beamCenterY - beamPixelHeight / 2 - 10 - arrowLen);
+                    ctx.stroke();
+                }
+            }
+
+            // Draw moment and shear diagrams if requested
+            if (document.getElementById('showDiagrams').checked) {
+                drawDiagrams(beamMarginX, beamCenterY, beamPixelLength, maxM, maxStress);
+            }
+
+            // Update stats
+            document.getElementById('maxDeflection').textContent = maxDefl.toFixed(2) + ' mm';
+            document.getElementById('maxStress').textContent = Math.round(maxStress) + ' MPa';
+            
+            const safetyFactor = maxStress > 0 ? (yield / maxStress).toFixed(2) : '∞';
+            const safetyEl = document.getElementById('safetyFactor');
+            safetyEl.textContent = safetyFactor;
+            safetyEl.className = 'stat-value' + (safetyFactor !== '∞' && parseFloat(safetyFactor) < 1.5 ? ' warning' : '');
+        }
+
+        function drawDiagrams(marginX, centerY, pixelLen, maxM, maxStress) {
+            const diagramHeight = 80;
+            const diagY = centerY + 100;
+            const L = beam.length;
+
+            ctx.fillStyle = '#1a1a1a';
+            ctx.fillRect(marginX, diagY - diagramHeight / 2, pixelLen, diagramHeight);
+            ctx.strokeStyle = '#2d5f9d';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(marginX, diagY - diagramHeight / 2, pixelLen, diagramHeight);
+
+            // Moment diagram
+            ctx.strokeStyle = '#4da8da';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            for (let i = 0; i <= 50; i++) {
+                const ratio = i / 50;
+                const x = ratio * L;
+                const M = calculateBendingMoment(x, beam.loads, L, beam.distributedLoad);
+                const barHeight = (M / (maxM || 1)) * (diagramHeight / 2 - 5);
+                const px = marginX + ratio * pixelLen;
+                const py = diagY - barHeight;
+                
+                if (i === 0) ctx.moveTo(px, py);
+                else ctx.lineTo(px, py);
+            }
+            ctx.stroke();
+
+            // Legend
+            ctx.fillStyle = '#a0aec0';
+            ctx.font = '10px "Space Mono"';
+            ctx.textAlign = 'left';
+            ctx.fillText('Bending Moment Diagram', marginX + 5, diagY + diagramHeight / 2 + 15);
+        }
+
+        function animate() {
+            drawBeam();
+            requestAnimationFrame(animate);
+        }
+        animate();
+    </script>
+</body>
+</html>
