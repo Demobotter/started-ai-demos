@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fault Line Explorer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #0a1428 0%, #1a2a4a 100%);
+            color: #7dd3fc;
+            font-family: 'Space Mono', monospace;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.5rem;
+            color: #cc2200;
+            margin-bottom: 8px;
+            text-shadow: 0 2px 8px rgba(204, 34, 0, 0.3);
+        }
+        
+        .subtitle {
+            font-size: 0.95rem;
+            color: #a8e6c1;
+        }
+        
+        .controls {
+            background: rgba(15, 61, 74, 0.4);
+            border: 1px solid #1f4d7f;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+        
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        
+        label {
+            font-size: 0.85rem;
+            color: #64b5f6;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        select, input[type="range"] {
+            background: #0a1d4a;
+            color: #7dd3fc;
+            border: 1px solid #4da8da;
+            border-radius: 4px;
+            padding: 8px;
+            font-family: 'Space Mono', monospace;
+            font-size: 0.9rem;
+        }
+        
+        input[type="range"] {
+            width: 100%;
+            cursor: pointer;
+        }
+        
+        .content {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+        }
+        
+        .map-container {
+            background: rgba(15, 61, 74, 0.5);
+            border: 2px solid #1f4d7f;
+            border-radius: 8px;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 500px;
+        }
+        
+        canvas {
+            max-width: 100%;
+            max-height: 100%;
+        }
+        
+        .detail-panel {
+            background: rgba(15, 61, 74, 0.4);
+            border: 1px solid #1f4d7f;
+            border-radius: 8px;
+            padding: 20px;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+        
+        .detail-panel h3 {
+            color: #ff9944;
+            font-family: 'Playfair Display', serif;
+            margin-bottom: 12px;
+            font-size: 1.2rem;
+        }
+        
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(31, 77, 127, 0.5);
+            font-size: 0.9rem;
+        }
+        
+        .stat-label {
+            color: #64b5f6;
+            font-weight: 700;
+        }
+        
+        .stat-value {
+            color: #7dd3fc;
+            text-align: right;
+        }
+        
+        .energy-scale {
+            background: rgba(10, 29, 74, 0.6);
+            border-left: 4px solid #ff4444;
+            padding: 12px;
+            margin-top: 15px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+        }
+        
+        .energy-scale-title {
+            color: #ff4444;
+            font-weight: 700;
+            margin-bottom: 6px;
+        }
+        
+        .comparison {
+            color: #7dd3fc;
+            margin: 4px 0;
+        }
+        
+        .stats-summary {
+            background: rgba(10, 29, 74, 0.6);
+            border: 1px solid #4da8da;
+            border-radius: 6px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+        
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            font-size: 0.9rem;
+        }
+        
+        .summary-label {
+            color: #64b5f6;
+        }
+        
+        .summary-value {
+            color: #ff9944;
+            font-weight: 700;
+        }
+        
+        @media (max-width: 800px) {
+            .content {
+                grid-template-columns: 1fr;
+            }
+            
+            h1 {
+                font-size: 1.8rem;
+            }
+        }
+        
+        .no-quakes {
+            color: #ff9944;
+            text-align: center;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🌍 Fault Line Explorer</h1>
+            <p class="subtitle">Real USGS earthquake data • Last 30 days • Interactive global seismic activity</p>
+        </header>
+        
+        <div class="controls">
+            <div class="control-group">
+                <label for="magnitudeMin">Min Magnitude</label>
+                <input type="range" id="magnitudeMin" min="1" max="7" step="0.5" value="2">
+                <span id="magMinDisplay">2.0</span>
+            </div>
+            <div class="control-group">
+                <label for="magnitudeMax">Max Magnitude</label>
+                <input type="range" id="magnitudeMax" min="1" max="9" step="0.5" value="9">
+                <span id="magMaxDisplay">9.0</span>
+            </div>
+            <div class="control-group">
+                <label for="depthMax">Max Depth (km)</label>
+                <input type="range" id="depthMax" min="50" max="700" step="50" value="700">
+                <span id="depthDisplay">700</span>
+            </div>
+            <div class="control-group">
+                <label for="faultSelect">Select Fault Region</label>
+                <select id="faultSelect">
+                    <option value="">All Faults</option>
+                    <option value="san_andreas">San Andreas</option>
+                    <option value="japan">Japan Subduction</option>
+                    <option value="cascadia">Cascadia</option>
+                    <option value="alpine">New Zealand Alpine</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="content">
+            <div class="map-container">
+                <canvas id="mapCanvas" width="600" height="500"></canvas>
+            </div>
+            
+            <div class="detail-panel">
+                <h3>Selected Earthquake</h3>
+                <div id="detailContent">
+                    <p style="color: #a8e6c1; font-size: 0.9rem;">Click an earthquake on the map to see details.</p>
+                </div>
+                <div class="stats-summary">
+                    <div class="summary-row">
+                        <span class="summary-label">Total Earthquakes (30d)</span>
+                        <span class="summary-value" id="totalQuakes">—</span>
+                    </div>
+                    <div class="summary-row">
+                        <span class="summary-label">Largest Magnitude</span>
+                        <span class="summary-value" id="largestMag">—</span>
+                    </div>
+                    <div class="summary-row">
+                        <span class="summary-label">Avg Depth (km)</span>
+                        <span class="summary-value" id="avgDepth">—</span>
+                    </div>
+                    <div class="summary-row">
+                        <span class="summary-label">Energy Released</span>
+                        <span class="summary-value" id="totalEnergy">—</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Global seismic data
+        let earthquakes = [];
+        let selectedQuake = null;
+        
+        // Fault coordinates (lon, lat pairs for major fault zones)
+        const faultLines = {
+            san_andreas: [[-124.4, 41.0], [-118.8, 35.5]],
+            japan: [[145.0, 40.0], [142.0, 28.0]],
+            cascadia: [[-130.5, 49.0], [-123.8, 42.0]],
+            alpine: [[167.0, -41.0], [172.0, -46.0]],
+            atlantic: [[-40.0, -10.0], [-20.0, 50.0]],
+            anatolian: [[35.0, 40.5], [29.0, 37.0]],
+        };
+        
+        // Seismic energy formula: E (joules) = 10^(1.5*M + 4.8)
+        function calculateEnergy(magnitude) {
+            return Math.pow(10, 1.5 * magnitude + 4.8);
+        }
+        
+        // Format energy in megatons TNT (1 megaton = 4.184e15 J)
+        function formatEnergy(joules) {
+            const megatons = joules / 4.184e15;
+            if (megatons > 1) return megatons.toFixed(1) + ' MT';
+            const kilotons = megatons * 1000;
+            return kilotons.toFixed(0) + ' KT';
+        }
+        
+        // Fetch USGS earthquake data
+        async function fetchEarthquakes() {
+            try {
+                const response = await fetch('https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_month.geojson');
+                if (!response.ok) throw new Error('USGS fetch failed');
+                const data = await response.json();
+                
+                earthquakes = data.features.map(feature => ({
+                    id: feature.id,
+                    lon: feature.geometry.coordinates[0],
+                    lat: feature.geometry.coordinates[1],
+                    depth: feature.geometry.coordinates[2],
+                    magnitude: feature.properties.mag,
+                    time: new Date(feature.properties.time),
+                    place: feature.properties.place,
+                    url: feature.properties.url,
+                }));
+                
+                // Filter out invalid entries
+                earthquakes = earthquakes.filter(q => q.magnitude && q.magnitude >= 1);
+                
+                console.log(`Loaded ${earthquakes.length} earthquakes`);
+                render();
+            } catch (error) {
+                console.error('Error fetching earthquakes:', error);
+                document.querySelector('.map-container').innerHTML = 
+                    '<p class="no-quakes">Unable to fetch earthquake data. Please refresh the page.</p>';
+            }
+        }
+        
+        function getDepthColor(depth) {
+            if (depth < 30) return '#ff4444';      // Red: shallow
+            if (depth < 70) return '#ff9944';      // Orange: mid
+            if (depth < 300) return '#ffdd44';     // Yellow: deeper
+            return '#4488ff';                       // Blue: very deep
+        }
+        
+        function mercatorProject(lon, lat) {
+            const width = 600;
+            const height = 500;
+            
+            const x = ((lon + 180) / 360) * width;
+            const y = (1 - Math.log(Math.tan((lat + 90) * Math.PI / 360)) / Math.PI) / 2 * height;
+            
+            return { x, y };
+        }
+        
+        function drawMap() {
+            const canvas = document.getElementById('mapCanvas');
+            const ctx = canvas.getContext('2d');
+            const width = canvas.width;
+            const height = canvas.height;
+            
+            // Clear canvas
+            ctx.fillStyle = '#0f3d4a';
+            ctx.fillRect(0, 0, width, height);
+            
+            // Draw simple grid
+            ctx.strokeStyle = '#1f4d7f';
+            ctx.lineWidth = 0.5;
+            for (let lon = -180; lon <= 180; lon += 60) {
+                const proj = mercatorProject(lon, 0);
+                ctx.beginPath();
+                ctx.moveTo(proj.x, 0);
+                ctx.lineTo(proj.x, height);
+                ctx.stroke();
+            }
+            
+            for (let lat = -60; lat <= 60; lat += 30) {
+                const proj = mercatorProject(0, lat);
+                ctx.beginPath();
+                ctx.moveTo(0, proj.y);
+                ctx.lineTo(width, proj.y);
+                ctx.stroke();
+            }
+            
+            // Draw fault lines
+            ctx.strokeStyle = '#cc2200';
+            ctx.lineWidth = 2.5;
+            Object.values(faultLines).forEach(line => {
+                const start = mercatorProject(line[0][0], line[0][1]);
+                const end = mercatorProject(line[1][0], line[1][1]);
+                ctx.beginPath();
+                ctx.moveTo(start.x, start.y);
+                ctx.lineTo(end.x, end.y);
+                ctx.stroke();
+            });
+            
+            // Get filtered earthquakes
+            const minMag = parseFloat(document.getElementById('magnitudeMin').value);
+            const maxMag = parseFloat(document.getElementById('magnitudeMax').value);
+            const maxDepth = parseFloat(document.getElementById('depthMax').value);
+            const faultSelect = document.getElementById('faultSelect').value;
+            
+            const filtered = earthquakes.filter(q => 
+                q.magnitude >= minMag && 
+                q.magnitude <= maxMag &&
+                q.depth <= maxDepth
+            );
+            
+            // Draw earthquakes
+            filtered.forEach(quake => {
+                const proj = mercatorProject(quake.lon, quake.lat);
+                
+                // Size by magnitude (min 3, max 15)
+                const size = Math.max(3, Math.min(15, quake.magnitude * 1.5));
+                
+                // Color by depth
+                ctx.fillStyle = getDepthColor(quake.depth);
+                ctx.beginPath();
+                ctx.arc(proj.x, proj.y, size, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Highlight selected
+                if (selectedQuake && selectedQuake.id === quake.id) {
+                    ctx.strokeStyle = '#7dd3fc';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.arc(proj.x, proj.y, size + 4, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+            });
+            
+            // Update stats
+            updateStats(filtered);
+        }
+        
+        function updateStats(filtered) {
+            const totalEl = document.getElementById('totalQuakes');
+            const largestEl = document.getElementById('largestMag');
+            const avgDepthEl = document.getElementById('avgDepth');
+            const totalEnergyEl = document.getElementById('totalEnergy');
+            
+            if (filtered.length === 0) {
+                totalEl.textContent = '0';
+                largestEl.textContent = '—';
+                avgDepthEl.textContent = '—';
+                totalEnergyEl.textContent = '—';
+                return;
+            }
+            
+            const largest = Math.max(...filtered.map(q => q.magnitude));
+            const avgDepth = (filtered.reduce((sum, q) => sum + q.depth, 0) / filtered.length).toFixed(0);
+            const totalEnergy = filtered.reduce((sum, q) => sum + calculateEnergy(q.magnitude), 0);
+            
+            totalEl.textContent = filtered.length;
+            largestEl.textContent = largest.toFixed(1);
+            avgDepthEl.textContent = avgDepth;
+            totalEnergyEl.textContent = formatEnergy(totalEnergy);
+        }
+        
+        function showDetail(quake) {
+            selectedQuake = quake;
+            const energy = calculateEnergy(quake.magnitude);
+            const formattedEnergy = formatEnergy(energy);
+            
+            // Historical reference energies
+            let reference = '';
+            if (quake.magnitude >= 7.0) {
+                reference = `≈ ${Math.round(energy / 4.184e15)} megatons TNT`;
+            }
+            
+            const depthType = quake.depth < 30 ? 'Shallow (crustal)' : 
+                            quake.depth < 70 ? 'Intermediate' : 'Deep (subduction)';
+            
+            const html = `
+                <div class="stat-row">
+                    <span class="stat-label">Location</span>
+                    <span class="stat-value">${quake.place}</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Date/Time</span>
+                    <span class="stat-value">${quake.time.toLocaleString()}</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Latitude</span>
+                    <span class="stat-value">${quake.lat.toFixed(2)}°</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Longitude</span>
+                    <span class="stat-value">${quake.lon.toFixed(2)}°</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Magnitude</span>
+                    <span class="stat-value" style="color: #ff9944; font-size: 1.1rem; font-weight: 700;">${quake.magnitude.toFixed(1)}</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Depth</span>
+                    <span class="stat-value">${quake.depth.toFixed(1)} km (${depthType})</span>
+                </div>
+                <div class="energy-scale">
+                    <div class="energy-scale-title">⚡ Seismic Energy Released</div>
+                    <div class="comparison">${formattedEnergy} TNT equivalent</div>
+                    ${reference ? '<div class="comparison">' + reference + '</div>' : ''}
+                </div>
+            `;
+            
+            document.getElementById('detailContent').innerHTML = html;
+            render();
+        }
+        
+        function render() {
+            drawMap();
+        }
+        
+        // Event listeners
+        document.getElementById('magnitudeMin').addEventListener('input', (e) => {
+            document.getElementById('magMinDisplay').textContent = parseFloat(e.target.value).toFixed(1);
+            render();
+        });
+        
+        document.getElementById('magnitudeMax').addEventListener('input', (e) => {
+            document.getElementById('magMaxDisplay').textContent = parseFloat(e.target.value).toFixed(1);
+            render();
+        });
+        
+        document.getElementById('depthMax').addEventListener('input', (e) => {
+            document.getElementById('depthDisplay').textContent = e.target.value;
+            render();
+        });
+        
+        document.getElementById('faultSelect').addEventListener('change', render);
+        
+        // Click handler for earthquakes
+        document.getElementById('mapCanvas').addEventListener('click', (e) => {
+            const canvas = document.getElementById('mapCanvas');
+            const rect = canvas.getBoundingClientRect();
+            const clickX = e.clientX - rect.left;
+            const clickY = e.clientY - rect.top;
+            
+            // Check which earthquake was clicked
+            const minMag = parseFloat(document.getElementById('magnitudeMin').value);
+            const maxMag = parseFloat(document.getElementById('magnitudeMax').value);
+            const maxDepth = parseFloat(document.getElementById('depthMax').value);
+            
+            const filtered = earthquakes.filter(q => 
+                q.magnitude >= minMag && 
+                q.magnitude <= maxMag &&
+                q.depth <= maxDepth
+            );
+            
+            for (let quake of filtered) {
+                const proj = mercatorProject(quake.lon, quake.lat);
+                const size = Math.max(3, Math.min(15, quake.magnitude * 1.5));
+                const dist = Math.sqrt((clickX - proj.x) ** 2 + (clickY - proj.y) ** 2);
+                
+                if (dist <= size + 5) {
+                    showDetail(quake);
+                    return;
+                }
+            }
+        });
+        
+        // Load data on startup
+        fetchEarthquakes();
+    </script>
+</body>
+</html>
