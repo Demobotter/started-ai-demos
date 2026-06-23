@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tessellation Lab</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Space Mono', monospace;
+      background: #ffffff;
+      color: #333333;
+      overflow: hidden;
+      height: 100vh;
+    }
+    .container {
+      display: flex;
+      height: 100vh;
+      gap: 0;
+    }
+    .left-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background: #ffffff;
+    }
+    .right-panel {
+      width: 280px;
+      background: #ffffff;
+      border-left: 1px solid #e0e0e0;
+      padding: 20px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    canvas {
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      max-width: 100%;
+      max-height: 100%;
+      background: white;
+      cursor: crosshair;
+    }
+    h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: 28px;
+      margin-bottom: 20px;
+      text-align: center;
+      color: #333333;
+    }
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    label {
+      font-size: 12px;
+      font-weight: 700;
+      color: #333333;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    input[type="range"],
+    input[type="color"],
+    select {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #e0e0e0;
+      border-radius: 4px;
+      font-family: 'Space Mono', monospace;
+      font-size: 12px;
+      background: white;
+      color: #333333;
+    }
+    select {
+      cursor: pointer;
+    }
+    input[type="range"] {
+      cursor: pointer;
+    }
+    .stat-box {
+      background: #f5f5f5;
+      border-left: 3px solid #00d4ff;
+      padding: 10px;
+      border-radius: 4px;
+      font-size: 11px;
+      line-height: 1.6;
+      color: #333333;
+    }
+    .stat-label {
+      font-weight: 700;
+      text-transform: uppercase;
+      font-size: 10px;
+      letter-spacing: 0.5px;
+      color: #666666;
+    }
+    .stat-value {
+      font-size: 13px;
+      font-weight: 700;
+      color: #333333;
+      margin-top: 2px;
+    }
+    button {
+      padding: 10px;
+      background: #333333;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      font-family: 'Space Mono', monospace;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    button:hover {
+      background: #555555;
+    }
+    button.active {
+      background: #00d4ff;
+      color: #333333;
+    }
+    .button-group {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .button-group button {
+      flex: 1;
+      padding: 8px;
+      font-size: 11px;
+    }
+    .info-box {
+      background: #f0f8ff;
+      border: 1px solid #00d4ff;
+      padding: 10px;
+      border-radius: 4px;
+      font-size: 11px;
+      line-height: 1.6;
+      color: #333333;
+    }
+    input[type="range"] {
+      accent-color: #00d4ff;
+    }
+    @media (max-width: 768px) {
+      .container {
+        flex-direction: column;
+      }
+      .right-panel {
+        width: 100%;
+        border-left: none;
+        border-top: 1px solid #e0e0e0;
+        max-height: 200px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="left-panel">
+      <h1>Tessellation Lab</h1>
+      <canvas id="canvas"></canvas>
+    </div>
+    <div class="right-panel">
+      <div class="control-group">
+        <label>Pattern Type</label>
+        <select id="patternType">
+          <option value="hexagon">Hexagon (Honeycomb)</option>
+          <option value="square">Square Grid</option>
+          <option value="triangle">Triangle (Equilateral)</option>
+          <option value="penrose">Penrose (Aperiodic)</option>
+          <option value="islamic">Islamic Geometric</option>
+          <option value="escher">Escher Interlocking</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <label>Pattern Scale: <span id="scaleValue">50</span>px</label>
+        <input type="range" id="scaleSlider" min="10" max="200" value="50">
+      </div>
+
+      <div class="control-group">
+        <label>Rotation: <span id="rotValue">0</span>°</label>
+        <input type="range" id="rotSlider" min="0" max="360" value="0">
+      </div>
+
+      <div class="control-group">
+        <label>Stroke Color</label>
+        <input type="color" id="strokeColor" value="#333333">
+      </div>
+
+      <div class="control-group">
+        <label>Fill Mode</label>
+        <select id="fillMode">
+          <option value="none">None</option>
+          <option value="mono">Monochrome</option>
+          <option value="rainbow">Rainbow</option>
+        </select>
+      </div>
+
+      <div class="button-group">
+        <button id="symmetryToggle">Show Symmetry</button>
+        <button id="animateToggle">Animate</button>
+      </div>
+
+      <div class="stat-box">
+        <div class="stat-label">Symmetry Group</div>
+        <div class="stat-value" id="symmetryGroup">p6m</div>
+      </div>
+
+      <div class="stat-box">
+        <div class="stat-label">Visible Tiles</div>
+        <div class="stat-value" id="tileCount">0</div>
+      </div>
+
+      <div class="stat-box">
+        <div class="stat-label">Wallpaper Group</div>
+        <div class="stat-value" id="wallpaperDesc">6-fold rotation</div>
+      </div>
+
+      <div class="info-box">
+        <strong>Tip:</strong> Click a tile to fill it with color. Use symmetry overlay to understand pattern structure.
+      </div>
+
+      <button id="downloadBtn" style="width: 100%;">Download SVG</button>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    const controls = {
+      patternType: document.getElementById('patternType'),
+      scaleSlider: document.getElementById('scaleSlider'),
+      scaleValue: document.getElementById('scaleValue'),
+      rotSlider: document.getElementById('rotSlider'),
+      rotValue: document.getElementById('rotValue'),
+      strokeColor: document.getElementById('strokeColor'),
+      fillMode: document.getElementById('fillMode'),
+      symmetryToggle: document.getElementById('symmetryToggle'),
+      animateToggle: document.getElementById('animateToggle'),
+      tileCount: document.getElementById('tileCount'),
+      symmetryGroup: document.getElementById('symmetryGroup'),
+      wallpaperDesc: document.getElementById('wallpaperDesc'),
+      downloadBtn: document.getElementById('downloadBtn')
+    };
+
+    let state = {
+      showSymmetry: false,
+      animate: false,
+      animationTime: 0,
+      fillMode: 'none',
+      tiles: [],
+      tileColors: {}
+    };
+
+    function resizeCanvas() {
+      const rect = canvas.parentElement.getBoundingClientRect();
+      canvas.width = rect.width - 40;
+      canvas.height = rect.height - 100;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    function getSymmetryInfo(type) {
+      const info = {
+        hexagon: { group: 'p6m', desc: '6-fold rotation + reflection' },
+        square: { group: 'p4m', desc: '4-fold rotation + reflection' },
+        triangle: { group: 'p3m1', desc: '3-fold rotation + reflection' },
+        penrose: { group: 'p10m', desc: '5-fold aperiodic (quasicrystal)' },
+        islamic: { group: 'p12m', desc: '12-fold star pattern' },
+        escher: { group: 'p2', desc: '2-fold rotation (180°)' }
+      };
+      return info[type] || { group: '?', desc: 'Unknown' };
+    }
+
+    function drawHexagonTiles(scale, rotation) {
+      const tiles = [];
+      const s = scale;
+      const h = (Math.sqrt(3) / 2) * s;
+      
+      for (let x = -2; x < Math.ceil(canvas.width / s) + 2; x++) {
+        for (let y = -2; y < Math.ceil(canvas.height / h) + 2; y++) {
+          const px = x * s * 1.5;
+          const py = y * h * 2 + (x % 2) * h;
+          const points = [];
+          for (let i = 0; i < 6; i++) {
+            const angle = (i * 60 + rotation) * Math.PI / 180;
+            points.push([
+              px + s * Math.cos(angle),
+              py + s * Math.sin(angle)
+            ]);
+          }
+          tiles.push(points);
+        }
+      }
+      return tiles;
+    }
+
+    function drawSquareTiles(scale, rotation) {
+      const tiles = [];
+      const s = scale;
+      
+      for (let x = -1; x < Math.ceil(canvas.width / s) + 1; x++) {
+        for (let y = -1; y < Math.ceil(canvas.height / s) + 1; y++) {
+          const px = x * s;
+          const py = y * s;
+          const half = s / 2;
+          const points = [
+            [px - half, py - half],
+            [px + half, py - half],
+            [px + half, py + half],
+            [px - half, py + half]
+          ];
+          tiles.push(points);
+        }
+      }
+      return tiles;
+    }
+
+    function drawTriangleTiles(scale, rotation) {
+      const tiles = [];
+      const s = scale;
+      const h = (Math.sqrt(3) / 2) * s;
+      
+      for (let x = 0; x < Math.ceil(canvas.width / s) + 2; x++) {
+        for (let y = 0; y < Math.ceil(canvas.height / h) + 2; y++) {
+          const px = x * s * 0.5;
+          const py = y * h;
+          const offset = (x % 2) * h;
+          
+          // Upward triangle
+          const t1 = [
+            [px, py + offset - h],
+            [px + s * 0.5, py + offset],
+            [px - s * 0.5, py + offset]
+          ];
+          tiles.push(t1);
+          
+          // Downward triangle
+          const t2 = [
+            [px, py + offset + h],
+            [px - s * 0.5, py + offset],
+            [px + s * 0.5, py + offset]
+          ];
+          tiles.push(t2);
+        }
+      }
+      return tiles;
+    }
+
+    function drawPenroseTiles(scale, rotation) {
+      const tiles = [];
+      const s = scale;
+      const phi = (1 + Math.sqrt(5)) / 2;
+      
+      for (let x = -2; x < Math.ceil(canvas.width / (s * 1.5)) + 2; x++) {
+        for (let y = -2; y < Math.ceil(canvas.height / (s * 1.5)) + 2; y++) {
+          const px = x * s * 1.5;
+          const py = y * s * 1.5;
+          
+          // Thin rhombus (36-144 degrees)
+          const t1 = [
+            [px, py],
+            [px + s, py],
+            [px + s * Math.cos(36 * Math.PI / 180), py + s * Math.sin(36 * Math.PI / 180)],
+            [px + s * Math.cos(72 * Math.PI / 180), py + s * Math.sin(72 * Math.PI / 180)]
+          ];
+          tiles.push(t1);
+          
+          // Fat rhombus (72-108 degrees)
+          const t2 = [
+            [px, py],
+            [px + s * phi, py],
+            [px + s * phi * Math.cos(72 * Math.PI / 180), py + s * phi * Math.sin(72 * Math.PI / 180)],
+            [px + s * Math.cos(144 * Math.PI / 180), py + s * Math.sin(144 * Math.PI / 180)]
+          ];
+          tiles.push(t2);
+        }
+      }
+      return tiles;
+    }
+
+    function drawIslamicTiles(scale, rotation) {
+      const tiles = [];
+      const s = scale;
+      const sides = 12;
+      
+      for (let x = -1; x < Math.ceil(canvas.width / (s * 2)) + 1; x++) {
+        for (let y = -1; y < Math.ceil(canvas.height / (s * 2)) + 1; y++) {
+          const cx = x * s * 2;
+          const cy = y * s * 2;
+          const points = [];
+          for (let i = 0; i < sides; i++) {
+            const angle = (i * 360 / sides + rotation) * Math.PI / 180;
+            points.push([
+              cx + s * Math.cos(angle),
+              cy + s * Math.sin(angle)
+            ]);
+          }
+          tiles.push(points);
+        }
+      }
+      return tiles;
+    }
+
+    function drawEscherTiles(scale, rotation) {
+      const tiles = [];
+      const s = scale;
+      const wave = (x, amp) => amp * Math.sin(x * Math.PI / (s * 0.5));
+      
+      for (let x = 0; x < Math.ceil(canvas.width / s) + 1; x++) {
+        for (let y = 0; y < Math.ceil(canvas.height / s) + 1; y++) {
+          const px = x * s;
+          const py = y * s;
+          const points = [
+            [px, py + wave(0, s * 0.2)],
+            [px + s, py + wave(s, s * 0.2)],
+            [px + s + wave(py, s * 0.2), py + s],
+            [px + wave(py + s, s * 0.2), py + s],
+            [px, py]
+          ];
+          tiles.push(points);
+        }
+      }
+      return tiles;
+    }
+
+    function getTiles() {
+      const scale = parseInt(controls.scaleSlider.value);
+      const rotation = parseInt(controls.rotSlider.value);
+      const type = controls.patternType.value;
+
+      let tiles = [];
+      switch (type) {
+        case 'hexagon': tiles = drawHexagonTiles(scale, rotation); break;
+        case 'square': tiles = drawSquareTiles(scale, rotation); break;
+        case 'triangle': tiles = drawTriangleTiles(scale, rotation); break;
+        case 'penrose': tiles = drawPenroseTiles(scale, rotation); break;
+        case 'islamic': tiles = drawIslamicTiles(scale, rotation); break;
+        case 'escher': tiles = drawEscherTiles(scale, rotation); break;
+      }
+      return tiles;
+    }
+
+    function drawTiles() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const tiles = getTiles();
+      const strokeColor = controls.strokeColor.value;
+      const fillMode = controls.fillMode.value;
+      
+      state.tiles = tiles;
+
+      tiles.forEach((tile, idx) => {
+        ctx.beginPath();
+        tile.forEach((pt, i) => {
+          if (i === 0) ctx.moveTo(pt[0], pt[1]);
+          else ctx.lineTo(pt[0], pt[1]);
+        });
+        ctx.closePath();
+
+        // Fill
+        if (fillMode === 'mono') {
+          ctx.fillStyle = state.tileColors[idx] || '#f0f0f0';
+          ctx.fill();
+        } else if (fillMode === 'rainbow') {
+          const hue = (idx * 15) % 360;
+          ctx.fillStyle = `hsl(${hue}, 70%, 60%)`;
+          ctx.fill();
+        }
+
+        // Stroke
+        ctx.strokeStyle = strokeColor;
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      });
+
+      // Draw symmetry lines
+      if (state.showSymmetry) {
+        ctx.strokeStyle = '#00d4ff';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([5, 5]);
+        ctx.globalAlpha = 0.5;
+
+        // Vertical/horizontal axes
+        ctx.beginPath();
+        ctx.moveTo(canvas.width / 2, 0);
+        ctx.lineTo(canvas.width / 2, canvas.height);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(0, canvas.height / 2);
+        ctx.lineTo(canvas.width, canvas.height / 2);
+        ctx.stroke();
+
+        ctx.globalAlpha = 1;
+        ctx.setLineDash([]);
+      }
+
+      controls.tileCount.textContent = tiles.length;
+    }
+
+    function handleCanvasClick(e) {
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+
+      state.tiles.forEach((tile, idx) => {
+        if (pointInPolygon([x, y], tile)) {
+          if (state.tileColors[idx]) {
+            delete state.tileColors[idx];
+          } else {
+            const hue = Math.random() * 360;
+            state.tileColors[idx] = `hsl(${hue}, 70%, 60%)`;
+          }
+        }
+      });
+      drawTiles();
+    }
+
+    function pointInPolygon(pt, poly) {
+      let inside = false;
+      for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+        const xi = poly[i][0], yi = poly[i][1];
+        const xj = poly[j][0], yj = poly[j][1];
+        const intersect = ((yi > pt[1]) !== (yj > pt[1])) &&
+          (pt[0] < (xj - xi) * (pt[1] - yi) / (yj - yi) + xi);
+        if (intersect) inside = !inside;
+      }
+      return inside;
+    }
+
+    function animate() {
+      if (state.animate) {
+        state.animationTime = (state.animationTime + 1) % 360;
+        controls.rotSlider.value = state.animationTime;
+        controls.rotValue.textContent = state.animationTime;
+      }
+      drawTiles();
+      requestAnimationFrame(animate);
+    }
+
+    // Event listeners
+    controls.patternType.addEventListener('change', () => {
+      const info = getSymmetryInfo(controls.patternType.value);
+      controls.symmetryGroup.textContent = info.group;
+      controls.wallpaperDesc.textContent = info.desc;
+      state.tileColors = {};
+      drawTiles();
+    });
+
+    controls.scaleSlider.addEventListener('input', () => {
+      controls.scaleValue.textContent = controls.scaleSlider.value;
+      state.tileColors = {};
+      drawTiles();
+    });
+
+    controls.rotSlider.addEventListener('input', () => {
+      controls.rotValue.textContent = controls.rotSlider.value;
+      drawTiles();
+    });
+
+    controls.strokeColor.addEventListener('change', drawTiles);
+
+    controls.fillMode.addEventListener('change', () => {
+      state.fillMode = controls.fillMode.value;
+      drawTiles();
+    });
+
+    controls.symmetryToggle.addEventListener('click', () => {
+      state.showSymmetry = !state.showSymmetry;
+      controls.symmetryToggle.classList.toggle('active');
+      drawTiles();
+    });
+
+    controls.animateToggle.addEventListener('click', () => {
+      state.animate = !state.animate;
+      controls.animateToggle.classList.toggle('active');
+    });
+
+    controls.downloadBtn.addEventListener('click', () => {
+      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.setAttribute('width', canvas.width);
+      svg.setAttribute('height', canvas.height);
+      svg.setAttribute('viewBox', `0 0 ${canvas.width} ${canvas.height}`);
+
+      state.tiles.forEach((tile, idx) => {
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        let d = `M ${tile[0][0]} ${tile[0][1]}`;
+        for (let i = 1; i < tile.length; i++) {
+          d += ` L ${tile[i][0]} ${tile[i][1]}`;
+        }
+        d += ' Z';
+        path.setAttribute('d', d);
+        path.setAttribute('stroke', controls.strokeColor.value);
+        path.setAttribute('stroke-width', '1.5');
+        path.setAttribute('fill', state.tileColors[idx] || 'none');
+        svg.appendChild(path);
+      });
+
+      const svgStr = new XMLSerializer().serializeToString(svg);
+      const blob = new Blob([svgStr], { type: 'image/svg+xml' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'tessellation.svg';
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+
+    canvas.addEventListener('click', handleCanvasClick);
+
+    // Initialize
+    const info = getSymmetryInfo(controls.patternType.value);
+    controls.symmetryGroup.textContent = info.group;
+    controls.wallpaperDesc.textContent = info.desc;
+
+    animate();
+  </script>
+</body>
+</html>
