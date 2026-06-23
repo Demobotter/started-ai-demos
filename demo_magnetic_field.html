@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Magnetic Field Visualizer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Space+Mono:wght@400&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Space Mono', monospace;
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 100%);
+            color: #e0e7ff;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1100px;
+            width: 100%;
+            background: rgba(20, 25, 45, 0.9);
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #0044ff 0%, #0066ff 100%);
+            padding: 25px;
+            text-align: center;
+            border-bottom: 2px solid #2d9d5f;
+        }
+        .header h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.2em;
+            margin-bottom: 8px;
+            letter-spacing: 1px;
+        }
+        .header p {
+            font-size: 0.9em;
+            opacity: 0.9;
+            font-family: 'Space Mono', monospace;
+        }
+        .content {
+            display: flex;
+            gap: 20px;
+            padding: 20px;
+        }
+        @media (max-width: 768px) {
+            .content {
+                flex-direction: column;
+            }
+        }
+        .canvas-wrapper {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: rgba(10, 14, 39, 0.7);
+            border-radius: 8px;
+            border: 2px solid #2d9d5f;
+            min-height: 550px;
+            padding: 15px;
+        }
+        canvas {
+            border-radius: 6px;
+            background: #0a0e27;
+            max-width: 100%;
+            height: auto;
+            display: block;
+        }
+        .sidebar {
+            width: 280px;
+            background: rgba(30, 40, 70, 0.8);
+            border-radius: 8px;
+            border: 2px solid #2d9d5f;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            overflow-y: auto;
+            max-height: 600px;
+        }
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 100%;
+                max-height: none;
+            }
+        }
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .control-group label {
+            font-size: 0.85em;
+            font-weight: bold;
+            color: #4da8da;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .preset-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+        }
+        .preset-btn {
+            padding: 8px 10px;
+            background: linear-gradient(135deg, #0044ff 0%, #0066ff 100%);
+            border: 1px solid #4da8da;
+            color: #e0e7ff;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.75em;
+            font-family: 'Space Mono', monospace;
+            transition: all 0.3s ease;
+        }
+        .preset-btn:hover {
+            background: linear-gradient(135deg, #0066ff 0%, #0088ff 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 100, 255, 0.3);
+        }
+        .preset-btn.active {
+            background: linear-gradient(135deg, #2d9d5f 0%, #4dbf7f 100%);
+            border-color: #7dd3fc;
+        }
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: linear-gradient(90deg, #0044ff 0%, #4da8da 100%);
+            outline: none;
+            -webkit-appearance: none;
+            accent-color: #4da8da;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #4da8da;
+            cursor: pointer;
+            box-shadow: 0 0 8px rgba(77, 168, 218, 0.6);
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #4da8da;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 0 8px rgba(77, 168, 218, 0.6);
+        }
+        .range-value {
+            font-size: 0.8em;
+            color: #4da8da;
+            text-align: center;
+            font-weight: bold;
+        }
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            font-size: 0.85em;
+            color: #e0e7ff;
+        }
+        input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+            accent-color: #2d9d5f;
+        }
+        .stat-box {
+            background: rgba(45, 157, 95, 0.15);
+            border-left: 3px solid #2d9d5f;
+            border-radius: 4px;
+            padding: 10px 12px;
+            font-size: 0.8em;
+        }
+        .stat-label {
+            color: #a0a9b8;
+            font-size: 0.75em;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+        .stat-value {
+            color: #4da8da;
+            font-weight: bold;
+            font-size: 1.1em;
+            margin-top: 4px;
+            font-family: 'Space Mono', monospace;
+        }
+        .btn-primary {
+            padding: 10px 14px;
+            background: linear-gradient(135deg, #2d9d5f 0%, #4dbf7f 100%);
+            border: 1px solid #4da8da;
+            color: #0a0e27;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85em;
+            font-family: 'Space Mono', monospace;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #4dbf7f 0%, #6fd99f 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(45, 157, 95, 0.4);
+        }
+        .info-text {
+            font-size: 0.75em;
+            color: #a0a9b8;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🧲 Magnetic Field</h1>
+            <p>Click the canvas to place dipoles and watch fields interact in real time</p>
+        </div>
+        <div class="content">
+            <div class="canvas-wrapper">
+                <canvas id="fieldCanvas" width="500" height="500"></canvas>
+            </div>
+            <div class="sidebar">
+                <div class="control-group">
+                    <label>Preset Configurations</label>
+                    <div class="preset-buttons">
+                        <button class="preset-btn active" data-preset="single">Single</button>
+                        <button class="preset-btn" data-preset="dipole">Dipole</button>
+                        <button class="preset-btn" data-preset="quad">Quadrupole</button>
+                        <button class="preset-btn" data-preset="circle">Circle</button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>Grid Density</label>
+                    <input type="range" id="gridDensity" min="8" max="20" value="12" step="1">
+                    <div class="range-value" id="gridDensityValue">12</div>
+                </div>
+
+                <div class="control-group">
+                    <label>Vector Scale</label>
+                    <input type="range" id="vectorScale" min="0.5" max="3" value="1.5" step="0.1">
+                    <div class="range-value" id="vectorScaleValue">1.5x</div>
+                </div>
+
+                <div class="control-group">
+                    <label>Particle Count</label>
+                    <input type="range" id="particleCount" min="0" max="500" value="200" step="20">
+                    <div class="range-value" id="particleCountValue">200</div>
+                </div>
+
+                <div class="control-group">
+                    <label style="color: #e0e7ff;">Display Options</label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="showParticles" checked>
+                        <span>Show Particles</span>
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="showFieldLines" checked>
+                        <span>Show Vectors</span>
+                    </label>
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="showMagnitude" checked>
+                        <span>Magnitude Color</span>
+                    </label>
+                </div>
+
+                <button class="btn-primary" id="clearBtn">Clear All</button>
+
+                <div class="stat-box">
+                    <div class="stat-label">Active Magnets</div>
+                    <div class="stat-value" id="magnetCount">1</div>
+                </div>
+
+                <div class="stat-box">
+                    <div class="stat-label">Airborne Particles</div>
+                    <div class="stat-value" id="particleStatus">200</div>
+                </div>
+
+                <div class="info-text">
+                    💡 Click anywhere on the canvas to place north (blue) or south (red) poles. Drag them to move. Click "Clear" to reset.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('fieldCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        // State
+        let magnets = [];
+        let particles = [];
+        let animationFrameId;
+        
+        // Constants
+        const K = 5000; // Field strength constant
+        const DIPOLE_STRENGTH = 200;
+        const PARTICLE_SPEED = 1.5;
+        const PARTICLE_LIFE = 600;
+        
+        // Magnet class
+        class Magnet {
+            constructor(x, y, polarity) {
+                this.x = x;
+                this.y = y;
+                this.polarity = polarity; // 1 for north, -1 for south
+                this.strength = DIPOLE_STRENGTH;
+                this.isDragging = false;
+            }
+            
+            getField(px, py) {
+                const dx = px - this.x;
+                const dy = py - this.y;
+                const r = Math.sqrt(dx * dx + dy * dy);
+                
+                if (r < 10) return { fx: 0, fy: 0, mag: 0 };
+                
+                const magnitude = (K * this.strength * this.polarity) / (r * r + 100);
+                const angle = Math.atan2(dy, dx);
+                
+                return {
+                    fx: magnitude * Math.cos(angle),
+                    fy: magnitude * Math.sin(angle),
+                    mag: Math.abs(magnitude)
+                };
+            }
+            
+            draw(ctx) {
+                const radius = 12;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, radius, 0, Math.PI * 2);
+                ctx.fillStyle = this.polarity > 0 ? '#0044ff' : '#cc0000';
+                ctx.fill();
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                
+                // Draw label
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 10px monospace';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(this.polarity > 0 ? 'N' : 'S', this.x, this.y);
+            }
+        }
+        
+        // Particle class
+        class Particle {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.vx = (Math.random() - 0.5) * 2;
+                this.vy = (Math.random() - 0.5) * 2;
+                this.life = PARTICLE_LIFE;
+                this.maxLife = PARTICLE_LIFE;
+            }
+            
+            update() {
+                let fx = 0, fy = 0;
+                
+                // Apply forces from all magnets
+                for (let magnet of magnets) {
+                    const field = magnet.getField(this.x, this.y);
+                    fx += field.fx;
+                    fy += field.fy;
+                }
+                
+                // Apply gravity
+                fy += 0.2;
+                
+                // Update velocity
+                this.vx += fx * 0.02;
+                this.vy += fy * 0.02;
+                
+                // Damping
+                this.vx *= 0.98;
+                this.vy *= 0.98;
+                
+                // Speed limit
+                const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+                if (speed > 5) {
+                    this.vx = (this.vx / speed) * 5;
+                    this.vy = (this.vy / speed) * 5;
+                }
+                
+                this.x += this.vx;
+                this.y += this.vy;
+                this.life--;
+                
+                // Bounce off edges
+                if (this.x < 0 || this.x > canvas.width) this.vx *= -0.8;
+                if (this.y < 0 || this.y > canvas.height) this.vy *= -0.8;
+                
+                this.x = Math.max(0, Math.min(canvas.width, this.x));
+                this.y = Math.max(0, Math.min(canvas.height, this.y));
+            }
+            
+            draw(ctx) {
+                const alpha = this.life / this.maxLife;
+                ctx.fillStyle = `rgba(160, 128, 96, ${alpha * 0.6})`;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, 2, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+        
+        // Get field at point
+        function getFieldAt(x, y) {
+            let fx = 0, fy = 0, mag = 0;
+            for (let magnet of magnets) {
+                const field = magnet.getField(x, y);
+                fx += field.fx;
+                fy += field.fy;
+                mag += field.mag;
+            }
+            return { fx, fy, mag };
+        }
+        
+        // Draw field vectors
+        function drawFieldVectors() {
+            const gridSize = parseInt(document.getElementById('gridDensity').value);
+            const vectorScale = parseFloat(document.getElementById('vectorScale').value);
+            const showMagnitude = document.getElementById('showMagnitude').checked;
+            
+            const step = Math.floor(canvas.width / gridSize);
+            
+            for (let x = step; x < canvas.width; x += step) {
+                for (let y = step; y < canvas.height; y += step) {
+                    const field = getFieldAt(x, y);
+                    const mag = Math.sqrt(field.fx * field.fx + field.fy * field.fy);
+                    
+                    if (mag < 0.1) continue;
+                    
+                    const angle = Math.atan2(field.fy, field.fx);
+                    const length = Math.min(mag * vectorScale, step * 0.7);
+                    const ex = x + Math.cos(angle) * length;
+                    const ey = y + Math.sin(angle) * length;
+                    
+                    // Color by magnitude
+                    let hue = 240; // blue
+                    if (showMagnitude) {
+                        hue = Math.max(0, 240 - (mag / 30) * 120); // blue -> yellow
+                    }
+                    
+                    ctx.strokeStyle = `hsl(${hue}, 100%, 50%)`;
+                    ctx.globalAlpha = 0.5 + (Math.min(mag / 50, 1) * 0.5);
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.moveTo(x, y);
+                    ctx.lineTo(ex, ey);
+                    ctx.stroke();
+                    
+                    // Arrow head
+                    const arrowSize = 4;
+                    ctx.beginPath();
+                    ctx.moveTo(ex, ey);
+                    ctx.lineTo(ex - Math.cos(angle + Math.PI / 6) * arrowSize, ey - Math.sin(angle + Math.PI / 6) * arrowSize);
+                    ctx.lineTo(ex - Math.cos(angle - Math.PI / 6) * arrowSize, ey - Math.sin(angle - Math.PI / 6) * arrowSize);
+                    ctx.closePath();
+                    ctx.fillStyle = `hsl(${hue}, 100%, 50%)`;
+                    ctx.fill();
+                    ctx.globalAlpha = 1;
+                }
+            }
+        }
+        
+        // Animation loop
+        function animate() {
+            ctx.fillStyle = '#0a0e27';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw field vectors
+            if (document.getElementById('showFieldLines').checked) {
+                drawFieldVectors();
+            }
+            
+            // Update and draw particles
+            if (document.getElementById('showParticles').checked) {
+                particles = particles.filter(p => p.life > 0);
+                
+                for (let particle of particles) {
+                    particle.update();
+                    particle.draw(ctx);
+                }
+            }
+            
+            // Draw magnets
+            for (let magnet of magnets) {
+                magnet.draw(ctx);
+            }
+            
+            // Update stats
+            document.getElementById('magnetCount').textContent = magnets.length;
+            document.getElementById('particleStatus').textContent = particles.length;
+            
+            animationFrameId = requestAnimationFrame(animate);
+        }
+        
+        // Spawn particles
+        function spawnParticles() {
+            const count = parseInt(document.getElementById('particleCount').value);
+            while (particles.length < count && Math.random() < 0.3) {
+                particles.push(new Particle(
+                    Math.random() * canvas.width,
+                    Math.random() * canvas.height
+                ));
+            }
+        }
+        
+        // Load preset
+        function loadPreset(name) {
+            magnets = [];
+            particles = [];
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            
+            switch(name) {
+                case 'single':
+                    magnets.push(new Magnet(centerX, centerY, 1));
+                    break;
+                case 'dipole':
+                    magnets.push(new Magnet(centerX - 60, centerY, 1));
+                    magnets.push(new Magnet(centerX + 60, centerY, -1));
+                    break;
+                case 'quad':
+                    magnets.push(new Magnet(centerX - 60, centerY - 60, 1));
+                    magnets.push(new Magnet(centerX + 60, centerY - 60, -1));
+                    magnets.push(new Magnet(centerX - 60, centerY + 60, -1));
+                    magnets.push(new Magnet(centerX + 60, centerY + 60, 1));
+                    break;
+                case 'circle':
+                    const radius = 100;
+                    for (let i = 0; i < 6; i++) {
+                        const angle = (i / 6) * Math.PI * 2;
+                        const x = centerX + Math.cos(angle) * radius;
+                        const y = centerY + Math.sin(angle) * radius;
+                        const polarity = i % 2 === 0 ? 1 : -1;
+                        magnets.push(new Magnet(x, y, polarity));
+                    }
+                    break;
+            }
+            
+            spawnParticles();
+        }
+        
+        // Canvas mouse events
+        canvas.addEventListener('click', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            // Toggle polarity if clicking on existing magnet
+            for (let magnet of magnets) {
+                const dx = magnet.x - x;
+                const dy = magnet.y - y;
+                if (Math.sqrt(dx * dx + dy * dy) < 15) {
+                    magnet.polarity *= -1;
+                    return;
+                }
+            }
+            
+            // Add new magnet
+            const polarity = Math.random() < 0.5 ? 1 : -1;
+            magnets.push(new Magnet(x, y, polarity));
+            spawnParticles();
+        });
+        
+        canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            for (let magnet of magnets) {
+                const dx = magnet.x - x;
+                const dy = magnet.y - y;
+                if (Math.sqrt(dx * dx + dy * dy) < 15) {
+                    canvas.style.cursor = 'grab';
+                    return;
+                }
+            }
+            canvas.style.cursor = 'crosshair';
+        });
+        
+        // Control listeners
+        document.getElementById('gridDensity').addEventListener('input', (e) => {
+            document.getElementById('gridDensityValue').textContent = e.target.value;
+        });
+        
+        document.getElementById('vectorScale').addEventListener('input', (e) => {
+            document.getElementById('vectorScaleValue').textContent = parseFloat(e.target.value).toFixed(1) + 'x';
+        });
+        
+        document.getElementById('particleCount').addEventListener('input', (e) => {
+            document.getElementById('particleCountValue').textContent = e.target.value;
+        });
+        
+        document.getElementById('clearBtn').addEventListener('click', () => {
+            magnets = [];
+            particles = [];
+            loadPreset('single');
+        });
+        
+        // Preset buttons
+        document.querySelectorAll('.preset-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
+                loadPreset(e.target.dataset.preset);
+            });
+        });
+        
+        // Continuous particle spawning
+        setInterval(spawnParticles, 100);
+        
+        // Start
+        loadPreset('single');
+        animate();
+    </script>
+</body>
+</html>
