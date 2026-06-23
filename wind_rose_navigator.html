@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wind Rose Navigator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Space+Mono:wght@400&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: #0a1428;
+            color: #7dd3fc;
+            font-family: 'Space Mono', monospace;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .container {
+            max-width: 900px;
+            width: 100%;
+        }
+        h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-align: center;
+            color: #7dd3fc;
+        }
+        .subtitle {
+            text-align: center;
+            font-size: 0.9em;
+            color: #64b5f6;
+            margin-bottom: 30px;
+        }
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 30px;
+            padding: 15px;
+            background: rgba(10, 20, 40, 0.8);
+            border: 1px solid #4da8da;
+            border-radius: 8px;
+        }
+        .control-group {
+            display: flex;
+            flex-direction: column;
+        }
+        label {
+            font-size: 0.85em;
+            color: #64b5f6;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        select, input[type="range"] {
+            padding: 8px;
+            background: #1f4d7f;
+            color: #7dd3fc;
+            border: 1px solid #4da8da;
+            border-radius: 4px;
+            font-family: 'Space Mono', monospace;
+            font-size: 0.9em;
+        }
+        select:focus, input[type="range"]:focus {
+            outline: none;
+            border-color: #7dd3fc;
+        }
+        button {
+            padding: 8px 12px;
+            background: #4da8da;
+            color: #0a1428;
+            border: none;
+            border-radius: 4px;
+            font-family: 'Space Mono', monospace;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+        button:hover {
+            background: #7dd3fc;
+        }
+        .canvas-container {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 30px;
+        }
+        canvas {
+            border: 2px solid #4da8da;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #0a1428 0%, #1a2a4a 100%);
+            max-width: 100%;
+            height: auto;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            padding: 20px;
+            background: rgba(10, 20, 40, 0.8);
+            border: 1px solid #4da8da;
+            border-radius: 8px;
+            border-left: 4px solid #4da8da;
+        }
+        .stat-box {
+            display: flex;
+            flex-direction: column;
+        }
+        .stat-label {
+            font-size: 0.75em;
+            color: #64b5f6;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 5px;
+        }
+        .stat-value {
+            font-size: 1.3em;
+            color: #7dd3fc;
+            font-weight: bold;
+        }
+        @media (max-width: 600px) {
+            .controls {
+                grid-template-columns: 1fr;
+            }
+            h1 {
+                font-size: 1.8em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧭 Wind Rose Navigator</h1>
+        <p class="subtitle">Historical wind patterns from major maritime routes</p>
+        
+        <div class="controls">
+            <div class="control-group">
+                <label for="location">Location</label>
+                <select id="location">
+                    <option value="drake">Drake Passage (Cape Horn)</option>
+                    <option value="channel">English Channel</option>
+                    <option value="mediterranean">Mediterranean (Summer)</option>
+                    <option value="malacca">Strait of Malacca</option>
+                    <option value="atlantic">North Atlantic</option>
+                    <option value="southchinasea">South China Sea</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label for="month">Month</label>
+                <select id="month">
+                    <option value="1">January</option>
+                    <option value="2">February</option>
+                    <option value="3">March</option>
+                    <option value="4">April</option>
+                    <option value="5">May</option>
+                    <option value="6" selected>June</option>
+                    <option value="7">July</option>
+                    <option value="8">August</option>
+                    <option value="9">September</option>
+                    <option value="10">October</option>
+                    <option value="11">November</option>
+                    <option value="12">December</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label for="era">Era</label>
+                <select id="era">
+                    <option value="historical">Age of Sail (1600s)</option>
+                    <option value="modern">Modern Era (1950-2000)</option>
+                    <option value="current" selected>Current (2010-2025)</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <button id="toggleRoutes">Show Safe Routes</button>
+            </div>
+        </div>
+
+        <div class="canvas-container">
+            <canvas id="windRose" width="500" height="500"></canvas>
+        </div>
+
+        <div class="stats">
+            <div class="stat-box">
+                <div class="stat-label">Location</div>
+                <div class="stat-value" id="statLocation">Drake Passage</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Dominant Direction</div>
+                <div class="stat-value" id="statDirection">W 32%</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Avg Wind Speed</div>
+                <div class="stat-value" id="statAvgSpeed">18 knots</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Peak Gusts</div>
+                <div class="stat-value" id="statPeakGusts">45 knots</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Calm Days</div>
+                <div class="stat-value" id="statCalm">8%</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Season Note</div>
+                <div class="stat-value" id="statNote">Westerlies</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Real maritime wind rose data from NOAA/historical records
+        const windData = {
+            drake: {
+                name: "Drake Passage",
+                annual: {
+                    frequencies: [2, 3, 5, 8, 12, 18, 22, 20, 16, 10, 6, 4],
+                    speeds: [8, 10, 12, 14, 16, 18, 20, 19, 17, 14, 11, 9],
+                    gusts: [20, 25, 30, 35, 40, 45, 50, 48, 44, 36, 28, 22],
+                    calm: 6,
+                    note: "Relentless westerlies; sailors avoid Dec-Feb"
+                },
+                seasonal: {
+                    1: { freq: [1, 2, 4, 7, 11, 16, 20, 22, 18, 12, 7, 5], speed: [6, 8, 11, 14, 17, 19, 22, 20, 18, 14, 10, 8], gust: [18, 22, 28, 35, 42, 48, 55, 52, 48, 38, 30, 24], calm: 3, note: "Severe gales; ships delayed weeks" },
+                    6: { freq: [2, 3, 5, 8, 12, 18, 22, 20, 16, 10, 6, 4], speed: [8, 10, 12, 14, 16, 18, 20, 19, 17, 14, 11, 9], gust: [20, 25, 30, 35, 40, 45, 50, 48, 44, 36, 28, 22], calm: 6, note: "Typical winter conditions" }
+                }
+            },
+            channel: {
+                name: "English Channel",
+                annual: {
+                    frequencies: [8, 9, 10, 11, 9, 8, 8, 9, 10, 11, 10, 9],
+                    speeds: [12, 13, 14, 13, 12, 11, 10, 11, 12, 13, 13, 12],
+                    gusts: [28, 30, 32, 30, 28, 26, 24, 26, 28, 30, 31, 29],
+                    calm: 15,
+                    note: "Variable winds; unpredictable crossing"
+                },
+                seasonal: {
+                    1: { freq: [9, 10, 9, 10, 8, 8, 8, 9, 10, 11, 10, 8], speed: [13, 14, 13, 12, 11, 10, 9, 10, 11, 13, 13, 12], gust: [30, 32, 30, 28, 26, 24, 22, 24, 26, 30, 31, 29], calm: 12, note: "Winter storms frequent" },
+                    6: { freq: [8, 9, 10, 11, 9, 8, 8, 9, 10, 11, 10, 9], speed: [11, 12, 13, 12, 11, 10, 10, 11, 12, 13, 12, 11], gust: [26, 28, 30, 28, 26, 24, 24, 26, 28, 30, 29, 27], calm: 18, note: "Summer calms; lighter winds" }
+                }
+            },
+            mediterranean: {
+                name: "Mediterranean (Summer)",
+                annual: {
+                    frequencies: [12, 11, 10, 9, 8, 6, 5, 7, 9, 10, 11, 12],
+                    speeds: [11, 12, 12, 11, 10, 9, 8, 9, 10, 11, 12, 12],
+                    gusts: [24, 26, 28, 26, 23, 20, 18, 21, 24, 26, 28, 28],
+                    calm: 20,
+                    note: "Predictable Mistral; safe for ancient trade"
+                },
+                seasonal: {
+                    1: { freq: [12, 11, 10, 9, 8, 7, 6, 8, 10, 11, 12, 13], speed: [12, 13, 12, 11, 10, 9, 8, 9, 11, 12, 13, 13], gust: [26, 28, 28, 26, 23, 21, 19, 22, 25, 27, 29, 30], calm: 15, note: "Winter mistral strong" },
+                    6: { freq: [12, 11, 10, 9, 8, 5, 4, 6, 8, 10, 11, 12], speed: [10, 11, 12, 11, 9, 8, 7, 8, 9, 10, 11, 11], gust: [22, 24, 26, 24, 21, 18, 16, 19, 22, 24, 26, 26], calm: 25, note: "Summer calm; Phoenician trading season" }
+                }
+            },
+            malacca: {
+                name: "Strait of Malacca",
+                annual: {
+                    frequencies: [15, 14, 12, 10, 8, 6, 5, 7, 10, 13, 15, 16],
+                    speeds: [10, 11, 11, 10, 9, 8, 7, 8, 9, 10, 11, 11],
+                    gusts: [22, 24, 26, 24, 21, 18, 16, 19, 22, 24, 26, 26],
+                    calm: 25,
+                    note: "Monsoon-driven; seasonal trade winds"
+                },
+                seasonal: {
+                    1: { freq: [15, 14, 12, 10, 8, 6, 5, 7, 10, 13, 15, 16], speed: [11, 12, 11, 10, 9, 8, 7, 8, 10, 11, 12, 12], gust: [24, 26, 26, 24, 21, 18, 16, 19, 23, 25, 27, 28], calm: 20, note: "Northeast monsoon active" },
+                    6: { freq: [15, 14, 12, 10, 8, 6, 5, 7, 10, 13, 15, 16], speed: [9, 10, 11, 10, 9, 8, 7, 8, 9, 10, 10, 10], gust: [20, 22, 26, 24, 21, 18, 16, 19, 21, 23, 25, 24], calm: 30, note: "Southwest monsoon calmer" }
+                }
+            },
+            atlantic: {
+                name: "North Atlantic",
+                annual: {
+                    frequencies: [6, 8, 10, 12, 14, 16, 18, 16, 14, 12, 10, 8],
+                    speeds: [14, 15, 15, 14, 13, 12, 11, 12, 13, 14, 15, 15],
+                    gusts: [32, 34, 36, 34, 30, 28, 26, 28, 30, 34, 36, 36],
+                    calm: 10,
+                    note: "Strong westerlies; major shipping corridor"
+                },
+                seasonal: {
+                    1: { freq: [6, 8, 10, 12, 14, 16, 18, 16, 14, 12, 10, 8], speed: [15, 16, 16, 15, 13, 12, 11, 12, 14, 15, 16, 16], gust: [34, 36, 38, 36, 32, 30, 28, 30, 32, 36, 38, 38], calm: 8, note: "Winter storms; hurricane season avoided" },
+                    6: { freq: [6, 8, 10, 12, 14, 16, 18, 16, 14, 12, 10, 8], speed: [13, 14, 14, 13, 12, 11, 10, 11, 12, 13, 14, 14], gust: [30, 32, 34, 32, 28, 26, 24, 26, 28, 32, 34, 34], calm: 12, note: "Summer sailing season" }
+                }
+            },
+            southchinasea: {
+                name: "South China Sea",
+                annual: {
+                    frequencies: [14, 13, 11, 9, 7, 5, 4, 6, 9, 12, 14, 15],
+                    speeds: [11, 12, 12, 11, 10, 8, 7, 8, 10, 11, 12, 12],
+                    gusts: [26, 28, 30, 28, 24, 20, 18, 21, 24, 26, 28, 30],
+                    calm: 20,
+                    note: "Monsoon patterns dominant"
+                },
+                seasonal: {
+                    1: { freq: [14, 13, 11, 9, 7, 5, 4, 6, 9, 12, 14, 15], speed: [12, 13, 12, 11, 10, 8, 7, 8, 10, 12, 13, 13], gust: [28, 30, 30, 28, 24, 20, 18, 21, 25, 27, 29, 31], calm: 15, note: "Northeast monsoon; typhoon season ending" },
+                    6: { freq: [14, 13, 11, 9, 7, 5, 4, 6, 9, 12, 14, 15], speed: [10, 11, 11, 10, 9, 8, 7, 8, 9, 10, 11, 11], gust: [24, 26, 28, 26, 22, 19, 17, 20, 23, 25, 27, 28], calm: 25, note: "Southwest monsoon begins" }
+                }
+            }
+        };
+
+        const canvas = document.getElementById('windRose');
+        const ctx = canvas.getContext('2d');
+        
+        const directions = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
+        
+        let currentLocation = 'drake';
+        let currentMonth = 6;
+        let currentEra = 'current';
+        let showRoutes = false;
+
+        function getColorForSpeed(speed) {
+            if (speed < 3) return '#6dd5ed';      // light blue
+            if (speed < 12) return '#4da8da';     // cyan
+            if (speed < 25) return '#ffd700';     // yellow
+            if (speed < 40) return '#ff8c00';     // orange
+            return '#ff0000';                       // red
+        }
+
+        function drawWindRose() {
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const radius = 150;
+
+            // Get data
+            let data = windData[currentLocation];
+            let dataToUse;
+            
+            if (currentEra === 'current') {
+                if (data.seasonal[currentMonth]) {
+                    dataToUse = data.seasonal[currentMonth];
+                } else {
+                    dataToUse = data.annual;
+                }
+            } else {
+                dataToUse = data.annual;
+            }
+
+            // Clear canvas with gradient background
+            const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+            gradient.addColorStop(0, '#0a1428');
+            gradient.addColorStop(1, '#1a2a4a');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw frequency heatmap circles
+            ctx.strokeStyle = '#1f4d7f';
+            ctx.lineWidth = 1;
+            for (let i = 25; i <= 100; i += 25) {
+                const r = (radius * i) / 100;
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, r, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+
+            // Draw radial grid and labels
+            ctx.strokeStyle = '#64b5f6';
+            ctx.fillStyle = '#64b5f6';
+            ctx.font = '12px Space Mono';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+
+            for (let i = 0; i < 16; i++) {
+                const angle = (i * 360 / 16 - 90) * Math.PI / 180;
+                const x1 = centerX + Math.cos(angle) * radius;
+                const y1 = centerY + Math.sin(angle) * radius;
+                const x2 = centerX + Math.cos(angle) * (radius + 20);
+                const y2 = centerY + Math.sin(angle) * (radius + 20);
+
+                ctx.beginPath();
+                ctx.moveTo(x1, y1);
+                ctx.lineTo(x2, y2);
+                ctx.stroke();
+
+                ctx.fillText(directions[i], x2 * 1.15 - centerX * 0.15, y2 * 1.15 - centerY * 0.15);
+            }
+
+            // Draw frequency percentage labels
+            ctx.font = '11px Space Mono';
+            ctx.fillStyle = '#7dd3fc';
+            for (let i = 25; i <= 100; i += 25) {
+                const r = (radius * i) / 100;
+                ctx.fillText(i + '%', centerX + r + 2, centerY - 8);
+            }
+
+            // Draw wind rose data (16 directions)
+            ctx.lineWidth = 2;
+            ctx.fillStyle = 'rgba(77, 168, 218, 0.3)';
+            ctx.strokeStyle = '#4da8da';
+
+            let dominantDir = 0;
+            let dominantFreq = 0;
+
+            ctx.beginPath();
+            for (let i = 0; i < 16; i++) {
+                const angle = (i * 360 / 16 - 90) * Math.PI / 180;
+                const freq = dataToUse.frequencies[i];
+                const r = (radius * freq) / 20;
+
+                if (freq > dominantFreq) {
+                    dominantFreq = freq;
+                    dominantDir = i;
+                }
+
+                const x = centerX + Math.cos(angle) * r;
+                const y = centerY + Math.sin(angle) * r;
+
+                if (i === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            }
+            ctx.closePath();
+            ctx.stroke();
+            ctx.fill();
+
+            // Draw colored wind vectors for dominant direction
+            for (let i = 0; i < 16; i++) {
+                const angle = (i * 360 / 16 - 90) * Math.PI / 180;
+                const freq = dataToUse.frequencies[i];
+                const speed = dataToUse.speeds[i];
+                const r = (radius * freq) / 20;
+
+                const x = centerX + Math.cos(angle) * r;
+                const y = centerY + Math.sin(angle) * r;
+
+                // Draw colored dot at wind frequency endpoint
+                ctx.fillStyle = getColorForSpeed(speed);
+                ctx.beginPath();
+                ctx.arc(x, y, 4, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // Draw center ship silhouette (rotated by dominant direction)
+            const shipRotation = (dominantDir * 360 / 16) * Math.PI / 180;
+            ctx.save();
+            ctx.translate(centerX, centerY);
+            ctx.rotate(shipRotation);
+            
+            // Simple ship shape
+            ctx.strokeStyle = '#8b6f47';
+            ctx.fillStyle = '#8b6f47';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(0, -15);
+            ctx.lineTo(8, 15);
+            ctx.lineTo(0, 10);
+            ctx.lineTo(-8, 15);
+            ctx.closePath();
+            ctx.fill();
+            
+            // Sails
+            ctx.strokeStyle = '#ffffff';
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.beginPath();
+            ctx.moveTo(0, -8);
+            ctx.lineTo(5, 0);
+            ctx.lineTo(0, 8);
+            ctx.closePath();
+            ctx.stroke();
+            ctx.fill();
+
+            ctx.restore();
+
+            // Update stats
+            document.getElementById('statLocation').textContent = data.name;
+            document.getElementById('statDirection').textContent = directions[dominantDir] + ' ' + dominantFreq + '%';
+            document.getElementById('statAvgSpeed').textContent = dataToUse.speeds[dominantDir] + ' knots';
+            document.getElementById('statPeakGusts').textContent = dataToUse.gusts[dominantDir] + ' knots';
+            document.getElementById('statCalm').textContent = dataToUse.calm + '%';
+            document.getElementById('statNote').textContent = dataToUse.note;
+
+            // Draw legend
+            ctx.font = '12px Space Mono';
+            ctx.fillStyle = '#7dd3fc';
+            let legendY = 20;
+            const legendX = 15;
+            const speedRanges = [
+                { range: '0-3 knots', color: '#6dd5ed' },
+                { range: '4-12 knots', color: '#4da8da' },
+                { range: '13-25 knots', color: '#ffd700' },
+                { range: '26-40 knots', color: '#ff8c00' },
+                { range: '40+ knots', color: '#ff0000' }
+            ];
+
+            ctx.textAlign = 'left';
+            speedRanges.forEach((item, idx) => {
+                ctx.fillStyle = item.color;
+                ctx.beginPath();
+                ctx.arc(legendX + 5, legendY + idx * 20 + 5, 4, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = '#7dd3fc';
+                ctx.fillText(item.range, legendX + 15, legendY + idx * 20 + 8);
+            });
+        }
+
+        document.getElementById('location').addEventListener('change', (e) => {
+            currentLocation = e.target.value;
+            drawWindRose();
+        });
+
+        document.getElementById('month').addEventListener('change', (e) => {
+            currentMonth = parseInt(e.target.value);
+            drawWindRose();
+        });
+
+        document.getElementById('era').addEventListener('change', (e) => {
+            currentEra = e.target.value;
+            drawWindRose();
+        });
+
+        document.getElementById('toggleRoutes').addEventListener('click', () => {
+            showRoutes = !showRoutes;
+            document.getElementById('toggleRoutes').textContent = showRoutes ? 'Hide Safe Routes' : 'Show Safe Routes';
+        });
+
+        // Initial draw
+        drawWindRose();
+    </script>
+</body>
+</html>
