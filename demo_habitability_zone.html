@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Habitability Zone — Exoplanet Explorer</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: #0a0e27;
+      color: #e0e7ff;
+      font-family: 'Space Mono', monospace;
+      padding: 20px;
+      overflow-x: hidden;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 30px;
+      align-items: start;
+    }
+
+    @media (max-width: 900px) {
+      .container {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: 2.5em;
+      margin-bottom: 30px;
+      grid-column: 1 / -1;
+      text-align: center;
+      color: #ffff00;
+    }
+
+    .canvas-section {
+      background: #0f1938;
+      border: 1px solid #1a3a5e;
+      border-radius: 8px;
+      padding: 20px;
+    }
+
+    canvas {
+      width: 100%;
+      height: auto;
+      display: block;
+      background: #0a0e27;
+      border-radius: 4px;
+      margin-bottom: 15px;
+      image-rendering: crisp-edges;
+    }
+
+    .control-panel {
+      background: #0f1938;
+      border: 1px solid #1a3a5e;
+      border-radius: 8px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      max-height: 600px;
+      overflow-y: auto;
+    }
+
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .control-group label {
+      font-weight: 700;
+      color: #4da8da;
+      font-size: 0.9em;
+    }
+
+    .control-group select,
+    .control-group input[type="range"] {
+      padding: 8px;
+      background: #1a3a5e;
+      border: 1px solid #4da8da;
+      border-radius: 4px;
+      color: #e0e7ff;
+      font-family: 'Space Mono', monospace;
+    }
+
+    .control-group input[type="range"] {
+      cursor: pointer;
+    }
+
+    .stat-box {
+      background: #1a3a5e;
+      border-left: 3px solid #4da8da;
+      border-radius: 4px;
+      padding: 12px;
+      font-size: 0.85em;
+    }
+
+    .stat-label {
+      color: #4da8da;
+      font-weight: 700;
+    }
+
+    .stat-value {
+      color: #e0e7ff;
+      font-size: 1.1em;
+    }
+
+    .toggle-group {
+      display: flex;
+      gap: 10px;
+    }
+
+    button {
+      flex: 1;
+      padding: 10px;
+      background: #1a3a5e;
+      border: 1px solid #4da8da;
+      color: #4da8da;
+      border-radius: 4px;
+      cursor: pointer;
+      font-family: 'Space Mono', monospace;
+      font-weight: 700;
+      font-size: 0.9em;
+      transition: all 0.2s;
+    }
+
+    button:hover {
+      background: #4da8da;
+      color: #0a0e27;
+    }
+
+    button.active {
+      background: #4da8da;
+      color: #0a0e27;
+    }
+
+    .habitability-badge {
+      padding: 8px 12px;
+      border-radius: 4px;
+      text-align: center;
+      font-weight: 700;
+      font-size: 1em;
+      margin-top: 10px;
+    }
+
+    .habitability-badge.yes {
+      background: rgba(76, 200, 79, 0.3);
+      border: 1px solid #4cc84f;
+      color: #4cc84f;
+    }
+
+    .habitability-badge.maybe {
+      background: rgba(255, 152, 0, 0.3);
+      border: 1px solid #ff9800;
+      color: #ff9800;
+    }
+
+    .habitability-badge.no {
+      background: rgba(255, 71, 87, 0.3);
+      border: 1px solid #ff4757;
+      color: #ff4757;
+    }
+
+    .help-text {
+      font-size: 0.8em;
+      color: #8892b0;
+      line-height: 1.4;
+    }
+  </style>
+</head>
+<body>
+  <h1>🪐 Habitability Zone</h1>
+
+  <div class="container">
+    <div class="canvas-section">
+      <canvas id="habitabilityCanvas" width="500" height="500"></canvas>
+      <div class="help-text">
+        Star at center. Habitable zone (green shaded). Planets colored by temperature.
+      </div>
+    </div>
+
+    <div class="control-panel">
+      <div class="control-group">
+        <label>Select Exoplanet</label>
+        <select id="planetSelector">
+          <option value="kepler452b">Kepler-452b</option>
+          <option value="trappist1e">TRAPPIST-1e</option>
+          <option value="proxima">Proxima Centauri b</option>
+          <option value="k218b">K2-18b</option>
+          <option value="lhs1140b">LHS 1140b</option>
+          <option value="toi700d">TOI-700d</option>
+          <option value="kepler1652b">Kepler-1652b</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <label>Star Brightness (Solar Luminosity)</label>
+        <input type="range" id="luminositySlider" min="0.1" max="3" step="0.1" value="1">
+        <span id="luminosityValue">1.0</span>
+      </div>
+
+      <div class="stat-box">
+        <div class="stat-label">Planet Name</div>
+        <div class="stat-value" id="statPlanetName">Kepler-452b</div>
+      </div>
+
+      <div class="stat-box">
+        <div class="stat-label">Orbital Distance</div>
+        <div class="stat-value" id="statOrbitalDist">1.046 AU</div>
+      </div>
+
+      <div class="stat-box">
+        <div class="stat-label">Equilibrium Temp</div>
+        <div class="stat-value" id="statEqTemp">265 K</div>
+      </div>
+
+      <div class="stat-box">
+        <div class="stat-label">Habitable Zone (Inner–Outer)</div>
+        <div class="stat-value" id="statHzBound">0.95–1.37 AU</div>
+      </div>
+
+      <div id="habitabilityBadge" class="habitability-badge yes">✓ Potentially Habitable</div>
+
+      <div class="toggle-group">
+        <button id="bioToggle">Biosignatures: OFF</button>
+      </div>
+
+      <div id="bioPanel" style="display: none; margin-top: 10px;">
+        <div class="stat-box">
+          <div class="stat-label">JWST Detection</div>
+          <div class="stat-value" id="bioMarkers">—</div>
+        </div>
+      </div>
+
+      <div class="help-text" style="margin-top: 15px;">
+        Drag the slider to change star brightness and watch the habitable zone shift.
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Real exoplanet data from NASA Exoplanet Archive + peer-reviewed publications
+    const PLANETS = {
+      kepler452b: {
+        name: 'Kepler-452b',
+        starName: 'Kepler-452',
+        starType: 'G-dwarf',
+        luminosity: 1.11,
+        orbitalDistance: 1.046,
+        radius: 1.6,
+        mass: 5.0,
+        equilibriumTemp: 265,
+        bioSignatures: 'Theoretical O2/O3'
+      },
+      trappist1e: {
+        name: 'TRAPPIST-1e',
+        starName: 'TRAPPIST-1',
+        starType: 'M-dwarf',
+        luminosity: 0.000558,
+        orbitalDistance: 0.02925,
+        radius: 0.92,
+        mass: 0.62,
+        equilibriumTemp: 246,
+        bioSignatures: 'Potential CH4/CO2'
+      },
+      proxima: {
+        name: 'Proxima Centauri b',
+        starName: 'Proxima Centauri',
+        starType: 'M-dwarf',
+        luminosity: 0.00494,
+        orbitalDistance: 0.0485,
+        radius: 1.3,
+        mass: 1.27,
+        equilibriumTemp: 234,
+        bioSignatures: 'Unknown'
+      },
+      k218b: {
+        name: 'K2-18b',
+        starName: 'K2-18',
+        starType: 'K-dwarf',
+        luminosity: 0.085,
+        orbitalDistance: 0.149,
+        radius: 2.6,
+        mass: 8.6,
+        equilibriumTemp: 265,
+        bioSignatures: 'CO2 + O2 detected (JWST)'
+      },
+      lhs1140b: {
+        name: 'LHS 1140b',
+        starName: 'LHS 1140',
+        starType: 'M-dwarf',
+        luminosity: 0.00968,
+        orbitalDistance: 0.0849,
+        radius: 1.4,
+        mass: 4.8,
+        equilibriumTemp: 288,
+        bioSignatures: 'Theoretical'
+      },
+      toi700d: {
+        name: 'TOI-700d',
+        starName: 'TOI-700',
+        starType: 'M-dwarf',
+        luminosity: 0.0345,
+        orbitalDistance: 0.1655,
+        radius: 1.24,
+        mass: 1.56,
+        equilibriumTemp: 284,
+        bioSignatures: 'Theoretical O2/O3'
+      },
+      kepler1652b: {
+        name: 'Kepler-1652b',
+        starName: 'Kepler-1652',
+        starType: 'G-dwarf',
+        luminosity: 0.806,
+        orbitalDistance: 1.59,
+        radius: 2.1,
+        mass: 8.3,
+        equilibriumTemp: 323,
+        bioSignatures: 'Too hot'
+      }
+    };
+
+    const canvas = document.getElementById('habitabilityCanvas');
+    const ctx = canvas.getContext('2d');
+
+    const planetSelector = document.getElementById('planetSelector');
+    const luminositySlider = document.getElementById('luminositySlider');
+    const bioToggle = document.getElementById('bioToggle');
+
+    let currentPlanet = 'kepler452b';
+    let userLuminosity = 1.0;
+    let bioMode = false;
+
+    function getTemperatureColor(temp) {
+      if (temp < 200) return '#4169e1'; // cold blue
+      if (temp < 250) return '#4da8da'; // cyan
+      if (temp < 300) return '#4cc84f'; // green
+      if (temp < 350) return '#ff9800'; // orange
+      return '#ff4545'; // red hot
+    }
+
+    function calculateEqTemp(luminosity, orbitalDist) {
+      // T_eq = 279 * L^0.25 * d^-0.5 (in Kelvin)
+      return Math.round(279 * Math.pow(luminosity, 0.25) * Math.pow(orbitalDist, -0.5));
+    }
+
+    function calculateHabitableZone(luminosity) {
+      // Inner: ~0.95 AU for L_sun; scale with L^0.5
+      // Outer: ~1.37 AU for L_sun; scale with L^0.5
+      const inner = 0.95 * Math.sqrt(luminosity);
+      const outer = 1.37 * Math.sqrt(luminosity);
+      return { inner, outer };
+    }
+
+    function isHabitable(temp) {
+      // Roughly 250–320 K is habitable range (range from "never too cold" to "not boiling")
+      return temp >= 250 && temp <= 320;
+    }
+
+    function drawScene() {
+      const planet = PLANETS[currentPlanet];
+      const L = userLuminosity;
+      const d = planet.orbitalDistance;
+      const eqTemp = calculateEqTemp(L, d);
+      const hz = calculateHabitableZone(L);
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      const cx = canvas.width / 2;
+      const cy = canvas.height / 2;
+      const AU_TO_PX = 80; // scale for drawing
+
+      // Draw background grid
+      ctx.strokeStyle = '#1a3a5e';
+      ctx.lineWidth = 1;
+      for (let r = 1; r <= 3; r++) {
+        ctx.beginPath();
+        ctx.arc(cx, cy, r * AU_TO_PX, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+
+      // Label AU rings
+      ctx.fillStyle = '#8892b0';
+      ctx.font = '12px Space Mono';
+      ctx.textAlign = 'right';
+      ctx.fillText('1 AU', cx - 85, cy + 5);
+      ctx.fillText('2 AU', cx - 165, cy + 5);
+
+      // Draw habitable zone (shaded annulus)
+      const hzInnerPx = hz.inner * AU_TO_PX;
+      const hzOuterPx = hz.outer * AU_TO_PX;
+
+      ctx.fillStyle = 'rgba(76, 200, 79, 0.15)';
+      ctx.beginPath();
+      ctx.arc(cx, cy, hzOuterPx, 0, Math.PI * 2);
+      ctx.arc(cx, cy, hzInnerPx, 0, Math.PI * 2, true);
+      ctx.fill();
+
+      // Draw habitable zone boundaries
+      ctx.strokeStyle = 'rgba(76, 200, 79, 0.4)';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([5, 5]);
+      ctx.beginPath();
+      ctx.arc(cx, cy, hzInnerPx, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(cx, cy, hzOuterPx, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Draw star (scaled by luminosity)
+      const starRadius = 20 + L * 8;
+      ctx.fillStyle = '#ffff00';
+      ctx.beginPath();
+      ctx.arc(cx, cy, starRadius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#ffaa00';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // Draw star label
+      ctx.fillStyle = '#ffff00';
+      ctx.font = 'bold 14px Space Mono';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(planet.starName, cx, cy);
+
+      // Draw planet orbit
+      const orbitPx = d * AU_TO_PX;
+      ctx.strokeStyle = '#1a3a5e';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([3, 3]);
+      ctx.beginPath();
+      ctx.arc(cx, cy, orbitPx, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Draw planet
+      const planetX = cx + orbitPx;
+      const planetY = cy;
+      const planetColor = getTemperatureColor(eqTemp);
+      const planetRadius = Math.max(8, planet.radius * 4);
+
+      ctx.fillStyle = planetColor;
+      ctx.beginPath();
+      ctx.arc(planetX, planetY, planetRadius, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.strokeStyle = planetColor;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // Draw planet label
+      ctx.fillStyle = '#e0e7ff';
+      ctx.font = '11px Space Mono';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      ctx.fillText(planet.name, planetX, planetY + planetRadius + 5);
+
+      // Update UI
+      document.getElementById('statPlanetName').textContent = planet.name;
+      document.getElementById('statOrbitalDist').textContent = d.toFixed(4) + ' AU';
+      document.getElementById('statEqTemp').textContent = eqTemp + ' K';
+      document.getElementById('statHzBound').textContent = 
+        hz.inner.toFixed(3) + '–' + hz.outer.toFixed(3) + ' AU';
+
+      const habitBadge = document.getElementById('habitabilityBadge');
+      if (isHabitable(eqTemp)) {
+        habitBadge.className = 'habitability-badge yes';
+        habitBadge.textContent = '✓ Potentially Habitable';
+      } else if (eqTemp >= 200 && eqTemp <= 350) {
+        habitBadge.className = 'habitability-badge maybe';
+        habitBadge.textContent = '⚠ Marginal';
+      } else {
+        habitBadge.className = 'habitability-badge no';
+        habitBadge.textContent = '✗ Uninhabitable';
+      }
+
+      if (bioMode) {
+        document.getElementById('bioPanel').style.display = 'block';
+        document.getElementById('bioMarkers').textContent = planet.bioSignatures;
+      } else {
+        document.getElementById('bioPanel').style.display = 'none';
+      }
+    }
+
+    planetSelector.addEventListener('change', (e) => {
+      currentPlanet = e.target.value;
+      luminositySlider.value = PLANETS[currentPlanet].luminosity;
+      document.getElementById('luminosityValue').textContent = 
+        PLANETS[currentPlanet].luminosity.toFixed(2);
+      drawScene();
+    });
+
+    luminositySlider.addEventListener('input', (e) => {
+      userLuminosity = parseFloat(e.target.value);
+      document.getElementById('luminosityValue').textContent = userLuminosity.toFixed(2);
+      drawScene();
+    });
+
+    bioToggle.addEventListener('click', () => {
+      bioMode = !bioMode;
+      bioToggle.textContent = bioMode ? 'Biosignatures: ON' : 'Biosignatures: OFF';
+      bioToggle.classList.toggle('active', bioMode);
+      drawScene();
+    });
+
+    // Initial draw
+    drawScene();
+  </script>
+</body>
+</html>
