@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Protein Fold Navigator</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: 'Space Mono', monospace;
+      background: linear-gradient(135deg, #0a1428 0%, #1a2844 100%);
+      color: #e0e0e0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .container {
+      width: 100%;
+      max-width: 1200px;
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid #2d4556;
+      border-radius: 8px;
+      padding: 24px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    }
+    h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: 32px;
+      margin-bottom: 20px;
+      color: #7dd3fc;
+      text-align: center;
+    }
+    .content {
+      display: grid;
+      grid-template-columns: 300px 1fr;
+      gap: 24px;
+      align-items: start;
+    }
+    .sidebar {
+      background: rgba(30, 41, 59, 0.6);
+      border: 1px solid #2d4556;
+      border-radius: 6px;
+      padding: 16px;
+    }
+    .sidebar-section {
+      margin-bottom: 20px;
+    }
+    .sidebar-section label {
+      display: block;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: #4da8da;
+      margin-bottom: 8px;
+    }
+    select, button {
+      width: 100%;
+      padding: 8px 10px;
+      margin-bottom: 8px;
+      background: rgba(45, 157, 95, 0.15);
+      border: 1px solid #2d9d5f;
+      border-radius: 4px;
+      color: #7dd3fc;
+      font-family: 'Space Mono', monospace;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    select:hover, button:hover {
+      background: rgba(45, 157, 95, 0.25);
+      border-color: #4da8da;
+    }
+    select:focus, button:focus {
+      outline: none;
+      border-color: #7dd3fc;
+      box-shadow: 0 0 0 2px rgba(125, 211, 252, 0.1);
+    }
+    .toggle-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .toggle-btn {
+      padding: 6px 10px;
+      font-size: 11px;
+      text-align: left;
+      background: rgba(45, 100, 157, 0.15);
+      border: 1px solid #2d6d9d;
+    }
+    .toggle-btn.active {
+      background: rgba(45, 157, 95, 0.3);
+      border-color: #4da8da;
+      color: #7dd3fc;
+    }
+    .stats-box {
+      background: rgba(45, 80, 120, 0.2);
+      border-left: 3px solid #2d9d5f;
+      border-radius: 4px;
+      padding: 12px;
+      margin-top: 12px;
+      font-size: 11px;
+    }
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 6px;
+      color: #a0a0a0;
+    }
+    .stat-row:last-child {
+      margin-bottom: 0;
+    }
+    .stat-label {
+      font-weight: 600;
+      color: #4da8da;
+    }
+    .canvas-container {
+      background: rgba(10, 20, 40, 0.5);
+      border: 1px solid #2d4556;
+      border-radius: 6px;
+      padding: 20px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 500px;
+    }
+    canvas {
+      max-width: 100%;
+      height: auto;
+      background: radial-gradient(circle at center, rgba(45, 100, 157, 0.1) 0%, transparent 100%);
+      border-radius: 4px;
+    }
+    @media (max-width: 768px) {
+      .content {
+        grid-template-columns: 1fr;
+      }
+      .canvas-container {
+        min-height: 300px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🧬 Protein Fold Navigator</h1>
+    
+    <div class="content">
+      <div class="sidebar">
+        <div class="sidebar-section">
+          <label for="proteinSelect">Protein Structure</label>
+          <select id="proteinSelect">
+            <option value="1hba">Hemoglobin (1HBA)</option>
+            <option value="1mbn">Myoglobin (1MBN)</option>
+            <option value="4ins">Insulin (4INS)</option>
+            <option value="1lyz">Lysozyme (1LYZ)</option>
+            <option value="1bli">Amylase (1BLI)</option>
+            <option value="1bkv">Collagen (1BKV)</option>
+            <option value="1hho">Hemoglobin (1HHO)</option>
+          </select>
+        </div>
+
+        <div class="sidebar-section">
+          <label>View Mode</label>
+          <div class="toggle-group">
+            <button class="toggle-btn active" data-view="atoms">All Atoms</button>
+            <button class="toggle-btn" data-view="cartoon">Cartoon (Ribbons)</button>
+            <button class="toggle-btn" data-view="backbone">Backbone Trace</button>
+            <button class="toggle-btn" data-view="hydrophobic">Hydrophobic Index</button>
+          </div>
+        </div>
+
+        <div class="sidebar-section">
+          <label for="rotationSpeed">Auto-Rotation</label>
+          <input type="range" id="rotationSpeed" min="0" max="2" step="0.1" value="1" style="width: 100%;">
+        </div>
+
+        <div class="stats-box">
+          <div class="stat-row">
+            <span class="stat-label">Protein:</span>
+            <span id="proteinName">—</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">PDB ID:</span>
+            <span id="pdbId">—</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Atoms:</span>
+            <span id="atomCount">—</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">MW (kDa):</span>
+            <span id="molWeight">—</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Res. (Å):</span>
+            <span id="resolution">—</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="canvas-container">
+        <canvas id="proteinCanvas"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('proteinCanvas');
+    const ctx = canvas.getContext('2d');
+    const proteinSelect = document.getElementById('proteinSelect');
+    const rotationSpeed = document.getElementById('rotationSpeed');
+    
+    let currentView = 'atoms';
+    let currentProtein = null;
+    let rotationAngle = 0;
+    let mouseDown = false;
+    let mouseX = 0;
+    let mouseY = 0;
+    let customRotationX = 0;
+    let customRotationY = 0;
+
+    // Protein metadata
+    const proteins = {
+      '1hba': { name: 'Hemoglobin', mw: 64.5, res: 1.74, atoms: 4816 },
+      '1mbn': { name: 'Myoglobin', mw: 17.8, res: 1.98, atoms: 1260 },
+      '4ins': { name: 'Insulin', mw: 5.8, res: 1.87, atoms: 780 },
+      '1lyz': { name: 'Lysozyme', mw: 14.3, res: 1.90, atoms: 1040 },
+      '1bli': { name: 'Amylase', mw: 50.0, res: 2.50, atoms: 3600 },
+      '1bkv': { name: 'Collagen', mw: 101.0, res: 2.80, atoms: 4800 },
+      '1hho': { name: 'Hemoglobin', mw: 64.5, res: 1.00, atoms: 4816 }
+    };
+
+    // Simple mock atoms (in real scenario, these come from PDB files)
+    let proteinAtoms = [];
+
+    function generateProteinAtoms(pdbId) {
+      // Generate realistic protein geometry
+      const baseAtoms = proteins[pdbId].atoms;
+      const atoms = [];
+      
+      // Create alpha helix spirals + random scatter
+      const spiralCount = Math.ceil(baseAtoms / 200);
+      for (let s = 0; s < spiralCount; s++) {
+        for (let i = 0; i < 200 && atoms.length < baseAtoms; i++) {
+          const angle = (i * 0.4) + (s * Math.PI * 2 / spiralCount);
+          const height = (i - 100) / 100;
+          const radius = 30 + Math.sin(angle * 2) * 10;
+          
+          const x = Math.cos(angle) * radius + (Math.random() - 0.5) * 5;
+          const y = height * 80 + (Math.random() - 0.5) * 5;
+          const z = Math.sin(angle) * radius + (Math.random() - 0.5) * 5;
+          
+          // Random element coloring
+          const elements = ['C', 'N', 'O', 'S', 'H'];
+          const elementIndex = Math.floor(Math.random() * elements.length);
+          
+          const hydro = Math.random(); // 0-1 hydrophobicity
+          atoms.push({ x, y, z, element: elements[elementIndex], hydro });
+        }
+      }
+      return atoms;
+    }
+
+    function updateProtein() {
+      const pdbId = proteinSelect.value;
+      currentProtein = proteins[pdbId];
+      proteinAtoms = generateProteinAtoms(pdbId);
+      
+      document.getElementById('proteinName').textContent = currentProtein.name;
+      document.getElementById('pdbId').textContent = pdbId.toUpperCase();
+      document.getElementById('atomCount').textContent = currentProtein.atoms;
+      document.getElementById('molWeight').textContent = currentProtein.mw.toFixed(1);
+      document.getElementById('resolution').textContent = currentProtein.res.toFixed(2);
+      
+      rotationAngle = 0;
+      customRotationX = 0;
+      customRotationY = 0;
+    }
+
+    function getElementColor(element, view, hydro) {
+      if (view === 'hydrophobic') {
+        // Red = hydrophobic, Blue = hydrophilic
+        const r = Math.round(255 * hydro);
+        const b = Math.round(255 * (1 - hydro));
+        return `rgb(${r}, 100, ${b})`;
+      }
+      
+      const colors = {
+        'C': '#00ff00',    // Green
+        'N': '#0000ff',    // Blue
+        'O': '#ff0000',    // Red
+        'S': '#ffff00',    // Yellow
+        'H': '#cccccc'     // Light gray
+      };
+      return colors[element] || '#888888';
+    }
+
+    function projectAtom(x, y, z) {
+      // Simple 3D projection
+      const scale = 300 / (100 + z);
+      return {
+        x: canvas.width / 2 + x * scale,
+        y: canvas.height / 2 + y * scale,
+        z: z,
+        scale: scale
+      };
+    }
+
+    function drawProtein(view) {
+      ctx.fillStyle = '#0a1428';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      if (!proteinAtoms.length) return;
+
+      // Sort atoms by Z for painter's algorithm
+      const sorted = [...proteinAtoms].sort((a, b) => a.z - b.z);
+
+      rotationAngle += parseFloat(rotationSpeed.value) * 0.02;
+      
+      if (view === 'atoms') {
+        // Draw all atoms as circles
+        sorted.forEach(atom => {
+          const rotated = rotatePoint(atom.x, atom.y, atom.z, rotationAngle, customRotationX, customRotationY);
+          const proj = projectAtom(rotated.x, rotated.y, rotated.z);
+          
+          const size = proj.scale * 2;
+          ctx.fillStyle = getElementColor(atom.element, view, atom.hydro);
+          ctx.beginPath();
+          ctx.arc(proj.x, proj.y, Math.max(1, size), 0, Math.PI * 2);
+          ctx.fill();
+        });
+      } else if (view === 'cartoon') {
+        // Draw simplified ribbons (alpha helix + beta sheet style)
+        ctx.strokeStyle = '#00ffff';
+        ctx.lineWidth = 4;
+        ctx.lineCap = 'round';
+        
+        for (let i = 0; i < sorted.length - 1; i += 20) {
+          const a1 = rotatePoint(sorted[i].x, sorted[i].y, sorted[i].z, rotationAngle, customRotationX, customRotationY);
+          const a2 = rotatePoint(sorted[i + 1].x, sorted[i + 1].y, sorted[i + 1].z, rotationAngle, customRotationX, customRotationY);
+          
+          const p1 = projectAtom(a1.x, a1.y, a1.z);
+          const p2 = projectAtom(a2.x, a2.y, a2.z);
+          
+          ctx.beginPath();
+          ctx.moveTo(p1.x, p1.y);
+          ctx.lineTo(p2.x, p2.y);
+          ctx.stroke();
+        }
+      } else if (view === 'backbone') {
+        // Draw backbone trace through CA atoms
+        ctx.strokeStyle = '#ffff00';
+        ctx.lineWidth = 3;
+        ctx.lineCap = 'round';
+        
+        for (let i = 0; i < sorted.length - 5; i += 5) {
+          const a1 = rotatePoint(sorted[i].x, sorted[i].y, sorted[i].z, rotationAngle, customRotationX, customRotationY);
+          const a2 = rotatePoint(sorted[i + 5].x, sorted[i + 5].y, sorted[i + 5].z, rotationAngle, customRotationX, customRotationY);
+          
+          const p1 = projectAtom(a1.x, a1.y, a1.z);
+          const p2 = projectAtom(a2.x, a2.y, a2.z);
+          
+          ctx.beginPath();
+          ctx.moveTo(p1.x, p1.y);
+          ctx.lineTo(p2.x, p2.y);
+          ctx.stroke();
+        }
+      } else if (view === 'hydrophobic') {
+        // Draw atoms colored by hydrophobicity
+        sorted.forEach(atom => {
+          const rotated = rotatePoint(atom.x, atom.y, atom.z, rotationAngle, customRotationX, customRotationY);
+          const proj = projectAtom(rotated.x, rotated.y, rotated.z);
+          
+          const size = proj.scale * 2;
+          ctx.fillStyle = getElementColor(atom.element, view, atom.hydro);
+          ctx.beginPath();
+          ctx.arc(proj.x, proj.y, Math.max(1, size), 0, Math.PI * 2);
+          ctx.fill();
+        });
+      }
+    }
+
+    function rotatePoint(x, y, z, angle, rotX, rotY) {
+      // Rotate around Y axis (auto-rotation)
+      let cx = x * Math.cos(angle) - z * Math.sin(angle);
+      let cz = x * Math.sin(angle) + z * Math.cos(angle);
+      
+      // Rotate around X axis (mouse control)
+      let cy = y * Math.cos(rotX) - cz * Math.sin(rotX);
+      let cz2 = y * Math.sin(rotX) + cz * Math.cos(rotX);
+      
+      // Rotate around Z axis (mouse control)
+      let cx2 = cx * Math.cos(rotY) - cy * Math.sin(rotY);
+      let cy2 = cx * Math.sin(rotY) + cy * Math.cos(rotY);
+      
+      return { x: cx2, y: cy2, z: cz2 };
+    }
+
+    function resizeCanvas() {
+      const container = canvas.parentElement;
+      canvas.width = container.clientWidth - 40;
+      canvas.height = Math.max(400, container.clientHeight - 40);
+    }
+
+    function animate() {
+      resizeCanvas();
+      drawProtein(currentView);
+      requestAnimationFrame(animate);
+    }
+
+    // Event listeners
+    document.querySelectorAll('.toggle-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        document.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
+        e.target.classList.add('active');
+        currentView = e.target.dataset.view;
+      });
+    });
+
+    proteinSelect.addEventListener('change', updateProtein);
+
+    canvas.addEventListener('mousedown', (e) => {
+      mouseDown = true;
+      mouseX = e.clientX;
+      mouseY = e.clientY;
+    });
+
+    canvas.addEventListener('mousemove', (e) => {
+      if (mouseDown) {
+        const dx = (e.clientX - mouseX) * 0.01;
+        const dy = (e.clientY - mouseY) * 0.01;
+        customRotationX += dy;
+        customRotationY += dx;
+        mouseX = e.clientX;
+        mouseY = e.clientY;
+      }
+    });
+
+    canvas.addEventListener('mouseup', () => {
+      mouseDown = false;
+    });
+
+    canvas.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      rotationSpeed.value = Math.max(0, Math.min(2, parseFloat(rotationSpeed.value) - e.deltaY * 0.0005));
+    });
+
+    // Initialize
+    resizeCanvas();
+    updateProtein();
+    animate();
+  </script>
+</body>
+</html>
