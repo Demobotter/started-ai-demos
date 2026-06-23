@@ -1,518 +1,446 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Ocean Depth Explorer</title>
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-    
-    html, body {
-      width: 100%;
-      height: 100%;
-      font-family: 'Space Grotesk', sans-serif;
-      background: linear-gradient(135deg, #001a4d 0%, #002d66 25%, #003d80 50%, #1a1a2e 100%);
-      color: #e0e0ff;
-      overflow-x: hidden;
-    }
-    
-    body {
-      display: flex;
-      flex-direction: column;
-      min-height: 100vh;
-      padding: 2rem;
-    }
-    
-    .container {
-      max-width: 1200px;
-      margin: 0 auto;
-      width: 100%;
-      display: flex;
-      flex-direction: column;
-      gap: 2rem;
-    }
-    
-    /* Hero Section */
-    .hero {
-      text-align: center;
-      margin-bottom: 1rem;
-      animation: fadeInDown 0.8s cubic-bezier(0.16,1,0.3,1) forwards;
-    }
-    
-    .hero h1 {
-      font-size: clamp(2.5rem, 8vw, 4.5rem);
-      font-weight: 700;
-      background: linear-gradient(135deg, #00d9ff, #00ff88, #00d9ff);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-      margin-bottom: 0.5rem;
-      letter-spacing: -1px;
-    }
-    
-    .hero p {
-      font-size: 1.1rem;
-      color: #b0b0e0;
-      font-weight: 400;
-      font-family: 'IBM Plex Mono', monospace;
-    }
-    
-    /* Main Layout */
-    .content {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 2rem;
-      align-items: start;
-    }
-    
-    /* Left: Depth Meter */
-    .depth-meter {
-      display: flex;
-      flex-direction: column;
-      gap: 1.5rem;
-      animation: fadeInLeft 0.8s cubic-bezier(0.16,1,0.3,1) 0.2s forwards;
-      opacity: 0;
-    }
-    
-    .depth-meter h2 {
-      font-size: 1.3rem;
-      font-weight: 600;
-      color: #00ffff;
-      margin-bottom: 0.5rem;
-    }
-    
-    .meter-visual {
-      position: relative;
-      height: 500px;
-      background: linear-gradient(to bottom, 
-        rgba(0, 217, 255, 0.15) 0%,
-        rgba(0, 150, 200, 0.15) 25%,
-        rgba(0, 100, 150, 0.15) 50%,
-        rgba(0, 50, 100, 0.15) 75%,
-        rgba(10, 10, 50, 0.3) 100%
-      );
-      border: 2px solid rgba(0, 217, 255, 0.3);
-      border-radius: 12px;
-      overflow: hidden;
-      box-shadow: inset 0 0 40px rgba(0, 217, 255, 0.1);
-    }
-    
-    .depth-zone {
-      position: absolute;
-      width: 100%;
-      border-top: 1px dashed rgba(0, 217, 255, 0.2);
-      padding: 0.75rem 1rem;
-      font-size: 0.85rem;
-      font-family: 'IBM Plex Mono', monospace;
-      cursor: pointer;
-      transition: all 0.3s ease;
-    }
-    
-    .depth-zone:hover {
-      background: rgba(0, 217, 255, 0.1);
-      border-top-color: rgba(0, 217, 255, 0.6);
-    }
-    
-    .depth-zone.active {
-      background: rgba(0, 217, 255, 0.25);
-      border-left: 4px solid #00ffff;
-      font-weight: 600;
-      color: #00ffff;
-    }
-    
-    .depth-zone-label {
-      display: block;
-      font-weight: 600;
-      margin-bottom: 0.25rem;
-    }
-    
-    .depth-zone-depth {
-      font-size: 0.75rem;
-      color: #88ddff;
-      opacity: 0.8;
-    }
-    
-    .depth-indicator {
-      position: absolute;
-      left: 0;
-      top: 0;
-      width: 4px;
-      height: 20px;
-      background: linear-gradient(to bottom, #00ff88, #00d9ff);
-      box-shadow: 0 0 15px rgba(0, 217, 255, 0.6);
-      transition: top 0.6s cubic-bezier(0.16,1,0.3,1);
-      border-radius: 0 2px 2px 0;
-    }
-    
-    /* Right: Info Panel */
-    .info-panel {
-      display: flex;
-      flex-direction: column;
-      gap: 1.5rem;
-      animation: fadeInRight 0.8s cubic-bezier(0.16,1,0.3,1) 0.3s forwards;
-      opacity: 0;
-    }
-    
-    .zone-info {
-      background: rgba(0, 217, 255, 0.08);
-      border: 1px solid rgba(0, 217, 255, 0.3);
-      border-radius: 12px;
-      padding: 1.5rem;
-      backdrop-filter: blur(10px);
-      min-height: 200px;
-      display: flex;
-      flex-direction: column;
-      gap: 1rem;
-    }
-    
-    .zone-info h3 {
-      font-size: 1.5rem;
-      color: #00ffff;
-      margin-bottom: 0.5rem;
-    }
-    
-    .zone-info p {
-      color: #c0c0e0;
-      line-height: 1.6;
-      font-size: 0.95rem;
-    }
-    
-    .metrics {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 1rem;
-      margin-top: 1rem;
-    }
-    
-    .metric {
-      background: rgba(0, 150, 200, 0.15);
-      border: 1px solid rgba(0, 150, 200, 0.3);
-      border-radius: 8px;
-      padding: 1rem;
-    }
-    
-    .metric-label {
-      font-size: 0.75rem;
-      color: #88ddff;
-      font-family: 'IBM Plex Mono', monospace;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      margin-bottom: 0.5rem;
-    }
-    
-    .metric-value {
-      font-size: 1.3rem;
-      font-weight: 600;
-      color: #00ff88;
-      font-family: 'IBM Plex Mono', monospace;
-    }
-    
-    .creatures {
-      display: flex;
-      flex-direction: column;
-      gap: 1rem;
-    }
-    
-    .creature-card {
-      background: rgba(10, 100, 150, 0.2);
-      border: 1px solid rgba(0, 217, 255, 0.2);
-      border-radius: 8px;
-      padding: 1rem;
-      animation: slideUp 0.5s cubic-bezier(0.16,1,0.3,1) forwards;
-      opacity: 0;
-      transition: all 0.3s ease;
-    }
-    
-    .creature-card:hover {
-      background: rgba(10, 100, 150, 0.35);
-      border-color: rgba(0, 217, 255, 0.5);
-      transform: translateX(4px);
-    }
-    
-    .creature-name {
-      font-weight: 600;
-      color: #00ffaa;
-      font-size: 0.95rem;
-      margin-bottom: 0.25rem;
-    }
-    
-    .creature-fact {
-      font-size: 0.85rem;
-      color: #a0a0d0;
-      line-height: 1.4;
-    }
-    
-    /* Animations */
-    @keyframes fadeInDown {
-      from {
-        opacity: 0;
-        transform: translateY(-20px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-    
-    @keyframes fadeInLeft {
-      from {
-        opacity: 0;
-        transform: translateX(-20px);
-      }
-      to {
-        opacity: 1;
-        transform: translateX(0);
-      }
-    }
-    
-    @keyframes fadeInRight {
-      from {
-        opacity: 0;
-        transform: translateX(20px);
-      }
-      to {
-        opacity: 1;
-        transform: translateX(0);
-      }
-    }
-    
-    @keyframes slideUp {
-      from {
-        opacity: 0;
-        transform: translateY(10px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-    
-    /* Mobile */
-    @media (max-width: 768px) {
-      body {
-        padding: 1rem;
-      }
-      
-      .content {
-        grid-template-columns: 1fr;
-      }
-      
-      .meter-visual {
-        height: 400px;
-      }
-      
-      .hero h1 {
-        font-size: clamp(1.8rem, 6vw, 2.8rem);
-      }
-      
-      .metrics {
-        grid-template-columns: 1fr;
-      }
-    }
-    
-    /* Reduced Motion */
-    @media (prefers-reduced-motion: reduce) {
-      * {
-        animation-duration: 0.01ms !important;
-        animation-iteration-count: 1 !important;
-        transition-duration: 0.01ms !important;
-      }
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ocean Depth Explorer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Space Mono', monospace;
+            background: #050a13;
+            color: #4da8da;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            width: 100%;
+            background: #0a1428;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 0 40px rgba(13, 79, 95, 0.3);
+        }
+        h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 32px;
+            margin-bottom: 10px;
+            color: #1e90ff;
+            text-align: center;
+        }
+        .subtitle {
+            text-align: center;
+            font-size: 12px;
+            color: #7dd3fc;
+            margin-bottom: 20px;
+        }
+        .main {
+            display: grid;
+            grid-template-columns: 200px 1fr;
+            gap: 20px;
+            align-items: start;
+        }
+        .sidebar {
+            background: #0d2438;
+            border-left: 4px solid #2d9d5f;
+            padding: 15px;
+            border-radius: 6px;
+        }
+        .stat-box {
+            margin-bottom: 15px;
+            padding: 10px;
+            background: rgba(77, 168, 218, 0.05);
+            border-radius: 4px;
+            border-left: 3px solid #2d9d5f;
+        }
+        .stat-label {
+            font-size: 11px;
+            color: #7dd3fc;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 5px;
+        }
+        .stat-value {
+            font-size: 16px;
+            color: #4da8da;
+            font-weight: 700;
+        }
+        .zone-name {
+            font-family: 'Playfair Display', serif;
+            font-size: 18px;
+            color: #1e90ff;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        .control-group {
+            margin-top: 20px;
+        }
+        .slider-label {
+            font-size: 11px;
+            color: #7dd3fc;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #0a2f51;
+            outline: none;
+            -webkit-appearance: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #4da8da;
+            cursor: pointer;
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #4da8da;
+            cursor: pointer;
+            border: none;
+        }
+        .toggles {
+            margin-top: 15px;
+        }
+        .toggle-btn {
+            display: block;
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 8px;
+            background: #0a2f51;
+            color: #4da8da;
+            border: 1px solid #2d9d5f;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: 'Space Mono', monospace;
+            font-size: 11px;
+            text-transform: uppercase;
+            transition: all 0.2s;
+        }
+        .toggle-btn:hover {
+            background: #0d4f5f;
+            border-color: #4da8da;
+        }
+        .toggle-btn.active {
+            background: #2d9d5f;
+            color: #050a13;
+            border-color: #4da8da;
+        }
+        canvas {
+            width: 100%;
+            height: auto;
+            border-radius: 6px;
+            background: #050a13;
+            display: block;
+        }
+        .depth-meter {
+            text-align: center;
+            font-size: 12px;
+            color: #7dd3fc;
+            margin-top: 10px;
+        }
+        @media (max-width: 768px) {
+            .main {
+                grid-template-columns: 1fr;
+            }
+            h1 { font-size: 24px; }
+        }
+    </style>
 </head>
 <body>
-  <div class="container">
-    <div class="hero">
-      <h1>OCEAN DEPTH</h1>
-      <p>Explore the zones, creatures, and pressures of the deep sea</p>
-    </div>
-    
-    <div class="content">
-      <div class="depth-meter">
-        <h2>Depth Profile</h2>
-        <div class="meter-visual">
-          <div class="depth-zone" data-zone="0" style="top: 0%; height: 20%;">
-            <span class="depth-zone-label">Sunlight Zone</span>
-            <span class="depth-zone-depth">0–200m</span>
-          </div>
-          <div class="depth-zone" data-zone="1" style="top: 20%; height: 20%;">
-            <span class="depth-zone-label">Twilight Zone</span>
-            <span class="depth-zone-depth">200–1000m</span>
-          </div>
-          <div class="depth-zone" data-zone="2" style="top: 40%; height: 20%;">
-            <span class="depth-zone-label">Midnight Zone</span>
-            <span class="depth-zone-depth">1000–4000m</span>
-          </div>
-          <div class="depth-zone" data-zone="3" style="top: 60%; height: 20%;">
-            <span class="depth-zone-label">Abyssal Zone</span>
-            <span class="depth-zone-depth">4000–6000m</span>
-          </div>
-          <div class="depth-zone active" data-zone="4" style="top: 80%; height: 20%;">
-            <span class="depth-zone-label">Hadal Zone</span>
-            <span class="depth-zone-depth">6000m+</span>
-          </div>
-          <div class="depth-indicator" style="top: 85%;"></div>
-        </div>
-      </div>
-      
-      <div class="info-panel">
-        <div class="zone-info">
-          <h3 id="zone-name">Hadal Zone</h3>
-          <p id="zone-desc">The deepest parts of the ocean, found in ocean trenches. Extreme pressure and cold.</p>
-          
-          <div class="metrics">
-            <div class="metric">
-              <div class="metric-label">Depth</div>
-              <div class="metric-value" id="metric-depth">6000m+</div>
-            </div>
-            <div class="metric">
-              <div class="metric-label">Pressure</div>
-              <div class="metric-value" id="metric-pressure">1000+ atm</div>
-            </div>
-            <div class="metric">
-              <div class="metric-label">Temperature</div>
-              <div class="metric-value" id="metric-temp">1–4°C</div>
-            </div>
-            <div class="metric">
-              <div class="metric-label">Light</div>
-              <div class="metric-value" id="metric-light">0%</div>
-            </div>
-          </div>
-        </div>
+    <div class="container">
+        <h1>🌊 Ocean Depth</h1>
+        <div class="subtitle">Explore life's adaptation to extreme pressure, cold, and darkness</div>
         
-        <div>
-          <h3 style="color: #00ffaa; margin-bottom: 1rem;">Inhabitants</h3>
-          <div class="creatures" id="creatures-list"></div>
+        <div class="main">
+            <div class="sidebar">
+                <div class="zone-name" id="zoneName">Sunlit</div>
+                
+                <div class="stat-box">
+                    <div class="stat-label">Depth</div>
+                    <div class="stat-value"><span id="depthValue">0</span> m</div>
+                </div>
+                
+                <div class="stat-box">
+                    <div class="stat-label">Temperature</div>
+                    <div class="stat-value"><span id="tempValue">20</span>°C</div>
+                </div>
+                
+                <div class="stat-box">
+                    <div class="stat-label">Pressure</div>
+                    <div class="stat-value"><span id="pressureValue">1</span> atm</div>
+                </div>
+                
+                <div class="stat-box">
+                    <div class="stat-label">Light Level</div>
+                    <div class="stat-value"><span id="lightValue">100</span>%</div>
+                </div>
+                
+                <div class="control-group">
+                    <div class="slider-label">Depth (meters)</div>
+                    <input type="range" id="depthSlider" min="0" max="11000" value="0" step="100">
+                    <div class="depth-meter">0 ↔ 11,000</div>
+                </div>
+                
+                <div class="toggles">
+                    <button class="toggle-btn active" id="bioToggle">Bioluminescence: ON</button>
+                    <button class="toggle-btn" id="pressureToggle">Pressure Gauge: OFF</button>
+                    <button class="toggle-btn" id="gridToggle">Grid Lines: OFF</button>
+                </div>
+            </div>
+            
+            <div>
+                <canvas id="oceanCanvas"></canvas>
+            </div>
         </div>
-      </div>
     </div>
-  </div>
-  
-  <script>
-    const zones = [
-      {
-        name: 'Sunlight Zone',
-        desc: 'Also called the euphotic zone. Abundant light penetration allows photosynthesis. Home to most ocean life.',
-        depth: '0–200m',
-        pressure: '1–20 atm',
-        temp: '20–25°C',
-        light: '100%',
-        creatures: [
-          { name: 'Blue Whale', fact: 'Largest animal ever to exist; feeds on krill in sunlit waters.' },
-          { name: 'Sea Turtle', fact: 'Migrates vast distances; basking in surface waters.' },
-          { name: 'Coral', fact: 'Building reefs in shallow sunlit zones with symbiotic algae.' }
-        ]
-      },
-      {
-        name: 'Twilight Zone',
-        desc: 'Called the mesopelagic zone. Dim light permits vision but not photosynthesis. Many bioluminescent creatures.',
-        depth: '200–1000m',
-        pressure: '20–100 atm',
-        temp: '4–20°C',
-        light: '1%',
-        creatures: [
-          { name: 'Lanternfish', fact: 'Small fish with bioluminescent photophores; daily vertical migrators.' },
-          { name: 'Vampire Squid', fact: 'Red body with blue bioluminescent lights; evasive escape cloud.' },
-          { name: 'Hatchetfish', fact: 'Flat silvery body with upward-facing eyes; hunts from below.' }
-        ]
-      },
-      {
-        name: 'Midnight Zone',
-        desc: 'Bathypelagic zone. No natural light reaches here. Relies on organic snow from upper layers.',
-        depth: '1000–4000m',
-        pressure: '100–400 atm',
-        temp: '1–4°C',
-        light: '0%',
-        creatures: [
-          { name: 'Giant Squid', fact: 'Can grow 12m long; large eyes adapted to faint bioluminescence.' },
-          { name: 'Anglerfish', fact: 'Females have bioluminescent lures; extreme sexual dimorphism.' },
-          { name: 'Viperfish', fact: 'Needle teeth; large hinged jaw; photophores along flanks.' }
-        ]
-      },
-      {
-        name: 'Abyssal Zone',
-        desc: 'Abyssal plains cover much of ocean floor. Cold, dark, nutrient-scarce. Sparse but unique fauna.',
-        depth: '4000–6000m',
-        pressure: '400–600 atm',
-        temp: '0–3°C',
-        light: '0%',
-        creatures: [
-          { name: 'Sea Pig', fact: 'Holothurian scavenger; crawls along seafloor eating detritus.' },
-          { name: 'Dumbo Octopus', fact: 'Lives deepest of all octopuses; ear-like fins; 3km depth.' },
-          { name: 'Tripod Fish', fact: 'Uses stilt-like fin rays to stand on seafloor; waits for prey.' }
-        ]
-      },
-      {
-        name: 'Hadal Zone',
-        desc: 'The deepest parts of the ocean, found in ocean trenches. Extreme pressure and cold temperatures.',
-        depth: '6000m+',
-        pressure: '1000+ atm',
-        temp: '1–4°C',
-        light: '0%',
-        creatures: [
-          { name: 'Mariana Snailfish', fact: 'Lives 8000m deep; extremophile adapted to crushing pressure.' },
-          { name: 'Hadal Amphipod', fact: 'Scavenger crustacean; thrives where few others can survive.' },
-          { name: 'Deep-sea Jellyfish', fact: 'Gelatinous drifter; minimal energy expenditure; rare sightings.' }
-        ]
-      }
-    ];
-    
-    const depthZones = document.querySelectorAll('.depth-zone');
-    const indicator = document.querySelector('.depth-indicator');
-    const infoPanel = document.querySelector('.info-panel');
-    let currentZone = 4; // Start at Hadal
-    
-    function updateZone(zoneIndex) {
-      currentZone = zoneIndex;
-      const zone = zones[zoneIndex];
-      
-      // Update active state
-      depthZones.forEach((el, i) => {
-        el.classList.toggle('active', i === zoneIndex);
-      });
-      
-      // Move indicator
-      const indicatorPos = 5 + (zoneIndex * 20);
-      indicator.style.top = indicatorPos + '%';
-      
-      // Update info
-      document.getElementById('zone-name').textContent = zone.name;
-      document.getElementById('zone-desc').textContent = zone.desc;
-      document.getElementById('metric-depth').textContent = zone.depth;
-      document.getElementById('metric-pressure').textContent = zone.pressure;
-      document.getElementById('metric-temp').textContent = zone.temp;
-      document.getElementById('metric-light').textContent = zone.light;
-      
-      // Animate creatures
-      const creaturesList = document.getElementById('creatures-list');
-      creaturesList.innerHTML = '';
-      zone.creatures.forEach((creature, i) => {
-        const card = document.createElement('div');
-        card.className = 'creature-card';
-        card.innerHTML = `
-          <div class="creature-name">${creature.name}</div>
-          <div class="creature-fact">${creature.fact}</div>
-        `;
-        card.style.animationDelay = (i * 0.1) + 's';
-        creaturesList.appendChild(card);
-      });
-    }
-    
-    // Click handlers
-    depthZones.forEach(zone => {
-      zone.addEventListener('click', (e) => {
-        const zoneIndex = parseInt(zone.getAttribute('data-zone'));
-        updateZone(zoneIndex);
-      });
-    });
-    
-    // Init
-    updateZone(4);
-  </script>
+
+    <script>
+        const canvas = document.getElementById('oceanCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Set canvas size
+        function resizeCanvas() {
+            canvas.width = canvas.offsetWidth;
+            canvas.height = 600;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+        
+        // State
+        const state = {
+            depth: 0,
+            showBioluminescence: true,
+            showPressureGauge: true,
+            showGrid: false
+        };
+        
+        // Ocean zones
+        const zones = [
+            { name: 'Sunlit (Epipelagic)', min: 0, max: 200, color: '#1e90ff' },
+            { name: 'Twilight (Mesopelagic)', min: 200, max: 1000, color: '#0d4f5f' },
+            { name: 'Midnight (Bathypelagic)', min: 1000, max: 4000, color: '#050a13' },
+            { name: 'Abyssal (Abyssopelagic)', min: 4000, max: 6000, color: '#000000' },
+            { name: 'Hadal (Hadopelagic)', min: 6000, max: 11000, color: '#0a0a1a' }
+        ];
+        
+        // Creatures with depth ranges and bioluminescence
+        const creatures = [
+            { name: 'Sunfish', minDepth: 0, maxDepth: 300, emoji: '🐟', bioluminescent: false },
+            { name: 'Tuna', minDepth: 0, maxDepth: 500, emoji: '🐠', bioluminescent: false },
+            { name: 'Lanternfish', minDepth: 200, maxDepth: 1000, emoji: '✨', bioluminescent: true },
+            { name: 'Gulper Eel', minDepth: 500, maxDepth: 2000, emoji: '🐍', bioluminescent: true },
+            { name: 'Giant Squid', minDepth: 1000, maxDepth: 2000, emoji: '🦑', bioluminescent: false },
+            { name: 'Dumbo Octopus', minDepth: 2000, maxDepth: 5000, emoji: '🐙', bioluminescent: false },
+            { name: 'Anglerfish', minDepth: 1000, maxDepth: 4000, emoji: '🪶', bioluminescent: true },
+            { name: 'Sperm Whale', minDepth: 0, maxDepth: 3000, emoji: '🐋', bioluminescent: false },
+            { name: 'Tripod Fish', minDepth: 4000, maxDepth: 6000, emoji: '🪡', bioluminescent: false },
+            { name: 'Barreleye Fish', minDepth: 600, maxDepth: 1200, emoji: '👁️', bioluminescent: true },
+            { name: 'Vampire Squid', minDepth: 600, maxDepth: 1200, emoji: '🦇', bioluminescent: true },
+            { name: 'Yeti Crab', minDepth: 2400, maxDepth: 2400, emoji: '🦀', bioluminescent: false },
+            { name: 'Snailfish', minDepth: 7000, maxDepth: 11000, emoji: '🐚', bioluminescent: false }
+        ];
+        
+        // Calculate values at a given depth
+        function getZoneAtDepth(depth) {
+            return zones.find(z => depth >= z.min && depth < z.max) || zones[zones.length - 1];
+        }
+        
+        function getTemperature(depth) {
+            if (depth < 200) return 20 - (depth / 200) * 15; // 20°C → 5°C
+            if (depth < 1000) return 5 - ((depth - 200) / 800) * 2; // 5°C → 3°C
+            return 2 + Math.random() * 1; // ~2-3°C below 1000m
+        }
+        
+        function getPressure(depth) {
+            return 1 + (depth / 10.33); // 1 atm per 10.33m of seawater
+        }
+        
+        function getLight(depth) {
+            if (depth <= 50) return 100;
+            if (depth <= 200) return 100 - ((depth - 50) / 150) * 50;
+            if (depth <= 500) return 50 - ((depth - 200) / 300) * 40;
+            if (depth <= 1000) return 10 - ((depth - 500) / 500) * 9;
+            return Math.max(0, 1 - ((depth - 1000) / 3000) * 1);
+        }
+        
+        function getCreaturesAtDepth(depth) {
+            return creatures.filter(c => depth >= c.minDepth && depth <= c.maxDepth);
+        }
+        
+        // Draw ocean
+        function draw() {
+            const zone = getZoneAtDepth(state.depth);
+            const temp = getTemperature(state.depth);
+            const pressure = getPressure(state.depth);
+            const light = getLight(state.depth);
+            
+            // Update sidebar
+            document.getElementById('zoneName').textContent = zone.name;
+            document.getElementById('depthValue').textContent = Math.round(state.depth);
+            document.getElementById('tempValue').textContent = temp.toFixed(1);
+            document.getElementById('pressureValue').textContent = pressure.toFixed(1);
+            document.getElementById('lightValue').textContent = Math.max(0, light.toFixed(1));
+            
+            // Background gradient based on depth and zone
+            const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            gradient.addColorStop(0, zone.color);
+            gradient.addColorStop(1, '#000000');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw grid if enabled
+            if (state.showGrid) {
+                ctx.strokeStyle = 'rgba(77, 168, 218, 0.1)';
+                ctx.lineWidth = 1;
+                for (let d = 0; d <= 11000; d += 500) {
+                    const y = (d / 11000) * canvas.height;
+                    ctx.beginPath();
+                    ctx.moveTo(0, y);
+                    ctx.lineTo(canvas.width, y);
+                    ctx.stroke();
+                }
+            }
+            
+            // Get creatures visible at this depth
+            const visibleCreatures = getCreaturesAtDepth(state.depth);
+            
+            // Draw creatures
+            visibleCreatures.forEach((creature, index) => {
+                const x = (index % 4) * (canvas.width / 4) + (canvas.width / 8);
+                const yRatio = (creature.maxDepth / 11000) * 0.8 + 0.1;
+                const y = yRatio * canvas.height;
+                
+                // Creature emoji
+                ctx.font = 'bold 40px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                
+                // Bioluminescence glow
+                if (state.showBioluminescence && creature.bioluminescent && light < 50) {
+                    ctx.shadowColor = '#ffff00';
+                    ctx.shadowBlur = 20;
+                    ctx.shadowOffsetX = 0;
+                    ctx.shadowOffsetY = 0;
+                } else {
+                    ctx.shadowColor = 'transparent';
+                    ctx.shadowBlur = 0;
+                }
+                
+                ctx.fillText(creature.emoji, x, y);
+                
+                // Name and depth range
+                ctx.font = '10px Space Mono';
+                ctx.fillStyle = '#4da8da';
+                ctx.textAlign = 'center';
+                ctx.fillText(creature.name, x, y + 30);
+                ctx.fillStyle = '#7dd3fc';
+                ctx.font = '9px Space Mono';
+                ctx.fillText(`${creature.minDepth}–${creature.maxDepth}m`, x, y + 43);
+                
+                // Bioluminescence indicator
+                if (creature.bioluminescent) {
+                    ctx.fillStyle = '#ffff00';
+                    ctx.font = 'bold 8px Space Mono';
+                    ctx.fillText('⚡', x + 25, y - 25);
+                }
+            });
+            
+            // Draw pressure gauge
+            if (state.showPressureGauge) {
+                drawPressureGauge(pressure);
+            }
+            
+            // Information overlay
+            ctx.fillStyle = 'rgba(5, 10, 19, 0.8)';
+            ctx.fillRect(10, canvas.height - 60, 200, 50);
+            ctx.strokeStyle = '#2d9d5f';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(10, canvas.height - 60, 200, 50);
+            
+            ctx.fillStyle = '#7dd3fc';
+            ctx.font = '9px Space Mono';
+            ctx.textAlign = 'left';
+            ctx.fillText(`Creatures at depth: ${visibleCreatures.length}`, 15, canvas.height - 45);
+            ctx.fillText(`Visibility: ${Math.max(0, light.toFixed(0))}%`, 15, canvas.height - 30);
+            ctx.fillText(`Darkness factor: ${(100 - Math.max(0, light)).toFixed(0)}%`, 15, canvas.height - 15);
+        }
+        
+        function drawPressureGauge(pressure) {
+            const x = canvas.width - 120;
+            const y = 30;
+            const radius = 40;
+            
+            // Gauge circle
+            ctx.strokeStyle = '#daa520';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, Math.PI * 2);
+            ctx.stroke();
+            
+            // Gauge needle
+            const maxPressure = 1000;
+            const angle = (Math.PI / 2) + ((pressure / maxPressure) * Math.PI);
+            ctx.strokeStyle = '#ff6666';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            ctx.lineTo(x + Math.cos(angle) * (radius - 10), y + Math.sin(angle) * (radius - 10));
+            ctx.stroke();
+            
+            // Center dot
+            ctx.fillStyle = '#daa520';
+            ctx.beginPath();
+            ctx.arc(x, y, 5, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Label
+            ctx.fillStyle = '#4da8da';
+            ctx.font = '9px Space Mono';
+            ctx.textAlign = 'center';
+            ctx.fillText(`${pressure.toFixed(0)} atm`, x, y + radius + 20);
+        }
+        
+        // Event listeners
+        document.getElementById('depthSlider').addEventListener('input', (e) => {
+            state.depth = parseInt(e.target.value);
+            draw();
+        });
+        
+        document.getElementById('bioToggle').addEventListener('click', function() {
+            state.showBioluminescence = !state.showBioluminescence;
+            this.classList.toggle('active');
+            this.textContent = `Bioluminescence: ${state.showBioluminescence ? 'ON' : 'OFF'}`;
+            draw();
+        });
+        
+        document.getElementById('pressureToggle').addEventListener('click', function() {
+            state.showPressureGauge = !state.showPressureGauge;
+            this.classList.toggle('active');
+            this.textContent = `Pressure Gauge: ${state.showPressureGauge ? 'ON' : 'OFF'}`;
+            draw();
+        });
+        
+        document.getElementById('gridToggle').addEventListener('click', function() {
+            state.showGrid = !state.showGrid;
+            this.classList.toggle('active');
+            this.textContent = `Grid Lines: ${state.showGrid ? 'ON' : 'OFF'}`;
+            draw();
+        });
+        
+        // Initial draw
+        draw();
+    </script>
 </body>
 </html>
