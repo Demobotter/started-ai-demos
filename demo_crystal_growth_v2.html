@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nucleation Station — Crystal Growth Simulator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: 'Space Mono', monospace;
+      background: #1a0a2e;
+      color: #e0e0e0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .container {
+      max-width: 1200px;
+      width: 100%;
+      background: #0f0620;
+      border-radius: 16px;
+      border: 1px solid #00aa88;
+      overflow: hidden;
+      box-shadow: 0 0 40px rgba(0, 255, 200, 0.15);
+    }
+    .header {
+      background: linear-gradient(135deg, #1a0a2e 0%, #2d1047 100%);
+      border-bottom: 2px solid #00ffff;
+      padding: 24px;
+      text-align: center;
+    }
+    .header h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: 2.4em;
+      color: #00ffff;
+      margin-bottom: 8px;
+    }
+    .header p {
+      color: #4dd9ff;
+      font-size: 0.95em;
+    }
+    .content {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      padding: 24px;
+      min-height: 600px;
+    }
+    @media (max-width: 768px) {
+      .content {
+        grid-template-columns: 1fr;
+      }
+    }
+    .canvas-section {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    canvas {
+      width: 100%;
+      height: auto;
+      background: #1a0a2e;
+      border: 1px solid #00aa88;
+      border-radius: 12px;
+      display: block;
+    }
+    .canvas-label {
+      font-size: 0.85em;
+      color: #4dd9ff;
+      text-align: center;
+      font-weight: bold;
+    }
+    .control-panel {
+      background: rgba(26, 10, 46, 0.6);
+      border: 1px solid #00aa88;
+      border-radius: 12px;
+      padding: 20px;
+      max-height: 600px;
+      overflow-y: auto;
+    }
+    .control-group {
+      margin-bottom: 20px;
+    }
+    .control-group label {
+      display: block;
+      color: #00ffff;
+      font-weight: bold;
+      margin-bottom: 8px;
+      font-size: 0.9em;
+    }
+    input[type="range"] {
+      width: 100%;
+      height: 6px;
+      border-radius: 3px;
+      background: #1a0a2e;
+      outline: none;
+      -webkit-appearance: none;
+      appearance: none;
+      border: 1px solid #00aa88;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #00ffff;
+      cursor: pointer;
+      border: 2px solid #00aa88;
+    }
+    input[type="range"]::-moz-range-thumb {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #00ffff;
+      cursor: pointer;
+      border: 2px solid #00aa88;
+    }
+    select {
+      width: 100%;
+      padding: 8px;
+      background: #1a0a2e;
+      color: #00ffff;
+      border: 1px solid #00aa88;
+      border-radius: 6px;
+      font-family: 'Space Mono', monospace;
+      cursor: pointer;
+    }
+    button {
+      width: 100%;
+      padding: 10px;
+      margin-top: 10px;
+      background: linear-gradient(135deg, #00aa88 0%, #00ffff 100%);
+      color: #000;
+      border: none;
+      border-radius: 6px;
+      font-weight: bold;
+      cursor: pointer;
+      font-family: 'Space Mono', monospace;
+      transition: all 0.3s;
+    }
+    button:hover {
+      box-shadow: 0 0 20px rgba(0, 255, 200, 0.5);
+      transform: scale(1.02);
+    }
+    .stat-box {
+      background: rgba(26, 10, 46, 0.8);
+      border-left: 3px solid #00ffff;
+      border-radius: 6px;
+      padding: 12px;
+      margin-bottom: 12px;
+      font-size: 0.85em;
+    }
+    .stat-label {
+      color: #4dd9ff;
+      font-size: 0.75em;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .stat-value {
+      color: #00ffff;
+      font-size: 1.1em;
+      font-weight: bold;
+      margin-top: 4px;
+    }
+    .toggle-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .toggle-btn {
+      padding: 8px;
+      background: rgba(0, 170, 136, 0.2);
+      color: #00ffff;
+      border: 1px solid #00aa88;
+      border-radius: 6px;
+      cursor: pointer;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.8em;
+      transition: all 0.2s;
+    }
+    .toggle-btn.active {
+      background: #00aa88;
+      color: #000;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Nucleation Station</h1>
+      <p>Control temperature, saturation & nucleation to watch real crystal growth physics</p>
+    </div>
+
+    <div class="content">
+      <div class="canvas-section">
+        <div>
+          <canvas id="crystalCanvas" width="300" height="300"></canvas>
+          <div class="canvas-label">Crystal Lattice Growth (isometric)</div>
+        </div>
+        <div>
+          <canvas id="graphCanvas" width="300" height="240"></canvas>
+          <div class="canvas-label">Size vs Time (sigmoidal growth curve)</div>
+        </div>
+      </div>
+
+      <div class="control-panel">
+        <div class="control-group">
+          <label>Crystal Type</label>
+          <select id="crystalType">
+            <option value="cubic">Cubic (table salt)</option>
+            <option value="hexagonal" selected>Hexagonal (snow)</option>
+            <option value="orthorhombic">Orthorhombic (sugar)</option>
+          </select>
+        </div>
+
+        <div class="control-group">
+          <label>Temperature (K): <span id="tempValue">273</span></label>
+          <input type="range" id="tempSlider" min="0" max="500" value="273" step="1">
+          <div style="color: #4dd9ff; font-size: 0.8em; margin-top: 4px;">
+            <span id="tempLabel">Freezing point (0°C)</span>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <label>Saturation Level: <span id="satValue">80</span>%</label>
+          <input type="range" id="satSlider" min="0" max="100" value="80" step="5">
+        </div>
+
+        <div class="control-group">
+          <label>Cooling Rate</label>
+          <select id="coolingRate">
+            <option value="fast">Fast (rapid nucleation)</option>
+            <option value="medium" selected>Medium (balanced)</option>
+            <option value="slow">Slow (large crystals)</option>
+          </select>
+        </div>
+
+        <div class="control-group">
+          <label>Nucleation Sites: <span id="nucleiValue">1</span></label>
+          <input type="range" id="nucleiSlider" min="1" max="4" value="1" step="1">
+        </div>
+
+        <div class="control-group">
+          <label>Add Impurities</label>
+          <div class="toggle-group">
+            <button class="toggle-btn" id="purityBtn" onclick="togglePurity()">OFF</button>
+          </div>
+        </div>
+
+        <hr style="border: 1px solid #00aa88; margin: 20px 0;">
+
+        <div class="stat-box">
+          <div class="stat-label">Crystal Size</div>
+          <div class="stat-value"><span id="sizeDisplay">0</span> units</div>
+        </div>
+
+        <div class="stat-box">
+          <div class="stat-label">Growth Rate</div>
+          <div class="stat-value"><span id="growthRateDisplay">0</span> molecules/s</div>
+        </div>
+
+        <div class="stat-box">
+          <div class="stat-label">Nucleation Rate</div>
+          <div class="stat-value"><span id="nucRateDisplay">0</span> sites/s</div>
+        </div>
+
+        <div class="stat-box">
+          <div class="stat-label">Defect Density</div>
+          <div class="stat-value"><span id="defectDisplay">0</span>%</div>
+        </div>
+
+        <button onclick="reset()" style="margin-top: 20px;">Reset Simulation</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // State
+    let state = {
+      crystalSize: 0,
+      crystalLayers: [],
+      temperature: 273,
+      saturation: 80,
+      coolingRate: 'medium',
+      nucleationSites: 1,
+      crystalType: 'hexagonal',
+      impuritiesEnabled: false,
+      time: 0,
+      growthHistory: [],
+      activeCrystals: [],
+      defectDensity: 0
+    };
+
+    const canvas1 = document.getElementById('crystalCanvas');
+    const ctx1 = canvas1.getContext('2d');
+    const canvas2 = document.getElementById('graphCanvas');
+    const ctx2 = canvas2.getContext('2d');
+
+    // Physics parameters
+    const kB = 8.617e-5; // Boltzmann constant (eV/K)
+    const Ea = 0.1; // Activation energy (eV) - realistic for crystal growth
+
+    function calculateAttachmentRate(T, saturation) {
+      const Arrhenius = Math.exp(-Ea / (kB * Math.max(T, 1)));
+      return Arrhenius * (saturation / 100) * 50; // 50 molecules/s max
+    }
+
+    function getNucleationRate(T, saturation, coolingRate) {
+      const rate = Math.exp(-Ea / (kB * Math.max(T, 1)));
+      const sat = saturation / 100;
+      const coolingFactor = coolingRate === 'fast' ? 2 : coolingRate === 'slow' ? 0.3 : 1;
+      return rate * sat * coolingFactor * 0.5;
+    }
+
+    function initCrystal(x, y) {
+      return {
+        x: x,
+        y: y,
+        size: 1,
+        cells: [[0, 0]],
+        type: state.crystalType,
+        impurities: []
+      };
+    }
+
+    function growCrystal(crystal, rate) {
+      const growth = rate * 0.016; // 16ms frame
+      crystal.size += growth;
+
+      if (Math.random() < rate * 0.008) {
+        const theta = Math.random() * Math.PI * 2;
+        const r = Math.sqrt(crystal.cells.length) + 1;
+        const nx = Math.round(r * Math.cos(theta));
+        const ny = Math.round(r * Math.sin(theta));
+
+        if (!crystal.cells.some(c => c[0] === nx && c[1] === ny)) {
+          crystal.cells.push([nx, ny]);
+
+          if (state.impuritiesEnabled && Math.random() < 0.02) {
+            crystal.impurities.push([nx, ny]);
+            state.defectDensity = (crystal.impurities.length / crystal.cells.length) * 100;
+          }
+        }
+      }
+
+      return crystal;
+    }
+
+    function drawCrystal() {
+      const centerX = canvas1.width / 2;
+      const centerY = canvas1.height / 2;
+      const cellSize = 6;
+
+      // Clear
+      ctx1.fillStyle = '#1a0a2e';
+      ctx1.fillRect(0, 0, canvas1.width, canvas1.height);
+
+      // Draw grid background (subtle)
+      ctx1.strokeStyle = 'rgba(0, 170, 136, 0.1)';
+      ctx1.lineWidth = 0.5;
+      for (let i = -20; i < 20; i++) {
+        ctx1.beginPath();
+        ctx1.moveTo(centerX + i * cellSize, centerY - 200);
+        ctx1.lineTo(centerX + i * cellSize, centerY + 200);
+        ctx1.stroke();
+      }
+
+      // Draw each crystal
+      state.activeCrystals.forEach((crystal, idx) => {
+        const offsetX = (idx % 2) * 40 - 20;
+        const offsetY = Math.floor(idx / 2) * 40 - 20;
+
+        crystal.cells.forEach(([cx, cy]) => {
+          const isImpurity = crystal.impurities.some(i => i[0] === cx && i[1] === cy);
+
+          const x = centerX + offsetX + cx * cellSize;
+          const y = centerY + offsetY + cy * cellSize;
+
+          if (isImpurity) {
+            ctx1.fillStyle = '#ff3333';
+          } else {
+            // Layered color effect
+            const depth = Math.sqrt(cx * cx + cy * cy);
+            const brightness = Math.max(100, Math.min(255, 200 - depth * 5));
+            ctx1.fillStyle = `rgb(0, ${brightness}, ${brightness})`;
+          }
+
+          ctx1.fillRect(x - cellSize/2, y - cellSize/2, cellSize, cellSize);
+          ctx1.strokeStyle = isImpurity ? 'rgba(255, 51, 51, 0.4)' : 'rgba(0, 170, 136, 0.3)';
+          ctx1.lineWidth = 0.5;
+          ctx1.strokeRect(x - cellSize/2, y - cellSize/2, cellSize, cellSize);
+        });
+      });
+
+      // Draw border
+      ctx1.strokeStyle = '#00aa88';
+      ctx1.lineWidth = 2;
+      ctx1.strokeRect(0, 0, canvas1.width, canvas1.height);
+    }
+
+    function drawGraph() {
+      ctx2.fillStyle = '#1a0a2e';
+      ctx2.fillRect(0, 0, canvas2.width, canvas2.height);
+
+      // Axes
+      ctx2.strokeStyle = '#00aa88';
+      ctx2.lineWidth = 2;
+      ctx2.beginPath();
+      ctx2.moveTo(40, canvas2.height - 40);
+      ctx2.lineTo(canvas2.width - 20, canvas2.height - 40);
+      ctx2.moveTo(40, 20);
+      ctx2.lineTo(40, canvas2.height - 40);
+      ctx2.stroke();
+
+      // Labels
+      ctx2.fillStyle = '#4dd9ff';
+      ctx2.font = '10px Space Mono';
+      ctx2.textAlign = 'center';
+      ctx2.fillText('Time', canvas2.width - 30, canvas2.height - 20);
+      ctx2.save();
+      ctx2.translate(15, canvas2.height / 2);
+      ctx2.rotate(-Math.PI / 2);
+      ctx2.fillText('Size', 0, 0);
+      ctx2.restore();
+
+      // Draw growth curve
+      if (state.growthHistory.length > 1) {
+        ctx2.strokeStyle = '#00ffff';
+        ctx2.lineWidth = 2;
+        ctx2.beginPath();
+
+        state.growthHistory.forEach((size, i) => {
+          const x = 40 + (i / state.growthHistory.length) * (canvas2.width - 60);
+          const maxSize = Math.max(...state.growthHistory, 1);
+          const y = canvas2.height - 40 - (size / maxSize) * (canvas2.height - 60);
+
+          if (i === 0) ctx2.moveTo(x, y);
+          else ctx2.lineTo(x, y);
+        });
+        ctx2.stroke();
+      }
+
+      // Border
+      ctx2.strokeStyle = '#00aa88';
+      ctx2.lineWidth = 2;
+      ctx2.strokeRect(0, 0, canvas2.width, canvas2.height);
+    }
+
+    function update() {
+      state.time++;
+
+      if (state.time % 120 === 0) { // New nucleation every ~2s
+        const nucRate = getNucleationRate(state.temperature, state.saturation, state.coolingRate);
+        if (Math.random() < nucRate * 0.016 && state.activeCrystals.length < state.nucleationSites) {
+          const x = Math.random() * 100 - 50;
+          const y = Math.random() * 100 - 50;
+          state.activeCrystals.push(initCrystal(x, y));
+        }
+      }
+
+      // Grow all crystals
+      const attachRate = calculateAttachmentRate(state.temperature, state.saturation);
+      state.activeCrystals.forEach(crystal => {
+        growCrystal(crystal, attachRate);
+      });
+
+      // Ostwald ripening: larger crystals steal from smaller
+      if (state.activeCrystals.length > 1) {
+        const avgSize = state.activeCrystals.reduce((sum, c) => sum + c.cells.length, 0) / state.activeCrystals.length;
+        state.activeCrystals = state.activeCrystals.filter(c => {
+          if (c.cells.length < avgSize * 0.3) {
+            return Math.random() > 0.01; // 1% chance smaller crystal survives
+          }
+          return true;
+        });
+      }
+
+      // Total size
+      const totalSize = state.activeCrystals.reduce((sum, c) => sum + c.cells.length, 0);
+      state.crystalSize = totalSize;
+      state.growthHistory.push(Math.min(totalSize, 500));
+
+      // Keep last 100 points
+      if (state.growthHistory.length > 100) {
+        state.growthHistory.shift();
+      }
+
+      // Update display
+      document.getElementById('sizeDisplay').textContent = Math.round(state.crystalSize);
+      document.getElementById('growthRateDisplay').textContent = Math.round(calculateAttachmentRate(state.temperature, state.saturation));
+      document.getElementById('nucRateDisplay').textContent = (getNucleationRate(state.temperature, state.saturation, state.coolingRate) * 10).toFixed(2);
+      document.getElementById('defectDisplay').textContent = state.defectDensity.toFixed(1);
+
+      drawCrystal();
+      drawGraph();
+      requestAnimationFrame(update);
+    }
+
+    function togglePurity() {
+      state.impuritiesEnabled = !state.impuritiesEnabled;
+      document.getElementById('purityBtn').textContent = state.impuritiesEnabled ? 'ON' : 'OFF';
+      document.getElementById('purityBtn').classList.toggle('active');
+    }
+
+    function reset() {
+      state = {
+        crystalSize: 0,
+        crystalLayers: [],
+        temperature: 273,
+        saturation: 80,
+        coolingRate: 'medium',
+        nucleationSites: 1,
+        crystalType: 'hexagonal',
+        impuritiesEnabled: false,
+        time: 0,
+        growthHistory: [],
+        activeCrystals: [],
+        defectDensity: 0
+      };
+    }
+
+    // Event listeners
+    document.getElementById('tempSlider').addEventListener('input', (e) => {
+      state.temperature = parseInt(e.target.value);
+      document.getElementById('tempValue').textContent = state.temperature;
+      const tempK = 273 - state.temperature;
+      const label = tempK < -100 ? 'Very cold' : tempK < 0 ? 'Freezing' : tempK < 50 ? 'Cold' : 'Warm';
+      document.getElementById('tempLabel').textContent = `${label} (${tempK}°C)`;
+    });
+
+    document.getElementById('satSlider').addEventListener('input', (e) => {
+      state.saturation = parseInt(e.target.value);
+      document.getElementById('satValue').textContent = state.saturation;
+    });
+
+    document.getElementById('coolingRate').addEventListener('change', (e) => {
+      state.coolingRate = e.target.value;
+    });
+
+    document.getElementById('nucleiSlider').addEventListener('input', (e) => {
+      state.nucleationSites = parseInt(e.target.value);
+      document.getElementById('nucleiValue').textContent = state.nucleationSites;
+    });
+
+    document.getElementById('crystalType').addEventListener('change', (e) => {
+      state.crystalType = e.target.value;
+    });
+
+    // Start animation
+    update();
+  </script>
+</body>
+</html>
