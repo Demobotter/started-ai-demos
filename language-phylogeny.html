@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Language Phylogeny — Family Tree Explorer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Space Mono', monospace;
+            background: linear-gradient(135deg, #f5f1de 0%, #ede6d3 100%);
+            color: #2a2520;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 20px;
+        }
+        @media (max-width: 900px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+        header {
+            grid-column: 1 / -1;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.5em;
+            margin-bottom: 8px;
+            color: #1a1a1a;
+        }
+        .subtitle {
+            font-size: 0.9em;
+            color: #666;
+        }
+        .main {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        canvas {
+            border: 1px solid #e0ddd5;
+            border-radius: 8px;
+            background: white;
+            display: block;
+            width: 100%;
+            height: auto;
+        }
+        .controls {
+            background: white;
+            border-radius: 12px;
+            padding: 18px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            height: fit-content;
+            position: sticky;
+            top: 20px;
+        }
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        label {
+            font-weight: 600;
+            font-size: 0.85em;
+            color: #333;
+        }
+        select, input[type="range"], input[type="text"] {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-family: 'Space Mono', monospace;
+            font-size: 0.9em;
+        }
+        input[type="range"] {
+            cursor: pointer;
+        }
+        select {
+            cursor: pointer;
+            background: white;
+        }
+        .timeline {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+        }
+        .timeline input[type="range"] {
+            flex: 1;
+        }
+        .timeline-label {
+            font-size: 0.75em;
+            color: #999;
+            min-width: 35px;
+            text-align: right;
+        }
+        .stat-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            font-size: 0.85em;
+        }
+        .stat-box {
+            background: #f9f7f4;
+            padding: 10px;
+            border-radius: 6px;
+            border-left: 3px solid #d4a574;
+        }
+        .stat-label {
+            font-size: 0.75em;
+            color: #999;
+            margin-bottom: 2px;
+        }
+        .stat-value {
+            font-weight: 600;
+            color: #1a1a1a;
+        }
+        .language-detail {
+            background: #f9f7f4;
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 0.85em;
+            line-height: 1.5;
+        }
+        .language-name {
+            font-weight: 600;
+            color: #1a1a1a;
+            margin-bottom: 6px;
+            font-size: 1.1em;
+        }
+        .language-info {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+        }
+        .info-label {
+            color: #666;
+        }
+        .info-value {
+            font-weight: 600;
+            color: #1a1a1a;
+        }
+        .family-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            font-size: 0.8em;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .legend-box {
+            width: 12px;
+            height: 12px;
+            border-radius: 2px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>🌍 Language Phylogeny</h1>
+        <p class="subtitle">Explore how world languages diverge from common ancestors</p>
+    </header>
+
+    <div class="container">
+        <div class="main">
+            <canvas id="treeCanvas" width="800" height="500"></canvas>
+            <canvas id="timelineCanvas" width="800" height="80"></canvas>
+            <canvas id="diversityCanvas" width="800" height="150"></canvas>
+        </div>
+
+        <div class="controls">
+            <div class="control-group">
+                <label>Language Family</label>
+                <select id="familySelect">
+                    <option value="indo-european">Indo-European</option>
+                    <option value="sino-tibetan">Sino-Tibetan</option>
+                    <option value="niger-congo">Niger-Congo</option>
+                    <option value="austronesian">Austronesian</option>
+                    <option value="dravidian">Dravidian</option>
+                    <option value="afro-asiatic">Afro-Asiatic</option>
+                    <option value="altaic">Altaic</option>
+                    <option value="austro-asiatic">Austro-Asiatic</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label>View Mode</label>
+                <select id="modeSelect">
+                    <option value="families">Language Families</option>
+                    <option value="speakers">Speaker Population</option>
+                    <option value="typology">Grammar Systems</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label>Time Depth (years ago)</label>
+                <div class="timeline">
+                    <input type="range" id="timeSlider" min="0" max="10000" value="10000" step="100">
+                    <span class="timeline-label" id="timeDisplay">10k</span>
+                </div>
+            </div>
+
+            <div class="stat-grid" id="statsPanel"></div>
+
+            <div class="control-group">
+                <label>Search Language</label>
+                <input type="text" id="searchInput" placeholder="e.g., English, Mandarin" />
+            </div>
+
+            <div id="languageDetail" style="display: none;">
+                <div class="language-name" id="detailName"></div>
+                <div class="language-info" id="detailInfo"></div>
+            </div>
+
+            <div class="family-legend" id="legend"></div>
+        </div>
+    </div>
+
+    <script>
+        const languageData = {
+            'indo-european': {
+                color: '#e74c3c',
+                origin: 4500,
+                branches: {
+                    'Germanic': {
+                        color: '#e67e22',
+                        origin: 2500,
+                        languages: [
+                            { name: 'English', speakers: 1500, cases: 0, tones: false, wordOrder: 'SVO' },
+                            { name: 'German', speakers: 130, cases: 4, tones: false, wordOrder: 'SVO' },
+                            { name: 'Dutch', speakers: 24, cases: 2, tones: false, wordOrder: 'SVO' },
+                            { name: 'Swedish', speakers: 13, cases: 2, tones: false, wordOrder: 'SVO' }
+                        ]
+                    },
+                    'Romance': {
+                        color: '#f39c12',
+                        origin: 2000,
+                        languages: [
+                            { name: 'Spanish', speakers: 500, cases: 0, tones: false, wordOrder: 'SVO' },
+                            { name: 'French', speakers: 280, cases: 0, tones: false, wordOrder: 'SVO' },
+                            { name: 'Italian', speakers: 85, cases: 0, tones: false, wordOrder: 'SVO' },
+                            { name: 'Portuguese', speakers: 230, cases: 0, tones: false, wordOrder: 'SVO' }
+                        ]
+                    },
+                    'Slavic': {
+                        color: '#e67e22',
+                        origin: 1500,
+                        languages: [
+                            { name: 'Russian', speakers: 258, cases: 6, tones: false, wordOrder: 'SVO' },
+                            { name: 'Polish', speakers: 38, cases: 7, tones: false, wordOrder: 'SVO' },
+                            { name: 'Ukrainian', speakers: 51, cases: 7, tones: false, wordOrder: 'SVO' },
+                            { name: 'Czech', speakers: 10, cases: 7, tones: false, wordOrder: 'SVO' }
+                        ]
+                    },
+                    'Indo-Aryan': {
+                        color: '#c0392b',
+                        origin: 1800,
+                        languages: [
+                            { name: 'Hindi', speakers: 345, cases: 3, tones: false, wordOrder: 'SOV' },
+                            { name: 'Bengali', speakers: 265, cases: 0, tones: false, wordOrder: 'SOV' },
+                            { name: 'Punjabi', speakers: 125, cases: 0, tones: true, wordOrder: 'SOV' },
+                            { name: 'Urdu', speakers: 70, cases: 0, tones: false, wordOrder: 'SOV' }
+                        ]
+                    },
+                    'Greek': {
+                        color: '#d35400',
+                        origin: 3500,
+                        languages: [
+                            { name: 'Greek', speakers: 13, cases: 4, tones: false, wordOrder: 'SVO' }
+                        ]
+                    }
+                }
+            },
+            'sino-tibetan': {
+                color: '#f1c40f',
+                origin: 6000,
+                branches: {
+                    'Sinitic': {
+                        color: '#f39c12',
+                        origin: 1500,
+                        languages: [
+                            { name: 'Mandarin', speakers: 920, cases: 0, tones: true, wordOrder: 'SVO' },
+                            { name: 'Cantonese', speakers: 85, cases: 0, tones: true, wordOrder: 'SVO' },
+                            { name: 'Wu', speakers: 80, cases: 0, tones: true, wordOrder: 'SVO' },
+                            { name: 'Min', speakers: 75, cases: 0, tones: true, wordOrder: 'SVO' }
+                        ]
+                    },
+                    'Tibetan-Burmic': {
+                        color: '#e67e22',
+                        origin: 2000,
+                        languages: [
+                            { name: 'Tibetan', speakers: 6, cases: 2, tones: false, wordOrder: 'SOV' },
+                            { name: 'Burmese', speakers: 33, cases: 0, tones: true, wordOrder: 'SVO' },
+                            { name: 'Lisu', speakers: 0.7, cases: 0, tones: true, wordOrder: 'SVO' }
+                        ]
+                    }
+                }
+            },
+            'niger-congo': {
+                color: '#f59e0b',
+                origin: 6000,
+                branches: {
+                    'Bantu': {
+                        color: '#f39c12',
+                        origin: 1500,
+                        languages: [
+                            { name: 'Swahili', speakers: 71, cases: 0, tones: true, wordOrder: 'SVO' },
+                            { name: 'Zulu', speakers: 9, cases: 0, tones: true, wordOrder: 'SVO' },
+                            { name: 'Yoruba', speakers: 45, cases: 0, tones: true, wordOrder: 'SVO' }
+                        ]
+                    },
+                    'West African': {
+                        color: '#e67e22',
+                        origin: 3000,
+                        languages: [
+                            { name: 'Wolof', speakers: 8, cases: 0, tones: true, wordOrder: 'SVO' },
+                            { name: 'Twi', speakers: 9, cases: 0, tones: true, wordOrder: 'SVO' }
+                        ]
+                    }
+                }
+            },
+            'austronesian': {
+                color: '#06b6d4',
+                origin: 5000,
+                branches: {
+                    'Malayic': {
+                        color: '#0891b2',
+                        origin: 1500,
+                        languages: [
+                            { name: 'Indonesian', speakers: 157, cases: 0, tones: false, wordOrder: 'SVO' },
+                            { name: 'Malay', speakers: 33, cases: 0, tones: false, wordOrder: 'SVO' }
+                        ]
+                    },
+                    'Philippic': {
+                        color: '#0ea5e9',
+                        origin: 2000,
+                        languages: [
+                            { name: 'Tagalog', speakers: 28, cases: 1, tones: false, wordOrder: 'VSO' },
+                            { name: 'Cebuano', speakers: 21, cases: 0, tones: false, wordOrder: 'VSO' }
+                        ]
+                    },
+                    'Oceanic': {
+                        color: '#06b6d4',
+                        origin: 3000,
+                        languages: [
+                            { name: 'Samoan', speakers: 0.4, cases: 0, tones: false, wordOrder: 'VSO' },
+                            { name: 'Fijian', speakers: 0.3, cases: 0, tones: false, wordOrder: 'SVO' }
+                        ]
+                    }
+                }
+            },
+            'dravidian': {
+                color: '#8b5cf6',
+                origin: 4500,
+                branches: {
+                    'South Dravidian': {
+                        color: '#7c3aed',
+                        origin: 1500,
+                        languages: [
+                            { name: 'Tamil', speakers: 75, cases: 6, tones: false, wordOrder: 'SOV' },
+                            { name: 'Telugu', speakers: 75, cases: 4, tones: false, wordOrder: 'SOV' },
+                            { name: 'Kannada', speakers: 44, cases: 5, tones: false, wordOrder: 'SOV' },
+                            { name: 'Malayalam', speakers: 34, cases: 4, tones: false, wordOrder: 'SOV' }
+                        ]
+                    }
+                }
+            },
+            'afro-asiatic': {
+                color: '#ec4899',
+                origin: 5500,
+                branches: {
+                    'Semitic': {
+                        color: '#db2777',
+                        origin: 3000,
+                        languages: [
+                            { name: 'Arabic', speakers: 310, cases: 3, tones: false, wordOrder: 'VSO' },
+                            { name: 'Hebrew', speakers: 9, cases: 0, tones: false, wordOrder: 'VSO' },
+                            { name: 'Amharic', speakers: 33, cases: 0, tones: false, wordOrder: 'SVO' }
+                        ]
+                    },
+                    'Berber': {
+                        color: '#d63384',
+                        origin: 2500,
+                        languages: [
+                            { name: 'Tamazight', speakers: 14, cases: 0, tones: false, wordOrder: 'VSO' }
+                        ]
+                    }
+                }
+            },
+            'altaic': {
+                color: '#a855f7',
+                origin: 5000,
+                branches: {
+                    'Turkic': {
+                        color: '#9333ea',
+                        origin: 1500,
+                        languages: [
+                            { name: 'Turkish', speakers: 88, cases: 6, tones: false, wordOrder: 'SOV' },
+                            { name: 'Uzbek', speakers: 32, cases: 0, tones: false, wordOrder: 'SOV' }
+                        ]
+                    }
+                }
+            },
+            'austro-asiatic': {
+                color: '#10b981',
+                origin: 4500,
+                branches: {
+                    'Khmeric': {
+                        color: '#059669',
+                        origin: 1500,
+                        languages: [
+                            { name: 'Khmer', speakers: 16, cases: 0, tones: true, wordOrder: 'SVO' },
+                            { name: 'Vietnamese', speakers: 85, cases: 0, tones: true, wordOrder: 'SVO' }
+                        ]
+                    }
+                }
+            }
+        };
+
+        const colors = {
+            'indo-european': '#e74c3c',
+            'sino-tibetan': '#f1c40f',
+            'niger-congo': '#f59e0b',
+            'austronesian': '#06b6d4',
+            'dravidian': '#8b5cf6',
+            'afro-asiatic': '#ec4899',
+            'altaic': '#a855f7',
+            'austro-asiatic': '#10b981'
+        };
+
+        let selectedFamily = 'indo-european';
+        let selectedMode = 'families';
+        let currentTimeDepth = 10000;
+        let selectedLanguage = null;
+
+        const treeCanvas = document.getElementById('treeCanvas');
+        const timelineCanvas = document.getElementById('timelineCanvas');
+        const diversityCanvas = document.getElementById('diversityCanvas');
+        const familySelect = document.getElementById('familySelect');
+        const modeSelect = document.getElementById('modeSelect');
+        const timeSlider = document.getElementById('timeSlider');
+        const timeDisplay = document.getElementById('timeDisplay');
+        const searchInput = document.getElementById('searchInput');
+        const statsPanel = document.getElementById('statsPanel');
+        const languageDetail = document.getElementById('languageDetail');
+        const detailName = document.getElementById('detailName');
+        const detailInfo = document.getElementById('detailInfo');
+        const legend = document.getElementById('legend');
+
+        function formatYears(years) {
+            if (years >= 1000) return (years / 1000).toFixed(1) + 'k ya';
+            return years + ' ya';
+        }
+
+        function drawTree() {
+            const ctx = treeCanvas.getContext('2d');
+            ctx.clearRect(0, 0, treeCanvas.width, treeCanvas.height);
+
+            const data = languageData[selectedFamily];
+            const branches = Object.entries(data.branches);
+            const familyColor = colors[selectedFamily];
+
+            const padding = 40;
+            const contentWidth = treeCanvas.width - 2 * padding;
+            const contentHeight = treeCanvas.height - 2 * padding;
+
+            // Draw root
+            ctx.fillStyle = familyColor;
+            ctx.fillRect(treeCanvas.width / 2 - 20, padding - 30, 40, 25);
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold 10px Space Mono';
+            ctx.textAlign = 'center';
+            ctx.fillText('Root', treeCanvas.width / 2, padding - 10);
+
+            // Draw branches
+            branches.forEach((branch, idx) => {
+                const [branchName, branchData] = branch;
+                const x = padding + (idx / branches.length) * contentWidth + contentWidth / (2 * branches.length);
+                const y = padding + 80;
+
+                // Branch line
+                ctx.strokeStyle = branchData.color;
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(treeCanvas.width / 2, padding - 5);
+                ctx.lineTo(x, y - 30);
+                ctx.stroke();
+
+                // Branch node
+                ctx.fillStyle = branchData.color;
+                ctx.fillRect(x - 15, y - 30, 30, 25);
+                ctx.fillStyle = '#fff';
+                ctx.font = 'bold 9px Space Mono';
+                ctx.textAlign = 'center';
+                ctx.fillText(branchName.substring(0, 3), x, y - 12);
+
+                // Languages in branch
+                const languages = branchData.languages;
+                const langPerRow = Math.ceil(Math.sqrt(languages.length));
+
+                languages.forEach((lang, langIdx) => {
+                    const langX = x - 45 + (langIdx % langPerRow) * 30;
+                    const langY = y + 30 + Math.floor(langIdx / langPerRow) * 35;
+
+                    // Language line
+                    ctx.strokeStyle = branchData.color;
+                    ctx.lineWidth = 1;
+                    ctx.globalAlpha = 0.5;
+                    ctx.beginPath();
+                    ctx.moveTo(x, y);
+                    ctx.lineTo(langX, langY - 12);
+                    ctx.stroke();
+                    ctx.globalAlpha = 1;
+
+                    // Language circle
+                    ctx.fillStyle = selectedMode === 'speakers' ? 
+                        `rgba(${Math.min(lang.speakers * 2, 255)}, 100, 100, 0.8)` :
+                        branchData.color;
+                    ctx.beginPath();
+                    ctx.arc(langX, langY, 8, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Language label
+                    ctx.fillStyle = '#333';
+                    ctx.font = '8px Space Mono';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(lang.name, langX, langY + 18);
+
+                    if (selectedLanguage === lang.name) {
+                        ctx.strokeStyle = '#333';
+                        ctx.lineWidth = 2;
+                        ctx.beginPath();
+                        ctx.arc(langX, langY, 12, 0, Math.PI * 2);
+                        ctx.stroke();
+                    }
+                });
+            });
+        }
+
+        function drawTimeline() {
+            const ctx = timelineCanvas.getContext('2d');
+            ctx.clearRect(0, 0, timelineCanvas.width, timelineCanvas.height);
+
+            const data = languageData[selectedFamily];
+            const maxTime = 10000;
+            const padding = 40;
+            const width = timelineCanvas.width - 2 * padding;
+
+            ctx.strokeStyle = '#ddd';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(padding, 40);
+            ctx.lineTo(timelineCanvas.width - padding, 40);
+            ctx.stroke();
+
+            // Draw tick marks and labels
+            for (let i = 0; i <= 10; i++) {
+                const x = padding + (i / 10) * width;
+                const year = maxTime - (i / 10) * maxTime;
+                ctx.fillStyle = '#999';
+                ctx.font = '10px Space Mono';
+                ctx.textAlign = 'center';
+                ctx.fillText(formatYears(year), x, 65);
+
+                ctx.strokeStyle = '#ddd';
+                ctx.beginPath();
+                ctx.moveTo(x, 35);
+                ctx.lineTo(x, 45);
+                ctx.stroke();
+            }
+
+            // Draw origin marker
+            const originPos = padding + ((maxTime - data.origin) / maxTime) * width;
+            ctx.fillStyle = colors[selectedFamily];
+            ctx.fillRect(originPos - 8, 18, 16, 14);
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold 9px Space Mono';
+            ctx.textAlign = 'center';
+            ctx.fillText('Root', originPos, 28);
+        }
+
+        function drawDiversity() {
+            const ctx = diversityCanvas.getContext('2d');
+            ctx.clearRect(0, 0, diversityCanvas.width, diversityCanvas.height);
+
+            const padding = 40;
+            const width = diversityCanvas.width - 2 * padding;
+            const height = diversityCanvas.height - 2 * padding;
+
+            const data = languageData[selectedFamily];
+            const allLanguages = Object.values(data.branches).flatMap(b => b.languages);
+            const totalSpeakers = allLanguages.reduce((sum, l) => sum + l.speakers, 0);
+            const familyColor = colors[selectedFamily];
+
+            // Bar chart: speakers by language
+            const sortedLangs = allLanguages.sort((a, b) => b.speakers - a.speakers).slice(0, 5);
+            const maxSpeakers = Math.max(...sortedLangs.map(l => l.speakers));
+
+            sortedLangs.forEach((lang, idx) => {
+                const barX = padding + (idx / sortedLangs.length) * width + 10;
+                const barHeight = (lang.speakers / maxSpeakers) * height;
+                const barY = padding + height - barHeight;
+
+                ctx.fillStyle = familyColor;
+                ctx.globalAlpha = 0.7 + (idx * 0.06);
+                ctx.fillRect(barX, barY, 40, barHeight);
+                ctx.globalAlpha = 1;
+
+                ctx.fillStyle = '#333';
+                ctx.font = '9px Space Mono';
+                ctx.textAlign = 'center';
+                ctx.fillText(lang.name, barX + 20, diversityCanvas.height - 15);
+                ctx.fillText(lang.speakers + 'M', barX + 20, barY - 5);
+            });
+
+            // Label
+            ctx.fillStyle = '#999';
+            ctx.font = '10px Space Mono';
+            ctx.textAlign = 'left';
+            ctx.fillText('Speakers (millions)', padding, padding - 10);
+        }
+
+        function updateStats() {
+            const data = languageData[selectedFamily];
+            const allLanguages = Object.values(data.branches).flatMap(b => b.languages);
+            const totalSpeakers = allLanguages.reduce((sum, l) => sum + l.speakers, 0);
+            const withCases = allLanguages.filter(l => l.cases > 0).length;
+            const withTones = allLanguages.filter(l => l.tones).length;
+
+            statsPanel.innerHTML = `
+                <div class="stat-box">
+                    <div class="stat-label">Languages</div>
+                    <div class="stat-value">${allLanguages.length}</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Speakers</div>
+                    <div class="stat-value">${totalSpeakers}M+</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">With Cases</div>
+                    <div class="stat-value">${withCases}</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Tonal</div>
+                    <div class="stat-value">${withTones}</div>
+                </div>
+            `;
+        }
+
+        function updateLegend() {
+            const data = languageData[selectedFamily];
+            let html = '';
+            Object.entries(data.branches).forEach(([name, branch]) => {
+                html += `
+                    <div class="legend-item">
+                        <div class="legend-box" style="background: ${branch.color}"></div>
+                        <span>${name}</span>
+                    </div>
+                `;
+            });
+            legend.innerHTML = html;
+        }
+
+        function showLanguageDetail(langName) {
+            const data = languageData[selectedFamily];
+            let lang = null;
+            for (const branch of Object.values(data.branches)) {
+                const found = branch.languages.find(l => l.name === langName);
+                if (found) {
+                    lang = found;
+                    break;
+                }
+            }
+
+            if (lang) {
+                selectedLanguage = langName;
+                detailName.textContent = lang.name;
+                detailInfo.innerHTML = `
+                    <div class="info-row">
+                        <span class="info-label">Speakers</span>
+                        <span class="info-value">${lang.speakers}M</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Cases</span>
+                        <span class="info-value">${lang.cases}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Tonal</span>
+                        <span class="info-value">${lang.tones ? 'Yes' : 'No'}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Word Order</span>
+                        <span class="info-value">${lang.wordOrder}</span>
+                    </div>
+                `;
+                languageDetail.style.display = 'block';
+                drawTree();
+            }
+        }
+
+        function render() {
+            drawTree();
+            drawTimeline();
+            drawDiversity();
+            updateStats();
+            updateLegend();
+        }
+
+        familySelect.addEventListener('change', (e) => {
+            selectedFamily = e.target.value;
+            selectedLanguage = null;
+            languageDetail.style.display = 'none';
+            render();
+        });
+
+        modeSelect.addEventListener('change', (e) => {
+            selectedMode = e.target.value;
+            render();
+        });
+
+        timeSlider.addEventListener('input', (e) => {
+            currentTimeDepth = parseInt(e.target.value);
+            timeDisplay.textContent = formatYears(currentTimeDepth);
+            drawTimeline();
+        });
+
+        searchInput.addEventListener('input', (e) => {
+            const query = e.target.value.trim();
+            if (query) {
+                showLanguageDetail(query);
+            } else {
+                selectedLanguage = null;
+                languageDetail.style.display = 'none';
+                drawTree();
+            }
+        });
+
+        treeCanvas.addEventListener('click', (e) => {
+            const rect = treeCanvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            const data = languageData[selectedFamily];
+            for (const branch of Object.values(data.branches)) {
+                for (const lang of branch.languages) {
+                    // Check if click is near language position
+                    const canvasRect = treeCanvas.getBoundingClientRect();
+                    if (Math.abs(x - canvasRect.width / 2) < 100) {
+                        showLanguageDetail(lang.name);
+                        return;
+                    }
+                }
+            }
+        });
+
+        // Initial render
+        render();
+    </script>
+</body>
+</html>
