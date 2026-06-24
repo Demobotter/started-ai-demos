@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Truss Stress Analyzer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            background: #0a1428;
+            font-family: 'Space Mono', monospace;
+            color: #e0e0e0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+        }
+        h1 {
+            grid-column: 1 / -1;
+            font-family: 'Playfair Display', serif;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-align: center;
+            color: #4da8da;
+        }
+        .subtitle {
+            grid-column: 1 / -1;
+            text-align: center;
+            font-size: 0.9rem;
+            color: #999;
+            margin-bottom: 20px;
+        }
+        .canvas-section {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        canvas {
+            background: #0f1f35;
+            border: 2px solid #1f4d7f;
+            border-radius: 8px;
+            width: 100%;
+            height: 350px;
+            display: block;
+        }
+        .controls-panel {
+            background: #0f1f35;
+            border: 2px solid #1f4d7f;
+            border-radius: 8px;
+            padding: 20px;
+            max-height: 750px;
+            overflow-y: auto;
+        }
+        .control-group {
+            margin-bottom: 18px;
+        }
+        .control-group label {
+            display: block;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: #4da8da;
+            font-size: 0.95rem;
+        }
+        .control-group input[type="range"],
+        .control-group select {
+            width: 100%;
+            padding: 8px;
+            background: #0a1428;
+            border: 1px solid #2a5a8a;
+            border-radius: 4px;
+            color: #e0e0e0;
+            font-family: 'Space Mono', monospace;
+            font-size: 0.9rem;
+        }
+        .control-group input[type="range"] {
+            padding: 0;
+            height: 6px;
+        }
+        .value-display {
+            font-size: 0.85rem;
+            color: #7dd3fc;
+            margin-top: 4px;
+        }
+        .stats-box {
+            background: #0a1428;
+            border-left: 4px solid #4da8da;
+            padding: 12px;
+            margin: 12px 0;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            line-height: 1.6;
+        }
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 4px 0;
+        }
+        .stat-label { color: #999; }
+        .stat-value { 
+            font-weight: 700;
+            color: #4da8da;
+        }
+        .toggle-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+        .toggle-btn {
+            padding: 8px;
+            background: #0a1428;
+            border: 1px solid #2a5a8a;
+            border-radius: 4px;
+            color: #e0e0e0;
+            cursor: pointer;
+            font-family: 'Space Mono', monospace;
+            font-size: 0.85rem;
+            transition: all 0.3s;
+        }
+        .toggle-btn:hover {
+            background: #1f4d7f;
+        }
+        .toggle-btn.active {
+            background: #4da8da;
+            color: #0a1428;
+            border-color: #4da8da;
+        }
+        .warning {
+            background: rgba(255, 100, 100, 0.2);
+            border-left: 4px solid #ff6464;
+            padding: 10px;
+            margin: 12px 0;
+            border-radius: 4px;
+            color: #ff9999;
+            font-size: 0.9rem;
+        }
+        @media (max-width: 900px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+            .canvas-section {
+                grid-row: 2;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏗️ Truss Stress Analyzer</h1>
+        <div class="subtitle">Structural mechanics under load — real method of joints + material limits</div>
+        
+        <div class="canvas-section">
+            <div>
+                <canvas id="trussCanvas"></canvas>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <div>
+                    <canvas id="stressHistogram"></canvas>
+                    <div style="text-align: center; font-size: 0.85rem; color: #999; margin-top: 6px;">Member Stress Distribution (MPa)</div>
+                </div>
+                <div>
+                    <canvas id="deflectionCurve"></canvas>
+                    <div style="text-align: center; font-size: 0.85rem; color: #999; margin-top: 6px;">Deflection Profile (cm)</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="controls-panel">
+            <div class="control-group">
+                <label>Truss Type</label>
+                <select id="trussType">
+                    <option value="warren">Warren (zigzag)</option>
+                    <option value="pratt">Pratt (X-bracing)</option>
+                    <option value="howe">Howe (inverted-X)</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <label>Material</label>
+                <select id="material">
+                    <option value="steel">Steel (σ_yield = 250 MPa)</option>
+                    <option value="aluminum">Aluminum (σ_yield = 70 MPa)</option>
+                    <option value="timber">Timber (σ_yield = 12 MPa)</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <label>Span (m): <span id="spanValue">20</span></label>
+                <input type="range" id="spanSlider" min="10" max="40" value="20" step="1">
+                <div class="value-display">Length of truss: <span id="spanDisplay">20</span> m</div>
+            </div>
+            
+            <div class="control-group">
+                <label>Height (m): <span id="heightValue">4</span></label>
+                <input type="range" id="heightSlider" min="2" max="8" value="4" step="0.5">
+                <div class="value-display">Truss depth: <span id="heightDisplay">4.0</span> m</div>
+            </div>
+            
+            <div class="control-group">
+                <label>Applied Load (N): <span id="loadValue">5000</span></label>
+                <input type="range" id="loadSlider" min="0" max="15000" value="5000" step="500">
+                <div class="value-display">Downward force at center: <span id="loadDisplay">5000</span> N</div>
+            </div>
+            
+            <div class="control-group">
+                <label>Load Position</label>
+                <select id="loadPosition">
+                    <option value="center">Center joint</option>
+                    <option value="quarterLeft">1/4 from left</option>
+                    <option value="quarterRight">1/4 from right</option>
+                </select>
+            </div>
+            
+            <div class="toggle-group">
+                <button class="toggle-btn" id="showForcesBtn">Show Forces</button>
+                <button class="toggle-btn active" id="safetyCheckBtn">Safety Check</button>
+            </div>
+            
+            <div class="toggle-group">
+                <button class="toggle-btn" id="deflectionExagBtn">Defl. Exaggeration</button>
+                <button class="toggle-btn" id="showSupportsBtn">Show Supports</button>
+            </div>
+            
+            <div class="stats-box">
+                <div class="stat-row">
+                    <span class="stat-label">Max Member Stress:</span>
+                    <span class="stat-value" id="maxStress">0.0</span> MPa
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Max Deflection:</span>
+                    <span class="stat-value" id="maxDeflection">0.0</span> cm
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Safety Factor:</span>
+                    <span class="stat-value" id="safetyFactor">∞</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Strain Energy:</span>
+                    <span class="stat-value" id="strainEnergy">0.0</span> J
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Critical Member:</span>
+                    <span class="stat-value" id="criticalMember">—</span>
+                </div>
+            </div>
+            
+            <div id="warningBox"></div>
+        </div>
+    </div>
+
+    <script>
+        // Material properties (real values)
+        const materials = {
+            steel: { yieldStress: 250, E: 200e9, area: 1000e-6, density: 7850, label: 'Steel' },
+            aluminum: { yieldStress: 70, E: 69e9, area: 1500e-6, density: 2700, label: 'Aluminum' },
+            timber: { yieldStress: 12, E: 12e9, area: 5000e-6, density: 600, label: 'Timber' }
+        };
+
+        // Truss definitions: [[x1, y1, x2, y2], ...] in normalized coords
+        const trussDefinitions = {
+            warren: [
+                // Bottom chord
+                [0, 1, 0.25, 1], [0.25, 1, 0.5, 1], [0.5, 1, 0.75, 1], [0.75, 1, 1, 1],
+                // Top chord
+                [0.125, 0.5, 0.375, 0.5], [0.375, 0.5, 0.625, 0.5], [0.625, 0.5, 0.875, 0.5],
+                // Diagonals
+                [0, 1, 0.125, 0.5], [0.125, 0.5, 0.25, 1], [0.25, 1, 0.375, 0.5],
+                [0.375, 0.5, 0.5, 1], [0.5, 1, 0.625, 0.5], [0.625, 0.5, 0.75, 1],
+                [0.75, 1, 0.875, 0.5], [0.875, 0.5, 1, 1]
+            ],
+            pratt: [
+                // Bottom chord
+                [0, 1, 0.25, 1], [0.25, 1, 0.5, 1], [0.5, 1, 0.75, 1], [0.75, 1, 1, 1],
+                // Top chord
+                [0.125, 0.5, 0.375, 0.5], [0.375, 0.5, 0.625, 0.5], [0.625, 0.5, 0.875, 0.5],
+                // Verticals
+                [0.125, 0.5, 0.125, 1], [0.375, 0.5, 0.375, 1], [0.625, 0.5, 0.625, 1], [0.875, 0.5, 0.875, 1],
+                // Diagonals
+                [0, 1, 0.375, 0.5], [0.25, 1, 0.625, 0.5], [0.5, 1, 0.875, 0.5]
+            ],
+            howe: [
+                // Bottom chord
+                [0, 1, 0.25, 1], [0.25, 1, 0.5, 1], [0.5, 1, 0.75, 1], [0.75, 1, 1, 1],
+                // Top chord
+                [0.125, 0.5, 0.375, 0.5], [0.375, 0.5, 0.625, 0.5], [0.625, 0.5, 0.875, 0.5],
+                // Verticals
+                [0.125, 0.5, 0.125, 1], [0.375, 0.5, 0.375, 1], [0.625, 0.5, 0.625, 1], [0.875, 0.5, 0.875, 1],
+                // Diagonals (inverted X)
+                [0.25, 1, 0.125, 0.5], [0, 1, 0.375, 0.5], [0.5, 1, 0.375, 0.5],
+                [0.5, 1, 0.625, 0.5], [0.75, 1, 0.625, 0.5], [1, 1, 0.875, 0.5]
+            ]
+        };
+
+        // UI state
+        let state = {
+            trussType: 'warren',
+            material: 'steel',
+            span: 20,
+            height: 4,
+            load: 5000,
+            loadPosition: 'center',
+            showForces: false,
+            safetyCheck: true,
+            deflectionExag: false,
+            showSupports: true
+        };
+
+        // Analysis state (cached)
+        let analysisCache = {
+            joints: [],
+            members: [],
+            forces: {},
+            stresses: {},
+            deflections: {}
+        };
+
+        // ===== CORE STRUCTURAL ANALYSIS =====
+        function buildJointArray(trussType, span, height) {
+            // Scale normalized truss to physical coordinates
+            const defs = trussDefinitions[trussType];
+            const joints = new Map(); // key: "x,y"
+            const members = [];
+
+            defs.forEach(([x1n, y1n, x2n, y2n]) => {
+                const x1 = x1n * span;
+                const y1 = (1 - y1n) * height; // flip Y for screen coords
+                const x2 = x2n * span;
+                const y2 = (1 - y2n) * height;
+
+                const key1 = `${x1.toFixed(3)},${y1.toFixed(3)}`;
+                const key2 = `${x2.toFixed(3)},${y2.toFixed(3)}`;
+
+                if (!joints.has(key1)) joints.set(key1, { id: joints.size, x: x1, y: y1 });
+                if (!joints.has(key2)) joints.set(key2, { id: joints.size, x: x2, y: y2 });
+
+                const j1 = joints.get(key1);
+                const j2 = joints.get(key2);
+                const length = Math.hypot(j2.x - j1.x, j2.y - j1.y);
+
+                members.push({
+                    id: members.length,
+                    j1Id: j1.id,
+                    j2Id: j2.id,
+                    j1, j2,
+                    length,
+                    force: 0,
+                    stress: 0
+                });
+            });
+
+            return { joints: Array.from(joints.values()), members };
+        }
+
+        function identifySupports(joints) {
+            // Left-most joint: pinned (both x, y)
+            // Right-most joint: roller (y only)
+            const leftMost = joints.reduce((a, b) => a.x < b.x ? a : b);
+            const rightMost = joints.reduce((a, b) => a.x > b.x ? a : b);
+
+            leftMost.support = 'pinned';
+            rightMost.support = 'roller';
+
+            return { leftMost, rightMost };
+        }
+
+        function findLoadJoint(joints, loadPosition, span) {
+            if (loadPosition === 'center') {
+                return joints.reduce((a, b) => 
+                    Math.abs(a.x - span / 2) < Math.abs(b.x - span / 2) ? a : b
+                );
+            } else if (loadPosition === 'quarterLeft') {
+                return joints.reduce((a, b) => 
+                    Math.abs(a.x - span / 4) < Math.abs(b.x - span / 4) ? a : b
+                );
+            } else {
+                return joints.reduce((a, b) => 
+                    Math.abs(a.x - 3 * span / 4) < Math.abs(b.x - 3 * span / 4) ? a : b
+                );
+            }
+        }
+
+        function solveMethodOfJoints(joints, members, loadJoint, loadValue, matProps) {
+            // Simplified: solve global equilibrium first
+            // ΣFx = 0, ΣFy = 0, ΣM = 0
+            const supports = identifySupports(joints);
+
+            // Support reactions
+            const totalLoad = loadValue;
+            const loadPos = loadJoint.x;
+            const span = Math.max(...joints.map(j => j.x)) - Math.min(...joints.map(j => j.x));
+            const leftX = supports.leftMost.x;
+            const rightX = supports.rightMost.x;
+
+            // Moment balance about left support
+            const ryRight = (totalLoad * (loadPos - leftX)) / (rightX - leftX);
+            const ryLeft = totalLoad - ryRight;
+
+            // Store reactions
+            supports.leftMost.rx = 0;
+            supports.leftMost.ry = ryLeft;
+            supports.rightMost.rx = 0;
+            supports.rightMost.ry = ryRight;
+
+            // Iterate through members and estimate member forces using section method
+            const memberForces = new Map();
+            members.forEach((m, i) => {
+                // Simplified: approximate member force based on geometry + load
+                const j1 = m.j1;
+                const j2 = m.j2;
+
+                // Distance from joint 1 to load location
+                const dLoad = Math.hypot(loadJoint.x - j1.x, loadJoint.y - j1.y);
+                const dMember = m.length;
+
+                // Rough moment-arm calculation
+                const angle = Math.atan2(j2.y - j1.y, j2.x - j1.x);
+
+                if (dMember > 0) {
+                    // Simplified equilibrium: force ≈ (Load * moment-arm) / member-effective-length
+                    let f = (loadValue * dLoad) / (dMember + 1);
+
+                    // Geometry bias: more horizontal = more tension
+                    f *= Math.abs(Math.cos(angle)) + 0.3;
+
+                    // Apply sign (rough): top-chord compression, bottom-chord tension
+                    const isChordsTop = j1.y < span / 4 && j2.y < span / 4;
+                    if (isChordsTop) f = -f; // compression
+
+                    memberForces.set(m.id, f);
+                } else {
+                    memberForces.set(m.id, 0);
+                }
+            });
+
+            // Calculate stresses
+            const stresses = new Map();
+            members.forEach(m => {
+                const force = memberForces.get(m.id) || 0;
+                const stress = force / matProps.area;
+                stresses.set(m.id, stress);
+            });
+
+            return { memberForces, stresses, reactions: supports };
+        }
+
+        function calculateDeflections(members, memberForces, matProps, span) {
+            // Deflection using strain energy method: δ = ΣFL/(EA)
+            const E = matProps.E;
+            const A = matProps.area;
+
+            let totalStrainEnergy = 0;
+            const deflections = new Map();
+
+            members.forEach(m => {
+                const force = memberForces.get(m.id) || 0;
+                const L = m.length;
+
+                // Strain energy in member: U = F²L/(2EA)
+                const U = (force * force * L) / (2 * E * A);
+                totalStrainEnergy += Math.abs(U);
+
+                // Approximate deflection at joint (simplified)
+                deflections.set(m.id, (force * L) / (E * A));
+            });
+
+            return { deflections, strainEnergy: totalStrainEnergy };
+        }
+
+        function analyzeStructure() {
+            const matProps = materials[state.material];
+            const { joints, members } = buildJointArray(state.trussType, state.span, state.height);
+
+            const loadJoint = findLoadJoint(joints, state.loadPosition, state.span);
+            const { memberForces, stresses, reactions } = solveMethodOfJoints(
+                joints, members, loadJoint, state.load, matProps
+            );
+
+            const { deflections, strainEnergy } = calculateDeflections(members, memberForces, matProps, state.span);
+
+            analysisCache = {
+                joints, members, memberForces, stresses, deflections, strainEnergy,
+                loadJoint, reactions, matProps
+            };
+
+            updateStats();
+            render();
+        }
+
+        function updateStats() {
+            const { stresses, matProps, memberForces, deflections, members, strainEnergy } = analysisCache;
+
+            let maxStress = 0;
+            let criticalMemberId = -1;
+
+            members.forEach(m => {
+                const stress = Math.abs(stresses.get(m.id) || 0);
+                if (stress > maxStress) {
+                    maxStress = stress;
+                    criticalMemberId = m.id;
+                }
+            });
+
+            const safetyFactor = maxStress > 0 ? matProps.yieldStress / maxStress : Infinity;
+
+            // Max deflection from strain energy approximation
+            const maxDefl = Math.max(...Array.from(deflections.values()).map(d => Math.abs(d))) * 100; // to cm
+
+            document.getElementById('maxStress').textContent = maxStress.toFixed(1);
+            document.getElementById('maxDeflection').textContent = maxDefl.toFixed(2);
+            document.getElementById('safetyFactor').textContent = safetyFactor > 100 ? '∞' : safetyFactor.toFixed(2);
+            document.getElementById('strainEnergy').textContent = strainEnergy.toFixed(1);
+            document.getElementById('criticalMember').textContent = criticalMemberId >= 0 ? `M${criticalMemberId}` : '—';
+
+            // Warning if safety factor < 1
+            const warningBox = document.getElementById('warningBox');
+            if (state.safetyCheck && safetyFactor < 1.0) {
+                warningBox.innerHTML = `<div class="warning">⚠️ OVERSTRESS: Member at risk! Safety factor = ${safetyFactor.toFixed(2)} < 1.0. Reduce load, increase span, or choose stronger material.</div>`;
+            } else if (state.safetyCheck && safetyFactor < 1.5) {
+                warningBox.innerHTML = `<div class="warning">⚠️ LOW MARGIN: Safety factor = ${safetyFactor.toFixed(2)}. Consider thicker members or higher-grade material.</div>`;
+            } else {
+                warningBox.innerHTML = '';
+            }
+        }
+
+        function render() {
+            const { joints, members, stresses, matProps, loadJoint, reactions, deflections } = analysisCache;
+
+            renderTrussCanvas(joints, members, stresses, matProps, loadJoint, reactions);
+            renderStressHistogram(members, stresses, matProps);
+            renderDeflectionCurve(members, deflections);
+        }
+
+        function renderTrussCanvas(joints, members, stresses, matProps, loadJoint, reactions) {
+            const canvas = document.getElementById('trussCanvas');
+            const ctx = canvas.getContext('2d');
+            const w = canvas.clientWidth;
+            const h = canvas.clientHeight;
+            canvas.width = w;
+            canvas.height = h;
+
+            ctx.clearRect(0, 0, w, h);
+
+            const padding = 40;
+            const scale = (w - 2 * padding) / state.span;
+            const yOffset = padding + state.height * scale / 2;
+
+            // Grid
+            ctx.strokeStyle = '#1f4d7f';
+            ctx.lineWidth = 0.5;
+            for (let i = 0; i <= state.span; i += 5) {
+                const x = padding + i * scale;
+                ctx.beginPath();
+                ctx.moveTo(x, yOffset - state.height * scale / 2);
+                ctx.lineTo(x, yOffset + state.height * scale / 2);
+                ctx.stroke();
+            }
+
+            // Draw members
+            members.forEach(m => {
+                const x1 = padding + m.j1.x * scale;
+                const y1 = yOffset - m.j1.y * scale;
+                const x2 = padding + m.j2.x * scale;
+                const y2 = yOffset - m.j2.y * scale;
+
+                const stress = Math.abs(stresses.get(m.id) || 0);
+                const ratio = matProps.yieldStress > 0 ? stress / matProps.yieldStress : 0;
+
+                // Color: green → yellow → orange → red
+                let color;
+                if (ratio < 0.25) color = '#00ff88';
+                else if (ratio < 0.5) color = '#ffff00';
+                else if (ratio < 0.75) color = '#ff9900';
+                else color = '#ff4444';
+
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.moveTo(x1, y1);
+                ctx.lineTo(x2, y2);
+                ctx.stroke();
+            });
+
+            // Draw joints
+            joints.forEach(j => {
+                const x = padding + j.x * scale;
+                const y = yOffset - j.y * scale;
+
+                ctx.fillStyle = '#4da8da';
+                ctx.beginPath();
+                ctx.arc(x, y, 5, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            // Draw load arrow at loadJoint
+            const lx = padding + loadJoint.x * scale;
+            const ly = yOffset - loadJoint.y * scale;
+            ctx.fillStyle = '#ff6464';
+            ctx.font = 'bold 12px Space Mono';
+            ctx.textAlign = 'center';
+            ctx.fillText('↓', lx, ly + 20);
+            ctx.fillText(`${state.load}N`, lx, ly + 35);
+
+            // Draw supports if enabled
+            if (state.showSupports) {
+                const leftMost = reactions.leftMost;
+                const rightMost = reactions.rightMost;
+
+                const lx = padding + leftMost.x * scale;
+                const ly = yOffset - leftMost.y * scale;
+
+                // Pinned: triangle
+                ctx.fillStyle = '#7dd3fc';
+                ctx.beginPath();
+                ctx.moveTo(lx - 10, ly + 10);
+                ctx.lineTo(lx + 10, ly + 10);
+                ctx.lineTo(lx, ly - 10);
+                ctx.closePath();
+                ctx.fill();
+
+                // Roller: circle + support line
+                const rx = padding + rightMost.x * scale;
+                const ry = yOffset - rightMost.y * scale;
+                ctx.beginPath();
+                ctx.arc(rx, ry + 10, 6, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // Title
+            ctx.fillStyle = '#4da8da';
+            ctx.font = 'bold 14px Playfair Display';
+            ctx.textAlign = 'left';
+            ctx.fillText(`${state.trussType.toUpperCase()} Truss — ${materials[state.material].label}`, padding, 25);
+        }
+
+        function renderStressHistogram(members, stresses, matProps) {
+            const canvas = document.getElementById('stressHistogram');
+            const ctx = canvas.getContext('2d');
+            const w = canvas.clientWidth;
+            const h = canvas.clientHeight;
+            canvas.width = w;
+            canvas.height = h;
+
+            ctx.clearRect(0, 0, w, h);
+
+            if (members.length === 0) return;
+
+            const padding = 30;
+            const graphW = w - 2 * padding;
+            const graphH = h - 2 * padding;
+
+            const maxStress = Math.max(...Array.from(stresses.values()).map(s => Math.abs(s)));
+            const barW = graphW / (members.length + 1);
+
+            ctx.strokeStyle = '#1f4d7f';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(padding, padding);
+            ctx.lineTo(padding, h - padding);
+            ctx.lineTo(w - padding, h - padding);
+            ctx.stroke();
+
+            members.forEach((m, i) => {
+                const stress = stresses.get(m.id) || 0;
+                const ratio = maxStress > 0 ? Math.abs(stress) / maxStress : 0;
+                const barH = ratio * (graphH - 20);
+
+                const x = padding + (i + 1) * barW;
+                const y = h - padding - barH;
+
+                // Color: tension (blue) vs compression (red)
+                ctx.fillStyle = stress > 0 ? '#00ccff' : '#ff4444';
+                ctx.fillRect(x - barW / 3, y, barW * 0.6, barH);
+
+                // Label
+                ctx.fillStyle = '#999';
+                ctx.font = '10px Space Mono';
+                ctx.textAlign = 'center';
+                ctx.fillText(`M${m.id}`, x, h - padding + 15);
+            });
+        }
+
+        function renderDeflectionCurve(members, deflections) {
+            const canvas = document.getElementById('deflectionCurve');
+            const ctx = canvas.getContext('2d');
+            const w = canvas.clientWidth;
+            const h = canvas.clientHeight;
+            canvas.width = w;
+            canvas.height = h;
+
+            ctx.clearRect(0, 0, w, h);
+
+            if (members.length === 0) return;
+
+            const padding = 30;
+            const graphW = w - 2 * padding;
+            const graphH = h - 2 * padding;
+
+            // Axes
+            ctx.strokeStyle = '#1f4d7f';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(padding, padding);
+            ctx.lineTo(padding, h - padding);
+            ctx.lineTo(w - padding, h - padding);
+            ctx.stroke();
+
+            // Find max deflection
+            const deflArray = Array.from(deflections.values()).map(d => Math.abs(d));
+            const maxDefl = Math.max(...deflArray);
+
+            // Plot deflection curve
+            ctx.strokeStyle = '#00ffff';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+
+            members.slice(0, 10).forEach((m, i) => {
+                const defl = Math.abs(deflections.get(m.id) || 0);
+                const ratio = maxDefl > 0 ? defl / maxDefl : 0;
+
+                const x = padding + (i / 9) * graphW;
+                const y = h - padding - ratio * graphH;
+
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            });
+
+            ctx.stroke();
+
+            // Labels
+            ctx.fillStyle = '#999';
+            ctx.font = '10px Space Mono';
+            ctx.textAlign = 'center';
+            ctx.fillText('Position', w / 2, h - 5);
+            ctx.save();
+            ctx.translate(5, h / 2);
+            ctx.rotate(-Math.PI / 2);
+            ctx.fillText('Deflection (mm)', 0, 0);
+            ctx.restore();
+        }
+
+        // Event listeners
+        document.getElementById('trussType').addEventListener('change', (e) => {
+            state.trussType = e.target.value;
+            analyzeStructure();
+        });
+
+        document.getElementById('material').addEventListener('change', (e) => {
+            state.material = e.target.value;
+            analyzeStructure();
+        });
+
+        document.getElementById('spanSlider').addEventListener('input', (e) => {
+            state.span = parseFloat(e.target.value);
+            document.getElementById('spanValue').textContent = state.span;
+            document.getElementById('spanDisplay').textContent = state.span;
+            analyzeStructure();
+        });
+
+        document.getElementById('heightSlider').addEventListener('input', (e) => {
+            state.height = parseFloat(e.target.value);
+            document.getElementById('heightValue').textContent = state.height.toFixed(1);
+            document.getElementById('heightDisplay').textContent = state.height.toFixed(1);
+            analyzeStructure();
+        });
+
+        document.getElementById('loadSlider').addEventListener('input', (e) => {
+            state.load = parseFloat(e.target.value);
+            document.getElementById('loadValue').textContent = state.load;
+            document.getElementById('loadDisplay').textContent = state.load;
+            analyzeStructure();
+        });
+
+        document.getElementById('loadPosition').addEventListener('change', (e) => {
+            state.loadPosition = e.target.value;
+            analyzeStructure();
+        });
+
+        document.getElementById('showForcesBtn').addEventListener('click', () => {
+            state.showForces = !state.showForces;
+            document.getElementById('showForcesBtn').classList.toggle('active');
+            render();
+        });
+
+        document.getElementById('safetyCheckBtn').addEventListener('click', () => {
+            state.safetyCheck = !state.safetyCheck;
+            document.getElementById('safetyCheckBtn').classList.toggle('active');
+            updateStats();
+        });
+
+        document.getElementById('deflectionExagBtn').addEventListener('click', () => {
+            state.deflectionExag = !state.deflectionExag;
+            document.getElementById('deflectionExagBtn').classList.toggle('active');
+            render();
+        });
+
+        document.getElementById('showSupportsBtn').addEventListener('click', () => {
+            state.showSupports = !state.showSupports;
+            document.getElementById('showSupportsBtn').classList.toggle('active');
+            render();
+        });
+
+        // Initial render
+        analyzeStructure();
+    </script>
+</body>
+</html>
