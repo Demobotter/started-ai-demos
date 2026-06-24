@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Petri Forge</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: 'Space Mono', monospace;
+      background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 100%);
+      color: #e0e0e0;
+      padding: 20px;
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr 320px;
+      gap: 24px;
+    }
+    @media (max-width: 768px) {
+      .container {
+        grid-template-columns: 1fr;
+      }
+    }
+    h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: 32px;
+      margin-bottom: 20px;
+      color: #4da8da;
+      text-align: center;
+      grid-column: 1 / -1;
+    }
+    .canvas-wrapper {
+      background: #0a1428;
+      border: 2px solid #1f4d7f;
+      border-radius: 8px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    canvas {
+      width: 100%;
+      height: auto;
+      border-radius: 4px;
+      display: block;
+      background: rgba(10, 20, 40, 0.8);
+    }
+    .canvas-label {
+      font-size: 12px;
+      color: #64b5f6;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .control-panel {
+      background: #0a1428;
+      border: 2px solid #4da8da;
+      border-radius: 8px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .control-label {
+      font-size: 11px;
+      color: #4da8da;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      font-weight: 700;
+    }
+    input[type="range"] {
+      width: 100%;
+      height: 6px;
+      border-radius: 3px;
+      background: #1f4d7f;
+      outline: none;
+      -webkit-appearance: none;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #4da8da;
+      cursor: pointer;
+    }
+    input[type="range"]::-moz-range-thumb {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #4da8da;
+      cursor: pointer;
+      border: none;
+    }
+    input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      cursor: pointer;
+      accent-color: #4da8da;
+    }
+    button {
+      background: #4da8da;
+      color: #0a1428;
+      border: none;
+      border-radius: 4px;
+      padding: 10px 16px;
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      letter-spacing: 1px;
+    }
+    button:hover {
+      background: #64b5f6;
+      transform: scale(1.02);
+    }
+    button:active {
+      transform: scale(0.98);
+    }
+    .stat-box {
+      background: rgba(15, 30, 60, 0.6);
+      border-left: 3px solid #4da8da;
+      padding: 12px;
+      border-radius: 4px;
+      font-size: 11px;
+    }
+    .stat-label {
+      color: #64b5f6;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 4px;
+    }
+    .stat-value {
+      color: #00ff88;
+      font-weight: 700;
+      font-size: 13px;
+    }
+    .toggle-group {
+      display: flex;
+      gap: 8px;
+    }
+    .toggle-group label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🦠 Petri Forge</h1>
+    
+    <div class="canvas-wrapper">
+      <div class="canvas-label">Colony Growth (petri dish)</div>
+      <canvas id="dishCanvas" width="500" height="300"></canvas>
+    </div>
+
+    <div class="canvas-wrapper">
+      <div class="canvas-label">Growth Curve (OD₆₀₀ vs time)</div>
+      <canvas id="curveCanvas" width="500" height="200"></canvas>
+    </div>
+
+    <div class="control-panel">
+      <div class="control-group">
+        <div class="control-label">Initial Inoculum</div>
+        <input type="range" id="inoculumSlider" min="10" max="10000" value="100" step="10">
+        <div class="stat-value" id="inoculumDisplay">100 CFU</div>
+      </div>
+
+      <div class="control-group">
+        <div class="control-label">Temperature</div>
+        <input type="range" id="tempSlider" min="4" max="45" value="37" step="1">
+        <div class="stat-value" id="tempDisplay">37°C</div>
+      </div>
+
+      <div class="control-group">
+        <div class="control-label">Nutrient Level</div>
+        <input type="range" id="nutrientSlider" min="0" max="100" value="100" step="5">
+        <div class="stat-value" id="nutrientDisplay">100%</div>
+      </div>
+
+      <div class="control-group">
+        <div class="control-label">Oxygen Mode</div>
+        <div class="toggle-group">
+          <label><input type="radio" name="oxygen" value="aerobic" checked> Aerobic</label>
+          <label><input type="radio" name="oxygen" value="anaerobic"> Anaerobic</label>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <div class="control-label">Time Acceleration</div>
+        <input type="range" id="speedSlider" min="1" max="100" value="10" step="1">
+        <div class="stat-value" id="speedDisplay">10x</div>
+      </div>
+
+      <div class="control-group">
+        <label style="display: flex; align-items: center; gap: 8px; font-size: 11px; cursor: pointer;">
+          <input type="checkbox" id="antibiotic" style="width: 14px; height: 14px;">
+          <span style="color: #ff4444;">Add Antibiotic</span>
+        </label>
+      </div>
+
+      <button id="resetBtn" style="margin-top: 8px;">Reset Culture</button>
+
+      <div style="border-top: 1px solid #1f4d7f; padding-top: 16px; margin-top: 16px;">
+        <div class="stat-box">
+          <div class="stat-label">Generation Time</div>
+          <div class="stat-value" id="genTime">—</div>
+        </div>
+      </div>
+
+      <div class="stat-box">
+        <div class="stat-label">Current OD₆₀₀</div>
+        <div class="stat-value" id="odValue">0.05</div>
+      </div>
+
+      <div class="stat-box">
+        <div class="stat-label">Phase</div>
+        <div class="stat-value" id="phaseValue">Lag</div>
+      </div>
+
+      <div class="stat-box">
+        <div class="stat-label">Carrying Capacity</div>
+        <div class="stat-value" id="capacityValue">1.5</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const dishCanvas = document.getElementById('dishCanvas');
+    const curveCanvas = document.getElementById('curveCanvas');
+    const dishCtx = dishCanvas.getContext('2d');
+    const curveCtx = curveCanvas.getContext('2d');
+
+    let simulation = {
+      time: 0,
+      cells: [],
+      od600: 0.05,
+      nutrients: 100,
+      phase: 'lag', // lag, exponential, stationary, death
+      generationTime: 0,
+      peakOD: 0.05,
+      maxOD: 1.5,
+      historyOD: [],
+      historyTime: [],
+    };
+
+    let config = {
+      inoculum: 100,
+      temperature: 37,
+      nutrients: 100,
+      oxygen: 'aerobic',
+      speed: 10,
+      antibiotic: false,
+    };
+
+    function initCells() {
+      simulation.cells = [];
+      for (let i = 0; i < config.inoculum; i++) {
+        simulation.cells.push({
+          x: dishCanvas.width / 2 + (Math.random() - 0.5) * 20,
+          y: dishCanvas.height / 2 + (Math.random() - 0.5) * 20,
+          vx: (Math.random() - 0.5) * 2,
+          vy: (Math.random() - 0.5) * 2,
+          alive: true,
+          resistant: Math.random() < 0.001,
+        });
+      }
+      simulation.od600 = config.inoculum / 10000;
+      simulation.time = 0;
+      simulation.phase = 'lag';
+      simulation.generationTime = 0;
+      simulation.historyOD = [simulation.od600];
+      simulation.historyTime = [0];
+      simulation.nutrients = config.nutrients;
+      simulation.peakOD = simulation.od600;
+    }
+
+    function updateSimulation() {
+      const dt = config.speed * 0.1;
+      simulation.time += dt;
+
+      // Temperature-based growth rate (Q10 = 2)
+      let baseGrowthRate = 0.015; // base at 37°C
+      const tempDiff = config.temperature - 37;
+      const q10Factor = Math.pow(2, tempDiff / 10);
+      let growthRate = baseGrowthRate * q10Factor;
+
+      // Oxygen efficiency
+      if (config.oxygen === 'anaerobic') {
+        growthRate *= 0.05; // anaerobic is ~1/20 as efficient
+      }
+
+      // Nutrient depletion
+      const nutrientFactor = Math.max(0.1, config.nutrients / 100);
+      growthRate *= nutrientFactor;
+
+      // Temperature extremes kill cells
+      let deathRate = 0;
+      if (config.temperature < 5 || config.temperature > 45) {
+        deathRate = 0.5;
+      } else if (config.temperature < 10 || config.temperature > 42) {
+        deathRate = 0.1;
+      }
+
+      // Antibiotic selection
+      if (config.antibiotic) {
+        for (let cell of simulation.cells) {
+          if (!cell.resistant && Math.random() < 0.05) {
+            cell.alive = false;
+          } else if (cell.resistant) {
+            growthRate *= 1.2; // resistant cells grow faster when antibiotic present
+          }
+        }
+      }
+
+      // Cell division
+      const newCells = [];
+      for (let cell of simulation.cells) {
+        if (!cell.alive) continue;
+
+        // Brownian motion
+        cell.vx += (Math.random() - 0.5) * 0.5;
+        cell.vy += (Math.random() - 0.5) * 0.5;
+        cell.vx *= 0.95;
+        cell.vy *= 0.95;
+
+        cell.x += cell.vx;
+        cell.y += cell.vy;
+
+        // Bounce off edges
+        if (cell.x < 10) { cell.x = 10; cell.vx *= -0.5; }
+        if (cell.x > dishCanvas.width - 10) { cell.x = dishCanvas.width - 10; cell.vx *= -0.5; }
+        if (cell.y < 10) { cell.y = 10; cell.vy *= -0.5; }
+        if (cell.y > dishCanvas.height - 10) { cell.y = dishCanvas.height - 10; cell.vy *= -0.5; }
+
+        // Cell death
+        if (Math.random() < deathRate) {
+          cell.alive = false;
+          continue;
+        }
+
+        // Cell division
+        if (Math.random() < growthRate * dt && simulation.od600 < simulation.maxOD) {
+          newCells.push({
+            x: cell.x + (Math.random() - 0.5) * 4,
+            y: cell.y + (Math.random() - 0.5) * 4,
+            vx: (Math.random() - 0.5) * 2,
+            vy: (Math.random() - 0.5) * 2,
+            alive: true,
+            resistant: cell.resistant,
+          });
+        }
+      }
+
+      simulation.cells = simulation.cells.filter(c => c.alive).concat(newCells);
+
+      // Update OD600 (optical density)
+      const prevOD = simulation.od600;
+      simulation.od600 = Math.min(simulation.maxOD, 0.05 + simulation.cells.length / 20000);
+
+      // Nutrient consumption
+      if (simulation.cells.length > 0) {
+        simulation.nutrients -= (simulation.cells.length / config.inoculum) * 0.02 * dt;
+        simulation.nutrients = Math.max(0, simulation.nutrients);
+      }
+
+      // Update growth phase
+      const avgGrowthRate = (simulation.od600 - prevOD) / prevOD;
+      if (simulation.time < 2) {
+        simulation.phase = 'lag';
+      } else if (avgGrowthRate > 0.05 && simulation.od600 < simulation.maxOD * 0.9) {
+        simulation.phase = 'exponential';
+        if (simulation.generationTime === 0 && prevOD > 0) {
+          simulation.generationTime = Math.log(2) / Math.log(simulation.od600 / prevOD) * dt;
+        }
+      } else if (simulation.od600 >= simulation.maxOD * 0.9 || simulation.nutrients < 20) {
+        simulation.phase = 'stationary';
+      } else if (avgGrowthRate < -0.01) {
+        simulation.phase = 'death';
+      }
+
+      simulation.peakOD = Math.max(simulation.peakOD, simulation.od600);
+      simulation.maxOD = 0.5 + (config.nutrients / 100) * 1.5;
+
+      simulation.historyOD.push(simulation.od600);
+      simulation.historyTime.push(simulation.time);
+      if (simulation.historyOD.length > 500) {
+        simulation.historyOD.shift();
+        simulation.historyTime.shift();
+      }
+    }
+
+    function drawDish() {
+      dishCtx.fillStyle = 'rgba(10, 20, 40, 0.9)';
+      dishCtx.fillRect(0, 0, dishCanvas.width, dishCanvas.height);
+
+      // Nutrient gradient background
+      const gradient = dishCtx.createLinearGradient(0, 0, dishCanvas.width, dishCanvas.height);
+      const nutrientAlpha = Math.max(0.1, simulation.nutrients / 100);
+      gradient.addColorStop(0, `rgba(77, 168, 218, ${nutrientAlpha * 0.3})`);
+      gradient.addColorStop(1, `rgba(77, 168, 218, ${nutrientAlpha * 0.05})`);
+      dishCtx.fillStyle = gradient;
+      dishCtx.fillRect(0, 0, dishCanvas.width, dishCanvas.height);
+
+      // Draw antibiotic particles if active
+      if (config.antibiotic) {
+        dishCtx.fillStyle = 'rgba(255, 68, 68, 0.4)';
+        for (let i = 0; i < 50; i++) {
+          const x = (Math.sin(simulation.time + i) * dishCanvas.width) % dishCanvas.width;
+          const y = (Math.cos(simulation.time * 0.7 + i) * dishCanvas.height) % dishCanvas.height;
+          dishCtx.beginPath();
+          dishCtx.arc(x, y, 2, 0, Math.PI * 2);
+          dishCtx.fill();
+        }
+      }
+
+      // Draw bacteria
+      for (let cell of simulation.cells) {
+        dishCtx.fillStyle = cell.resistant ? '#00ff88' : '#4da8da';
+        dishCtx.beginPath();
+        dishCtx.arc(cell.x, cell.y, 2, 0, Math.PI * 2);
+        dishCtx.fill();
+      }
+
+      // Draw petri dish border
+      dishCtx.strokeStyle = '#1f4d7f';
+      dishCtx.lineWidth = 2;
+      dishCtx.beginPath();
+      dishCtx.arc(dishCanvas.width / 2, dishCanvas.height / 2, Math.min(dishCanvas.width, dishCanvas.height) / 2 - 10, 0, Math.PI * 2);
+      dishCtx.stroke();
+    }
+
+    function drawCurve() {
+      curveCtx.fillStyle = 'rgba(10, 20, 40, 0.9)';
+      curveCtx.fillRect(0, 0, curveCanvas.width, curveCanvas.height);
+
+      // Draw grid
+      curveCtx.strokeStyle = '#1f4d7f';
+      curveCtx.lineWidth = 1;
+      for (let i = 0; i <= 4; i++) {
+        const y = (curveCanvas.height / 4) * i;
+        curveCtx.beginPath();
+        curveCtx.moveTo(0, y);
+        curveCtx.lineTo(curveCanvas.width, y);
+        curveCtx.stroke();
+      }
+
+      // Draw axes
+      curveCtx.strokeStyle = '#333';
+      curveCtx.lineWidth = 2;
+      curveCtx.beginPath();
+      curveCtx.moveTo(40, 10);
+      curveCtx.lineTo(40, curveCanvas.height - 30);
+      curveCtx.lineTo(curveCanvas.width - 10, curveCanvas.height - 30);
+      curveCtx.stroke();
+
+      // Draw curve
+      if (simulation.historyOD.length > 1) {
+        curveCtx.strokeStyle = '#4da8da';
+        curveCtx.lineWidth = 2;
+        curveCtx.beginPath();
+
+        const timeRange = Math.max(1, simulation.historyTime[simulation.historyTime.length - 1]);
+        const xScale = (curveCanvas.width - 50) / timeRange;
+        const yScale = (curveCanvas.height - 40) / simulation.maxOD;
+
+        for (let i = 0; i < simulation.historyOD.length; i++) {
+          const x = 40 + simulation.historyTime[i] * xScale;
+          const y = curveCanvas.height - 30 - simulation.historyOD[i] * yScale;
+          if (i === 0) {
+            curveCtx.moveTo(x, y);
+          } else {
+            curveCtx.lineTo(x, y);
+          }
+        }
+        curveCtx.stroke();
+      }
+
+      // Labels
+      curveCtx.fillStyle = '#64b5f6';
+      curveCtx.font = '11px Space Mono';
+      curveCtx.fillText('Time (h)', curveCanvas.width - 60, curveCanvas.height - 5);
+      curveCtx.save();
+      curveCtx.translate(10, curveCanvas.height / 2);
+      curveCtx.rotate(-Math.PI / 2);
+      curveCtx.fillText('OD₆₀₀', 0, 0);
+      curveCtx.restore();
+    }
+
+    function animate() {
+      updateSimulation();
+      drawDish();
+      drawCurve();
+
+      // Update UI
+      document.getElementById('genTime').textContent = simulation.generationTime > 0
+        ? (simulation.generationTime * 60).toFixed(1) + ' min'
+        : '—';
+      document.getElementById('odValue').textContent = simulation.od600.toFixed(3);
+      document.getElementById('phaseValue').textContent = simulation.phase.charAt(0).toUpperCase() + simulation.phase.slice(1);
+      document.getElementById('capacityValue').textContent = simulation.maxOD.toFixed(2);
+
+      requestAnimationFrame(animate);
+    }
+
+    // Event listeners
+    document.getElementById('inoculumSlider').addEventListener('input', (e) => {
+      config.inoculum = parseInt(e.target.value);
+      document.getElementById('inoculumDisplay').textContent = config.inoculum + ' CFU';
+    });
+
+    document.getElementById('tempSlider').addEventListener('input', (e) => {
+      config.temperature = parseInt(e.target.value);
+      document.getElementById('tempDisplay').textContent = config.temperature + '°C';
+    });
+
+    document.getElementById('nutrientSlider').addEventListener('input', (e) => {
+      config.nutrients = parseInt(e.target.value);
+      document.getElementById('nutrientDisplay').textContent = config.nutrients + '%';
+    });
+
+    document.querySelectorAll('input[name="oxygen"]').forEach(radio => {
+      radio.addEventListener('change', (e) => {
+        config.oxygen = e.target.value;
+      });
+    });
+
+    document.getElementById('speedSlider').addEventListener('input', (e) => {
+      config.speed = parseInt(e.target.value);
+      document.getElementById('speedDisplay').textContent = config.speed + 'x';
+    });
+
+    document.getElementById('antibiotic').addEventListener('change', (e) => {
+      config.antibiotic = e.target.checked;
+    });
+
+    document.getElementById('resetBtn').addEventListener('click', () => {
+      initCells();
+    });
+
+    // Resize canvas
+    function resizeCanvases() {
+      const rect = dishCanvas.parentElement.getBoundingClientRect();
+      dishCanvas.width = Math.floor(rect.width);
+      dishCanvas.height = 300;
+
+      const rect2 = curveCanvas.parentElement.getBoundingClientRect();
+      curveCanvas.width = Math.floor(rect2.width);
+      curveCanvas.height = 200;
+    }
+
+    window.addEventListener('resize', resizeCanvases);
+    resizeCanvases();
+
+    initCells();
+    animate();
+  </script>
+</body>
+</html>
