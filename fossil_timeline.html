@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tree of Life</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Space Mono', monospace;
+      background: #f5f1de;
+      color: #2d2416;
+      overflow: hidden;
+      height: 100vh;
+    }
+    .container {
+      display: flex;
+      height: 100vh;
+      gap: 20px;
+      padding: 20px;
+    }
+    .left-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      min-width: 0;
+    }
+    .right-panel {
+      flex: 0 0 320px;
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      overflow-y: auto;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: 32px;
+      margin-bottom: 10px;
+      color: #3d2817;
+    }
+    .controls {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    label {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #5a5047;
+    }
+    select, input[type="range"] {
+      padding: 8px 12px;
+      border: 1px solid #d4c5b9;
+      border-radius: 6px;
+      font-family: 'Space Mono', monospace;
+      font-size: 12px;
+      background: white;
+      color: #2d2416;
+    }
+    .slider-value {
+      font-size: 11px;
+      color: #8b7f78;
+      margin-top: 2px;
+    }
+    canvas {
+      border-radius: 8px;
+      background: white;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      display: block;
+    }
+    .canvas-row {
+      flex: 1;
+      display: flex;
+      min-height: 0;
+    }
+    .tree-container {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 0;
+    }
+    .right-panel h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: 18px;
+      margin-bottom: 15px;
+      color: #3d2817;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #d4c5b9;
+    }
+    .stat-box {
+      background: #f9f7f3;
+      padding: 12px;
+      border-radius: 6px;
+      margin-bottom: 12px;
+      border-left: 3px solid #9b8b7f;
+    }
+    .stat-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      color: #8b7f78;
+      margin-bottom: 4px;
+    }
+    .stat-value {
+      font-size: 14px;
+      font-weight: 700;
+      color: #2d2416;
+      font-family: 'Space Mono', monospace;
+    }
+    .story-modes {
+      margin-top: 15px;
+      padding-top: 15px;
+      border-top: 1px solid #e5dcd2;
+    }
+    .story-btn {
+      width: 100%;
+      padding: 8px;
+      margin: 4px 0;
+      border: 1px solid #d4c5b9;
+      border-radius: 6px;
+      background: white;
+      cursor: pointer;
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      transition: all 0.2s;
+      color: #3d2817;
+    }
+    .story-btn:hover {
+      background: #f9f7f3;
+      border-color: #c4b5a9;
+    }
+    .story-btn.active {
+      background: #3d2817;
+      color: #f5f1de;
+      border-color: #3d2817;
+    }
+    .timeline-axis {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 0;
+    }
+    .diversity-container {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 0;
+    }
+    @media (max-width: 1024px) {
+      .controls {
+        grid-template-columns: 1fr;
+      }
+      .container {
+        flex-direction: column;
+      }
+      .right-panel {
+        flex: 0 0 280px;
+      }
+      .canvas-row {
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="left-panel">
+      <div>
+        <h1>Tree of Life</h1>
+        <div class="controls">
+          <div class="control-group">
+            <label>Time Range (Ma)</label>
+            <input type="range" id="timeSlider" min="0" max="500" value="500" step="1">
+            <div class="slider-value"><span id="timeValue">500</span> – 0 Ma</div>
+          </div>
+          <div class="control-group">
+            <label>Story Mode</label>
+            <select id="storyMode">
+              <option value="none">None</option>
+              <option value="extinctions">Extinction Events</option>
+              <option value="radiation">Adaptive Radiation</option>
+              <option value="humans">Human Evolution</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="canvas-row" style="gap: 10px;">
+        <div class="tree-container">
+          <canvas id="treeCanvas" width="400" height="300"></canvas>
+        </div>
+        <div class="timeline-axis">
+          <canvas id="timelineCanvas" width="120" height="300"></canvas>
+        </div>
+      </div>
+      <div class="diversity-container">
+        <canvas id="diversityCanvas" width="100%" height="150"></canvas>
+      </div>
+    </div>
+    <div class="right-panel">
+      <h2 id="fossilTitle">Fossil Detail</h2>
+      <div id="fossilInfo"></div>
+    </div>
+  </div>
+
+  <script>
+    // ===== PALEONTOLOGICAL DATA =====
+    const cladogramData = {
+      name: "Life",
+      timeRange: [500, 0],
+      children: [
+        {
+          name: "Trilobites",
+          timeRange: [521, 252],
+          silhouette: "🦐",
+          features: "Three-lobed body, compound eyes",
+          diversity: [100, 150, 180, 200, 150, 80, 10, 0],
+          extinct: true,
+          extinction: "Permian-Triassic (252 Ma)"
+        },
+        {
+          name: "Chordata",
+          timeRange: [520, 0],
+          silhouette: "🐟",
+          features: "Notochord, dorsal nerve cord",
+          children: [
+            {
+              name: "Fish",
+              timeRange: [520, 0],
+              silhouette: "🐠",
+              features: "Gills, fins, scales",
+              diversity: [30, 50, 120, 200, 180, 150, 140, 140]
+            },
+            {
+              name: "Tetrapoda",
+              timeRange: [340, 0],
+              silhouette: "🦎",
+              features: "Four limbs, lungs",
+              diversity: [10, 30, 80, 150, 140, 130, 150, 160],
+              children: [
+                {
+                  name: "Dinosauria",
+                  timeRange: [230, 66],
+                  silhouette: "🦕",
+                  features: "Upright posture, laying eggs",
+                  diversity: [5, 15, 50, 120, 80, 20, 0],
+                  extinct: true,
+                  extinction: "K-T Extinction (66 Ma)",
+                  children: [
+                    {
+                      name: "Ornithischia",
+                      timeRange: [230, 66],
+                      silhouette: "🦕",
+                      features: "Herbivorous, horned/domed",
+                      diversity: [2, 8, 30, 60, 40, 10, 0],
+                      extinct: true
+                    },
+                    {
+                      name: "Saurischia",
+                      timeRange: [230, 66],
+                      silhouette: "🦖",
+                      features: "Carnivorous, T-rex lineage",
+                      diversity: [3, 7, 20, 60, 40, 10, 0],
+                      extinct: true,
+                      children: [
+                        {
+                          name: "Aves (Birds)",
+                          timeRange: [150, 0],
+                          silhouette: "🦅",
+                          features: "Feathers, hollow bones, flight",
+                          diversity: [1, 2, 3, 5, 10, 500, 900, 1000]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  name: "Synapsida",
+                  timeRange: [300, 0],
+                  silhouette: "🦁",
+                  features: "Single temporal fenestra, hair",
+                  diversity: [8, 20, 50, 100, 120, 150, 200, 220],
+                  children: [
+                    {
+                      name: "Mammalia",
+                      timeRange: [220, 0],
+                      silhouette: "🐭",
+                      features: "Hair, mammary glands, middle ear bones",
+                      diversity: [2, 3, 5, 10, 50, 100, 200, 250],
+                      children: [
+                        {
+                          name: "Primates",
+                          timeRange: [56, 0],
+                          silhouette: "🐵",
+                          features: "Grasping hands, binocular vision",
+                          diversity: [0, 0, 0, 0, 5, 15, 30, 40],
+                          children: [
+                            {
+                              name: "Homininae",
+                              timeRange: [7, 0],
+                              silhouette: "👤",
+                              features: "Bipedal, large brain",
+                              diversity: [0, 0, 0, 0, 0, 1, 3, 1]
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          name: "Ammonoidea",
+          timeRange: [420, 66],
+          silhouette: "🌀",
+          features: "Coiled shell, chambered",
+          diversity: [20, 40, 100, 180, 160, 100, 50, 0],
+          extinct: true,
+          extinction: "K-T Extinction (66 Ma)"
+        }
+      ]
+    };
+
+    const extinctionEvents = [
+      { name: "Ordovician-Silurian", ma: 443, impact: "High" },
+      { name: "Permian-Triassic", ma: 252, impact: "Severe" },
+      { name: "Triassic-Jurassic", ma: 201, impact: "Moderate" },
+      { name: "K-T (Chicxulub)", ma: 66, impact: "Severe" }
+    ];
+
+    const geologicalPeriods = [
+      { name: "Ediacaran", start: 541, end: 521, era: "Neoproterozoic" },
+      { name: "Cambrian", start: 521, end: 485, era: "Paleozoic" },
+      { name: "Ordovician", start: 485, end: 443, era: "Paleozoic" },
+      { name: "Silurian", start: 443, end: 419, era: "Paleozoic" },
+      { name: "Devonian", start: 419, end: 359, era: "Paleozoic" },
+      { name: "Carboniferous", start: 359, end: 299, era: "Paleozoic" },
+      { name: "Permian", start: 299, end: 252, era: "Paleozoic" },
+      { name: "Triassic", start: 252, end: 201, era: "Mesozoic" },
+      { name: "Jurassic", start: 201, end: 145, era: "Mesozoic" },
+      { name: "Cretaceous", start: 145, end: 66, era: "Mesozoic" },
+      { name: "Paleogene", start: 66, end: 23, era: "Cenozoic" },
+      { name: "Neogene", start: 23, end: 2.6, era: "Cenozoic" },
+      { name: "Quaternary", start: 2.6, end: 0, era: "Cenozoic" }
+    ];
+
+    // ===== STATE =====
+    let selectedNode = cladogramData;
+    let storyMode = "none";
+    let maxTimeMa = 500;
+
+    // ===== CANVASES =====
+    const treeCanvas = document.getElementById("treeCanvas");
+    const treeCtx = treeCanvas.getContext("2d");
+    const timelineCanvas = document.getElementById("timelineCanvas");
+    const timelineCtx = timelineCanvas.getContext("2d");
+    const diversityCanvas = document.getElementById("diversityCanvas");
+    const diversityCtx = diversityCanvas.getContext("2d");
+
+    // ===== RENDER FUNCTIONS =====
+    function drawTree(ctx, node, x, y, width, height, minTime, maxTime) {
+      if (!node) return;
+      
+      const nodeWidth = width / 2;
+      const nodeHeight = height / (node.children ? node.children.length : 1);
+      
+      ctx.fillStyle = node.extinct ? "#ff4444" : "#00aa88";
+      ctx.fillRect(x, y, 8, height);
+      
+      ctx.fillStyle = "#3d2817";
+      ctx.font = "bold 11px 'Space Mono'";
+      ctx.fillText(node.silhouette, x + 12, y + 20);
+      
+      if (node.children) {
+        node.children.forEach((child, i) => {
+          const childY = y + (i * nodeHeight);
+          ctx.strokeStyle = "#c4b5a9";
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(x + 8, y + nodeHeight / 2);
+          ctx.lineTo(x + nodeWidth, childY + nodeHeight / 2);
+          ctx.stroke();
+          
+          drawTree(ctx, child, x + nodeWidth, childY, nodeWidth, nodeHeight, minTime, maxTime);
+        });
+      }
+    }
+
+    function drawTimeline(ctx, minTime, maxTime) {
+      const padding = 40;
+      const height = timelineCanvas.height - 2 * padding;
+      const width = timelineCanvas.width - 2 * padding;
+      
+      ctx.clearRect(0, 0, timelineCanvas.width, timelineCanvas.height);
+      
+      // Gradient background
+      const grad = ctx.createLinearGradient(0, padding, 0, padding + height);
+      grad.addColorStop(0, "#00ffff");
+      grad.addColorStop(1, "#3d2817");
+      ctx.fillStyle = grad;
+      ctx.fillRect(padding, padding, width, height);
+      
+      // Time markers
+      ctx.fillStyle = "#2d2416";
+      ctx.font = "9px 'Space Mono'";
+      ctx.textAlign = "center";
+      for (let ma = 0; ma <= maxTime; ma += 100) {
+        const ratio = 1 - (ma / maxTime);
+        const y = padding + ratio * height;
+        ctx.fillText(ma + " Ma", padding + width / 2, y + 12);
+        ctx.strokeStyle = "#c4b5a9";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(padding, y);
+        ctx.lineTo(padding + width, y);
+        ctx.stroke();
+      }
+      
+      // Extinction events
+      extinctionEvents.forEach(evt => {
+        if (evt.ma >= minTime && evt.ma <= maxTime) {
+          const ratio = 1 - (evt.ma / maxTime);
+          const y = padding + ratio * height;
+          ctx.fillStyle = "#ff4444";
+          ctx.fillRect(padding, y - 2, width, 4);
+        }
+      });
+    }
+
+    function drawDiversity(ctx, node, minTime, maxTime) {
+      if (!node || !node.diversity) return;
+      
+      const padding = 30;
+      const width = diversityCanvas.width - 2 * padding;
+      const height = diversityCanvas.height - 2 * padding;
+      
+      ctx.clearRect(0, 0, diversityCanvas.width, diversityCanvas.height);
+      
+      // Background
+      ctx.fillStyle = "#f9f7f3";
+      ctx.fillRect(0, 0, diversityCanvas.width, diversityCanvas.height);
+      
+      // Axes
+      ctx.strokeStyle = "#8b7f78";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(padding, height + padding);
+      ctx.lineTo(width + padding, height + padding);
+      ctx.stroke();
+      
+      ctx.beginPath();
+      ctx.moveTo(padding, padding);
+      ctx.lineTo(padding, height + padding);
+      ctx.stroke();
+      
+      // Line chart
+      const data = node.diversity || [];
+      const maxDiv = Math.max(...data);
+      
+      ctx.strokeStyle = "#00aa88";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      
+      data.forEach((val, i) => {
+        const x = padding + (i / (data.length - 1)) * width;
+        const y = height + padding - (val / maxDiv) * height;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+      
+      // Fill area
+      ctx.fillStyle = "rgba(0, 170, 136, 0.2)";
+      ctx.lineTo(width + padding, height + padding);
+      ctx.lineTo(padding, height + padding);
+      ctx.fill();
+      
+      // Labels
+      ctx.fillStyle = "#8b7f78";
+      ctx.font = "11px 'Space Mono'";
+      ctx.textAlign = "center";
+      ctx.fillText("Time (Ma)", diversityCanvas.width / 2, diversityCanvas.height - 5);
+      
+      ctx.save();
+      ctx.translate(10, diversityCanvas.height / 2);
+      ctx.rotate(-Math.PI / 2);
+      ctx.textAlign = "center";
+      ctx.fillText("Species Count", 0, 0);
+      ctx.restore();
+    }
+
+    function updateFossilInfo(node) {
+      const info = document.getElementById("fossilInfo");
+      info.innerHTML = `
+        <div class="stat-box">
+          <div class="stat-label">Species Name</div>
+          <div class="stat-value">${node.name}</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Time Range</div>
+          <div class="stat-value">${node.timeRange[0]} – ${node.timeRange[1]} Ma</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Features</div>
+          <div class="stat-value" style="font-size: 12px; font-weight: 400;">${node.features}</div>
+        </div>
+        ${node.extinct ? `<div class="stat-box" style="border-left-color: #ff4444;">
+          <div class="stat-label">Status</div>
+          <div class="stat-value">Extinct</div>
+          <div class="stat-label" style="margin-top: 6px;">${node.extinction || "Unknown"}</div>
+        </div>` : ''}
+        <div class="story-modes">
+          <button class="story-btn ${storyMode === 'extinctions' ? 'active' : ''}" onclick="setStoryMode('extinctions')">🔥 Extinction Events</button>
+          <button class="story-btn ${storyMode === 'radiation' ? 'active' : ''}" onclick="setStoryMode('radiation')">🌿 Adaptive Radiation</button>
+          <button class="story-btn ${storyMode === 'humans' ? 'active' : ''}" onclick="setStoryMode('humans')">👤 Human Evolution</button>
+        </div>
+      `;
+      document.getElementById("fossilTitle").textContent = node.silhouette + " " + node.name;
+    }
+
+    function setStoryMode(mode) {
+      storyMode = mode;
+      if (mode === "extinctions") {
+        document.getElementById("timeSlider").value = 500;
+      } else if (mode === "radiation") {
+        document.getElementById("timeSlider").value = 200;
+      } else if (mode === "humans") {
+        document.getElementById("timeSlider").value = 10;
+      }
+      updateFossilInfo(selectedNode);
+      render();
+    }
+
+    function render() {
+      maxTimeMa = parseInt(document.getElementById("timeSlider").value);
+      document.getElementById("timeValue").textContent = maxTimeMa;
+      
+      treeCtx.clearRect(0, 0, treeCanvas.width, treeCanvas.height);
+      drawTree(treeCtx, cladogramData, 10, 10, treeCanvas.width - 20, treeCanvas.height - 20, 0, 500);
+      
+      drawTimeline(timelineCtx, 0, 500);
+      drawDiversity(diversityCtx, selectedNode, 0, 500);
+    }
+
+    // ===== EVENT LISTENERS =====
+    document.getElementById("timeSlider").addEventListener("input", render);
+    document.getElementById("storyMode").addEventListener("change", (e) => {
+      setStoryMode(e.target.value);
+    });
+
+    treeCanvas.addEventListener("click", (e) => {
+      const rect = treeCanvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      // Simple click detection (expand-able)
+      selectedNode = cladogramData;
+      updateFossilInfo(selectedNode);
+      render();
+    });
+
+    // ===== INIT =====
+    updateFossilInfo(selectedNode);
+    render();
+  </script>
+</body>
+</html>
