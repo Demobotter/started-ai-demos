@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nucleation Station</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Space Mono', monospace;
+            background: linear-gradient(135deg, #1a0a2e 0%, #16213e 100%);
+            color: #e0e0e0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            align-items: start;
+        }
+
+        h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 28px;
+            color: #00ffff;
+            margin-bottom: 24px;
+            grid-column: 1 / -1;
+            text-align: center;
+        }
+
+        .canvas-section {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .canvas-wrapper {
+            background: #0a1428;
+            border: 2px solid #00aa88;
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: auto;
+        }
+
+        .canvas-label {
+            font-size: 12px;
+            color: #4da8da;
+            font-weight: 700;
+            padding: 8px;
+            background: rgba(10, 20, 40, 0.6);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .control-panel {
+            background: rgba(10, 20, 40, 0.8);
+            border: 2px solid #00aa88;
+            border-radius: 8px;
+            padding: 20px;
+            max-height: 500px;
+            overflow-y: auto;
+            grid-column: 2;
+            grid-row: 2 / 4;
+        }
+
+        .control-group {
+            margin-bottom: 18px;
+        }
+
+        .control-label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            color: #4da8da;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 6px;
+        }
+
+        .control-value {
+            color: #00ffff;
+            font-weight: 700;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #0a4d5c;
+            outline: none;
+            -webkit-appearance: none;
+            cursor: pointer;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #00ffff;
+            cursor: pointer;
+            box-shadow: 0 0 8px rgba(0, 255, 255, 0.5);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #00ffff;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 0 8px rgba(0, 255, 255, 0.5);
+        }
+
+        select {
+            width: 100%;
+            padding: 8px 6px;
+            background: #0a1428;
+            color: #00ffff;
+            border: 1px solid #00aa88;
+            border-radius: 4px;
+            font-family: 'Space Mono', monospace;
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        select option {
+            background: #0a1428;
+            color: #00ffff;
+        }
+
+        .stat-box {
+            background: rgba(0, 170, 136, 0.1);
+            border-left: 3px solid #4da8da;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            color: #4da8da;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+
+        .stat-value {
+            font-family: 'Playfair Display', serif;
+            font-size: 18px;
+            color: #00ffff;
+            font-weight: 700;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        button {
+            flex: 1;
+            padding: 10px;
+            background: linear-gradient(135deg, #00aa88 0%, #007766 100%);
+            color: #0a1428;
+            border: none;
+            border-radius: 4px;
+            font-family: 'Space Mono', monospace;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        button:hover {
+            background: linear-gradient(135deg, #00ffcc 0%, #00cc99 100%);
+            box-shadow: 0 0 12px rgba(0, 255, 255, 0.3);
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        button.active {
+            background: linear-gradient(135deg, #00ffff 0%, #00cccc 100%);
+            box-shadow: 0 0 16px rgba(0, 255, 255, 0.6);
+        }
+
+        .divider {
+            height: 1px;
+            background: linear-gradient(90deg, transparent, #00aa88, transparent);
+            margin: 16px 0;
+        }
+
+        @media (max-width: 900px) {
+            .container {
+                grid-template-columns: 1fr;
+                gap: 16px;
+            }
+
+            .control-panel {
+                grid-column: 1;
+                grid-row: auto;
+                max-height: none;
+            }
+
+            h1 {
+                grid-column: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>⚛️ <strong>Nucleation Station</strong></h1>
+
+        <div class="canvas-section">
+            <div class="canvas-wrapper">
+                <div class="canvas-label">Crystal Lattice Growth</div>
+                <canvas id="latticeCanvas" width="400" height="350"></canvas>
+            </div>
+
+            <div class="canvas-wrapper">
+                <div class="canvas-label">Growth Curve (Size vs Time)</div>
+                <canvas id="graphCanvas" width="400" height="200"></canvas>
+            </div>
+        </div>
+
+        <div class="control-panel">
+            <div class="control-group">
+                <div class="control-label">
+                    <span>Temperature</span>
+                    <span class="control-value"><span id="tempValue">273</span> K</span>
+                </div>
+                <input type="range" id="tempSlider" min="10" max="500" value="273" step="1">
+            </div>
+
+            <div class="control-group">
+                <div class="control-label">
+                    <span>Cooling Rate</span>
+                    <span class="control-value"><span id="rateValue">Slow</span></span>
+                </div>
+                <select id="rateSelect">
+                    <option value="0.5">Slow (0.5 K/s)</option>
+                    <option value="1">Medium (1 K/s)</option>
+                    <option value="3">Fast (3 K/s)</option>
+                    <option value="0">Off</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <div class="control-label">
+                    <span>Saturation</span>
+                    <span class="control-value"><span id="satValue">80</span>%</span>
+                </div>
+                <input type="range" id="satSlider" min="0" max="100" value="80" step="1">
+            </div>
+
+            <div class="control-group">
+                <div class="control-label">
+                    <span>Nucleation Sites</span>
+                    <span class="control-value"><span id="nucValue">1</span></span>
+                </div>
+                <input type="range" id="nucSlider" min="1" max="6" value="1" step="1">
+            </div>
+
+            <div class="control-group">
+                <div class="control-label">
+                    <span>Crystal Type</span>
+                    <span class="control-value"></span>
+                </div>
+                <select id="typeSelect">
+                    <option value="hexagonal">Hexagonal (NaCl)</option>
+                    <option value="cubic">Cubic (Table Salt)</option>
+                    <option value="ortho">Orthorhombic (Sugar)</option>
+                </select>
+            </div>
+
+            <div class="divider"></div>
+
+            <div class="stat-box">
+                <div class="stat-label">Crystal Size</div>
+                <div class="stat-value"><span id="sizeValue">0</span> units</div>
+            </div>
+
+            <div class="stat-box">
+                <div class="stat-label">Growth Rate</div>
+                <div class="stat-value"><span id="growthRateValue">0.0</span> units/s</div>
+            </div>
+
+            <div class="stat-box">
+                <div class="stat-label">Nucleation Rate</div>
+                <div class="stat-value"><span id="nucRateValue">0.0</span>/s</div>
+            </div>
+
+            <div class="stat-box">
+                <div class="stat-label">Defect Count</div>
+                <div class="stat-value"><span id="defectValue">0</span></div>
+            </div>
+
+            <div class="divider"></div>
+
+            <div class="button-group">
+                <button id="impurityBtn">Impurities</button>
+                <button id="resetBtn">Reset</button>
+            </div>
+
+            <div class="button-group">
+                <button id="pauseBtn">Pause</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Canvas setup
+        const latticeCanvas = document.getElementById('latticeCanvas');
+        const latticeCtx = latticeCanvas.getContext('2d');
+        const graphCanvas = document.getElementById('graphCanvas');
+        const graphCtx = graphCanvas.getContext('2d');
+
+        // Control elements
+        const tempSlider = document.getElementById('tempSlider');
+        const rateSelect = document.getElementById('rateSelect');
+        const satSlider = document.getElementById('satSlider');
+        const nucSlider = document.getElementById('nucSlider');
+        const typeSelect = document.getElementById('typeSelect');
+        const impurityBtn = document.getElementById('impurityBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const pauseBtn = document.getElementById('pauseBtn');
+
+        // Display elements
+        const tempValue = document.getElementById('tempValue');
+        const rateValue = document.getElementById('rateValue');
+        const satValue = document.getElementById('satValue');
+        const nucValue = document.getElementById('nucValue');
+        const sizeValue = document.getElementById('sizeValue');
+        const growthRateValue = document.getElementById('growthRateValue');
+        const nucRateValue = document.getElementById('nucRateValue');
+        const defectValue = document.getElementById('defectValue');
+
+        // State
+        let state = {
+            temperature: 273,
+            cooling_rate: 0.5,
+            saturation: 80,
+            nucleation_count: 1,
+            crystal_type: 'hexagonal',
+            impurities_enabled: false,
+            paused: false,
+            time: 0,
+            crystals: [],
+            defects: 0,
+            max_crystal_size: 0,
+            growth_history: []
+        };
+
+        // Constants (Materials Science)
+        const BOLTZMANN = 1.38e-23;
+        const Ea_typical = 150000; // J/mol for typical salt (kJ -> J)
+        const ARRHENIUS_CONSTANT = 10; // baseline attachment rate
+
+        function reset() {
+            state = {
+                temperature: parseFloat(tempSlider.value),
+                cooling_rate: parseFloat(rateSelect.value),
+                saturation: parseFloat(satSlider.value),
+                nucleation_count: parseFloat(nucSlider.value),
+                crystal_type: typeSelect.value,
+                impurities_enabled: state.impurities_enabled,
+                paused: false,
+                time: 0,
+                crystals: [],
+                defects: 0,
+                max_crystal_size: 0,
+                growth_history: []
+            };
+
+            // Initialize nucleation sites
+            for (let i = 0; i < state.nucleation_count; i++) {
+                const angle = (i / state.nucleation_count) * Math.PI * 2;
+                const radius = 80;
+                state.crystals.push({
+                    x: 200 + Math.cos(angle) * radius,
+                    y: 175 + Math.sin(angle) * radius,
+                    size: 3,
+                    type: state.crystal_type,
+                    defect_count: 0,
+                    color: `hsl(${180 + i * (360 / Math.max(state.nucleation_count, 1))}, 100%, 50%)`
+                });
+            }
+
+            pauseBtn.textContent = 'Pause';
+            pauseBtn.classList.remove('active');
+        }
+
+        function attachmentRate(T, saturation) {
+            // Arrhenius Law: k = A * exp(-Ea / (R*T))
+            // Simplified with realistic constants
+            if (saturation <= 0) return 0;
+            const exponential = Math.exp(-Ea_typical / (8.314 * T));
+            const rate = ARRHENIUS_CONSTANT * saturation * exponential;
+            return Math.max(0, rate);
+        }
+
+        function nucleationRate(T, saturation) {
+            // Classical nucleation: rate ∝ exp(-ΔG_nuc / kT)
+            // Simplified: high supersaturation + low T → faster nucleation
+            if (saturation < 50) return 0;
+            const super_sat = (saturation - 50) / 50;
+            const nucleation = super_sat * Math.exp(-15 / (8.314 * T)) * 0.01;
+            return Math.max(0, nucleation);
+        }
+
+        function updateState(dt) {
+            if (state.paused) return;
+
+            state.time += dt;
+
+            // Apply cooling
+            if (state.cooling_rate > 0) {
+                state.temperature = Math.max(10, state.temperature - state.cooling_rate * dt);
+                tempSlider.value = state.temperature;
+                tempValue.textContent = Math.round(state.temperature);
+            }
+
+            // Attachment rate (Arrhenius)
+            const attach = attachmentRate(state.temperature, state.saturation);
+
+            // Grow existing crystals (Ostwald ripening: larger crystals grow faster)
+            let total_growth = 0;
+            for (let crystal of state.crystals) {
+                const size_factor = 1 + (crystal.size / 100) * 0.5; // larger crystals grow faster
+                const growth = attach * size_factor * dt * 0.1;
+                crystal.size += growth;
+                total_growth += growth;
+
+                if (state.saturation < 30) {
+                    // Undersaturated: dissolve
+                    crystal.size *= 0.98;
+                }
+
+                state.max_crystal_size = Math.max(state.max_crystal_size, crystal.size);
+
+                // Add random defects if impurities enabled
+                if (state.impurities_enabled && Math.random() < 0.001) {
+                    crystal.defect_count++;
+                    state.defects++;
+                }
+            }
+
+            // Nucleate new sites (only if temperature dropping & saturation high)
+            if (state.temperature < 350 && state.saturation > 60) {
+                const nuc_rate = nucleationRate(state.temperature, state.saturation);
+                if (Math.random() < nuc_rate * dt && state.crystals.length < 6) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const radius = 40 + Math.random() * 100;
+                    state.crystals.push({
+                        x: 200 + Math.cos(angle) * radius,
+                        y: 175 + Math.sin(angle) * radius,
+                        size: 1.5,
+                        type: state.crystal_type,
+                        defect_count: 0,
+                        color: `hsl(${Math.random() * 360}, 80%, 50%)`
+                    });
+                }
+            }
+
+            // Remove tiny crystals (dissolution)
+            state.crystals = state.crystals.filter(c => c.size > 0.5);
+
+            // Record growth for graph
+            state.growth_history.push({
+                time: state.time,
+                size: state.max_crystal_size
+            });
+            if (state.growth_history.length > 500) {
+                state.growth_history.shift();
+            }
+
+            // Update display
+            tempValue.textContent = Math.round(state.temperature);
+            satValue.textContent = Math.round(state.saturation);
+            sizeValue.textContent = Math.round(state.max_crystal_size);
+            growthRateValue.textContent = (total_growth * 10).toFixed(2);
+            nucRateValue.textContent = (nucleationRate(state.temperature, state.saturation) * 100).toFixed(2);
+            defectValue.textContent = state.defects;
+        }
+
+        function drawLattice() {
+            latticeCtx.fillStyle = '#1a0a2e';
+            latticeCtx.fillRect(0, 0, latticeCanvas.width, latticeCanvas.height);
+
+            // Draw solution background
+            latticeCtx.fillStyle = 'rgba(77, 168, 218, 0.1)';
+            latticeCtx.fillRect(50, 20, 300, 310);
+
+            // Draw solute particles (small dots)
+            latticeCtx.fillStyle = 'rgba(77, 216, 255, 0.4)';
+            for (let i = 0; i < state.saturation * 2; i++) {
+                const x = 50 + Math.random() * 300;
+                const y = 20 + Math.random() * 310;
+                latticeCtx.fillRect(x, y, 2, 2);
+            }
+
+            // Draw crystals (layered isometric style)
+            for (let crystal of state.crystals) {
+                drawCrystal(crystal);
+            }
+
+            // Draw border
+            latticeCtx.strokeStyle = '#00aa88';
+            latticeCtx.lineWidth = 2;
+            latticeCtx.strokeRect(50, 20, 300, 310);
+        }
+
+        function drawCrystal(crystal) {
+            const size = Math.max(1, crystal.size * 0.5);
+            const x = crystal.x;
+            const y = crystal.y;
+
+            // Draw crystal with defects colored red
+            if (crystal.type === 'hexagonal') {
+                drawHexCrystal(x, y, size, crystal.defect_count);
+            } else if (crystal.type === 'cubic') {
+                drawCubicCrystal(x, y, size, crystal.defect_count);
+            } else {
+                drawOrthocrystal(x, y, size, crystal.defect_count);
+            }
+
+            // Draw defect markers
+            if (crystal.defect_count > 0) {
+                latticeCtx.fillStyle = '#ff3333';
+                for (let i = 0; i < Math.min(crystal.defect_count, 3); i++) {
+                    const dx = (Math.random() - 0.5) * size * 2;
+                    const dy = (Math.random() - 0.5) * size * 2;
+                    latticeCtx.fillRect(x + dx - 1, y + dy - 1, 2, 2);
+                }
+            }
+        }
+
+        function drawHexCrystal(x, y, size, defects) {
+            latticeCtx.fillStyle = '#00ffff';
+            const points = [];
+            for (let i = 0; i < 6; i++) {
+                const angle = (i * 60 - 90) * Math.PI / 180;
+                points.push({
+                    x: x + Math.cos(angle) * size,
+                    y: y + Math.sin(angle) * size
+                });
+            }
+            latticeCtx.beginPath();
+            latticeCtx.moveTo(points[0].x, points[0].y);
+            for (let p of points) {
+                latticeCtx.lineTo(p.x, p.y);
+            }
+            latticeCtx.closePath();
+            latticeCtx.fill();
+            latticeCtx.strokeStyle = '#00aa88';
+            latticeCtx.lineWidth = 1;
+            latticeCtx.stroke();
+        }
+
+        function drawCubicCrystal(x, y, size, defects) {
+            latticeCtx.fillStyle = '#00ffff';
+            latticeCtx.fillRect(x - size / 2, y - size / 2, size, size);
+            latticeCtx.strokeStyle = '#00aa88';
+            latticeCtx.lineWidth = 1;
+            latticeCtx.strokeRect(x - size / 2, y - size / 2, size, size);
+        }
+
+        function drawOrthocrystal(x, y, size, defects) {
+            latticeCtx.fillStyle = '#00ffff';
+            latticeCtx.fillRect(x - size * 0.6, y - size * 0.4, size * 1.2, size * 0.8);
+            latticeCtx.strokeStyle = '#00aa88';
+            latticeCtx.lineWidth = 1;
+            latticeCtx.strokeRect(x - size * 0.6, y - size * 0.4, size * 1.2, size * 0.8);
+        }
+
+        function drawGraph() {
+            graphCtx.fillStyle = '#0a1428';
+            graphCtx.fillRect(0, 0, graphCanvas.width, graphCanvas.height);
+
+            if (state.growth_history.length < 2) return;
+
+            // Axes
+            graphCtx.strokeStyle = '#00aa88';
+            graphCtx.lineWidth = 1;
+            graphCtx.beginPath();
+            graphCtx.moveTo(30, 10);
+            graphCtx.lineTo(30, 170);
+            graphCtx.lineTo(390, 170);
+            graphCtx.stroke();
+
+            // Grid lines
+            graphCtx.strokeStyle = 'rgba(0, 170, 136, 0.2)';
+            graphCtx.lineWidth = 1;
+            for (let i = 0; i <= 5; i++) {
+                const y = 170 - (i * 32);
+                graphCtx.beginPath();
+                graphCtx.moveTo(30, y);
+                graphCtx.lineTo(390, y);
+                graphCtx.stroke();
+            }
+
+            // Draw curve
+            graphCtx.strokeStyle = '#00ffff';
+            graphCtx.lineWidth = 2;
+            graphCtx.beginPath();
+
+            const maxTime = state.growth_history[state.growth_history.length - 1].time || 1;
+            const maxSize = Math.max(...state.growth_history.map(h => h.size), 1);
+
+            for (let i = 0; i < state.growth_history.length; i++) {
+                const h = state.growth_history[i];
+                const px = 30 + (h.time / maxTime) * 360;
+                const py = 170 - (h.size / maxSize) * 160;
+
+                if (i === 0) graphCtx.moveTo(px, py);
+                else graphCtx.lineTo(px, py);
+            }
+            graphCtx.stroke();
+
+            // Labels
+            graphCtx.fillStyle = '#4da8da';
+            graphCtx.font = '10px Space Mono';
+            graphCtx.textAlign = 'right';
+            graphCtx.fillText('Time (s)', 390, 190);
+            graphCtx.textAlign = 'left';
+            graphCtx.fillText('Size', 5, 15);
+        }
+
+        function animate() {
+            const dt = 0.016; // ~60fps
+            updateState(dt);
+            drawLattice();
+            drawGraph();
+            requestAnimationFrame(animate);
+        }
+
+        // Event listeners
+        tempSlider.addEventListener('input', (e) => {
+            state.temperature = parseFloat(e.target.value);
+            tempValue.textContent = Math.round(state.temperature);
+        });
+
+        rateSelect.addEventListener('change', (e) => {
+            state.cooling_rate = parseFloat(e.target.value);
+            rateValue.textContent = e.target.options[e.target.selectedIndex].text.split(' ')[0];
+        });
+
+        satSlider.addEventListener('input', (e) => {
+            state.saturation = parseFloat(e.target.value);
+            satValue.textContent = Math.round(state.saturation);
+        });
+
+        nucSlider.addEventListener('input', (e) => {
+            const newCount = parseFloat(e.target.value);
+            nucValue.textContent = Math.round(newCount);
+            if (newCount !== state.nucleation_count) {
+                state.nucleation_count = newCount;
+                reset();
+            }
+        });
+
+        typeSelect.addEventListener('change', (e) => {
+            state.crystal_type = e.target.value;
+            reset();
+        });
+
+        impurityBtn.addEventListener('click', () => {
+            state.impurities_enabled = !state.impurities_enabled;
+            impurityBtn.classList.toggle('active');
+        });
+
+        resetBtn.addEventListener('click', reset);
+
+        pauseBtn.addEventListener('click', () => {
+            state.paused = !state.paused;
+            pauseBtn.textContent = state.paused ? 'Resume' : 'Pause';
+            pauseBtn.classList.toggle('active');
+        });
+
+        // Initialize
+        reset();
+        animate();
+    </script>
+</body>
+</html>
