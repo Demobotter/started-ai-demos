@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Drug Metabolism Simulator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Space Mono', monospace;
+            background: linear-gradient(135deg, #0a1428 0%, #1f3a5f 100%);
+            color: #e0e7ff;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            color: #fff;
+            text-align: center;
+        }
+        .subtitle {
+            text-align: center;
+            color: #a0aec0;
+            margin-bottom: 30px;
+            font-size: 0.95rem;
+        }
+        .main {
+            display: grid;
+            grid-template-columns: 1fr 420px;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+        .canvas-section {
+            background: rgba(15, 30, 50, 0.8);
+            border: 1px solid #2d5a8c;
+            border-radius: 12px;
+            padding: 20px;
+        }
+        .canvas-label {
+            font-size: 0.85rem;
+            color: #90caf9;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 12px;
+            font-weight: 700;
+        }
+        canvas {
+            width: 100%;
+            height: auto;
+            display: block;
+            background: #0a1428;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+        .controls {
+            background: rgba(15, 30, 50, 0.8);
+            border: 1px solid #2d5a8c;
+            border-radius: 12px;
+            padding: 20px;
+            max-height: 900px;
+            overflow-y: auto;
+        }
+        .control-group {
+            margin-bottom: 20px;
+            padding-bottom: 18px;
+            border-bottom: 1px solid #1f4d7f;
+        }
+        .control-group:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+        .control-label {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #64b5f6;
+            margin-bottom: 8px;
+            display: block;
+            font-weight: 700;
+        }
+        input[type="range"], select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #2d5a8c;
+            border-radius: 6px;
+            background: #0f1e32;
+            color: #e0e7ff;
+            font-family: 'Space Mono', monospace;
+            font-size: 0.85rem;
+        }
+        input[type="range"] {
+            padding: 6px;
+            cursor: pointer;
+        }
+        .value-display {
+            font-size: 0.8rem;
+            color: #90caf9;
+            margin-top: 6px;
+            font-weight: 700;
+        }
+        .button-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 12px;
+        }
+        button {
+            padding: 10px 12px;
+            border: 1px solid #2d5a8c;
+            background: #0f1e32;
+            color: #90caf9;
+            border-radius: 6px;
+            font-family: 'Space Mono', monospace;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 700;
+        }
+        button:hover {
+            background: #1f3a5f;
+            border-color: #4da8da;
+            color: #e0e7ff;
+        }
+        button.active {
+            background: #4da8da;
+            color: #0a1428;
+            border-color: #4da8da;
+        }
+        .stat-panel {
+            background: rgba(77, 168, 218, 0.05);
+            border: 1px solid #4da8da;
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 15px;
+        }
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 0.75rem;
+        }
+        .stat-row:last-child {
+            margin-bottom: 0;
+        }
+        .stat-label {
+            color: #90caf9;
+            font-weight: 700;
+        }
+        .stat-value {
+            color: #4da8da;
+            font-weight: 700;
+        }
+        .info-box {
+            background: rgba(255, 193, 7, 0.1);
+            border-left: 3px solid #ffc107;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            font-size: 0.8rem;
+            line-height: 1.5;
+            color: #ffd54f;
+        }
+        @media (max-width: 1024px) {
+            .main {
+                grid-template-columns: 1fr;
+            }
+            h1 {
+                font-size: 1.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>💊 Pharmacokinetics</h1>
+        <p class="subtitle">Interactive drug metabolism & plasma concentration tracker</p>
+        
+        <div class="main">
+            <div class="canvas-section">
+                <div class="canvas-label">Plasma Concentration Curve (mg/L vs Time)</div>
+                <canvas id="concentrationCanvas" width="700" height="320"></canvas>
+                
+                <div class="canvas-label">Metabolism Breakdown (%)</div>
+                <canvas id="metabolismPie" width="700" height="280"></canvas>
+            </div>
+            
+            <div class="controls">
+                <div class="info-box">
+                    ⚠️ Adjust sliders to explore drug fate through the body.
+                </div>
+                
+                <div class="control-group">
+                    <label class="control-label">Dosage (mg)</label>
+                    <input type="range" id="dosage" min="1" max="500" value="200" step="1">
+                    <div class="value-display" id="dosageVal">200 mg</div>
+                </div>
+                
+                <div class="control-group">
+                    <label class="control-label">Route of Administration</label>
+                    <select id="route">
+                        <option value="oral">Oral (PO)</option>
+                        <option value="iv">Intravenous (IV)</option>
+                        <option value="im">Intramuscular (IM)</option>
+                        <option value="transdermal">Transdermal</option>
+                    </select>
+                </div>
+                
+                <div class="control-group">
+                    <label class="control-label">Liver Function (% CYP450)</label>
+                    <input type="range" id="liverFunc" min="50" max="150" value="100" step="10">
+                    <div class="value-display" id="liverVal">100%</div>
+                </div>
+                
+                <div class="control-group">
+                    <label class="control-label">Kidney Function (% GFR)</label>
+                    <input type="range" id="kidneyFunc" min="20" max="150" value="100" step="10">
+                    <div class="value-display" id="kidneyVal">100%</div>
+                </div>
+                
+                <div class="control-group">
+                    <label class="control-label">Body Weight (kg)</label>
+                    <input type="range" id="weight" min="40" max="150" value="70" step="5">
+                    <div class="value-display" id="weightVal">70 kg</div>
+                </div>
+                
+                <div class="control-group">
+                    <label class="control-label">Age (years)</label>
+                    <input type="range" id="age" min="18" max="90" value="30" step="1">
+                    <div class="value-display" id="ageVal">30 yrs</div>
+                </div>
+                
+                <div class="control-group">
+                    <label class="control-label">Time Progression</label>
+                    <input type="range" id="timeSlider" min="0" max="72" value="24" step="0.5">
+                    <div class="value-display" id="timeVal">24.0 hrs</div>
+                </div>
+                
+                <div class="control-group">
+                    <div class="button-group">
+                        <button id="playBtn">▶ Auto-Play</button>
+                        <button id="resetBtn">⟲ Reset</button>
+                    </div>
+                </div>
+                
+                <div class="control-group">
+                    <div class="button-group">
+                        <button id="toggleTherapeutic" class="active">Therapeutic Window</button>
+                        <button id="toggleCompare">Compare Routes</button>
+                    </div>
+                </div>
+                
+                <div class="stat-panel">
+                    <div class="stat-row">
+                        <span class="stat-label">Peak [Cp]:</span>
+                        <span class="stat-value" id="statPeak">35.2 mg/L</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Time-to-Peak:</span>
+                        <span class="stat-value" id="statTmax">1.5 hrs</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Half-Life:</span>
+                        <span class="stat-value" id="statHalf">5.8 hrs</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Clearance:</span>
+                        <span class="stat-value" id="statClear">12.3 mL/min</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">AUC:</span>
+                        <span class="stat-value" id="statAUC">187.5 mg·h/L</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Pharmacokinetic model parameters (aspirin-like drug)
+        const MODEL = {
+            baseVd: 0.6, // L/kg - Volume of Distribution
+            baseClearance: 12.3, // mL/min at 70kg, 100% organ function
+            baseKa: 1.2, // 1/hr - absorption rate oral
+            bioavailability: { oral: 0.70, iv: 1.0, im: 0.85, transdermal: 0.50 },
+            tmax: { oral: 1.5, iv: 0, im: 0.75, transdermal: 3.0 }, // hrs
+            therapeuticMin: 10, // mg/L
+            therapeuticMax: 50, // mg/L
+        };
+
+        const state = {
+            dosage: 200,
+            route: 'oral',
+            liverFunc: 100,
+            kidneyFunc: 100,
+            weight: 70,
+            age: 30,
+            time: 24,
+            showTherapeutic: true,
+            showCompareRoutes: false,
+            isPlaying: false,
+        };
+
+        const canvases = {
+            concentration: document.getElementById('concentrationCanvas'),
+            pie: document.getElementById('metabolismPie'),
+        };
+
+        const ctx = {
+            concentration: canvases.concentration.getContext('2d'),
+            pie: canvases.pie.getContext('2d'),
+        };
+
+        // Organ function adjustments
+        function getOrganFunction() {
+            const ageAdjust = Math.max(0.5, 1 - (Math.max(0, state.age - 65) * 0.02));
+            const liver = (state.liverFunc / 100) * ageAdjust;
+            const kidney = (state.kidneyFunc / 100) * (1 - Math.max(0, state.age - 30) * 0.01);
+            return { liver, kidney };
+        }
+
+        // Calculate PK parameters
+        function calcPKparams() {
+            const org = getOrganFunction();
+            const Vd = MODEL.baseVd * state.weight;
+            const clearance = (MODEL.baseClearance * state.weight / 70) * (org.liver * 0.6 + org.kidney * 0.3 + 0.1);
+            const ke = (clearance / 1000) / (Vd * 60); // convert to 1/min then 1/hr
+            const halfLife = Math.log(2) / ke;
+            const bioavail = MODEL.bioavailability[state.route];
+            const ka = MODEL.baseKa * (state.route === 'iv' ? 0 : 1);
+            return { Vd, clearance, ke, halfLife, bioavail, ka };
+        }
+
+        // Plasma concentration at time t (one-compartment model)
+        function plasmaConcentration(timeHrs) {
+            const pk = calcPKparams();
+            const dose = state.dosage;
+            const bioavail = pk.bioavail;
+            let ka = pk.ka || 0.001;
+            const ke = pk.ke;
+
+            if (state.route === 'iv') {
+                // C(t) = (dose / Vd) * exp(-ke * t)
+                return (dose / pk.Vd) * Math.exp(-ke * timeHrs);
+            } else {
+                // C(t) = (dose * bioavail * ka / (Vd * (ka - ke))) * (exp(-ke*t) - exp(-ka*t))
+                if (Math.abs(ka - ke) < 0.001) ka = 0.001;
+                const num = dose * bioavail * ka;
+                const denom = pk.Vd * (ka - ke);
+                return (num / denom) * (Math.exp(-ke * timeHrs) - Math.exp(-ka * timeHrs));
+            }
+        }
+
+        // Draw concentration curve
+        function drawConcentrationCurve() {
+            const canvas = canvases.concentration;
+            const w = canvas.width;
+            const h = canvas.height;
+            ctx.concentration.fillStyle = '#0a1428';
+            ctx.concentration.fillRect(0, 0, w, h);
+
+            // Axes
+            ctx.concentration.strokeStyle = '#1f4d7f';
+            ctx.concentration.lineWidth = 1;
+            ctx.concentration.beginPath();
+            ctx.concentration.moveTo(50, 20);
+            ctx.concentration.lineTo(50, h - 40);
+            ctx.concentration.lineTo(w - 20, h - 40);
+            ctx.concentration.stroke();
+
+            // Grid + labels
+            ctx.concentration.fillStyle = '#4da8da';
+            ctx.concentration.font = '11px "Space Mono"';
+            ctx.concentration.textAlign = 'right';
+            ctx.concentration.fillText('Concentration (mg/L)', w - 30, 15);
+
+            ctx.concentration.textAlign = 'center';
+            ctx.concentration.fillText('Time (hours)', w / 2, h - 5);
+
+            // Time scale labels
+            for (let t = 0; t <= 72; t += 12) {
+                const x = 50 + (t / 72) * (w - 70);
+                ctx.concentration.strokeStyle = '#1f4d7f';
+                ctx.concentration.beginPath();
+                ctx.concentration.moveTo(x, h - 40);
+                ctx.concentration.lineTo(x, h - 35);
+                ctx.concentration.stroke();
+                ctx.concentration.textAlign = 'center';
+                ctx.concentration.fillStyle = '#64b5f6';
+                ctx.concentration.font = '10px "Space Mono"';
+                ctx.concentration.fillText(t, x, h - 20);
+            }
+
+            // Concentration scale labels
+            const maxConc = 150;
+            for (let c = 0; c <= maxConc; c += 30) {
+                const y = h - 40 - (c / maxConc) * (h - 60);
+                ctx.concentration.strokeStyle = '#1f4d7f';
+                ctx.concentration.beginPath();
+                ctx.concentration.moveTo(45, y);
+                ctx.concentration.lineTo(50, y);
+                ctx.concentration.stroke();
+                ctx.concentration.textAlign = 'right';
+                ctx.concentration.fillStyle = '#64b5f6';
+                ctx.concentration.font = '10px "Space Mono"';
+                ctx.concentration.fillText(c, 45, y + 4);
+            }
+
+            // Therapeutic window
+            if (state.showTherapeutic) {
+                const minY = h - 40 - (MODEL.therapeuticMin / 150) * (h - 60);
+                const maxY = h - 40 - (MODEL.therapeuticMax / 150) * (h - 60);
+                ctx.concentration.fillStyle = 'rgba(76, 175, 80, 0.15)';
+                ctx.concentration.fillRect(50, maxY, w - 70, minY - maxY);
+                ctx.concentration.strokeStyle = '#4caf50';
+                ctx.concentration.lineWidth = 1;
+                ctx.concentration.setLineDash([3, 3]);
+                ctx.concentration.beginPath();
+                ctx.concentration.moveTo(50, maxY);
+                ctx.concentration.lineTo(w - 20, maxY);
+                ctx.concentration.stroke();
+                ctx.concentration.beginPath();
+                ctx.concentration.moveTo(50, minY);
+                ctx.concentration.lineTo(w - 20, minY);
+                ctx.concentration.stroke();
+                ctx.concentration.setLineDash([]);
+            }
+
+            // Main curve
+            drawCurve(state.route, '#4da8da', 2.5, state.time);
+
+            // Compare routes overlay
+            if (state.showCompareRoutes && state.route !== 'iv') {
+                const routes = ['oral', 'iv', 'im', 'transdermal'];
+                const colors = ['#4da8da', '#ff6b6b', '#ffc107', '#4caf50'];
+                routes.forEach((r, i) => {
+                    if (r !== state.route) drawCurveForRoute(r, colors[i], 1.5, state.time);
+                });
+            }
+
+            // Current time marker
+            const currX = 50 + (state.time / 72) * (w - 70);
+            const currConc = plasmaConcentration(state.time);
+            const currY = Math.max(20, h - 40 - (currConc / 150) * (h - 60));
+            ctx.concentration.fillStyle = '#ff00ff';
+            ctx.concentration.beginPath();
+            ctx.concentration.arc(currX, currY, 5, 0, 2 * Math.PI);
+            ctx.concentration.fill();
+        }
+
+        function drawCurve(route, color, width, maxTime) {
+            const canvas = canvases.concentration;
+            const w = canvas.width;
+            const h = canvas.height;
+            ctx.concentration.strokeStyle = color;
+            ctx.concentration.lineWidth = width;
+            ctx.concentration.beginPath();
+            let first = true;
+            for (let t = 0; t <= maxTime; t += 0.1) {
+                const c = plasmaConcentration(t);
+                const x = 50 + (t / 72) * (w - 70);
+                const y = Math.max(20, h - 40 - (c / 150) * (h - 60));
+                if (first) {
+                    ctx.concentration.moveTo(x, y);
+                    first = false;
+                } else {
+                    ctx.concentration.lineTo(x, y);
+                }
+            }
+            ctx.concentration.stroke();
+        }
+
+        function drawCurveForRoute(route, color, width, maxTime) {
+            const origRoute = state.route;
+            state.route = route;
+            drawCurve(route, color, width, maxTime);
+            state.route = origRoute;
+        }
+
+        // Draw metabolism pie
+        function drawMetabolismPie() {
+            const canvas = canvases.pie;
+            const w = canvas.width;
+            const h = canvas.height;
+            ctx.pie.fillStyle = '#0a1428';
+            ctx.pie.fillRect(0, 0, w, h);
+
+            const org = getOrganFunction();
+            const total = org.liver * 60 + org.kidney * 30 + 10; // biliary
+            const liverPct = (org.liver * 60) / total * 100;
+            const kidneyPct = (org.kidney * 30) / total * 100;
+            const biliary = 100 - liverPct - kidneyPct;
+
+            const cx = w / 2 - 60;
+            const cy = h / 2;
+            const radius = 90;
+
+            // Pie slices
+            const colors = ['#4da8da', '#ff6b6b', '#ffc107'];
+            const labels = ['Liver (CYP450)', 'Kidney', 'Biliary'];
+            const pcts = [liverPct, kidneyPct, biliary];
+
+            let angle = -Math.PI / 2;
+            pcts.forEach((pct, i) => {
+                const sliceAngle = (pct / 100) * 2 * Math.PI;
+                ctx.pie.fillStyle = colors[i];
+                ctx.pie.beginPath();
+                ctx.pie.moveTo(cx, cy);
+                ctx.pie.arc(cx, cy, radius, angle, angle + sliceAngle);
+                ctx.pie.closePath();
+                ctx.pie.fill();
+                angle += sliceAngle;
+            });
+
+            // Legend
+            ctx.pie.font = '12px "Space Mono"';
+            let legendY = cy - 100;
+            pcts.forEach((pct, i) => {
+                ctx.pie.fillStyle = colors[i];
+                ctx.pie.fillRect(cx + 150, legendY, 16, 16);
+                ctx.pie.fillStyle = '#e0e7ff';
+                ctx.pie.textAlign = 'left';
+                ctx.pie.fillText(`${labels[i]}: ${pct.toFixed(1)}%`, cx + 175, legendY + 13);
+                legendY += 25;
+            });
+        }
+
+        // Update stats
+        function updateStats() {
+            const pk = calcPKparams();
+            const peak = plasmaConcentration(pk.halfLife ? 
+                (Math.log(pk.ka / pk.ke) / (pk.ka - pk.ke)) : 0);
+            const tmax = MODEL.tmax[state.route] || 1.5;
+            const auc = (state.dosage * pk.bioavail) / pk.clearance * 60; // rough AUC
+
+            document.getElementById('statPeak').textContent = `${peak.toFixed(1)} mg/L`;
+            document.getElementById('statTmax').textContent = `${tmax.toFixed(1)} hrs`;
+            document.getElementById('statHalf').textContent = `${pk.halfLife.toFixed(1)} hrs`;
+            document.getElementById('statClear').textContent = `${(pk.clearance / 1000 * 60).toFixed(1)} mL/min`;
+            document.getElementById('statAUC').textContent = `${auc.toFixed(1)} mg·h/L`;
+        }
+
+        // Event listeners
+        function attachListeners() {
+            document.getElementById('dosage').addEventListener('input', e => {
+                state.dosage = +e.target.value;
+                document.getElementById('dosageVal').textContent = `${state.dosage} mg`;
+                redraw();
+            });
+            document.getElementById('route').addEventListener('change', e => {
+                state.route = e.target.value;
+                redraw();
+            });
+            document.getElementById('liverFunc').addEventListener('input', e => {
+                state.liverFunc = +e.target.value;
+                document.getElementById('liverVal').textContent = `${state.liverFunc}%`;
+                redraw();
+            });
+            document.getElementById('kidneyFunc').addEventListener('input', e => {
+                state.kidneyFunc = +e.target.value;
+                document.getElementById('kidneyVal').textContent = `${state.kidneyFunc}%`;
+                redraw();
+            });
+            document.getElementById('weight').addEventListener('input', e => {
+                state.weight = +e.target.value;
+                document.getElementById('weightVal').textContent = `${state.weight} kg`;
+                redraw();
+            });
+            document.getElementById('age').addEventListener('input', e => {
+                state.age = +e.target.value;
+                document.getElementById('ageVal').textContent = `${state.age} yrs`;
+                redraw();
+            });
+            document.getElementById('timeSlider').addEventListener('input', e => {
+                state.time = +e.target.value;
+                document.getElementById('timeVal').textContent = `${state.time.toFixed(1)} hrs`;
+                state.isPlaying = false;
+                redraw();
+            });
+
+            document.getElementById('playBtn').addEventListener('click', () => {
+                state.isPlaying = !state.isPlaying;
+                document.getElementById('playBtn').classList.toggle('active');
+                if (state.isPlaying) animate();
+            });
+
+            document.getElementById('resetBtn').addEventListener('click', () => {
+                state.time = 0;
+                document.getElementById('timeSlider').value = 0;
+                document.getElementById('timeVal').textContent = '0.0 hrs';
+                state.isPlaying = false;
+                document.getElementById('playBtn').classList.remove('active');
+                redraw();
+            });
+
+            document.getElementById('toggleTherapeutic').addEventListener('click', e => {
+                state.showTherapeutic = !state.showTherapeutic;
+                e.target.classList.toggle('active');
+                redraw();
+            });
+
+            document.getElementById('toggleCompare').addEventListener('click', e => {
+                state.showCompareRoutes = !state.showCompareRoutes;
+                e.target.classList.toggle('active');
+                redraw();
+            });
+        }
+
+        function animate() {
+            if (!state.isPlaying) return;
+            state.time = Math.min(72, state.time + 0.5);
+            document.getElementById('timeSlider').value = state.time;
+            document.getElementById('timeVal').textContent = `${state.time.toFixed(1)} hrs`;
+            redraw();
+            if (state.time < 72) {
+                setTimeout(animate, 50);
+            } else {
+                state.isPlaying = false;
+                document.getElementById('playBtn').classList.remove('active');
+            }
+        }
+
+        function redraw() {
+            drawConcentrationCurve();
+            drawMetabolismPie();
+            updateStats();
+        }
+
+        // Init
+        attachListeners();
+        redraw();
+    </script>
+</body>
+</html>
