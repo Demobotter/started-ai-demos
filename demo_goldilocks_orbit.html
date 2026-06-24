@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Goldilocks Orbit</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Space+Mono:wght@400&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Space Mono', monospace;
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1a3a 100%);
+            color: #e0e0ff;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1000px;
+            width: 100%;
+            background: rgba(15, 20, 50, 0.9);
+            border: 1px solid #4a5a8a;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        }
+        h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            color: #ffd700;
+            text-align: center;
+        }
+        .subtitle {
+            text-align: center;
+            color: #a0a0ff;
+            margin-bottom: 30px;
+            font-size: 0.95em;
+        }
+        .layout {
+            display: grid;
+            grid-template-columns: 1fr 300px;
+            gap: 30px;
+        }
+        #canvas {
+            background: radial-gradient(ellipse at center, #1a1a3a 0%, #0a0e27 100%);
+            border: 2px solid #4a5a8a;
+            border-radius: 8px;
+            display: block;
+            width: 100%;
+            height: 500px;
+            cursor: grab;
+        }
+        #canvas:active {
+            cursor: grabbing;
+        }
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .control-group {
+            background: rgba(50, 50, 100, 0.4);
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 3px solid #4da8da;
+        }
+        .control-label {
+            font-size: 0.85em;
+            color: #ffd700;
+            margin-bottom: 8px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        select, input[type="range"] {
+            width: 100%;
+            padding: 6px;
+            margin: 5px 0;
+            background: #1a1a3a;
+            border: 1px solid #4a5a8a;
+            color: #e0e0ff;
+            border-radius: 4px;
+            font-family: 'Space Mono', monospace;
+            font-size: 0.9em;
+        }
+        input[type="range"] {
+            cursor: pointer;
+        }
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85em;
+            margin: 6px 0;
+            padding: 6px 0;
+            border-bottom: 1px solid rgba(74, 90, 138, 0.3);
+        }
+        .stat-label {
+            color: #a0a0ff;
+        }
+        .stat-value {
+            color: #ffd700;
+            font-weight: bold;
+        }
+        .status {
+            padding: 8px;
+            border-radius: 4px;
+            text-align: center;
+            font-size: 0.85em;
+            margin-top: 10px;
+        }
+        .hz-zone {
+            background: rgba(76, 175, 80, 0.2);
+            color: #4caf50;
+            border: 1px solid #4caf50;
+        }
+        button {
+            padding: 8px 12px;
+            background: #4da8da;
+            border: none;
+            border-radius: 4px;
+            color: #0a0e27;
+            font-family: 'Space Mono', monospace;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 5px 0;
+            font-size: 0.85em;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background: #6dbae8;
+        }
+        @media (max-width: 768px) {
+            .layout {
+                grid-template-columns: 1fr;
+            }
+            h1 {
+                font-size: 1.8em;
+            }
+            #canvas {
+                height: 400px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌍 Goldilocks Orbit</h1>
+        <p class="subtitle">Drag planets into the habitable zone where liquid water can exist</p>
+        
+        <div class="layout">
+            <canvas id="canvas"></canvas>
+            
+            <div class="controls">
+                <div class="control-group">
+                    <div class="control-label">Star Type</div>
+                    <select id="starType">
+                        <option value="M">M-Dwarf (Proxima)</option>
+                        <option value="K">K-Orange (Kepler)</option>
+                        <option value="G" selected>G-Yellow (Sun)</option>
+                        <option value="F">F-White (Procyon)</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <div class="control-label">Luminosity (L/L☉)</div>
+                    <input type="range" id="luminosity" min="0.01" max="5" step="0.01" value="1">
+                    <div class="stat-row">
+                        <span class="stat-label">L/L☉</span>
+                        <span class="stat-value" id="lumValue">1.00</span>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <div class="control-label">Habitable Zone</div>
+                    <div class="stat-row">
+                        <span class="stat-label">Inner Edge</span>
+                        <span class="stat-value" id="hzInner">0.99 AU</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Outer Edge</span>
+                        <span class="stat-value" id="hzOuter">1.37 AU</span>
+                    </div>
+                    <div class="hz-zone status">HZ highlighted in green</div>
+                </div>
+
+                <div class="control-group">
+                    <div class="control-label">Selected Planet</div>
+                    <div class="stat-row">
+                        <span class="stat-label">Distance</span>
+                        <span class="stat-value" id="planetDist">—</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Insolation</span>
+                        <span class="stat-value" id="planetInsol">—</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Est. Temp</span>
+                        <span class="stat-value" id="planetTemp">—</span>
+                    </div>
+                </div>
+
+                <button onclick="resetPlanets()">Reset Planets</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        // Responsive canvas sizing
+        function resizeCanvas() {
+            const rect = canvas.getBoundingClientRect();
+            canvas.width = rect.width;
+            canvas.height = rect.height;
+            draw();
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // Physics constants
+        const AU_TO_PX = 80; // pixels per AU
+        const SUN_RADIUS = 15;
+        const PLANET_RADIUS = 12;
+        const EARTH_INSOLATION = 1361; // W/m²
+
+        // State
+        let draggingPlanet = null;
+        let planets = [
+            { x: 0.5, y: 2.5, name: 'Mercury', color: '#8b6914' },
+            { x: 1.5, y: 2.5, name: 'Venus', color: '#e89b3c' },
+            { x: 3.0, y: 2.5, name: 'Mars', color: '#c1440e' },
+            { x: 5.2, y: 2.5, name: 'Jupiter', color: '#c88b3a' }
+        ];
+        let luminosity = 1.0;
+        let selectedPlanet = null;
+
+        // Calculate habitable zone boundaries (from Kopparapu 2013)
+        function getHabitableZone(lum) {
+            const hzInner = Math.sqrt(lum / 1.107); // conservative inner edge
+            const hzOuter = Math.sqrt(lum / 0.32);  // runaway greenhouse outer edge
+            return { inner: hzInner, outer: hzOuter };
+        }
+
+        // Calculate insolation at distance d (AU)
+        function getInsolation(lum, distAU) {
+            if (distAU === 0) return 0;
+            return EARTH_INSOLATION * lum / (distAU * distAU);
+        }
+
+        // Estimate effective temperature (simple Stefan-Boltzmann)
+        function getTemperature(insolation) {
+            // Assumes albedo 0.3, emissivity 1
+            const tempK = Math.pow(insolation * (1 - 0.3) / (5.67e-8 * 4), 0.25);
+            return Math.round(tempK);
+        }
+
+        // Update habitability status
+        function updateStats() {
+            const hz = getHabitableZone(luminosity);
+            document.getElementById('lumValue').textContent = luminosity.toFixed(2);
+            document.getElementById('hzInner').textContent = hz.inner.toFixed(2) + ' AU';
+            document.getElementById('hzOuter').textContent = hz.outer.toFixed(2) + ' AU';
+
+            if (selectedPlanet !== null) {
+                const planet = planets[selectedPlanet];
+                const insol = getInsolation(luminosity, planet.x);
+                const temp = getTemperature(insol);
+                document.getElementById('planetDist').textContent = planet.x.toFixed(2) + ' AU';
+                document.getElementById('planetInsol').textContent = insol.toFixed(0) + ' W/m²';
+                document.getElementById('planetTemp').textContent = temp + ' K';
+            } else {
+                document.getElementById('planetDist').textContent = '—';
+                document.getElementById('planetInsol').textContent = '—';
+                document.getElementById('planetTemp').textContent = '—';
+            }
+        }
+
+        function draw() {
+            const w = canvas.width;
+            const h = canvas.height;
+            const centerX = w / 2;
+            const centerY = h / 2;
+
+            // Background
+            ctx.fillStyle = 'rgba(26, 26, 58, 0.5)';
+            ctx.fillRect(0, 0, w, h);
+
+            const hz = getHabitableZone(luminosity);
+
+            // Draw habitable zone
+            ctx.fillStyle = 'rgba(76, 175, 80, 0.15)';
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, hz.outer * AU_TO_PX, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = 'rgba(15, 20, 50, 0.9)';
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, hz.inner * AU_TO_PX, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Draw HZ boundary labels
+            ctx.strokeStyle = '#4caf50';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([5, 5]);
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, hz.inner * AU_TO_PX, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, hz.outer * AU_TO_PX, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Draw orbital paths (faint)
+            ctx.strokeStyle = 'rgba(74, 90, 138, 0.2)';
+            ctx.lineWidth = 1;
+            for (const planet of planets) {
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, planet.x * AU_TO_PX, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+
+            // Draw star
+            ctx.fillStyle = '#ffd700';
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, SUN_RADIUS, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#ffed4e';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Draw planets
+            for (let i = 0; i < planets.length; i++) {
+                const planet = planets[i];
+                const px = centerX + planet.x * AU_TO_PX * Math.cos((i * 90 + Date.now() / 3000) * Math.PI / 180);
+                const py = centerY + planet.x * AU_TO_PX * Math.sin((i * 90 + Date.now() / 3000) * Math.PI / 180);
+
+                // Draw planet
+                ctx.fillStyle = planet.color;
+                ctx.beginPath();
+                ctx.arc(px, py, PLANET_RADIUS, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Selection ring
+                if (selectedPlanet === i) {
+                    ctx.strokeStyle = '#ffff00';
+                    ctx.lineWidth = 3;
+                    ctx.beginPath();
+                    ctx.arc(px, py, PLANET_RADIUS + 6, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+
+                // Highlight habitability
+                const insol = getInsolation(luminosity, planet.x);
+                if (insol > 0.25 && insol < 1.5) {
+                    ctx.strokeStyle = '#4caf50';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.arc(px, py, PLANET_RADIUS + 4, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+
+                // Store screen positions for interaction
+                planet.screenX = px;
+                planet.screenY = py;
+
+                // Label
+                ctx.fillStyle = '#e0e0ff';
+                ctx.font = 'bold 11px "Space Mono"';
+                ctx.textAlign = 'center';
+                ctx.fillText(planet.name, px, py + PLANET_RADIUS + 20);
+            }
+
+            // HZ zone labels
+            ctx.fillStyle = '#4caf50';
+            ctx.font = '11px "Space Mono"';
+            ctx.textAlign = 'left';
+            ctx.fillText('HZ', centerX + hz.inner * AU_TO_PX + 10, centerY - 10);
+            ctx.fillText(`${hz.outer.toFixed(2)} AU`, centerX + hz.outer * AU_TO_PX + 10, centerY + 10);
+        }
+
+        function resetPlanets() {
+            planets = [
+                { x: 0.5, y: 2.5, name: 'Mercury', color: '#8b6914' },
+                { x: 1.5, y: 2.5, name: 'Venus', color: '#e89b3c' },
+                { x: 3.0, y: 2.5, name: 'Mars', color: '#c1440e' },
+                { x: 5.2, y: 2.5, name: 'Jupiter', color: '#c88b3a' }
+            ];
+            selectedPlanet = null;
+            updateStats();
+            draw();
+        }
+
+        // Interaction
+        canvas.addEventListener('mousedown', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const mx = e.clientX - rect.left;
+            const my = e.clientY - rect.top;
+            
+            for (let i = 0; i < planets.length; i++) {
+                const p = planets[i];
+                const dx = mx - p.screenX;
+                const dy = my - p.screenY;
+                if (Math.sqrt(dx * dx + dy * dy) < PLANET_RADIUS + 10) {
+                    draggingPlanet = i;
+                    selectedPlanet = i;
+                    updateStats();
+                    break;
+                }
+            }
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            if (draggingPlanet !== null) {
+                const rect = canvas.getBoundingClientRect();
+                const mx = e.clientX - rect.left;
+                const my = e.clientY - rect.top;
+                const centerX = canvas.width / 2;
+                const centerY = canvas.height / 2;
+                
+                const dx = mx - centerX;
+                const dy = my - centerY;
+                const distAU = Math.sqrt(dx * dx + dy * dy) / AU_TO_PX;
+                planets[draggingPlanet].x = Math.max(0.1, Math.min(distAU, 8));
+                
+                updateStats();
+                draw();
+            }
+        });
+
+        canvas.addEventListener('mouseup', () => {
+            draggingPlanet = null;
+        });
+
+        canvas.addEventListener('click', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const mx = e.clientX - rect.left;
+            const my = e.clientY - rect.top;
+            
+            let found = false;
+            for (let i = 0; i < planets.length; i++) {
+                const p = planets[i];
+                const dx = mx - p.screenX;
+                const dy = my - p.screenY;
+                if (Math.sqrt(dx * dx + dy * dy) < PLANET_RADIUS + 10) {
+                    selectedPlanet = i;
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) selectedPlanet = null;
+            updateStats();
+            draw();
+        });
+
+        // Star type presets
+        document.getElementById('starType').addEventListener('change', (e) => {
+            const presets = {
+                'M': 0.08,  // Proxima Centauri
+                'K': 0.45,  // Kepler-452
+                'G': 1.0,   // Sun
+                'F': 1.5    // Procyon A
+            };
+            luminosity = presets[e.target.value];
+            document.getElementById('luminosity').value = luminosity;
+            updateStats();
+            draw();
+        });
+
+        document.getElementById('luminosity').addEventListener('input', (e) => {
+            luminosity = parseFloat(e.target.value);
+            updateStats();
+            draw();
+        });
+
+        // Animation loop
+        setInterval(draw, 50);
+        updateStats();
+    </script>
+</body>
+</html>
