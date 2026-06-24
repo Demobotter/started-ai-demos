@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vocal Melody Matcher</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: linear-gradient(135deg, #0a1428 0%, #0f1f3a 100%);
+            color: #e0e0e0;
+            font-family: 'Space Mono', monospace;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            max-width: 900px;
+            width: 100%;
+            background: rgba(20, 35, 60, 0.9);
+            border: 2px solid #4da8da;
+            border-radius: 16px;
+            padding: 40px;
+            box-shadow: 0 8px 32px rgba(77, 168, 218, 0.15);
+        }
+        h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.5rem;
+            color: #64b5f6;
+            margin-bottom: 8px;
+            text-align: center;
+        }
+        .subtitle {
+            text-align: center;
+            color: #9db4c4;
+            margin-bottom: 30px;
+            font-size: 0.9rem;
+        }
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        @media (max-width: 768px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+            h1 {
+                font-size: 1.8rem;
+            }
+            .container {
+                padding: 20px;
+            }
+        }
+        .canvas-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .canvas-label {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.1rem;
+            color: #4da8da;
+            border-bottom: 1px solid #4da8da;
+            padding-bottom: 8px;
+        }
+        canvas {
+            background: #0a1428;
+            border: 1px solid #4da8da;
+            border-radius: 8px;
+            display: block;
+            width: 100%;
+            height: auto;
+        }
+        #waveformCanvas {
+            max-height: 200px;
+        }
+        #scoreCanvas {
+            max-height: 200px;
+        }
+        .control-panel {
+            background: rgba(77, 168, 218, 0.05);
+            border: 1px solid #4da8da;
+            border-radius: 12px;
+            padding: 20px;
+        }
+        .control-group {
+            margin-bottom: 20px;
+        }
+        .control-label {
+            display: block;
+            font-size: 0.85rem;
+            color: #4da8da;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+        button {
+            background: linear-gradient(135deg, #4da8da, #357abd);
+            color: white;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 6px;
+            font-family: 'Space Mono', monospace;
+            font-size: 0.85rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-right: 8px;
+            margin-bottom: 10px;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(77, 168, 218, 0.3);
+        }
+        button.active {
+            background: linear-gradient(135deg, #00ff88, #00cc66);
+            color: #0a1428;
+        }
+        select {
+            background: rgba(77, 168, 218, 0.1);
+            color: #e0e0e0;
+            border: 1px solid #4da8da;
+            padding: 8px;
+            border-radius: 6px;
+            font-family: 'Space Mono', monospace;
+            font-size: 0.85rem;
+            width: 100%;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-top: 15px;
+        }
+        .stat-box {
+            background: rgba(77, 168, 218, 0.1);
+            border-left: 3px solid #4da8da;
+            padding: 12px;
+            border-radius: 6px;
+        }
+        .stat-label {
+            font-size: 0.75rem;
+            color: #7dd3fc;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+        .stat-value {
+            font-size: 1.2rem;
+            color: #64b5f6;
+            font-weight: bold;
+            font-family: 'Space Mono', monospace;
+        }
+        .feedback {
+            text-align: center;
+            font-size: 1.1rem;
+            color: #7dd3fc;
+            padding: 15px;
+            background: rgba(77, 168, 218, 0.1);
+            border-radius: 8px;
+            margin-top: 20px;
+            font-weight: bold;
+        }
+        .melody-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎤 Vocal Melody</h1>
+        <p class="subtitle">Sing, match, and learn pitch</p>
+        
+        <div class="main-grid">
+            <!-- Left: Canvases -->
+            <div class="canvas-panel">
+                <div>
+                    <div class="canvas-label">Frequency</div>
+                    <canvas id="waveformCanvas" width="300" height="150"></canvas>
+                </div>
+                <div>
+                    <div class="canvas-label">Score</div>
+                    <canvas id="scoreCanvas" width="300" height="150"></canvas>
+                </div>
+            </div>
+            
+            <!-- Right: Controls -->
+            <div class="control-panel">
+                <div class="control-group">
+                    <label class="control-label">Target Melody</label>
+                    <div class="melody-buttons">
+                        <button class="melody-btn" data-melody="mary">Mary Had a Lamb</button>
+                        <button class="melody-btn" data-melody="twinkle">Twinkle Star</button>
+                        <button class="melody-btn" data-melody="happy">Happy Birthday</button>
+                        <button class="melody-btn" data-melody="jingle">Jingle Bells</button>
+                        <button class="melody-btn" data-melody="joy">Ode to Joy</button>
+                    </div>
+                </div>
+                
+                <div class="control-group">
+                    <button id="recordBtn" style="width: 100%; padding: 12px; font-size: 0.95rem;">🎙️ Start Recording</button>
+                </div>
+                
+                <div class="control-group">
+                    <label class="control-label">
+                        <input type="checkbox" id="guideToggle"> Play Guide Tone
+                    </label>
+                </div>
+                
+                <div class="control-group">
+                    <label class="control-label">Your Range</label>
+                    <div class="stat-box">
+                        <div class="stat-label">Min–Max Hz</div>
+                        <div class="stat-value" id="rangeDisplay">—</div>
+                    </div>
+                </div>
+                
+                <div class="stats-grid">
+                    <div class="stat-box">
+                        <div class="stat-label">Current Pitch</div>
+                        <div class="stat-value" id="pitchDisplay">—</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">Match Score</div>
+                        <div class="stat-value" id="scoreDisplay">—%</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">Vibrato</div>
+                        <div class="stat-value" id="vibratoDisplay">—</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">Stability</div>
+                        <div class="stat-value" id="stabilityDisplay">—</div>
+                    </div>
+                </div>
+                
+                <div class="feedback" id="feedback">Hum a note to begin</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Target melodies (note frequencies in Hz, A4=440)
+        const melodies = {
+            mary: [
+                { note: 'E4', hz: 329.63, duration: 0.5 },
+                { note: 'D4', hz: 293.66, duration: 0.5 },
+                { note: 'C4', hz: 261.63, duration: 0.5 },
+                { note: 'D4', hz: 293.66, duration: 0.5 },
+                { note: 'E4', hz: 329.63, duration: 0.5 },
+                { note: 'E4', hz: 329.63, duration: 0.5 },
+                { note: 'E4', hz: 329.63, duration: 1 }
+            ],
+            twinkle: [
+                { note: 'C4', hz: 261.63, duration: 0.5 },
+                { note: 'C4', hz: 261.63, duration: 0.5 },
+                { note: 'G4', hz: 392.00, duration: 0.5 },
+                { note: 'A4', hz: 440.00, duration: 0.5 },
+                { note: 'A4', hz: 440.00, duration: 0.5 },
+                { note: 'A4', hz: 440.00, duration: 1 }
+            ],
+            happy: [
+                { note: 'C4', hz: 261.63, duration: 0.75 },
+                { note: 'C4', hz: 261.63, duration: 0.25 },
+                { note: 'C4', hz: 261.63, duration: 0.5 },
+                { note: 'D4', hz: 293.66, duration: 0.5 },
+                { note: 'E4', hz: 329.63, duration: 1 }
+            ],
+            jingle: [
+                { note: 'E4', hz: 329.63, duration: 0.5 },
+                { note: 'E4', hz: 329.63, duration: 0.5 },
+                { note: 'E4', hz: 329.63, duration: 0.5 },
+                { note: 'E4', hz: 329.63, duration: 0.5 },
+                { note: 'E4', hz: 329.63, duration: 0.5 },
+                { note: 'E4', hz: 329.63, duration: 0.5 },
+                { note: 'E4', hz: 329.63, duration: 1 }
+            ],
+            joy: [
+                { note: 'E4', hz: 329.63, duration: 0.5 },
+                { note: 'G4', hz: 392.00, duration: 0.5 },
+                { note: 'A4', hz: 440.00, duration: 0.5 },
+                { note: 'B4', hz: 493.88, duration: 0.5 },
+                { note: 'C5', hz: 523.25, duration: 1 }
+            ]
+        };
+
+        let currentMelody = 'mary';
+        let recording = false;
+        let audioContext = null;
+        let analyser = null;
+        let microphone = null;
+        let pitchBuffer = [];
+        let targetNoteIndex = 0;
+        let matchedNotes = [];
+        let minFreq = Infinity;
+        let maxFreq = 0;
+        let frequencyHistory = [];
+
+        const recordBtn = document.getElementById('recordBtn');
+        const guideToggle = document.getElementById('guideToggle');
+        const waveCanvas = document.getElementById('waveformCanvas');
+        const scoreCanvas = document.getElementById('scoreCanvas');
+        const waveCtx = waveCanvas.getContext('2d');
+        const scoreCtx = scoreCanvas.getContext('2d');
+
+        // Select melody
+        document.querySelectorAll('.melody-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.melody-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentMelody = btn.dataset.melody;
+                targetNoteIndex = 0;
+                matchedNotes = [];
+                updateScore();
+            });
+        });
+
+        // Initialize melody
+        document.querySelector('[data-melody="mary"]').classList.add('active');
+
+        recordBtn.addEventListener('click', async () => {
+            if (!recording) {
+                try {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    microphone = audioContext.createMediaStreamSource(stream);
+                    analyser = audioContext.createAnalyser();
+                    analyser.fftSize = 4096;
+                    microphone.connect(analyser);
+                    recording = true;
+                    recordBtn.textContent = '🛑 Stop Recording';
+                    recordBtn.style.background = 'linear-gradient(135deg, #ff6b6b, #cc5555)';
+                    pitchBuffer = [];
+                    startPitchDetection();
+                } catch (e) {
+                    document.getElementById('feedback').textContent = 'Microphone access denied';
+                }
+            } else {
+                recording = false;
+                recordBtn.textContent = '🎙️ Start Recording';
+                recordBtn.style.background = 'linear-gradient(135deg, #4da8da, #357abd)';
+                microphone.disconnect();
+            }
+        });
+
+        function startPitchDetection() {
+            if (!recording) return;
+            const dataArray = new Uint8Array(analyser.frequencyBinCount);
+            analyser.getByteFrequencyData(dataArray);
+            const fundamentalFreq = detectPitch(dataArray);
+            if (fundamentalFreq) {
+                pitchBuffer.push(fundamentalFreq);
+                frequencyHistory.push(fundamentalFreq);
+                if (frequencyHistory.length > 100) frequencyHistory.shift();
+                minFreq = Math.min(minFreq, fundamentalFreq);
+                maxFreq = Math.max(maxFreq, fundamentalFreq);
+                updateMetrics(fundamentalFreq);
+                updateScore();
+            }
+            drawWaveform();
+            requestAnimationFrame(startPitchDetection);
+        }
+
+        function detectPitch(dataArray) {
+            // Autocorrelation pitch detection
+            const buffer = new Float32Array(dataArray.length);
+            for (let i = 0; i < dataArray.length; i++) {
+                buffer[i] = (dataArray[i] - 128) / 128;
+            }
+            const sampleRate = audioContext.sampleRate;
+            const autocorr = autocorrelate(buffer, sampleRate);
+            return autocorr > 80 && autocorr < 400 ? autocorr : null;
+        }
+
+        function autocorrelate(buffer, sampleRate) {
+            let best_offset = -1;
+            let best_correlation = 0;
+            let rms = 0;
+            for (let i = 0; i < buffer.length; i++) rms += buffer[i] * buffer[i];
+            rms = Math.sqrt(rms / buffer.length);
+            if (rms < 0.01) return -1;
+            let lastCorrelation = 1;
+            for (let offset = 2; offset < buffer.length - 20; offset++) {
+                let correlation = 0;
+                for (let i = 0; i < buffer.length - offset; i++) {
+                    correlation += Math.abs(buffer[i] * buffer[i + offset]);
+                }
+                correlation = 1 - (correlation / (buffer.length - offset)) / (2 * rms * rms);
+                if (correlation > 0.9 && correlation > lastCorrelation) {
+                    let foundGoodCorrelation = false;
+                    if (correlation > best_correlation) {
+                        best_correlation = correlation;
+                        best_offset = offset;
+                        foundGoodCorrelation = true;
+                    }
+                    if (foundGoodCorrelation) break;
+                }
+                lastCorrelation = correlation;
+            }
+            if (best_correlation > 0.01) return sampleRate / best_offset;
+            return -1;
+        }
+
+        function hzToNote(hz) {
+            const A4 = 440;
+            const C0 = A4 * Math.pow(2, -4.75);
+            const h = 12 * Math.log2(hz / C0);
+            const octave = Math.floor(h / 12);
+            const cents = h % 12;
+            const notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+            return notes[Math.round(cents)] + octave;
+        }
+
+        function updateMetrics(hz) {
+            document.getElementById('pitchDisplay').textContent = Math.round(hz) + ' Hz';
+            const vibrato = frequencyHistory.length > 5 ? Math.sqrt(frequencyHistory.slice(-5).reduce((a, b) => a + (b - frequencyHistory[frequencyHistory.length - 1]) ** 2, 0) / 5) : 0;
+            document.getElementById('vibratoDisplay').textContent = (vibrato > 5 ? 'High' : vibrato > 2 ? 'Med' : 'Low');
+            const stability = 100 - Math.min(100, vibrato * 10);
+            document.getElementById('stabilityDisplay').textContent = Math.round(stability) + '%';
+            if (minFreq !== Infinity && maxFreq > minFreq) {
+                document.getElementById('rangeDisplay').textContent = Math.round(minFreq) + '–' + Math.round(maxFreq) + ' Hz';
+            }
+        }
+
+        function updateScore() {
+            const melody = melodies[currentMelody];
+            if (pitchBuffer.length === 0) {
+                document.getElementById('scoreDisplay').textContent = '—%';
+                document.getElementById('feedback').textContent = 'Hum a note to begin';
+                return;
+            }
+            const currentHz = pitchBuffer[pitchBuffer.length - 1];
+            const targetHz = melody[targetNoteIndex % melody.length].hz;
+            const cents = 1200 * Math.log2(currentHz / targetHz);
+            let feedback = '';
+            if (Math.abs(cents) < 50) {
+                feedback = '✓ On pitch!';
+                if (!matchedNotes.includes(targetNoteIndex)) {
+                    matchedNotes.push(targetNoteIndex);
+                    targetNoteIndex = (targetNoteIndex + 1) % melody.length;
+                }
+            } else if (cents > 50) {
+                feedback = '↑ Sharp ' + Math.round(cents) + '¢';
+            } else {
+                feedback = '↓ Flat ' + Math.round(Math.abs(cents)) + '¢';
+            }
+            const score = Math.max(0, Math.min(100, 100 - Math.abs(cents) / 10));
+            document.getElementById('scoreDisplay').textContent = Math.round(score) + '%';
+            document.getElementById('feedback').textContent = feedback;
+        }
+
+        function drawWaveform() {
+            waveCtx.fillStyle = '#0a1428';
+            waveCtx.fillRect(0, 0, waveCanvas.width, waveCanvas.height);
+            waveCtx.strokeStyle = '#4da8da';
+            waveCtx.lineWidth = 2;
+            waveCtx.beginPath();
+            const step = Math.max(1, Math.floor(frequencyHistory.length / waveCanvas.width));
+            for (let i = 0; i < frequencyHistory.length; i += step) {
+                const x = (i / frequencyHistory.length) * waveCanvas.width;
+                const y = waveCanvas.height - ((frequencyHistory[i] - 80) / 320) * waveCanvas.height;
+                if (i === 0) waveCtx.moveTo(x, y);
+                else waveCtx.lineTo(x, y);
+            }
+            waveCtx.stroke();
+            drawScoreComparison();
+        }
+
+        function drawScoreComparison() {
+            scoreCtx.fillStyle = '#0a1428';
+            scoreCtx.fillRect(0, 0, scoreCanvas.width, scoreCanvas.height);
+            const melody = melodies[currentMelody];
+            const barWidth = scoreCanvas.width / melody.length;
+            for (let i = 0; i < melody.length; i++) {
+                const x = i * barWidth;
+                const targetHz = melody[i].hz;
+                const y = scoreCanvas.height - ((targetHz - 200) / 400) * scoreCanvas.height;
+                scoreCtx.fillStyle = matchedNotes.includes(i) ? '#00ff88' : '#4da8da';
+                scoreCtx.fillRect(x + 2, y - 8, barWidth - 4, 16);
+                scoreCtx.fillStyle = '#7dd3fc';
+                scoreCtx.font = '10px Space Mono';
+                scoreCtx.textAlign = 'center';
+                scoreCtx.fillText(melody[i].note, x + barWidth / 2, scoreCanvas.height - 5);
+            }
+        }
+
+        guideToggle.addEventListener('change', () => {
+            if (guideToggle.checked) playGuideTone();
+        });
+
+        function playGuideTone() {
+            if (!audioContext) return;
+            const melody = melodies[currentMelody];
+            let time = audioContext.currentTime;
+            for (const note of melody) {
+                const osc = audioContext.createOscillator();
+                const gain = audioContext.createGain();
+                osc.connect(gain);
+                gain.connect(audioContext.destination);
+                osc.frequency.value = note.hz;
+                gain.gain.setValueAtTime(0.3, time);
+                gain.gain.setValueAtTime(0, time + note.duration + 0.1);
+                osc.start(time);
+                osc.stop(time + note.duration + 0.1);
+                time += note.duration;
+            }
+        }
+
+        // Initial draw
+        waveCtx.fillStyle = '#0a1428';
+        waveCtx.fillRect(0, 0, waveCanvas.width, waveCanvas.height);
+        waveCtx.fillStyle = '#4da8da';
+        waveCtx.font = '12px Space Mono';
+        waveCtx.textAlign = 'center';
+        waveCtx.fillText('Start recording to see frequency', waveCanvas.width / 2, waveCanvas.height / 2);
+        
+        scoreCtx.fillStyle = '#0a1428';
+        scoreCtx.fillRect(0, 0, scoreCanvas.width, scoreCanvas.height);
+        scoreCtx.fillStyle = '#4da8da';
+        scoreCtx.textAlign = 'center';
+        scoreCtx.fillText('Pick a melody and sing', scoreCanvas.width / 2, scoreCanvas.height / 2);
+    </script>
+</body>
+</html>
