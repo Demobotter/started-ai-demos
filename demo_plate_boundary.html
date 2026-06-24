@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Plate Collision Simulator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Source+Sans+Pro:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: 'Source Sans Pro', sans-serif;
+      background: linear-gradient(135deg, #0a1428 0%, #1a2d4a 100%);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 1rem;
+      color: #a8d5ff;
+    }
+    .container {
+      max-width: 1200px;
+      width: 100%;
+      background: rgba(15, 25, 50, 0.9);
+      border-radius: 12px;
+      border: 2px solid #4da8da;
+      padding: 2rem;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    }
+    h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: 2.5rem;
+      margin-bottom: 0.5rem;
+      color: #7dd3fc;
+      text-align: center;
+    }
+    .subtitle {
+      text-align: center;
+      margin-bottom: 2rem;
+      color: #6ba3d0;
+      font-size: 0.95rem;
+    }
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+      margin-bottom: 2rem;
+    }
+    canvas {
+      background: #0a1428;
+      border: 1px solid #1f4d7f;
+      border-radius: 8px;
+      width: 100%;
+      height: 350px;
+      display: block;
+    }
+    .controls {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+    .control-group {
+      background: rgba(30, 60, 90, 0.6);
+      padding: 1rem;
+      border-radius: 8px;
+      border-left: 4px solid #4da8da;
+    }
+    .control-label {
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      color: #7dd3fc;
+      font-size: 0.95rem;
+    }
+    .control-row {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+      margin-bottom: 0.5rem;
+    }
+    input[type="range"] {
+      flex: 1;
+      accent-color: #4da8da;
+      cursor: pointer;
+    }
+    .value-display {
+      min-width: 50px;
+      text-align: right;
+      color: #4da8da;
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+    select {
+      width: 100%;
+      padding: 0.5rem;
+      background: #1a3a5a;
+      color: #a8d5ff;
+      border: 1px solid #4da8da;
+      border-radius: 4px;
+      font-family: 'Source Sans Pro', sans-serif;
+      cursor: pointer;
+    }
+    .button-group {
+      display: flex;
+      gap: 0.75rem;
+      margin-top: 1rem;
+    }
+    button {
+      flex: 1;
+      padding: 0.75rem;
+      background: #4da8da;
+      color: #0a1428;
+      border: none;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: 'Source Sans Pro', sans-serif;
+      transition: background 0.2s;
+    }
+    button:hover {
+      background: #7dd3fc;
+    }
+    button.secondary {
+      background: #1f4d7f;
+      color: #7dd3fc;
+    }
+    button.secondary:hover {
+      background: #2a6dad;
+    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+      margin-top: 1.5rem;
+    }
+    .stat-box {
+      background: rgba(30, 60, 90, 0.8);
+      padding: 1rem;
+      border-radius: 8px;
+      border-left: 4px solid #4da8da;
+      text-align: center;
+    }
+    .stat-label {
+      font-size: 0.8rem;
+      color: #6ba3d0;
+      margin-bottom: 0.5rem;
+    }
+    .stat-value {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: #7dd3fc;
+    }
+    @media (max-width: 768px) {
+      .main-grid {
+        grid-template-columns: 1fr;
+      }
+      h1 {
+        font-size: 1.8rem;
+      }
+      .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🌍 Plate Collision</h1>
+    <p class="subtitle">Adjust plate velocities, watch pressure accumulate, simulate earthquakes with real geophysics.</p>
+    
+    <div class="main-grid">
+      <div>
+        <canvas id="plateCanvas"></canvas>
+        <canvas id="pressureCanvas"></canvas>
+      </div>
+      
+      <div class="controls">
+        <div class="control-group">
+          <div class="control-label">Scenario</div>
+          <select id="scenarioSelect">
+            <option value="ridge">Mid-Ocean Ridge (2–3 cm/yr spreading)</option>
+            <option value="subduction">Subduction Zone (5–11 cm/yr convergence)</option>
+            <option value="collision">Continental Collision (slow mega-quakes)</option>
+          </select>
+        </div>
+        
+        <div class="control-group">
+          <div class="control-label">Plate 1 Velocity (mm/yr)</div>
+          <div class="control-row">
+            <input type="range" id="vel1" min="0" max="100" value="20">
+            <span class="value-display" id="vel1Val">20</span>
+          </div>
+        </div>
+        
+        <div class="control-group">
+          <div class="control-label">Plate 2 Velocity (mm/yr)</div>
+          <div class="control-row">
+            <input type="range" id="vel2" min="0" max="100" value="20">
+            <span class="value-display" id="vel2Val">20</span>
+          </div>
+        </div>
+        
+        <div class="control-group">
+          <div class="control-label">Convergence Angle (°)</div>
+          <div class="control-row">
+            <input type="range" id="angle" min="0" max="180" value="90">
+            <span class="value-display" id="angleVal">90°</span>
+          </div>
+        </div>
+        
+        <div class="control-group">
+          <div class="control-label">Pressure Threshold (MPa)</div>
+          <div class="control-row">
+            <input type="range" id="threshold" min="100" max="1000" value="500">
+            <span class="value-display" id="thresholdVal">500</span>
+          </div>
+        </div>
+        
+        <div class="control-group">
+          <div class="control-label">Simulation Speed</div>
+          <div class="control-row">
+            <input type="range" id="speed" min="1" max="10" value="3">
+            <span class="value-display" id="speedVal">3×</span>
+          </div>
+        </div>
+        
+        <div class="button-group">
+          <button id="playBtn" class="secondary">▶ Play</button>
+          <button id="resetBtn" class="secondary">↺ Reset</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="stats-grid">
+      <div class="stat-box">
+        <div class="stat-label">Plate Displacement</div>
+        <div class="stat-value" id="displacement">0 km</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Current Pressure</div>
+        <div class="stat-value" id="pressure">0 MPa</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Earthquakes</div>
+        <div class="stat-value" id="eqCount">0</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Largest Magnitude</div>
+        <div class="stat-value" id="maxMag">0.0</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Energy Released</div>
+        <div class="stat-value" id="energy">0 J</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Time Elapsed</div>
+        <div class="stat-value" id="elapsed">0 y</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('plateCanvas');
+    const ctx = canvas.getContext('2d');
+    const pressureCanvas = document.getElementById('pressureCanvas');
+    const pctx = pressureCanvas.getContext('2d');
+    
+    // Resize canvases
+    function resizeCanvases() {
+      canvas.width = canvas.offsetWidth;
+      canvas.height = canvas.offsetHeight;
+      pressureCanvas.width = pressureCanvas.offsetWidth;
+      pressureCanvas.height = pressureCanvas.offsetHeight;
+    }
+    resizeCanvases();
+    window.addEventListener('resize', resizeCanvases);
+    
+    // State
+    let state = {
+      vel1: 20,
+      vel2: 20,
+      angle: 90,
+      threshold: 500,
+      speed: 3,
+      scenario: 'ridge',
+      playing: false,
+      time: 0, // years
+      displacement: 0, // km
+      pressure: 0, // MPa
+      earthquakes: 0,
+      maxMag: 0,
+      totalEnergy: 0,
+      earthquakeParticles: [],
+      animationId: null
+    };
+    
+    const scenarios = {
+      ridge: { vel1: 25, vel2: 25, angle: 180, threshold: 300 }, // spreading
+      subduction: { vel1: 50, vel2: 10, angle: 45, threshold: 400 }, // convergence + tilt
+      collision: { vel1: 8, vel2: 8, angle: 0, threshold: 800 } // head-on slow
+    };
+    
+    // UI listeners
+    document.getElementById('scenarioSelect').addEventListener('change', (e) => {
+      const s = scenarios[e.target.value];
+      state.scenario = e.target.value;
+      document.getElementById('vel1').value = s.vel1;
+      document.getElementById('vel1Val').textContent = s.vel1;
+      document.getElementById('vel2').value = s.vel2;
+      document.getElementById('vel2Val').textContent = s.vel2;
+      document.getElementById('angle').value = s.angle;
+      document.getElementById('angleVal').textContent = s.angle + '°';
+      document.getElementById('threshold').value = s.threshold;
+      document.getElementById('thresholdVal').textContent = s.threshold;
+      state.vel1 = s.vel1;
+      state.vel2 = s.vel2;
+      state.angle = s.angle;
+      state.threshold = s.threshold;
+    });
+    
+    document.getElementById('vel1').addEventListener('input', (e) => {
+      state.vel1 = parseInt(e.target.value);
+      document.getElementById('vel1Val').textContent = state.vel1;
+    });
+    
+    document.getElementById('vel2').addEventListener('input', (e) => {
+      state.vel2 = parseInt(e.target.value);
+      document.getElementById('vel2Val').textContent = state.vel2;
+    });
+    
+    document.getElementById('angle').addEventListener('input', (e) => {
+      state.angle = parseInt(e.target.value);
+      document.getElementById('angleVal').textContent = state.angle + '°';
+    });
+    
+    document.getElementById('threshold').addEventListener('input', (e) => {
+      state.threshold = parseInt(e.target.value);
+      document.getElementById('thresholdVal').textContent = state.threshold;
+    });
+    
+    document.getElementById('speed').addEventListener('input', (e) => {
+      state.speed = parseInt(e.target.value);
+      document.getElementById('speedVal').textContent = state.speed + '×';
+    });
+    
+    document.getElementById('playBtn').addEventListener('click', () => {
+      state.playing = !state.playing;
+      document.getElementById('playBtn').textContent = state.playing ? '⏸ Pause' : '▶ Play';
+      if (state.playing) animate();
+    });
+    
+    document.getElementById('resetBtn').addEventListener('click', () => {
+      state.time = 0;
+      state.displacement = 0;
+      state.pressure = 0;
+      state.earthquakes = 0;
+      state.maxMag = 0;
+      state.totalEnergy = 0;
+      state.earthquakeParticles = [];
+      state.playing = false;
+      document.getElementById('playBtn').textContent = '▶ Play';
+      render();
+    });
+    
+    function calculatePressure() {
+      // Pressure accumulates based on convergence rate (mm/yr converted to units)
+      // and angle (affects effective overlap). Real USGS spreading/convergence rates used.
+      const rad = state.angle * Math.PI / 180;
+      const convergenceRate = (state.vel1 + state.vel2) * Math.abs(Math.cos(rad)); // mm/yr
+      // Scale pressure accumulation: ~0.5 MPa per mm/yr convergence
+      const pressureRate = convergenceRate * 0.5;
+      state.pressure += pressureRate * (state.speed * 0.016); // Update per frame
+      state.displacement += convergenceRate * 0.001 * state.speed * 0.016; // km
+    }
+    
+    function checkEarthquake() {
+      if (state.pressure >= state.threshold) {
+        // Magnitude ∝ log10(energy). Energy ∝ stress drop × volume.
+        // Simplified: magnitude ~ 4 + 0.5 * log10(pressure release)
+        const pressureDrop = state.pressure * 0.7; // 70% stress release
+        const energy = Math.pow(10, 1.5 * (4.5 + 0.5 * Math.log10(Math.max(pressureDrop, 1))));
+        const magnitude = 4.5 + 0.5 * Math.log10(Math.max(pressureDrop, 1));
+        
+        state.earthquakes++;
+        state.maxMag = Math.max(state.maxMag, magnitude);
+        state.totalEnergy += energy;
+        state.pressure = 0;
+        
+        // Create earthquake particle burst at boundary
+        for (let i = 0; i < 8; i++) {
+          const angle = (i / 8) * Math.PI * 2;
+          state.earthquakeParticles.push({
+            x: canvas.width / 2,
+            y: canvas.height / 2,
+            vx: Math.cos(angle) * (2 + magnitude * 0.5),
+            vy: Math.sin(angle) * (2 + magnitude * 0.5),
+            age: 0,
+            life: 30,
+            magnitude: magnitude
+          });
+        }
+      }
+    }
+    
+    function updateEarthquakeParticles() {
+      for (let p of state.earthquakeParticles) {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.age++;
+      }
+      state.earthquakeParticles = state.earthquakeParticles.filter(p => p.age < p.life);
+    }
+    
+    function drawPlates() {
+      ctx.fillStyle = '#0a1428';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // Draw plates as boxes
+      const plateWidth = canvas.width / 3;
+      const plateHeight = canvas.height * 0.6;
+      const centerY = canvas.height / 2;
+      
+      // Plate 1 (left, moving right)
+      ctx.fillStyle = '#3a5a7a';
+      ctx.fillRect(canvas.width / 6 - plateWidth / 2, centerY - plateHeight / 2, plateWidth, plateHeight);
+      ctx.strokeStyle = '#4da8da';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(canvas.width / 6 - plateWidth / 2, centerY - plateHeight / 2, plateWidth, plateHeight);
+      ctx.fillStyle = '#7dd3fc';
+      ctx.font = 'bold 14px Source Sans Pro';
+      ctx.textAlign = 'center';
+      ctx.fillText('Plate 1', canvas.width / 6, centerY);
+      
+      // Plate 2 (right, moving left)
+      ctx.fillStyle = '#3a5a7a';
+      ctx.fillRect(2 * canvas.width / 3 - plateWidth / 2, centerY - plateHeight / 2, plateWidth, plateHeight);
+      ctx.strokeStyle = '#4da8da';
+      ctx.strokeRect(2 * canvas.width / 3 - plateWidth / 2, centerY - plateHeight / 2, plateWidth, plateHeight);
+      ctx.fillStyle = '#7dd3fc';
+      ctx.fillText('Plate 2', 2 * canvas.width / 3, centerY);
+      
+      // Boundary zone (center)
+      const boundaryWidth = 20;
+      const boundaryX = canvas.width / 2 - boundaryWidth / 2;
+      const pressureRatio = Math.min(state.pressure / state.threshold, 1);
+      
+      // Color gradient based on pressure
+      const h = pressureRatio < 0.5 
+        ? 120 - pressureRatio * 120 // Green to yellow
+        : 120 - (1 - (pressureRatio - 0.5) * 2) * 120; // Yellow to red
+      ctx.fillStyle = `hsl(${Math.max(0, h)}, 100%, 50%)`;
+      ctx.fillRect(boundaryX, centerY - plateHeight / 2, boundaryWidth, plateHeight);
+      
+      // Draw velocity arrows
+      ctx.strokeStyle = '#00ccff';
+      ctx.fillStyle = '#00ccff';
+      ctx.lineWidth = 2;
+      const arrowLen = 40;
+      
+      // Plate 1 arrow (rightward)
+      ctx.beginPath();
+      ctx.moveTo(canvas.width / 6 + arrowLen / 2, centerY + plateHeight / 2 + 20);
+      ctx.lineTo(canvas.width / 6 + arrowLen / 2 + arrowLen, centerY + plateHeight / 2 + 20);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(canvas.width / 6 + arrowLen / 2 + arrowLen, centerY + plateHeight / 2 + 20);
+      ctx.lineTo(canvas.width / 6 + arrowLen / 2 + arrowLen - 8, centerY + plateHeight / 2 + 20 - 8);
+      ctx.lineTo(canvas.width / 6 + arrowLen / 2 + arrowLen - 8, centerY + plateHeight / 2 + 20 + 8);
+      ctx.closePath();
+      ctx.fill();
+      
+      // Plate 2 arrow (leftward)
+      ctx.beginPath();
+      ctx.moveTo(2 * canvas.width / 3 - arrowLen / 2, centerY + plateHeight / 2 + 20);
+      ctx.lineTo(2 * canvas.width / 3 - arrowLen / 2 - arrowLen, centerY + plateHeight / 2 + 20);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(2 * canvas.width / 3 - arrowLen / 2 - arrowLen, centerY + plateHeight / 2 + 20);
+      ctx.lineTo(2 * canvas.width / 3 - arrowLen / 2 - arrowLen + 8, centerY + plateHeight / 2 + 20 - 8);
+      ctx.lineTo(2 * canvas.width / 3 - arrowLen / 2 - arrowLen + 8, centerY + plateHeight / 2 + 20 + 8);
+      ctx.closePath();
+      ctx.fill();
+      
+      // Draw earthquake particles
+      for (let p of state.earthquakeParticles) {
+        const alpha = 1 - (p.age / p.life);
+        ctx.fillStyle = `rgba(255, 255, 255, ${alpha * 0.7})`;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 2 + p.magnitude * 0.3, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Concentric circles from epicenter
+        ctx.strokeStyle = `rgba(255, 255, 255, ${alpha * 0.4})`;
+        ctx.lineWidth = 1;
+        const radius = 10 + p.age * 2;
+        ctx.beginPath();
+        ctx.arc(canvas.width / 2, canvas.height / 2, radius, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+    }
+    
+    function drawPressure() {
+      pctx.fillStyle = '#0a1428';
+      pctx.fillRect(0, 0, pressureCanvas.width, pressureCanvas.height);
+      
+      // Draw pressure gauge
+      const gaugeX = pressureCanvas.width / 2;
+      const gaugeY = pressureCanvas.height / 2;
+      const gaugeRadius = Math.min(pressureCanvas.width, pressureCanvas.height) / 2 - 20;
+      
+      // Background arc (0 to 180°)
+      pctx.strokeStyle = '#1f4d7f';
+      pctx.lineWidth = 20;
+      pctx.beginPath();
+      pctx.arc(gaugeX, gaugeY, gaugeRadius, 0, Math.PI);
+      pctx.stroke();
+      
+      // Filled arc (pressure)
+      const pressureRatio = Math.min(state.pressure / state.threshold, 1);
+      pctx.strokeStyle = pressureRatio < 0.5
+        ? '#00ff88'
+        : pressureRatio < 0.8
+        ? '#ffff00'
+        : '#ff4444';
+      pctx.lineWidth = 20;
+      pctx.beginPath();
+      pctx.arc(gaugeX, gaugeY, gaugeRadius, 0, Math.PI * pressureRatio);
+      pctx.stroke();
+      
+      // Needle
+      const needleAngle = Math.PI * pressureRatio;
+      pctx.strokeStyle = '#ffffff';
+      pctx.lineWidth = 3;
+      pctx.beginPath();
+      pctx.moveTo(gaugeX, gaugeY);
+      pctx.lineTo(
+        gaugeX + Math.cos(needleAngle - Math.PI / 2) * (gaugeRadius - 5),
+        gaugeY + Math.sin(needleAngle - Math.PI / 2) * (gaugeRadius - 5)
+      );
+      pctx.stroke();
+      
+      // Labels
+      pctx.fillStyle = '#7dd3fc';
+      pctx.font = 'bold 12px Source Sans Pro';
+      pctx.textAlign = 'center';
+      pctx.fillText(`${state.pressure.toFixed(0)} MPa`, gaugeX, gaugeY + gaugeRadius + 40);
+      pctx.fillText(`Threshold: ${state.threshold} MPa`, gaugeX, gaugeY + gaugeRadius + 60);
+    }
+    
+    function render() {
+      drawPlates();
+      drawPressure();
+      updateStats();
+    }
+    
+    function updateStats() {
+      document.getElementById('displacement').textContent = state.displacement.toFixed(1) + ' km';
+      document.getElementById('pressure').textContent = state.pressure.toFixed(0) + ' MPa';
+      document.getElementById('eqCount').textContent = state.earthquakes;
+      document.getElementById('maxMag').textContent = state.maxMag.toFixed(1);
+      document.getElementById('energy').textContent = (state.totalEnergy / 1e15).toFixed(2) + ' PJ';
+      document.getElementById('elapsed').textContent = state.time.toFixed(1) + ' y';
+    }
+    
+    function animate() {
+      calculatePressure();
+      checkEarthquake();
+      updateEarthquakeParticles();
+      state.time += 0.001 * state.speed; // Increment by 0.001 years per frame
+      render();
+      
+      if (state.playing) {
+        state.animationId = requestAnimationFrame(animate);
+      }
+    }
+    
+    render(); // Initial render
+  </script>
+</body>
+</html>
