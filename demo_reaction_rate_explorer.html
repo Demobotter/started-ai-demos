@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reaction Rate Explorer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Space+Mono:wght@400&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Space Mono', monospace;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #e0e0e0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            align-items: start;
+        }
+        @media (max-width: 900px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+        h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.5em;
+            text-align: center;
+            grid-column: 1 / -1;
+            margin-bottom: 20px;
+            background: linear-gradient(90deg, #ff6b6b, #4ecdc4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .left-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .visualization {
+            background: #0a1428;
+            border: 2px solid #ff6b6b;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 0 20px rgba(255, 107, 107, 0.3);
+        }
+        canvas {
+            width: 100%;
+            height: 350px;
+            border-radius: 4px;
+            display: block;
+        }
+        .chart-label {
+            font-size: 0.9em;
+            color: #4da8da;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+        .rate-histogram {
+            height: 150px;
+        }
+        .right-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .stat-box {
+            background: #0a1428;
+            border-left: 4px solid #4da8da;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 0 10px rgba(77, 168, 218, 0.2);
+        }
+        .stat-label {
+            font-size: 0.85em;
+            color: #999;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .stat-value {
+            font-size: 1.4em;
+            color: #4ecdc4;
+            font-weight: bold;
+            margin-top: 5px;
+        }
+        .control-section {
+            background: #0a1428;
+            border: 1px solid #4da8da;
+            border-radius: 8px;
+            padding: 15px;
+        }
+        .control-section h3 {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.2em;
+            margin-bottom: 15px;
+            color: #ff6b6b;
+        }
+        .control-group {
+            margin-bottom: 15px;
+        }
+        .control-group label {
+            display: block;
+            font-size: 0.9em;
+            margin-bottom: 8px;
+            color: #b0b0b0;
+        }
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: linear-gradient(90deg, #4da8da, #4ecdc4);
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #ff6b6b;
+            cursor: pointer;
+            box-shadow: 0 0 8px rgba(255, 107, 107, 0.5);
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #ff6b6b;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 0 8px rgba(255, 107, 107, 0.5);
+        }
+        .slider-value {
+            display: inline-block;
+            background: #ff6b6b;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 0.85em;
+            margin-left: 10px;
+            font-weight: bold;
+        }
+        button {
+            background: linear-gradient(90deg, #ff6b6b, #ff8e8e);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: 'Space Mono', monospace;
+            font-weight: bold;
+            font-size: 0.95em;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 107, 107, 0.4);
+        }
+        button:active {
+            transform: translateY(0);
+        }
+        button.inactive {
+            background: #444;
+            cursor: not-allowed;
+        }
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .button-group button {
+            flex: 1;
+        }
+        .toggle-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .toggle {
+            flex: 1;
+            padding: 10px;
+            background: #1a2a4a;
+            border: 2px solid #4da8da;
+            border-radius: 6px;
+            color: #4da8da;
+            cursor: pointer;
+            font-family: 'Space Mono', monospace;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        .toggle.active {
+            background: #4da8da;
+            color: #0a1428;
+        }
+        .concentration-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+            margin-top: 12px;
+        }
+        .conc-item {
+            text-align: center;
+        }
+        .conc-label {
+            font-size: 0.8em;
+            color: #999;
+            margin-bottom: 5px;
+        }
+        .conc-value {
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+        .conc-a { color: #4da8da; }
+        .conc-b { color: #ff6b6b; }
+        .conc-c { color: #4ecdc4; }
+    </style>
+</head>
+<body>
+    <h1>⚛️ Reaction Rate Explorer</h1>
+    <div class="container">
+        <div class="left-panel">
+            <div class="visualization">
+                <div class="chart-label">Molecular Collision Visualizer</div>
+                <canvas id="moleculeCanvas" width="500" height="350"></canvas>
+            </div>
+            <div class="visualization">
+                <div class="chart-label">Collision & Reaction Rate Histogram</div>
+                <canvas id="rateHistogram" class="rate-histogram" width="500" height="150"></canvas>
+            </div>
+        </div>
+        
+        <div class="right-panel">
+            <div class="control-section">
+                <h3>Controls</h3>
+                
+                <div class="control-group">
+                    <label>Temperature (K): <span class="slider-value" id="tempValue">298</span></label>
+                    <input type="range" id="tempSlider" min="273" max="373" value="298" step="5">
+                    <small style="color: #666; margin-top: 5px; display: block;">(25°C – 100°C)</small>
+                </div>
+                
+                <div class="control-group">
+                    <label>Reactant A Concentration (M): <span class="slider-value" id="concAValue">0.5</span></label>
+                    <input type="range" id="concASlider" min="0.1" max="1.0" value="0.5" step="0.1">
+                </div>
+                
+                <div class="control-group">
+                    <label>Animation Speed: <span class="slider-value" id="speedValue">1.0</span>x</label>
+                    <input type="range" id="speedSlider" min="0.5" max="3" value="1.0" step="0.1">
+                </div>
+                
+                <div class="control-group">
+                    <label style="margin-bottom: 10px;">Catalyst:</label>
+                    <div class="toggle-group">
+                        <button class="toggle active" id="catalystOff">Off</button>
+                        <button class="toggle" id="catalystOn">On</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="stat-box">
+                <div class="stat-label">Rate Constant k</div>
+                <div class="stat-value" id="rateConstant">0.010</div>
+                <small style="color: #666;">(s⁻¹) — temperature &amp; catalyst dependent</small>
+            </div>
+            
+            <div class="stat-box">
+                <div class="stat-label">Activation Energy</div>
+                <div class="stat-value" id="activationEnergy">50.0</div>
+                <small style="color: #666;">(kJ/mol) — reduced by catalyst</small>
+            </div>
+            
+            <div class="stat-box">
+                <div class="stat-label">Collision Frequency</div>
+                <div class="stat-value" id="collisionFreq">12.5</div>
+                <small style="color: #666;">(collisions/sec)</small>
+            </div>
+            
+            <div class="stat-box">
+                <div class="stat-label">Successful Reactions</div>
+                <div class="stat-value" id="successRate">5.2</div>
+                <small style="color: #666;">(% of collisions with E ≥ Ea)</small>
+            </div>
+            
+            <div class="stat-box">
+                <div class="stat-label">Reaction Progress</div>
+                <div class="stat-value" id="progress">0</div>
+                <small style="color: #666;">(% of A converted to C)</small>
+            </div>
+            
+            <div class="stat-box">
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
+                    <div>
+                        <div class="conc-label">Reactant A</div>
+                        <div class="conc-value conc-a" id="concDisplay">0.50</div>
+                    </div>
+                    <div>
+                        <div class="conc-label">Reactant B</div>
+                        <div class="conc-value conc-b" id="concBDisplay">0.50</div>
+                    </div>
+                    <div>
+                        <div class="conc-label">Product C</div>
+                        <div class="conc-value conc-c" id="concCDisplay">0.00</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="button-group">
+                <button id="runBtn">Run</button>
+                <button id="pauseBtn" class="inactive">Pause</button>
+                <button id="resetBtn">Reset</button>
+            </div>
+        </div>
+    </div>
+
+    <canvas id="concentrationChart" style="display: none;" width="500" height="300"></canvas>
+
+    <script>
+        // ============== SIMULATION STATE ==============
+        let state = {
+            temp: 298,
+            concA: 0.5,
+            concB: 0.5,
+            concC: 0.0,
+            catalyst: false,
+            running: false,
+            time: 0,
+            speed: 1.0,
+            molecules: [],
+            collisionCount: 0,
+            successfulReactions: 0,
+            timeHistory: [],
+            concAHistory: [],
+            concBHistory: [],
+            concCHistory: [],
+            collisionRates: [],
+            reactionRates: [],
+            lastUpdateTime: Date.now()
+        };
+
+        const CANVAS = document.getElementById('moleculeCanvas');
+        const CTX = CANVAS.getContext('2d');
+        const RATE_CANVAS = document.getElementById('rateHistogram');
+        const RATE_CTX = RATE_CANVAS.getContext('2d');
+        
+        const NUM_MOLECULES = 60;
+        const MOLECULE_RADIUS = 3;
+        const Ea_BASE = 50; // kJ/mol — baseline activation energy
+        const Ea_CATALYZED = 25; // kJ/mol — with catalyst
+        const A_FACTOR = 0.05; // Pre-exponential factor
+
+        // ============== MOLECULE CLASS ==============
+        class Molecule {
+            constructor(type) {
+                this.type = type; // 'A', 'B', or 'C'
+                this.x = Math.random() * (CANVAS.width - 20) + 10;
+                this.y = Math.random() * (CANVAS.height - 20) + 10;
+                this.vx = (Math.random() - 0.5) * maxVelocity();
+                this.vy = (Math.random() - 0.5) * maxVelocity();
+            }
+            
+            update(dt) {
+                this.x += this.vx * dt;
+                this.y += this.vy * dt;
+                
+                // Bounce off walls
+                if (this.x - MOLECULE_RADIUS < 0 || this.x + MOLECULE_RADIUS > CANVAS.width) {
+                    this.vx *= -1;
+                    this.x = Math.max(MOLECULE_RADIUS, Math.min(CANVAS.width - MOLECULE_RADIUS, this.x));
+                }
+                if (this.y - MOLECULE_RADIUS < 0 || this.y + MOLECULE_RADIUS > CANVAS.height) {
+                    this.vy *= -1;
+                    this.y = Math.max(MOLECULE_RADIUS, Math.min(CANVAS.height - MOLECULE_RADIUS, this.y));
+                }
+            }
+            
+            getColor() {
+                if (this.type === 'A') return '#4da8da'; // Blue
+                if (this.type === 'B') return '#ff6b6b'; // Red
+                if (this.type === 'C') return '#4ecdc4'; // Teal
+                return '#888'; // Unreacted
+            }
+        }
+
+        function maxVelocity() {
+            // Maxwell-Boltzmann: v ~ sqrt(kT/m)
+            const k_B = 1.38e-23; // Boltzmann constant
+            const temp = state.temp;
+            const m = 1; // relative mass
+            return Math.sqrt((k_B * temp) / m) * 0.15; // scaled for canvas
+        }
+
+        function calculateRateConstant() {
+            // Arrhenius equation: k = A * exp(-Ea / RT)
+            const R = 8.314; // Gas constant J/(mol·K)
+            const Ea = state.catalyst ? Ea_CATALYZED : Ea_BASE;
+            const exponent = -Ea * 1000 / (R * state.temp);
+            return A_FACTOR * Math.exp(Math.min(exponent, 100)); // Clamp to avoid overflow
+        }
+
+        function initMolecules() {
+            state.molecules = [];
+            const aCount = Math.round(NUM_MOLECULES * state.concA);
+            const bCount = Math.round(NUM_MOLECULES * state.concB);
+            
+            for (let i = 0; i < aCount; i++) {
+                state.molecules.push(new Molecule('A'));
+            }
+            for (let i = 0; i < bCount; i++) {
+                state.molecules.push(new Molecule('B'));
+            }
+        }
+
+        function detectCollisions() {
+            let collisions = 0;
+            for (let i = 0; i < state.molecules.length; i++) {
+                for (let j = i + 1; j < state.molecules.length; j++) {
+                    const m1 = state.molecules[i];
+                    const m2 = state.molecules[j];
+                    const dx = m2.x - m1.x;
+                    const dy = m2.y - m1.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (dist < MOLECULE_RADIUS * 2.5) {
+                        collisions++;
+                        
+                        // Calculate kinetic energy
+                        const v1Sq = m1.vx * m1.vx + m1.vy * m1.vy;
+                        const v2Sq = m2.vx * m2.vx + m2.vy * m2.vy;
+                        const KE = 0.5 * (v1Sq + v2Sq);
+                        
+                        // Activation energy threshold
+                        const Ea = state.catalyst ? Ea_CATALYZED : Ea_BASE;
+                        const threshold = Ea / 100; // Normalize for collision energy scale
+                        
+                        // Reaction if KE >= threshold
+                        if (KE >= threshold && m1.type === 'A' && m2.type === 'B') {
+                            m1.type = 'C';
+                            m2.type = 'C';
+                            state.successfulReactions++;
+                        }
+                    }
+                }
+            }
+            state.collisionCount += collisions;
+            return collisions;
+        }
+
+        function updateConcentrations() {
+            const total = state.molecules.length;
+            if (total === 0) return;
+            
+            let cA = 0, cB = 0, cC = 0;
+            for (const mol of state.molecules) {
+                if (mol.type === 'A') cA++;
+                if (mol.type === 'B') cB++;
+                if (mol.type === 'C') cC++;
+            }
+            
+            // Normalize to original concentration scale
+            const scale = NUM_MOLECULES / (cA + cB + cC);
+            state.concA = (cA / NUM_MOLECULES) * state.concA;
+            state.concB = (cB / NUM_MOLECULES) * state.concB;
+            state.concC = (cC / NUM_MOLECULES) * state.concC;
+        }
+
+        function drawMolecules() {
+            CTX.fillStyle = '#0a1428';
+            CTX.fillRect(0, 0, CANVAS.width, CANVAS.height);
+            
+            CTX.lineWidth = 2;
+            CTX.strokeStyle = '#4da8da';
+            CTX.strokeRect(0, 0, CANVAS.width, CANVAS.height);
+            
+            for (const mol of state.molecules) {
+                CTX.fillStyle = mol.getColor();
+                CTX.beginPath();
+                CTX.arc(mol.x, mol.y, MOLECULE_RADIUS, 0, Math.PI * 2);
+                CTX.fill();
+            }
+        }
+
+        function drawRateHistogram() {
+            RATE_CTX.fillStyle = '#0a1428';
+            RATE_CTX.fillRect(0, 0, RATE_CANVAS.width, RATE_CANVAS.height);
+            
+            RATE_CTX.lineWidth = 1;
+            RATE_CTX.strokeStyle = '#4da8da';
+            RATE_CTX.strokeRect(0, 0, RATE_CANVAS.width, RATE_CANVAS.height);
+            
+            const barWidth = RATE_CANVAS.width / 3;
+            const maxRate = Math.max(...state.collisionRates, 1);
+            
+            // Collision rate
+            RATE_CTX.fillStyle = '#4da8da';
+            let height = (state.collisionRates[state.collisionRates.length - 1] || 0) / maxRate * RATE_CANVAS.height * 0.8;
+            RATE_CTX.fillRect(20, RATE_CANVAS.height - height - 20, barWidth - 40, height);
+            
+            // Reaction rate
+            RATE_CTX.fillStyle = '#ff6b6b';
+            height = (state.reactionRates[state.reactionRates.length - 1] || 0) / maxRate * RATE_CANVAS.height * 0.8;
+            RATE_CTX.fillRect(20 + barWidth, RATE_CANVAS.height - height - 20, barWidth - 40, height);
+            
+            // Success %
+            RATE_CTX.fillStyle = '#4ecdc4';
+            const successPct = state.collisionCount > 0 ? (state.successfulReactions / state.collisionCount * 100) : 0;
+            height = Math.min(successPct / 50, 1) * RATE_CANVAS.height * 0.8;
+            RATE_CTX.fillRect(20 + barWidth * 2, RATE_CANVAS.height - height - 20, barWidth - 40, height);
+            
+            // Labels
+            RATE_CTX.fillStyle = '#999';
+            RATE_CTX.font = '11px Space Mono';
+            RATE_CTX.textAlign = 'center';
+            RATE_CTX.fillText('Collisions/s', barWidth * 0.5, RATE_CANVAS.height - 2);
+            RATE_CTX.fillText('Reactions/s', barWidth * 1.5, RATE_CANVAS.height - 2);
+            RATE_CTX.fillText('Success %', barWidth * 2.5, RATE_CANVAS.height - 2);
+        }
+
+        function updateStats() {
+            const k = calculateRateConstant();
+            const Ea = state.catalyst ? Ea_CATALYZED : Ea_BASE;
+            const successPct = state.collisionCount > 0 ? (state.successfulReactions / state.collisionCount * 100) : 0;
+            const totalInitial = 0.5 + 0.5; // Original [A] + [B]
+            const progress = (state.concC / totalInitial) * 100;
+            
+            document.getElementById('rateConstant').textContent = k.toFixed(3);
+            document.getElementById('activationEnergy').textContent = Ea.toFixed(1);
+            document.getElementById('collisionFreq').textContent = (state.collisionCount / Math.max(state.time, 1)).toFixed(1);
+            document.getElementById('successRate').textContent = successPct.toFixed(1);
+            document.getElementById('progress').textContent = Math.min(progress, 100).toFixed(0);
+            document.getElementById('concDisplay').textContent = state.concA.toFixed(2);
+            document.getElementById('concBDisplay').textContent = state.concB.toFixed(2);
+            document.getElementById('concCDisplay').textContent = state.concC.toFixed(2);
+        }
+
+        function animate() {
+            if (!state.running) {
+                requestAnimationFrame(animate);
+                return;
+            }
+            
+            const now = Date.now();
+            const dt = (now - state.lastUpdateTime) / 1000 * state.speed;
+            state.lastUpdateTime = now;
+            state.time += dt;
+            
+            // Update molecules
+            for (const mol of state.molecules) {
+                mol.update(dt * 0.01);
+            }
+            
+            // Detect collisions
+            const collisions = detectCollisions();
+            state.collisionRates.push(collisions / Math.max(dt, 0.01));
+            if (state.collisionRates.length > 30) state.collisionRates.shift();
+            
+            // Calculate reaction rate
+            const reactionRate = state.successfulReactions / Math.max(state.time, 1);
+            state.reactionRates.push(reactionRate);
+            if (state.reactionRates.length > 30) state.reactionRates.shift();
+            
+            updateConcentrations();
+            drawMolecules();
+            drawRateHistogram();
+            updateStats();
+            
+            requestAnimationFrame(animate);
+        }
+
+        // ============== CONTROLS ==============
+        document.getElementById('tempSlider').addEventListener('input', e => {
+            state.temp = parseInt(e.target.value);
+            document.getElementById('tempValue').textContent = state.temp;
+            
+            // Reinit molecules with new velocity distribution
+            if (!state.running) initMolecules();
+        });
+
+        document.getElementById('concASlider').addEventListener('input', e => {
+            state.concA = parseFloat(e.target.value);
+            document.getElementById('concAValue').textContent = state.concA.toFixed(1);
+        });
+
+        document.getElementById('speedSlider').addEventListener('input', e => {
+            state.speed = parseFloat(e.target.value);
+            document.getElementById('speedValue').textContent = state.speed.toFixed(1);
+        });
+
+        document.getElementById('catalystOff').addEventListener('click', () => {
+            state.catalyst = false;
+            document.getElementById('catalystOff').classList.add('active');
+            document.getElementById('catalystOn').classList.remove('active');
+        });
+
+        document.getElementById('catalystOn').addEventListener('click', () => {
+            state.catalyst = true;
+            document.getElementById('catalystOff').classList.remove('active');
+            document.getElementById('catalystOn').classList.add('active');
+        });
+
+        document.getElementById('runBtn').addEventListener('click', () => {
+            state.running = true;
+            document.getElementById('runBtn').classList.add('inactive');
+            document.getElementById('pauseBtn').classList.remove('inactive');
+        });
+
+        document.getElementById('pauseBtn').addEventListener('click', () => {
+            state.running = false;
+            document.getElementById('pauseBtn').classList.add('inactive');
+            document.getElementById('runBtn').classList.remove('inactive');
+        });
+
+        document.getElementById('resetBtn').addEventListener('click', () => {
+            state.running = false;
+            state.time = 0;
+            state.concA = parseFloat(document.getElementById('concASlider').value);
+            state.concB = 0.5;
+            state.concC = 0;
+            state.collisionCount = 0;
+            state.successfulReactions = 0;
+            state.collisionRates = [];
+            state.reactionRates = [];
+            state.lastUpdateTime = Date.now();
+            
+            initMolecules();
+            drawMolecules();
+            drawRateHistogram();
+            updateStats();
+            
+            document.getElementById('pauseBtn').classList.add('inactive');
+            document.getElementById('runBtn').classList.remove('inactive');
+        });
+
+        // Initialize
+        initMolecules();
+        drawMolecules();
+        drawRateHistogram();
+        updateStats();
+        animate();
+    </script>
+</body>
+</html>
