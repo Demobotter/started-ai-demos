@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Language Roots</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Space+Mono:wght@400&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #0a1428;
+            color: #e0e0e0;
+            font-family: 'Space Mono', monospace;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+        .container {
+            display: flex;
+            width: 100%;
+            height: 100%;
+        }
+        .canvas-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+        #canvas {
+            flex: 1;
+            display: block;
+            background: linear-gradient(135deg, #0a1428 0%, #0f1f3c 100%);
+            cursor: grab;
+        }
+        #canvas:active { cursor: grabbing; }
+        .controls {
+            background: #0f1f3c;
+            border-top: 1px solid #4da8da;
+            padding: 12px;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #4da8da;
+        }
+        select {
+            background: #1a2a4a;
+            color: #e0e0e0;
+            border: 1px solid #4da8da;
+            padding: 4px 8px;
+            border-radius: 3px;
+            font-family: 'Space Mono', monospace;
+            font-size: 11px;
+            cursor: pointer;
+        }
+        .slider-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        input[type="range"] {
+            width: 120px;
+            height: 4px;
+            border-radius: 2px;
+            background: linear-gradient(to right, #1a2a4a, #4da8da);
+            outline: none;
+            -webkit-appearance: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #ffd700;
+            cursor: pointer;
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #ffd700;
+            cursor: pointer;
+            border: none;
+        }
+        .time-label {
+            font-size: 10px;
+            color: #7dd3fc;
+            min-width: 80px;
+        }
+        .sidebar {
+            width: 280px;
+            background: #0f1f3c;
+            border-left: 1px solid #4da8da;
+            overflow-y: auto;
+            padding: 12px;
+        }
+        .sidebar-section {
+            margin-bottom: 16px;
+        }
+        .sidebar-title {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #ffd700;
+            margin-bottom: 8px;
+            border-bottom: 1px solid #4da8da;
+            padding-bottom: 4px;
+        }
+        .lang-select {
+            margin-bottom: 8px;
+        }
+        .lang-select select {
+            width: 100%;
+            font-size: 12px;
+        }
+        .stats-box {
+            background: #1a2a4a;
+            border-left: 3px solid #4da8da;
+            padding: 8px;
+            margin-bottom: 8px;
+            font-size: 11px;
+            line-height: 1.4;
+        }
+        .stat-label {
+            color: #7dd3fc;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .stat-value {
+            color: #ffd700;
+            font-weight: bold;
+        }
+        .cognates-list {
+            font-size: 11px;
+            line-height: 1.6;
+        }
+        .cognate {
+            margin-bottom: 6px;
+            padding: 4px;
+            background: rgba(77, 168, 218, 0.1);
+            border-radius: 2px;
+        }
+        .cognate-word {
+            color: #ffd700;
+            font-weight: bold;
+        }
+        .cognate-meaning {
+            color: #7dd3fc;
+            font-size: 10px;
+        }
+        @media (max-width: 768px) {
+            .container { flex-direction: column; }
+            .sidebar { width: 100%; max-height: 200px; border-left: none; border-top: 1px solid #4da8da; }
+            .controls { flex-direction: column; align-items: flex-start; }
+        }
+        h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 28px;
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            z-index: 10;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="canvas-area">
+            <h1>🌍 Language Roots</h1>
+            <canvas id="canvas"></canvas>
+            <div class="controls">
+                <div class="control-group">
+                    <label>Timeline</label>
+                    <div class="slider-group">
+                        <input type="range" id="timeline" min="0" max="10000" value="0" step="100">
+                        <span class="time-label" id="timeLabel">Modern</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="sidebar">
+            <div class="sidebar-section">
+                <div class="sidebar-title">Select Language</div>
+                <select id="langSelect">
+                    <option value="">-- Choose a language --</option>
+                    <option value="English">English</option>
+                    <option value="German">German</option>
+                    <option value="Dutch">Dutch</option>
+                    <option value="French">French</option>
+                    <option value="Spanish">Spanish</option>
+                    <option value="Italian">Italian</option>
+                    <option value="Portuguese">Portuguese</option>
+                    <option value="Polish">Polish</option>
+                    <option value="Russian">Russian</option>
+                    <option value="Greek">Greek</option>
+                    <option value="Hindi">Hindi</option>
+                    <option value="Bengali">Bengali</option>
+                    <option value="Japanese">Japanese</option>
+                    <option value="Mandarin">Mandarin</option>
+                    <option value="Korean">Korean</option>
+                    <option value="Turkish">Turkish</option>
+                    <option value="Arabic">Arabic</option>
+                </select>
+            </div>
+            <div class="sidebar-section" id="statsSection" style="display:none;">
+                <div class="sidebar-title">Language Stats</div>
+                <div class="stats-box">
+                    <div class="stat-label">Family</div>
+                    <div class="stat-value" id="statFamily">—</div>
+                </div>
+                <div class="stats-box">
+                    <div class="stat-label">Native Speakers</div>
+                    <div class="stat-value" id="statSpeakers">—</div>
+                </div>
+                <div class="stats-box">
+                    <div class="stat-label">Divergence Time</div>
+                    <div class="stat-value" id="statDivergence">—</div>
+                </div>
+                <div class="stats-box">
+                    <div class="stat-label">ISO 639 Code</div>
+                    <div class="stat-value" id="statISO">—</div>
+                </div>
+            </div>
+            <div class="sidebar-section" id="cognatesSection" style="display:none;">
+                <div class="sidebar-title">Cognates with Selected</div>
+                <div class="cognates-list" id="cognatesList"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const timeline = document.getElementById('timeline');
+        const timeLabel = document.getElementById('timeLabel');
+        const langSelect = document.getElementById('langSelect');
+
+        // Resize canvas
+        function resizeCanvas() {
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        // Language data
+        const langData = {
+            English: { family: 'Indo-European > Germanic', speakers: '1.5B', divergence: '1500 years', iso: 'en', rgb: [77, 168, 218] },
+            German: { family: 'Indo-European > Germanic', speakers: '95M', divergence: '1500 years', iso: 'de', rgb: [77, 168, 218] },
+            Dutch: { family: 'Indo-European > Germanic', speakers: '24M', divergence: '1400 years', iso: 'nl', rgb: [77, 168, 218] },
+            French: { family: 'Indo-European > Romance', speakers: '280M', divergence: '1200 years', iso: 'fr', rgb: [255, 0, 255] },
+            Spanish: { family: 'Indo-European > Romance', speakers: '500M', divergence: '1200 years', iso: 'es', rgb: [255, 0, 255] },
+            Italian: { family: 'Indo-European > Romance', speakers: '85M', divergence: '1200 years', iso: 'it', rgb: [255, 0, 255] },
+            Portuguese: { family: 'Indo-European > Romance', speakers: '260M', divergence: '1200 years', iso: 'pt', rgb: [255, 0, 255] },
+            Polish: { family: 'Indo-European > Slavic', speakers: '38M', divergence: '1300 years', iso: 'pl', rgb: [100, 200, 100] },
+            Russian: { family: 'Indo-European > Slavic', speakers: '258M', divergence: '1300 years', iso: 'ru', rgb: [100, 200, 100] },
+            Greek: { family: 'Indo-European > Hellenic', speakers: '13M', divergence: '3500 years', iso: 'el', rgb: [200, 150, 100] },
+            Hindi: { family: 'Indo-European > Indo-Iranian', speakers: '340M', divergence: '3000 years', iso: 'hi', rgb: [200, 100, 150] },
+            Bengali: { family: 'Indo-European > Indo-Iranian', speakers: '230M', divergence: '3000 years', iso: 'bn', rgb: [200, 100, 150] },
+            Japanese: { family: 'Japonic', speakers: '125M', divergence: 'Ancient isolate', iso: 'ja', rgb: [150, 150, 200] },
+            Mandarin: { family: 'Sino-Tibetan', speakers: '920M', divergence: '3000+ years', iso: 'zh', rgb: [0, 255, 136] },
+            Korean: { family: 'Koreanic', speakers: '82M', divergence: 'Ancient isolate', iso: 'ko', rgb: [180, 100, 200] },
+            Turkish: { family: 'Altaic', speakers: '88M', divergence: 'Ancient', iso: 'tr', rgb: [200, 200, 100] },
+            Arabic: { family: 'Afro-Asiatic', speakers: '310M', divergence: '1500 years', iso: 'ar', rgb: [200, 150, 100] }
+        };
+
+        // Cognates mapping
+        const cognates = {
+            English: [
+                ['mother', 'Proto-IE *méh₂tēr'],
+                ['one', 'Proto-IE *sem-'],
+                ['eye', 'Proto-IE *h₂ek̑-'],
+                ['be', 'Proto-IE *bʰewh₂-'],
+                ['water', 'Proto-IE *wédr̥']
+            ],
+            German: [
+                ['Mutter', 'Proto-IE *méh₂tēr'],
+                ['eins', 'Proto-IE *sem-'],
+                ['Auge', 'Proto-IE *h₂ek̑-'],
+                ['sein', 'Proto-IE *bʰewh₂-'],
+                ['Wasser', 'Proto-IE *wédr̥']
+            ],
+            French: [
+                ['mère', 'Proto-IE *méh₂tēr'],
+                ['un', 'Proto-IE *sem-'],
+                ['oeil', 'Proto-IE *h₂ek̑-'],
+                ['être', 'Proto-IE *bʰewh₂-'],
+                ['eau', 'Proto-IE *wédr̥']
+            ],
+            Spanish: [
+                ['madre', 'Proto-IE *méh₂tēr'],
+                ['uno', 'Proto-IE *sem-'],
+                ['ojo', 'Proto-IE *h₂ek̑-'],
+                ['ser', 'Proto-IE *bʰewh₂-'],
+                ['agua', 'Proto-IE *wédr̥']
+            ],
+            Italian: [
+                ['madre', 'Proto-IE *méh₂tēr'],
+                ['uno', 'Proto-IE *sem-'],
+                ['occhio', 'Proto-IE *h₂ek̑-'],
+                ['essere', 'Proto-IE *bʰewh₂-'],
+                ['acqua', 'Proto-IE *wédr̥']
+            ],
+            Polish: [
+                ['matka', 'Proto-IE *méh₂tēr'],
+                ['jeden', 'Proto-IE *sem-'],
+                ['oko', 'Proto-IE *h₂ek̑-'],
+                ['być', 'Proto-IE *bʰewh₂-'],
+                ['woda', 'Proto-IE *wédr̥']
+            ],
+            Russian: [
+                ['mater\'', 'Proto-IE *méh₂tēr'],
+                ['odin', 'Proto-IE *sem-'],
+                ['oko', 'Proto-IE *h₂ek̑-'],
+                ['byt\'', 'Proto-IE *bʰewh₂-'],
+                ['voda', 'Proto-IE *wédr̥']
+            ]
+        };
+
+        // Node structure for force-directed layout
+        let nodes = [];
+        let selectedLang = null;
+
+        function createNodes() {
+            nodes = [
+                { id: 'PIE', label: 'Proto-IE', family: 'root', x: canvas.width/2, y: canvas.height/2, fixed: true, color: [255, 215, 0] },
+                // Germanic
+                { id: 'Germ', label: 'Germanic', family: 'IE-Germanic', parent: 'PIE', color: [77, 168, 218] },
+                { id: 'English', label: 'English', family: 'IE-Germanic', parent: 'Germ', color: [77, 168, 218] },
+                { id: 'German', label: 'German', family: 'IE-Germanic', parent: 'Germ', color: [77, 168, 218] },
+                { id: 'Dutch', label: 'Dutch', family: 'IE-Germanic', parent: 'Germ', color: [77, 168, 218] },
+                // Romance
+                { id: 'Rom', label: 'Romance', family: 'IE-Romance', parent: 'PIE', color: [255, 0, 255] },
+                { id: 'French', label: 'French', family: 'IE-Romance', parent: 'Rom', color: [255, 0, 255] },
+                { id: 'Spanish', label: 'Spanish', family: 'IE-Romance', parent: 'Rom', color: [255, 0, 255] },
+                { id: 'Italian', label: 'Italian', family: 'IE-Romance', parent: 'Rom', color: [255, 0, 255] },
+                { id: 'Portuguese', label: 'Portuguese', family: 'IE-Romance', parent: 'Rom', color: [255, 0, 255] },
+                // Slavic
+                { id: 'Slav', label: 'Slavic', family: 'IE-Slavic', parent: 'PIE', color: [100, 200, 100] },
+                { id: 'Polish', label: 'Polish', family: 'IE-Slavic', parent: 'Slav', color: [100, 200, 100] },
+                { id: 'Russian', label: 'Russian', family: 'IE-Slavic', parent: 'Slav', color: [100, 200, 100] },
+                // Other
+                { id: 'Hellenic', label: 'Greek', family: 'IE-Hellenic', parent: 'PIE', color: [200, 150, 100] },
+                { id: 'IndoIr', label: 'Indo-Iranian', family: 'IE-IndoIr', parent: 'PIE', color: [200, 100, 150] },
+                { id: 'Hindi', label: 'Hindi', family: 'IE-IndoIr', parent: 'IndoIr', color: [200, 100, 150] },
+                { id: 'Bengali', label: 'Bengali', family: 'IE-IndoIr', parent: 'IndoIr', color: [200, 100, 150] },
+                // Sino-Tibetan
+                { id: 'SinoTib', label: 'Sino-Tibetan', family: 'SinoTib', parent: null, color: [0, 255, 136] },
+                { id: 'Mandarin', label: 'Mandarin', family: 'SinoTib', parent: 'SinoTib', color: [0, 255, 136] },
+                // Japonic
+                { id: 'Japanese', label: 'Japanese', family: 'Japonic', parent: null, color: [150, 150, 200] },
+                // Koreanic
+                { id: 'Korean', label: 'Korean', family: 'Koreanic', parent: null, color: [180, 100, 200] },
+                // Altaic
+                { id: 'Turkish', label: 'Turkish', family: 'Altaic', parent: null, color: [200, 200, 100] },
+                // Afro-Asiatic
+                { id: 'Arabic', label: 'Arabic', family: 'Afro-Asiatic', parent: null, color: [200, 150, 100] }
+            ];
+
+            // Initialize positions with some randomness
+            nodes.forEach(n => {
+                if (!n.fixed) {
+                    n.x = Math.random() * canvas.width;
+                    n.y = Math.random() * canvas.height;
+                }
+                n.vx = 0;
+                n.vy = 0;
+            });
+        }
+
+        createNodes();
+
+        function getParentNode(id) {
+            const node = nodes.find(n => n.id === id);
+            return node && node.parent ? nodes.find(n => n.id === node.parent) : null;
+        }
+
+        function updateForces(timeValue) {
+            // Repulsion & attraction
+            for (let i = 0; i < nodes.length; i++) {
+                let fx = 0, fy = 0;
+                for (let j = 0; j < nodes.length; j++) {
+                    if (i === j) continue;
+                    const dx = nodes[j].x - nodes[i].x;
+                    const dy = nodes[j].y - nodes[i].y;
+                    const dist = Math.hypot(dx, dy) + 1;
+                    const repulsion = 150 / (dist * dist);
+                    fx -= (dx / dist) * repulsion;
+                    fy -= (dy / dist) * repulsion;
+                }
+                // Attraction to parent
+                const parent = getParentNode(nodes[i].id);
+                if (parent) {
+                    const dx = parent.x - nodes[i].x;
+                    const dy = parent.y - nodes[i].y;
+                    const dist = Math.hypot(dx, dy) + 1;
+                    const attraction = 0.05;
+                    fx += (dx / dist) * attraction * dist;
+                    fy += (dy / dist) * attraction * dist;
+                }
+                // Damping & bounds
+                nodes[i].vx = (fx + nodes[i].vx * 0.85) * 0.9;
+                nodes[i].vy = (fy + nodes[i].vy * 0.85) * 0.9;
+                if (!nodes[i].fixed) {
+                    nodes[i].x += nodes[i].vx;
+                    nodes[i].y += nodes[i].vy;
+                    nodes[i].x = Math.max(40, Math.min(canvas.width - 40, nodes[i].x));
+                    nodes[i].y = Math.max(40, Math.min(canvas.height - 40, nodes[i].y));
+                }
+            }
+        }
+
+        function drawTree(timeValue) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw edges
+            ctx.strokeStyle = 'rgba(77, 168, 218, 0.3)';
+            ctx.lineWidth = 1.5;
+            nodes.forEach(n => {
+                const parent = getParentNode(n.id);
+                if (parent) {
+                    ctx.beginPath();
+                    ctx.moveTo(n.x, n.y);
+                    ctx.lineTo(parent.x, parent.y);
+                    ctx.stroke();
+                }
+            });
+
+            // Draw nodes
+            nodes.forEach(n => {
+                const [r, g, b] = n.color;
+                const isSelected = selectedLang && n.id === selectedLang;
+                const radius = isSelected ? 14 : (n.family === 'root' ? 12 : 8);
+                ctx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+                ctx.beginPath();
+                ctx.arc(n.x, n.y, radius, 0, Math.PI * 2);
+                ctx.fill();
+                if (isSelected) {
+                    ctx.strokeStyle = '#ffd700';
+                    ctx.lineWidth = 3;
+                    ctx.stroke();
+                }
+            });
+
+            // Draw labels
+            ctx.fillStyle = '#e0e0e0';
+            ctx.font = 'bold 11px "Space Mono"';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            nodes.forEach(n => {
+                ctx.fillText(n.label, n.x, n.y + 18);
+            });
+        }
+
+        let animationId;
+        function animate() {
+            updateForces(parseInt(timeline.value));
+            drawTree(parseInt(timeline.value));
+            animationId = requestAnimationFrame(animate);
+        }
+        animate();
+
+        // Timeline
+        timeline.addEventListener('input', (e) => {
+            const val = parseInt(e.target.value);
+            const times = ['Modern', '1000 BCE', '3000 BCE', '6000 BCE', '10000 BCE (Proto-World)'];
+            timeLabel.textContent = times[Math.floor(val / 2500)] || 'Modern';
+        });
+
+        // Language selection
+        langSelect.addEventListener('change', (e) => {
+            const lang = e.target.value;
+            selectedLang = lang || null;
+
+            if (lang && langData[lang]) {
+                const data = langData[lang];
+                document.getElementById('statsSection').style.display = 'block';
+                document.getElementById('statFamily').textContent = data.family;
+                document.getElementById('statSpeakers').textContent = data.speakers;
+                document.getElementById('statDivergence').textContent = data.divergence;
+                document.getElementById('statISO').textContent = data.iso;
+
+                if (cognates[lang]) {
+                    document.getElementById('cognatesSection').style.display = 'block';
+                    const html = cognates[lang].map(([word, root]) =>
+                        `<div class="cognate"><span class="cognate-word">${word}</span><br><span class="cognate-meaning">${root}</span></div>`
+                    ).join('');
+                    document.getElementById('cognatesList').innerHTML = html;
+                } else {
+                    document.getElementById('cognatesSection').style.display = 'none';
+                }
+            } else {
+                document.getElementById('statsSection').style.display = 'none';
+                document.getElementById('cognatesSection').style.display = 'none';
+            }
+        });
+
+        // Drag to pan
+        let dragStart = null;
+        canvas.addEventListener('mousedown', (e) => {
+            dragStart = { x: e.offsetX, y: e.offsetY };
+        });
+        canvas.addEventListener('mousemove', (e) => {
+            if (dragStart) {
+                const dx = e.offsetX - dragStart.x;
+                const dy = e.offsetY - dragStart.y;
+                nodes.forEach(n => {
+                    if (!n.fixed) {
+                        n.x += dx * 0.1;
+                        n.y += dy * 0.1;
+                    }
+                });
+                dragStart = { x: e.offsetX, y: e.offsetY };
+            }
+        });
+        canvas.addEventListener('mouseup', () => { dragStart = null; });
+        canvas.addEventListener('mouseleave', () => { dragStart = null; });
+    </script>
+</body>
+</html>
