@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Binary Stars</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 100%);
+            font-family: 'Space Mono', monospace;
+            color: #e0e7ff;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 280px;
+            gap: 24px;
+            width: 90%;
+            max-width: 1200px;
+            height: 90vh;
+            max-height: 700px;
+        }
+        .canvas-wrapper {
+            background: radial-gradient(ellipse at center, #0f1535 0%, #050812 100%);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            position: relative;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+        .control-panel {
+            background: rgba(15, 21, 53, 0.9);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            border-radius: 12px;
+            padding: 16px;
+            overflow-y: auto;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        }
+        .control-panel::-webkit-scrollbar {
+            width: 6px;
+        }
+        .control-panel::-webkit-scrollbar-track {
+            background: rgba(99, 102, 241, 0.05);
+            border-radius: 3px;
+        }
+        .control-panel::-webkit-scrollbar-thumb {
+            background: rgba(129, 140, 248, 0.3);
+            border-radius: 3px;
+        }
+        h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 20px;
+            margin-bottom: 16px;
+            color: #c7d2fe;
+            letter-spacing: 0.5px;
+        }
+        .control-group {
+            margin-bottom: 20px;
+        }
+        .control-group label {
+            display: block;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: #a5b4fc;
+            margin-bottom: 6px;
+            letter-spacing: 0.5px;
+        }
+        input[type="range"] {
+            width: 100%;
+            height: 4px;
+            border-radius: 2px;
+            background: linear-gradient(to right, #818cf8, #c084fc);
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+            cursor: pointer;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #fbbf24;
+            cursor: pointer;
+            box-shadow: 0 0 8px rgba(251, 191, 36, 0.4);
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #fbbf24;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 0 8px rgba(251, 191, 36, 0.4);
+        }
+        select {
+            width: 100%;
+            padding: 8px;
+            background: rgba(99, 102, 241, 0.1);
+            border: 1px solid rgba(129, 140, 248, 0.3);
+            color: #e0e7ff;
+            border-radius: 6px;
+            font-family: 'Space Mono', monospace;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        .stat-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+        .stat-box {
+            background: rgba(99, 102, 241, 0.1);
+            border-left: 3px solid #818cf8;
+            padding: 8px;
+            border-radius: 4px;
+            font-size: 11px;
+        }
+        .stat-label {
+            color: #a5b4fc;
+            font-size: 9px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            margin-bottom: 2px;
+        }
+        .stat-value {
+            color: #fbbf24;
+            font-weight: 700;
+            font-size: 13px;
+        }
+        button {
+            width: 100%;
+            padding: 10px;
+            background: linear-gradient(135deg, #818cf8, #c084fc);
+            border: none;
+            color: white;
+            border-radius: 6px;
+            font-family: 'Space Mono', monospace;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: 12px;
+            transition: all 0.2s ease;
+        }
+        button:hover {
+            box-shadow: 0 0 16px rgba(129, 140, 248, 0.4);
+            transform: translateY(-1px);
+        }
+        .preset-btn {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 6px;
+            background: rgba(129, 140, 248, 0.15);
+            border: 1px solid rgba(129, 140, 248, 0.3);
+            color: #c7d2fe;
+            border-radius: 4px;
+            font-family: 'Space Mono', monospace;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .preset-btn:hover {
+            background: rgba(129, 140, 248, 0.25);
+            border-color: rgba(129, 140, 248, 0.5);
+        }
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+                gap: 16px;
+                height: auto;
+            }
+            .control-panel {
+                max-height: 200px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="canvas-wrapper">
+            <canvas id="canvas"></canvas>
+        </div>
+        <div class="control-panel">
+            <h1>Binary Stars</h1>
+            
+            <div class="control-group">
+                <label>Star 1 Mass (M☉)</label>
+                <input type="range" id="mass1" min="0.5" max="20" step="0.1" value="1.4">
+            </div>
+
+            <div class="control-group">
+                <label>Star 2 Mass (M☉)</label>
+                <input type="range" id="mass2" min="0.5" max="20" step="0.1" value="1.1">
+            </div>
+
+            <div class="control-group">
+                <label>Separation (AU)</label>
+                <input type="range" id="separation" min="0.1" max="5" step="0.1" value="2.0">
+            </div>
+
+            <div class="control-group">
+                <label>Eccentricity</label>
+                <input type="range" id="eccentricity" min="0" max="0.95" step="0.05" value="0.2">
+            </div>
+
+            <div class="stat-row">
+                <div class="stat-box">
+                    <div class="stat-label">Period</div>
+                    <div class="stat-value" id="period">0.0 y</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Speed</div>
+                    <div class="stat-value" id="speed">0.0 km/s</div>
+                </div>
+            </div>
+
+            <div class="control-group" style="border-top: 1px solid rgba(99, 102, 241, 0.2); padding-top: 12px;">
+                <label style="margin-bottom: 10px;">Presets</label>
+                <button class="preset-btn" onclick="setPreset('sun-jupiter')">Sun + Jupiter</button>
+                <button class="preset-btn" onclick="setPreset('sun-earth')">Sun + Earth</button>
+                <button class="preset-btn" onclick="setPreset('albireo')">Albireo</button>
+                <button class="preset-btn" onclick="setPreset('mizar')">Mizar & Alcor</button>
+                <button class="preset-btn" onclick="setPreset('sirius')">Sirius</button>
+            </div>
+
+            <button onclick="togglePause()">Pause</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        // Resize canvas
+        function resizeCanvas() {
+            const rect = canvas.parentElement.getBoundingClientRect();
+            canvas.width = rect.width;
+            canvas.height = rect.height;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        // Constants (normalized units)
+        const G = 39.476; // AU³/(M☉·year²)
+        const TIME_SCALE = 0.01; // years per frame
+        let isPaused = false;
+
+        // State
+        let state = {
+            mass1: 1.4,
+            mass2: 1.1,
+            separation: 2.0,
+            eccentricity: 0.2,
+            time: 0,
+            angle: 0
+        };
+
+        // Update controls
+        ['mass1', 'mass2', 'separation', 'eccentricity'].forEach(id => {
+            document.getElementById(id).addEventListener('input', e => {
+                state[id] = parseFloat(e.target.value);
+                state.time = 0;
+                state.angle = 0;
+            });
+        });
+
+        function togglePause() {
+            isPaused = !isPaused;
+        }
+
+        function setPreset(name) {
+            const presets = {
+                'sun-jupiter': { mass1: 1.0, mass2: 0.001, separation: 5.2, eccentricity: 0.05 },
+                'sun-earth': { mass1: 1.0, mass2: 0.000003, separation: 1.0, eccentricity: 0.017 },
+                'albireo': { mass1: 3.5, mass2: 5.5, separation: 0.3, eccentricity: 0.4 },
+                'mizar': { mass1: 2.0, mass2: 1.8, separation: 0.35, eccentricity: 0.27 },
+                'sirius': { mass1: 2.02, mass2: 1.02, separation: 0.495, eccentricity: 0.59 }
+            };
+            const p = presets[name];
+            state.mass1 = p.mass1;
+            state.mass2 = p.mass2;
+            state.separation = p.separation;
+            state.eccentricity = p.eccentricity;
+            state.time = 0;
+            state.angle = 0;
+            ['mass1', 'mass2', 'separation', 'eccentricity'].forEach(id => {
+                document.getElementById(id).value = state[id];
+            });
+        }
+
+        function calculateOrbit() {
+            const M = state.mass1 + state.mass2;
+            const a = state.separation; // semi-major axis
+            const e = state.eccentricity;
+
+            // Kepler's third law: P² = a³/M
+            const period = Math.sqrt((a * a * a) / M);
+
+            // Mean motion
+            const n = 2 * Math.PI / period;
+
+            // Mean anomaly
+            const M_anomaly = (n * state.time) % (2 * Math.PI);
+
+            // Solve Kepler's equation iteratively (Newton-Raphson)
+            let E = M_anomaly;
+            for (let i = 0; i < 5; i++) {
+                E = M_anomaly + e * Math.sin(E);
+            }
+
+            // True anomaly
+            const nu = 2 * Math.atan2(
+                Math.sqrt(1 + e) * Math.sin(E / 2),
+                Math.sqrt(1 - e) * Math.cos(E / 2)
+            );
+
+            // Distance from focus
+            const r = a * (1 - e * e) / (1 + e * Math.cos(nu));
+
+            // Position of center of mass
+            const mu1 = state.mass2 / M; // relative position of star 1
+            const mu2 = state.mass1 / M; // relative position of star 2
+
+            // Star positions in orbital plane
+            const x1 = -mu1 * r * Math.cos(nu);
+            const y1 = -mu1 * r * Math.sin(nu);
+            const x2 = mu2 * r * Math.cos(nu);
+            const y2 = mu2 * r * Math.sin(nu);
+
+            // Orbital velocity
+            const v = Math.sqrt(G * M / r);
+
+            return { x1, y1, x2, y2, period, v, r };
+        }
+
+        function update() {
+            if (!isPaused) {
+                state.time += TIME_SCALE;
+            }
+
+            const orbit = calculateOrbit();
+
+            // Update display stats
+            document.getElementById('period').textContent = orbit.period.toFixed(2) + ' y';
+            document.getElementById('speed').textContent = (orbit.v * 29.8).toFixed(1) + ' km/s';
+
+            return orbit;
+        }
+
+        function draw(orbit) {
+            // Clear
+            ctx.fillStyle = 'rgba(10, 14, 39, 0.1)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Center of canvas
+            const cx = canvas.width / 2;
+            const cy = canvas.height / 2;
+
+            // Scale: fit orbit to canvas (leave margin)
+            const maxSep = state.separation * (1 + state.eccentricity);
+            const scale = Math.min(canvas.width, canvas.height) * 0.35 / maxSep;
+
+            // Draw orbit ellipse
+            const a = state.separation;
+            const e = state.eccentricity;
+            const b = a * Math.sqrt(1 - e * e);
+            const focus_dist = a * e;
+
+            ctx.strokeStyle = 'rgba(129, 140, 248, 0.2)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            for (let i = 0; i <= 100; i++) {
+                const t = (i / 100) * 2 * Math.PI;
+                const r = a * (1 - e * e) / (1 + e * Math.cos(t));
+                const x = cx + r * Math.cos(t) * scale;
+                const y = cy + r * Math.sin(t) * scale;
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.closePath();
+            ctx.stroke();
+
+            // Draw barycenter
+            ctx.fillStyle = 'rgba(251, 191, 36, 0.3)';
+            ctx.beginPath();
+            ctx.arc(cx, cy, 3, 0, 2 * Math.PI);
+            ctx.fill();
+
+            // Draw stars
+            const star1_x = cx + orbit.x1 * scale;
+            const star1_y = cy + orbit.y1 * scale;
+            const star2_x = cx + orbit.x2 * scale;
+            const star2_y = cy + orbit.y2 * scale;
+
+            // Star 1 (brighter)
+            const r1 = Math.max(6, Math.sqrt(state.mass1) * 3);
+            const glow1 = ctx.createRadialGradient(star1_x, star1_y, 0, star1_x, star1_y, r1);
+            glow1.addColorStop(0, 'rgba(255, 213, 79, 0.8)');
+            glow1.addColorStop(0.7, 'rgba(255, 193, 7, 0.3)');
+            glow1.addColorStop(1, 'rgba(255, 193, 7, 0)');
+            ctx.fillStyle = glow1;
+            ctx.beginPath();
+            ctx.arc(star1_x, star1_y, r1, 0, 2 * Math.PI);
+            ctx.fill();
+
+            ctx.fillStyle = '#ffd54f';
+            ctx.beginPath();
+            ctx.arc(star1_x, star1_y, r1 * 0.6, 0, 2 * Math.PI);
+            ctx.fill();
+
+            // Star 2
+            const r2 = Math.max(4, Math.sqrt(state.mass2) * 3);
+            const glow2 = ctx.createRadialGradient(star2_x, star2_y, 0, star2_x, star2_y, r2);
+            glow2.addColorStop(0, 'rgba(129, 210, 255, 0.8)');
+            glow2.addColorStop(0.7, 'rgba(100, 181, 246, 0.3)');
+            glow2.addColorStop(1, 'rgba(100, 181, 246, 0)');
+            ctx.fillStyle = glow2;
+            ctx.beginPath();
+            ctx.arc(star2_x, star2_y, r2, 0, 2 * Math.PI);
+            ctx.fill();
+
+            ctx.fillStyle = '#64b5f6';
+            ctx.beginPath();
+            ctx.arc(star2_x, star2_y, r2 * 0.6, 0, 2 * Math.PI);
+            ctx.fill();
+
+            // Draw connection line
+            ctx.strokeStyle = 'rgba(255, 193, 7, 0.1)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(star1_x, star1_y);
+            ctx.lineTo(star2_x, star2_y);
+            ctx.stroke();
+        }
+
+        function animate() {
+            const orbit = update();
+            draw(orbit);
+            requestAnimationFrame(animate);
+        }
+
+        animate();
+    </script>
+</body>
+</html>
