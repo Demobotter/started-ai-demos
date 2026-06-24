@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Coral Bleaching Simulator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Space Mono', monospace;
+            background: linear-gradient(135deg, #0a1f4a 0%, #0d2d5e 100%);
+            color: #fff;
+            min-height: 100vh;
+            padding: 2rem 1rem;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.5rem;
+            text-align: center;
+            margin-bottom: 0.5rem;
+            color: #06b6d4;
+        }
+        .subtitle {
+            text-align: center;
+            color: #7dd3fc;
+            margin-bottom: 2rem;
+            font-size: 0.95rem;
+        }
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+        .canvas-section {
+            background: rgba(15, 45, 94, 0.6);
+            border: 1px solid #1f4d7f;
+            border-radius: 8px;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        canvas {
+            border-radius: 4px;
+            background: #0a1f4a;
+            margin-bottom: 1rem;
+            border: 1px solid #1f4d7f;
+        }
+        .control-panel {
+            background: rgba(15, 45, 94, 0.6);
+            border: 1px solid #1f4d7f;
+            border-radius: 8px;
+            padding: 2rem;
+        }
+        .control-group {
+            margin-bottom: 2rem;
+        }
+        .control-label {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+            display: flex;
+            justify-content: space-between;
+        }
+        .control-value {
+            color: #06b6d4;
+            font-weight: bold;
+        }
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: linear-gradient(to right, #00ff88, #f39c12, #e74c3c);
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #06b6d4;
+            cursor: pointer;
+            border: 2px solid #0a1f4a;
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #06b6d4;
+            cursor: pointer;
+            border: 2px solid #0a1f4a;
+        }
+        select {
+            width: 100%;
+            padding: 0.75rem;
+            background: #1f4d7f;
+            color: #06b6d4;
+            border: 1px solid #06b6d4;
+            border-radius: 4px;
+            font-family: 'Space Mono', monospace;
+            cursor: pointer;
+            font-size: 0.95rem;
+        }
+        select option {
+            background: #0a1f4a;
+            color: #06b6d4;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+        .stat-box {
+            background: rgba(10, 31, 74, 0.8);
+            border-left: 4px solid #06b6d4;
+            padding: 1rem;
+            border-radius: 4px;
+        }
+        .stat-label {
+            font-size: 0.8rem;
+            color: #7dd3fc;
+            margin-bottom: 0.3rem;
+        }
+        .stat-value {
+            font-size: 1.5rem;
+            color: #06b6d4;
+            font-weight: bold;
+        }
+        .info-box {
+            background: rgba(15, 45, 94, 0.6);
+            border: 1px solid #06b6d4;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-top: 2rem;
+            line-height: 1.6;
+        }
+        .info-title {
+            font-family: 'Playfair Display', serif;
+            color: #06b6d4;
+            margin-bottom: 0.5rem;
+            font-size: 1.1rem;
+        }
+        .heat-indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+            font-size: 0.9rem;
+        }
+        .heat-indicator-bar {
+            width: 80px;
+            height: 20px;
+            border-radius: 3px;
+            background: linear-gradient(to right, #00ff88, #7dd3fc, #f39c12, #e74c3c);
+            border: 1px solid #fff;
+        }
+        @media (max-width: 768px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+            h1 {
+                font-size: 1.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🪸 Coral Bleaching</h1>
+        <div class="subtitle">Watch symbiotic algae abandon stressed corals in real time</div>
+        
+        <div class="main-grid">
+            <div class="canvas-section">
+                <div style="text-align: center; margin-bottom: 0.5rem; font-size: 0.9rem; color: #7dd3fc;">
+                    Coral Polyps & Zooxanthellae
+                </div>
+                <canvas id="coralCanvas" width="350" height="350"></canvas>
+                <div style="font-size: 0.8rem; color: #7dd3fc; text-align: center;">
+                    Temperature-driven symbiosis visualization
+                </div>
+            </div>
+
+            <div class="control-panel">
+                <div class="control-group">
+                    <div class="control-label">
+                        <span>Ocean Temperature</span>
+                        <span class="control-value" id="tempValue">28°C</span>
+                    </div>
+                    <input type="range" id="tempSlider" min="15" max="35" value="28" step="0.5">
+                    <div class="heat-indicator">
+                        <span>Safe:</span>
+                        <span style="color: #00ff88;">24–30°C</span>
+                        <span style="margin-left: 1rem;">Danger:</span>
+                        <span style="color: #e74c3c;">32°C+</span>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <div class="control-label">
+                        <span>Reef Location</span>
+                    </div>
+                    <select id="reefSelect">
+                        <option value="great_barrier">Great Barrier Reef (Au)</option>
+                        <option value="caribbean">Caribbean</option>
+                        <option value="red_sea">Red Sea</option>
+                        <option value="coral_triangle">Coral Triangle (SEA)</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <div class="control-label">
+                        <span>Story Mode</span>
+                    </div>
+                    <select id="storySelect">
+                        <option value="free">Free Exploration</option>
+                        <option value="baseline">📍 Baseline (Healthy)</option>
+                        <option value="heat_wave">🔥 Marine Heat Wave</option>
+                        <option value="recovery">🌱 Recovery</option>
+                    </select>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-box">
+                        <div class="stat-label">ZOOXANTHELLAE HEALTH</div>
+                        <div class="stat-value" id="healthPercent">100%</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">ANOMALY FROM BASELINE</div>
+                        <div class="stat-value" id="anomaly">0.0°C</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">BLEACHING STATUS</div>
+                        <div class="stat-value" id="status" style="color: #00ff88;">Healthy</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">RECOVERY TIME</div>
+                        <div class="stat-value" id="recoveryTime">—</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="info-box">
+            <div class="info-title">🌊 Why Corals Bleach</div>
+            <p>
+                Zooxanthellae are symbiotic algae living inside coral cells, providing nutrition through photosynthesis. 
+                When ocean temperature rises just a few degrees above normal, corals expel their algae as a stress response—
+                leaving behind pale white skeletons. Without their algal partners, corals starve. Many bleached corals die 
+                before recovery can begin. Real marine heat waves are pushing reefs past their survival limits.
+            </p>
+            <p style="margin-top: 1rem;">
+                <strong>Try this:</strong> Drag temperature to 32°C to trigger bleaching, then lower it back to 28°C to watch recovery.
+            </p>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('coralCanvas');
+        const ctx = canvas.getContext('2d');
+        const tempSlider = document.getElementById('tempSlider');
+        const reefSelect = document.getElementById('reefSelect');
+        const storySelect = document.getElementById('storySelect');
+        const tempValue = document.getElementById('tempValue');
+        const healthPercent = document.getElementById('healthPercent');
+        const anomalyDisplay = document.getElementById('anomaly');
+        const statusDisplay = document.getElementById('status');
+        const recoveryTimeDisplay = document.getElementById('recoveryTime');
+
+        // Reef baseline temperatures (real NOAA data)
+        const reefData = {
+            great_barrier: { name: 'Great Barrier Reef', baseline: 27.5 },
+            caribbean: { name: 'Caribbean', baseline: 28.2 },
+            red_sea: { name: 'Red Sea', baseline: 29.0 },
+            coral_triangle: { name: 'Coral Triangle', baseline: 28.5 }
+        };
+
+        let state = {
+            temperature: 28,
+            reef: 'great_barrier',
+            story: 'free',
+            health: 100,
+            zooxCount: 80,
+            recoveryCounter: 0,
+            previousTemp: 28,
+            time: 0
+        };
+
+        // Story presets
+        const storyModes = {
+            free: () => {},
+            baseline: () => {
+                state.temperature = reefData[state.reef].baseline;
+                tempSlider.value = state.temperature;
+            },
+            heat_wave: () => {
+                state.temperature = 32.5;
+                tempSlider.value = state.temperature;
+            },
+            recovery: () => {
+                state.temperature = 26;
+                tempSlider.value = state.temperature;
+            }
+        };
+
+        tempSlider.addEventListener('input', (e) => {
+            state.temperature = parseFloat(e.target.value);
+        });
+
+        reefSelect.addEventListener('change', (e) => {
+            state.reef = e.target.value;
+        });
+
+        storySelect.addEventListener('change', (e) => {
+            state.story = e.target.value;
+            storyModes[state.story]();
+        });
+
+        function getHealthFromTemp(temp) {
+            const baseline = reefData[state.reef].baseline;
+            const diff = temp - baseline;
+            
+            if (diff <= -2) return 100; // Safe
+            if (diff <= 0) return 100 - (diff * 10); // Optimal to beginning stress
+            if (diff <= 2) return Math.max(100 - (diff * 15), 70); // Stress zone
+            if (diff <= 4) return Math.max(70 - ((diff - 2) * 15), 0); // Bleaching
+            return 0; // Severe bleaching
+        }
+
+        function getStatusText(health) {
+            if (health >= 90) return 'Healthy';
+            if (health >= 70) return 'Stress';
+            if (health >= 30) return 'Bleached';
+            return 'Severe';
+        }
+
+        function getStatusColor(health) {
+            if (health >= 90) return '#00ff88';
+            if (health >= 70) return '#f39c12';
+            if (health >= 30) return '#e74c3c';
+            return '#b91c1c';
+        }
+
+        function drawCoral() {
+            ctx.fillStyle = '#0a1f4a';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Gradient background for underwater feel
+            const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            gradient.addColorStop(0, 'rgba(10, 31, 74, 0.1)');
+            gradient.addColorStop(1, 'rgba(6, 182, 212, 0.05)');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Coral colony layout
+            const polyps = [
+                { x: 175, y: 150, size: 40 },
+                { x: 120, y: 200, size: 35 },
+                { x: 230, y: 200, size: 35 },
+                { x: 100, y: 280, size: 30 },
+                { x: 175, y: 260, size: 32 },
+                { x: 250, y: 280, size: 30 }
+            ];
+
+            const health = state.health;
+            const healthRatio = health / 100;
+
+            // Draw each polyp
+            polyps.forEach(polyp => {
+                // Polyp body - color based on health
+                const hue = 38 + (healthRatio * 10); // White (38) to golden (48)
+                ctx.fillStyle = `hsl(${hue}, ${healthRatio * 60}%, ${90 - (healthRatio * 20)}%)`;
+                
+                // Draw polyp as rounded blob
+                ctx.beginPath();
+                ctx.ellipse(polyp.x, polyp.y, polyp.size * 0.7, polyp.size * 0.8, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Polyp tentacles
+                ctx.strokeStyle = `hsla(${hue}, ${healthRatio * 60}%, 70%, 0.6)`;
+                ctx.lineWidth = 2;
+                for (let i = 0; i < 5; i++) {
+                    const angle = (i / 5) * Math.PI * 2;
+                    const x1 = polyp.x + Math.cos(angle) * polyp.size * 0.7;
+                    const y1 = polyp.y + Math.sin(angle) * polyp.size * 0.8;
+                    const x2 = polyp.x + Math.cos(angle) * polyp.size * 1.1;
+                    const y2 = polyp.y + Math.sin(angle) * polyp.size * 1.3;
+                    ctx.beginPath();
+                    ctx.moveTo(x1, y1);
+                    ctx.lineTo(x2, y2);
+                    ctx.stroke();
+                }
+
+                // Draw zooxanthellae (algae) as small particles inside polyp
+                const algaeCount = Math.floor(12 * healthRatio);
+                for (let i = 0; i < algaeCount; i++) {
+                    const angle = (i / 12) * Math.PI * 2 + state.time * 0.05;
+                    const distance = polyp.size * 0.3 * healthRatio;
+                    const algaeX = polyp.x + Math.cos(angle) * distance;
+                    const algaeY = polyp.y + Math.sin(angle) * distance;
+                    
+                    ctx.fillStyle = `hsla(38, 70%, 50%, ${healthRatio * 0.8})`;
+                    ctx.beginPath();
+                    ctx.arc(algaeX, algaeY, 3 * healthRatio, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            });
+
+            // Temperature scale on right side
+            const scaleX = canvas.width - 30;
+            const scaleY = 40;
+            const scaleHeight = 250;
+
+            // Background for scale
+            ctx.fillStyle = 'rgba(31, 77, 127, 0.3)';
+            ctx.fillRect(scaleX - 10, scaleY, 25, scaleHeight);
+
+            // Color gradient for temperature scale
+            const scaleGradient = ctx.createLinearGradient(0, scaleY + scaleHeight, 0, scaleY);
+            scaleGradient.addColorStop(0, '#00ff88'); // Cold - green
+            scaleGradient.addColorStop(0.33, '#7dd3fc'); // Cool - light blue
+            scaleGradient.addColorStop(0.66, '#f39c12'); // Warm - orange
+            scaleGradient.addColorStop(1, '#e74c3c'); // Hot - red
+
+            ctx.fillStyle = scaleGradient;
+            ctx.fillRect(scaleX - 10, scaleY, 20, scaleHeight);
+
+            // Border
+            ctx.strokeStyle = '#1f4d7f';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(scaleX - 10, scaleY, 20, scaleHeight);
+
+            // Temperature indicator (temperature position on scale)
+            const normalizedTemp = (state.temperature - 15) / (35 - 15); // 0 to 1
+            const indicatorY = scaleY + scaleHeight * (1 - normalizedTemp);
+            ctx.fillStyle = '#fff';
+            ctx.fillRect(scaleX - 15, indicatorY - 3, 30, 6);
+            ctx.strokeStyle = '#06b6d4';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(scaleX - 15, indicatorY - 3, 30, 6);
+        }
+
+        function update() {
+            state.time += 1;
+
+            // Update health based on temperature
+            const newHealth = getHealthFromTemp(state.temperature);
+            
+            // Gradual health change
+            if (newHealth > state.health) {
+                state.health = Math.min(state.health + 0.3, newHealth);
+            } else if (newHealth < state.health) {
+                state.health = Math.max(state.health - 0.5, newHealth);
+            }
+
+            // Update zooxanthellae count
+            state.zooxCount = state.health / 100 * 80;
+
+            // Update recovery counter
+            if (state.temperature <= reefData[state.reef].baseline + 1 && state.health < 100) {
+                state.recoveryCounter += 0.5;
+            } else {
+                state.recoveryCounter = 0;
+            }
+
+            // Update UI
+            tempValue.textContent = state.temperature.toFixed(1) + '°C';
+            healthPercent.textContent = Math.round(state.health) + '%';
+            
+            const baseline = reefData[state.reef].baseline;
+            const anomaly = state.temperature - baseline;
+            anomalyDisplay.textContent = (anomaly >= 0 ? '+' : '') + anomaly.toFixed(1) + '°C';
+            
+            const status = getStatusText(state.health);
+            statusDisplay.textContent = status;
+            statusDisplay.style.color = getStatusColor(state.health);
+
+            if (state.health < 100 && state.recoveryCounter > 0) {
+                recoveryTimeDisplay.textContent = Math.round(state.recoveryCounter) + 's';
+            } else if (state.health >= 100) {
+                recoveryTimeDisplay.textContent = 'Complete';
+            } else {
+                recoveryTimeDisplay.textContent = '—';
+            }
+
+            drawCoral();
+            requestAnimationFrame(update);
+        }
+
+        // Start animation loop
+        update();
+    </script>
+</body>
+</html>
