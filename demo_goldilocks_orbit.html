@@ -48,25 +48,16 @@
             grid-template-columns: 1fr 300px;
             gap: 30px;
         }
-        .canvas-wrapper {
-            position: relative;
+        canvas {
             width: 100%;
-            padding-bottom: 100%;
+            height: 500px;
             background: radial-gradient(ellipse at center, #1a1a3a 0%, #0a0e27 100%);
             border: 2px solid #4a5a8a;
             border-radius: 8px;
-            overflow: hidden;
-        }
-        #canvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
             display: block;
             cursor: grab;
         }
-        #canvas:active {
+        canvas:active {
             cursor: grabbing;
         }
         .controls {
@@ -160,9 +151,7 @@
         <p class="subtitle">Drag planets into the habitable zone where liquid water can exist</p>
         
         <div class="layout">
-            <div class="canvas-wrapper">
-                <canvas id="canvas"></canvas>
-            </div>
+            <canvas id="canvas" width="600" height="600"></canvas>
             
             <div class="controls">
                 <div class="control-group">
@@ -192,7 +181,7 @@
                     </div>
                     <div class="stat-row">
                         <span class="stat-label">Outer Edge</span>
-                        <span class="stat-value" id="hzOuter">1.37 AU</span>
+                        <span class="stat-value" id="hzOuter">1.77 AU</span>
                     </div>
                     <div class="hz-zone status">HZ highlighted in green</div>
                 </div>
@@ -222,23 +211,11 @@
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
 
-        // Set canvas size
-        function resizeCanvas() {
-            const rect = canvas.parentElement.getBoundingClientRect();
-            const size = Math.min(rect.width, rect.height);
-            canvas.width = size;
-            canvas.height = size;
-        }
-        resizeCanvas();
-        window.addEventListener('resize', resizeCanvas);
-
-        // Physics constants
         const AU_TO_PX = 60;
         const SUN_RADIUS = 12;
         const PLANET_RADIUS = 10;
         const EARTH_INSOLATION = 1361;
 
-        // State
         let draggingPlanet = null;
         let planets = [
             { x: 0.5, name: 'Mercury', color: '#8b6914' },
@@ -291,13 +268,14 @@
             const centerX = w / 2;
             const centerY = h / 2;
 
+            ctx.clearRect(0, 0, w, h);
             ctx.fillStyle = 'rgba(10, 14, 39, 1)';
             ctx.fillRect(0, 0, w, h);
 
             const hz = getHabitableZone(luminosity);
 
-            // Habitable zone background
-            ctx.fillStyle = 'rgba(76, 175, 80, 0.1)';
+            // Habitable zone
+            ctx.fillStyle = 'rgba(76, 175, 80, 0.08)';
             ctx.beginPath();
             ctx.arc(centerX, centerY, hz.outer * AU_TO_PX, 0, Math.PI * 2);
             ctx.fill();
@@ -319,7 +297,7 @@
             ctx.setLineDash([]);
 
             // Orbital paths
-            ctx.strokeStyle = 'rgba(74, 90, 138, 0.2)';
+            ctx.strokeStyle = 'rgba(74, 90, 138, 0.3)';
             ctx.lineWidth = 1;
             for (const planet of planets) {
                 ctx.beginPath();
@@ -328,7 +306,10 @@
             }
 
             // Star
-            ctx.fillStyle = '#ffd700';
+            const sunGradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, SUN_RADIUS);
+            sunGradient.addColorStop(0, '#ffff99');
+            sunGradient.addColorStop(1, '#ffd700');
+            ctx.fillStyle = sunGradient;
             ctx.beginPath();
             ctx.arc(centerX, centerY, SUN_RADIUS, 0, Math.PI * 2);
             ctx.fill();
@@ -340,7 +321,7 @@
             const now = Date.now();
             for (let i = 0; i < planets.length; i++) {
                 const planet = planets[i];
-                const angle = (i * 90 + now / 3000) * Math.PI / 180;
+                const angle = (i * 90 + now / 5000) * Math.PI / 180;
                 const px = centerX + planet.x * AU_TO_PX * Math.cos(angle);
                 const py = centerY + planet.x * AU_TO_PX * Math.sin(angle);
 
@@ -349,7 +330,6 @@
                 ctx.arc(px, py, PLANET_RADIUS, 0, Math.PI * 2);
                 ctx.fill();
 
-                // Selection ring
                 if (selectedPlanet === i) {
                     ctx.strokeStyle = '#ffff00';
                     ctx.lineWidth = 3;
@@ -358,7 +338,6 @@
                     ctx.stroke();
                 }
 
-                // Habitability highlight
                 const insol = getInsolation(luminosity, planet.x);
                 if (insol > 0.25 && insol < 1.5) {
                     ctx.strokeStyle = '#4caf50';
@@ -377,7 +356,7 @@
                 ctx.fillText(planet.name, px, py + PLANET_RADIUS + 18);
             }
 
-            requestAnimationFrame(draw);
+            setTimeout(draw, 50);
         }
 
         function resetPlanets() {
@@ -389,6 +368,7 @@
             ];
             selectedPlanet = null;
             updateStats();
+            draw();
         }
 
         canvas.addEventListener('mousedown', (e) => {
@@ -462,6 +442,7 @@
             luminosity = presets[e.target.value];
             document.getElementById('luminosity').value = luminosity;
             updateStats();
+            draw();
         });
 
         document.getElementById('luminosity').addEventListener('input', (e) => {
