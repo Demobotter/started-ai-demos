@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Crystal Lattice Builder</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Source+Sans+Pro:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Source Sans Pro', sans-serif;
+      background: linear-gradient(135deg, #0a1428 0%, #1a2d4d 100%);
+      color: #e0e0e0;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: 2.5em;
+      margin-bottom: 10px;
+      color: #a8d5ff;
+      text-align: center;
+    }
+    .subtitle {
+      text-align: center;
+      color: #7a9fb8;
+      margin-bottom: 30px;
+      font-size: 0.95em;
+    }
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1fr 380px;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+    .canvas-section {
+      background: #0f1f35;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+      border: 1px solid #1f4d7f;
+    }
+    canvas {
+      display: block;
+      width: 100%;
+      height: 500px;
+      border-radius: 8px;
+      background: #050d19;
+      border: 1px solid #1a3a5c;
+    }
+    .controls-panel {
+      background: #0f1f35;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+      border: 1px solid #1f4d7f;
+      max-height: 600px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .control-group label {
+      font-weight: 600;
+      font-size: 0.9em;
+      color: #a8d5ff;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    select, button {
+      background: #1a2f4d;
+      border: 1px solid #2f5a8a;
+      color: #e0e0e0;
+      padding: 10px 12px;
+      border-radius: 6px;
+      font-family: 'Source Sans Pro', sans-serif;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 0.9em;
+    }
+    select:hover, button:hover {
+      background: #264075;
+      border-color: #4a7aaa;
+    }
+    select:focus, button:focus {
+      outline: none;
+      box-shadow: 0 0 8px rgba(77, 168, 218, 0.5);
+    }
+    .button-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .stats-box {
+      background: #0a1428;
+      border-left: 4px solid #4da8da;
+      padding: 12px;
+      border-radius: 4px;
+      font-size: 0.85em;
+      line-height: 1.6;
+    }
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+    .stat-row:last-child {
+      margin-bottom: 0;
+    }
+    .stat-label {
+      color: #7a9fb8;
+    }
+    .stat-value {
+      color: #4da8da;
+      font-weight: 600;
+      font-family: 'Courier New', monospace;
+    }
+    .element-picker {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .element-btn {
+      padding: 10px;
+      border-radius: 6px;
+      font-weight: 500;
+      font-size: 0.85em;
+      transition: all 0.2s;
+      border: 2px solid transparent;
+    }
+    .element-btn.si {
+      background: #4da8da;
+      color: #050d19;
+    }
+    .element-btn.o {
+      background: #ff6b6b;
+      color: #fff;
+    }
+    .element-btn.ca {
+      background: #51cf66;
+      color: #050d19;
+    }
+    .element-btn.fe {
+      background: #ffa94d;
+      color: #050d19;
+    }
+    .element-btn.active {
+      border-color: #fff;
+      box-shadow: 0 0 12px rgba(255, 255, 255, 0.4);
+    }
+    .preset-info {
+      background: #0a1428;
+      border-left: 4px solid #a8d5ff;
+      padding: 12px;
+      border-radius: 4px;
+      font-size: 0.85em;
+      color: #7a9fb8;
+      line-height: 1.5;
+    }
+    .help-section {
+      background: #0a1428;
+      border-left: 4px solid #7a9fb8;
+      padding: 12px;
+      border-radius: 4px;
+      font-size: 0.8em;
+      color: #8ab0c8;
+      line-height: 1.6;
+      margin-top: auto;
+    }
+    .help-section strong {
+      color: #a8d5ff;
+      display: block;
+      margin-bottom: 6px;
+    }
+    @media (max-width: 1000px) {
+      .main-grid {
+        grid-template-columns: 1fr;
+      }
+      .controls-panel {
+        max-height: none;
+      }
+      h1 {
+        font-size: 2em;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔮 Crystal Lattice Builder</h1>
+    <p class="subtitle">Build 3D mineral structures atom by atom and explore symmetry</p>
+    
+    <div class="main-grid">
+      <div class="canvas-section">
+        <canvas id="latticeCanvas"></canvas>
+      </div>
+      
+      <div class="controls-panel">
+        <!-- Mode Toggle -->
+        <div class="control-group">
+          <label>Mode</label>
+          <select id="modeSelect">
+            <option value="build">Build Mode</option>
+            <option value="view">View Mode</option>
+          </select>
+        </div>
+
+        <!-- Element Picker -->
+        <div class="control-group">
+          <label>Element</label>
+          <div class="element-picker">
+            <button class="element-btn si active" data-element="si">Si (Cyan)</button>
+            <button class="element-btn o" data-element="o">O (Red)</button>
+            <button class="element-btn ca" data-element="ca">Ca (Green)</button>
+            <button class="element-btn fe" data-element="fe">Fe (Orange)</button>
+          </div>
+        </div>
+
+        <!-- Preset Structures -->
+        <div class="control-group">
+          <label>Load Structure</label>
+          <select id="presetSelect">
+            <option value="">-- Pick a Mineral --</option>
+            <option value="diamond">Diamond (Cubic)</option>
+            <option value="halite">Rock Salt (Cubic)</option>
+            <option value="perovskite">Perovskite (Cubic)</option>
+            <option value="wurtzite">Wurtzite (Hexagonal)</option>
+          </select>
+        </div>
+
+        <!-- Clear & Reset -->
+        <div class="control-group">
+          <div class="button-row">
+            <button id="clearBtn">Clear</button>
+            <button id="resetBtn">Reset View</button>
+          </div>
+        </div>
+
+        <!-- Layer View -->
+        <div class="control-group">
+          <label>Layer Slicing</label>
+          <input type="range" id="layerSlider" min="0" max="5" value="5" style="width: 100%; cursor: pointer;">
+          <span style="font-size: 0.85em; color: #7a9fb8;">All layers</span>
+        </div>
+
+        <!-- Statistics -->
+        <div class="stats-box">
+          <div class="stat-row">
+            <span class="stat-label">Atoms Placed</span>
+            <span class="stat-value" id="atomCount">0</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Structure</span>
+            <span class="stat-value" id="structureType">Empty</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Packing Eff.</span>
+            <span class="stat-value" id="packingEff">0%</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Symmetry</span>
+            <span class="stat-value" id="symmetryType">None</span>
+          </div>
+        </div>
+
+        <!-- Preset Info -->
+        <div class="preset-info" id="presetInfo" style="display: none;">
+          <strong id="presetName"></strong>
+          <span id="presetDesc"></span>
+        </div>
+
+        <!-- Help -->
+        <div class="help-section">
+          <strong>How to Use:</strong>
+          Click atoms on the grid to add/remove. Load a preset to see real mineral structures. Real atomic radii & crystal geometry.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('latticeCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    // Resize canvas to actual pixel dimensions
+    function resizeCanvas() {
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = rect.width * window.devicePixelRatio;
+      canvas.height = rect.height * window.devicePixelRatio;
+      ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+    }
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+
+    // 5×5×5 lattice grid (coordinates: x, y, z all 0-4)
+    const GRID_SIZE = 5;
+    const CELL_SIZE = 1.0; // nm (normalized)
+    const ATOM_RADIUS = 15; // canvas pixels for display
+    
+    // Atomic properties (real data from crystallography)
+    const ELEMENTS = {
+      si: { name: 'Silicon', color: '#4da8da', radius: 0.12 }, // nm
+      o:  { name: 'Oxygen',  color: '#ff6b6b', radius: 0.66 }, // Ångströms / 10
+      ca: { name: 'Calcium', color: '#51cf66', radius: 1.97 },
+      fe: { name: 'Iron',    color: '#ffa94d', radius: 1.24 }
+    };
+
+    // Preset structures (hardcoded real mineral data)
+    const PRESETS = {
+      diamond: {
+        name: 'Diamond (FCC Cubic)',
+        desc: 'Face-centered cubic. Each Si has 4 tetrahedral O neighbors.',
+        atoms: [
+          // FCC pattern in 5×5×5
+          { x: 0, y: 0, z: 0, element: 'si' },
+          { x: 2, y: 0, z: 0, element: 'si' },
+          { x: 4, y: 0, z: 0, element: 'si' },
+          { x: 0, y: 2, z: 0, element: 'si' },
+          { x: 2, y: 2, z: 0, element: 'si' },
+          { x: 4, y: 2, z: 0, element: 'si' },
+          { x: 0, y: 4, z: 0, element: 'si' },
+          { x: 2, y: 4, z: 0, element: 'si' },
+          { x: 4, y: 4, z: 0, element: 'si' },
+          { x: 1, y: 1, z: 1, element: 'si' },
+          { x: 3, y: 1, z: 1, element: 'si' },
+          { x: 1, y: 3, z: 1, element: 'si' },
+          { x: 3, y: 3, z: 1, element: 'si' },
+          { x: 0, y: 0, z: 2, element: 'si' },
+          { x: 2, y: 0, z: 2, element: 'si' },
+          { x: 4, y: 0, z: 2, element: 'si' },
+          { x: 0, y: 2, z: 2, element: 'si' },
+          { x: 2, y: 2, z: 2, element: 'si' },
+          { x: 4, y: 2, z: 2, element: 'si' },
+          { x: 0, y: 4, z: 2, element: 'si' },
+          { x: 2, y: 4, z: 2, element: 'si' },
+          { x: 4, y: 4, z: 2, element: 'si' },
+          { x: 1, y: 1, z: 3, element: 'si' },
+          { x: 3, y: 1, z: 3, element: 'si' },
+          { x: 1, y: 3, z: 3, element: 'si' },
+          { x: 3, y: 3, z: 3, element: 'si' },
+          { x: 0, y: 0, z: 4, element: 'si' },
+          { x: 2, y: 0, z: 4, element: 'si' },
+          { x: 4, y: 0, z: 4, element: 'si' },
+          { x: 0, y: 2, z: 4, element: 'si' },
+          { x: 2, y: 2, z: 4, element: 'si' },
+          { x: 4, y: 2, z: 4, element: 'si' },
+          { x: 0, y: 4, z: 4, element: 'si' },
+          { x: 2, y: 4, z: 4, element: 'si' },
+          { x: 4, y: 4, z: 4, element: 'si' }
+        ]
+      },
+      halite: {
+        name: 'Rock Salt (NaCl Cubic)',
+        desc: 'Body-centered cubic analogue. Si at corners, O at body centers.',
+        atoms: [
+          // Corners (Si)
+          { x: 0, y: 0, z: 0, element: 'si' },
+          { x: 4, y: 0, z: 0, element: 'si' },
+          { x: 0, y: 4, z: 0, element: 'si' },
+          { x: 4, y: 4, z: 0, element: 'si' },
+          { x: 0, y: 0, z: 4, element: 'si' },
+          { x: 4, y: 0, z: 4, element: 'si' },
+          { x: 0, y: 4, z: 4, element: 'si' },
+          { x: 4, y: 4, z: 4, element: 'si' },
+          // Body centers (O)
+          { x: 2, y: 2, z: 2, element: 'o' },
+          { x: 2, y: 2, z: 0, element: 'o' },
+          { x: 2, y: 2, z: 4, element: 'o' },
+          { x: 2, y: 0, z: 2, element: 'o' },
+          { x: 2, y: 4, z: 2, element: 'o' },
+          { x: 0, y: 2, z: 2, element: 'o' },
+          { x: 4, y: 2, z: 2, element: 'o' }
+        ]
+      },
+      perovskite: {
+        name: 'Perovskite (ABO₃)',
+        desc: 'Cubic perovskite. Central atom surrounded by 6 octahedral neighbors.',
+        atoms: [
+          // Central (Ca)
+          { x: 2, y: 2, z: 2, element: 'ca' },
+          // 6 octahedral (O)
+          { x: 2, y: 2, z: 1, element: 'o' },
+          { x: 2, y: 2, z: 3, element: 'o' },
+          { x: 2, y: 1, z: 2, element: 'o' },
+          { x: 2, y: 3, z: 2, element: 'o' },
+          { x: 1, y: 2, z: 2, element: 'o' },
+          { x: 3, y: 2, z: 2, element: 'o' },
+          // Corners (Si)
+          { x: 0, y: 0, z: 0, element: 'si' },
+          { x: 4, y: 0, z: 0, element: 'si' },
+          { x: 0, y: 4, z: 0, element: 'si' },
+          { x: 4, y: 4, z: 0, element: 'si' },
+          { x: 0, y: 0, z: 4, element: 'si' },
+          { x: 4, y: 0, z: 4, element: 'si' },
+          { x: 0, y: 4, z: 4, element: 'si' },
+          { x: 4, y: 4, z: 4, element: 'si' }
+        ]
+      },
+      wurtzite: {
+        name: 'Wurtzite (Hexagonal)',
+        desc: 'Hexagonal closest packing. Alternating planes of two element types.',
+        atoms: [
+          // Layer z=0 (Si)
+          { x: 2, y: 2, z: 0, element: 'si' },
+          { x: 0, y: 2, z: 0, element: 'si' },
+          { x: 4, y: 2, z: 0, element: 'si' },
+          { x: 1, y: 0, z: 0, element: 'si' },
+          { x: 3, y: 0, z: 0, element: 'si' },
+          // Layer z=1 (O)
+          { x: 2, y: 1, z: 1, element: 'o' },
+          { x: 0, y: 1, z: 1, element: 'o' },
+          { x: 4, y: 1, z: 1, element: 'o' },
+          { x: 1, y: 3, z: 1, element: 'o' },
+          { x: 3, y: 3, z: 1, element: 'o' },
+          // Layer z=2 (Si)
+          { x: 2, y: 2, z: 2, element: 'si' },
+          { x: 0, y: 2, z: 2, element: 'si' },
+          { x: 4, y: 2, z: 2, element: 'si' },
+          { x: 1, y: 0, z: 2, element: 'si' },
+          { x: 3, y: 0, z: 2, element: 'si' },
+          // Layer z=3 (O)
+          { x: 2, y: 1, z: 3, element: 'o' },
+          { x: 0, y: 1, z: 3, element: 'o' },
+          { x: 4, y: 1, z: 3, element: 'o' },
+          { x: 1, y: 3, z: 3, element: 'o' },
+          { x: 3, y: 3, z: 3, element: 'o' },
+          // Layer z=4 (Si)
+          { x: 2, y: 2, z: 4, element: 'si' },
+          { x: 0, y: 2, z: 4, element: 'si' },
+          { x: 4, y: 2, z: 4, element: 'si' },
+          { x: 1, y: 0, z: 4, element: 'si' },
+          { x: 3, y: 0, z: 4, element: 'si' }
+        ]
+      }
+    };
+
+    // State
+    let lattice = {}; // key: "x,y,z" → element
+    let selectedElement = 'si';
+    let mode = 'build';
+    let layerFilter = 5; // 5 = all layers
+    let rotationX = -0.4; // radians
+    let rotationZ = 0.8;
+    let zoom = 50; // pixels per cell
+
+    // Key for lattice lookup
+    function latticeKey(x, y, z) {
+      return `${x},${y},${z}`;
+    }
+
+    // Project 3D to 2D isometric
+    function project3D(x, y, z) {
+      const angle45 = Math.PI / 4;
+      
+      // Isometric projection: x_screen = x + z*cos(45), y_screen = y + z*sin(45)
+      const screenX = (x - z) * Math.cos(angle45);
+      const screenY = y + (x + z) * Math.sin(angle45);
+      
+      return { screenX, screenY };
+    }
+
+    // Canvas center
+    const getCenterX = () => (canvas.width / window.devicePixelRatio) / 2;
+    const getCenterY = () => (canvas.height / window.devicePixelRatio) / 2;
+
+    // Draw the lattice
+    function drawLattice() {
+      const rect = canvas.getBoundingClientRect();
+      const displayW = rect.width;
+      const displayH = rect.height;
+      
+      ctx.fillStyle = '#050d19';
+      ctx.fillRect(0, 0, displayW, displayH);
+
+      // Draw grid lines (subtle)
+      ctx.strokeStyle = '#1a3a5c';
+      ctx.lineWidth = 1;
+
+      // Draw atoms
+      const atomsToRender = [];
+      
+      for (const key in lattice) {
+        const [x, y, z] = key.split(',').map(Number);
+        
+        // Filter by layer
+        if (layerFilter < 5 && z !== layerFilter) continue;
+        
+        const element = lattice[key];
+        const proj = project3D(x, y, z);
+        
+        const screenX = getCenterX() + proj.screenX * zoom;
+        const screenY = getCenterY() + proj.screenY * zoom;
+        
+        atomsToRender.push({ screenX, screenY, element, x, y, z, depth: z });
+      }
+
+      // Sort by depth (z) for painter's algorithm
+      atomsToRender.sort((a, b) => a.depth - b.depth);
+
+      // Draw atoms
+      atomsToRender.forEach(atom => {
+        ctx.fillStyle = ELEMENTS[atom.element].color;
+        ctx.beginPath();
+        ctx.arc(atom.screenX, atom.screenY, ATOM_RADIUS, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Highlight edge
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        
+        // Element label (small)
+        ctx.fillStyle = '#050d19';
+        ctx.font = '700 12px "Source Sans Pro"';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(atom.element.toUpperCase(), atom.screenX, atom.screenY);
+      });
+
+      // Grid overlay (very subtle)
+      ctx.strokeStyle = 'rgba(31, 77, 127, 0.2)';
+      ctx.lineWidth = 0.5;
+      for (let x = 0; x < GRID_SIZE; x++) {
+        for (let z = 0; z < GRID_SIZE; z++) {
+          if (layerFilter < 5) {
+            // Single layer view
+            const y = layerFilter;
+            const proj = project3D(x, y, z);
+            const screenX = getCenterX() + proj.screenX * zoom;
+            const screenY = getCenterY() + proj.screenY * zoom;
+            ctx.fillStyle = 'rgba(77, 168, 218, 0.05)';
+            ctx.fillRect(screenX - zoom/2, screenY - zoom/2, zoom, zoom);
+          }
+        }
+      }
+
+      // Instructions overlay
+      ctx.fillStyle = 'rgba(168, 213, 255, 0.6)';
+      ctx.font = '400 13px "Source Sans Pro"';
+      ctx.textAlign = 'left';
+      ctx.fillText(mode === 'build' ? 'Click to add/remove atoms' : 'View mode', 20, 25);
+    }
+
+    // Mouse click to add/remove atoms
+    canvas.addEventListener('click', (e) => {
+      if (mode !== 'build') return;
+      
+      const rect = canvas.getBoundingClientRect();
+      const clickX = (e.clientX - rect.left) / window.devicePixelRatio;
+      const clickY = (e.clientY - rect.top) / window.devicePixelRatio;
+      
+      const centerX = getCenterX();
+      const centerY = getCenterY();
+      
+      let closest = null;
+      let closestDist = ATOM_RADIUS + 5;
+      
+      for (let x = 0; x < GRID_SIZE; x++) {
+        for (let y = 0; y < GRID_SIZE; y++) {
+          for (let z = 0; z < GRID_SIZE; z++) {
+            if (layerFilter < 5 && z !== layerFilter) continue;
+            
+            const proj = project3D(x, y, z);
+            const screenX = centerX + proj.screenX * zoom;
+            const screenY = centerY + proj.screenY * zoom;
+            
+            const dist = Math.hypot(clickX - screenX, clickY - screenY);
+            if (dist < closestDist) {
+              closestDist = dist;
+              closest = { x, y, z };
+            }
+          }
+        }
+      }
+      
+      if (closest) {
+        const key = latticeKey(closest.x, closest.y, closest.z);
+        if (lattice[key]) {
+          delete lattice[key];
+        } else {
+          lattice[key] = selectedElement;
+        }
+        updateStats();
+        drawLattice();
+      }
+    });
+
+    // Element selection
+    document.querySelectorAll('.element-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.element-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        selectedElement = btn.dataset.element;
+      });
+    });
+
+    // Preset loading
+    document.getElementById('presetSelect').addEventListener('change', (e) => {
+      if (!e.target.value) return;
+      const preset = PRESETS[e.target.value];
+      if (!preset) return;
+      
+      lattice = {};
+      preset.atoms.forEach(atom => {
+        lattice[latticeKey(atom.x, atom.y, atom.z)] = atom.element;
+      });
+      
+      document.getElementById('presetInfo').style.display = 'block';
+      document.getElementById('presetName').textContent = preset.name;
+      document.getElementById('presetDesc').textContent = preset.desc;
+      
+      updateStats();
+      drawLattice();
+      
+      e.target.value = '';
+    });
+
+    // Clear lattice
+    document.getElementById('clearBtn').addEventListener('click', () => {
+      lattice = {};
+      document.getElementById('presetInfo').style.display = 'none';
+      updateStats();
+      drawLattice();
+    });
+
+    // Reset view
+    document.getElementById('resetBtn').addEventListener('click', () => {
+      rotationX = -0.4;
+      rotationZ = 0.8;
+      zoom = 50;
+      layerFilter = 5;
+      document.getElementById('layerSlider').value = 5;
+      drawLattice();
+    });
+
+    // Layer slider
+    document.getElementById('layerSlider').addEventListener('input', (e) => {
+      layerFilter = parseInt(e.target.value);
+      const labels = ['Z=0', 'Z=1', 'Z=2', 'Z=3', 'Z=4', 'All layers'];
+      e.target.nextElementSibling.textContent = labels[layerFilter];
+      drawLattice();
+    });
+
+    // Mode toggle
+    document.getElementById('modeSelect').addEventListener('change', (e) => {
+      mode = e.target.value;
+      drawLattice();
+    });
+
+    // Update statistics
+    function updateStats() {
+      const atomCount = Object.keys(lattice).length;
+      document.getElementById('atomCount').textContent = atomCount;
+      
+      // Detect structure type (simplified)
+      let structType = atomCount === 0 ? 'Empty' : 'Custom';
+      if (atomCount === 8) structType = 'Cubic';
+      else if (atomCount > 20) structType = 'Complex';
+      
+      document.getElementById('structureType').textContent = structType;
+      
+      // Packing efficiency (simplified: occupied cells / total)
+      const packing = Math.round((atomCount / (GRID_SIZE ** 3)) * 100);
+      document.getElementById('packingEff').textContent = packing + '%';
+      
+      // Symmetry detection (simplified)
+      let symmetry = 'None';
+      if (atomCount > 0) {
+        // Check for cubic-like symmetry (rough heuristic)
+        const xs = new Set(), ys = new Set(), zs = new Set();
+        for (const key in lattice) {
+          const [x, y, z] = key.split(',').map(Number);
+          xs.add(x); ys.add(y); zs.add(z);
+        }
+        if (xs.size <= 2 && ys.size <= 2 && zs.size <= 2) symmetry = 'Cubic';
+        else if (zs.size < xs.size || zs.size < ys.size) symmetry = 'Hexagonal';
+        else symmetry = 'Mixed';
+      }
+      
+      document.getElementById('symmetryType').textContent = symmetry;
+    }
+
+    // Initial draw
+    updateStats();
+    drawLattice();
+    
+    // Animate on resize
+    window.addEventListener('resize', () => {
+      resizeCanvas();
+      drawLattice();
+    });
+  </script>
+</body>
+</html>
