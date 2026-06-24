@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Loom Craft — Textile Weaving Pattern Generator</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Space+Mono:wght@400&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Space Mono', monospace;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      color: #e0e0e0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .container {
+      max-width: 1200px;
+      width: 100%;
+      background: rgba(22, 33, 62, 0.9);
+      border-radius: 12px;
+      padding: 40px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+    }
+    h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: 2.8em;
+      margin-bottom: 10px;
+      color: #ffd700;
+      text-align: center;
+    }
+    .subtitle {
+      text-align: center;
+      color: #a0a0a0;
+      margin-bottom: 30px;
+      font-size: 0.95em;
+    }
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 30px;
+      margin-bottom: 30px;
+    }
+    canvas {
+      display: block;
+      border: 2px solid #4da8da;
+      border-radius: 8px;
+      background: #0a1428;
+      width: 100%;
+      max-width: 500px;
+      height: 500px;
+    }
+    .controls {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .control-group {
+      background: rgba(77, 168, 218, 0.1);
+      padding: 15px;
+      border-left: 4px solid #4da8da;
+      border-radius: 6px;
+    }
+    .control-group label {
+      display: block;
+      margin-bottom: 8px;
+      color: #ffd700;
+      font-weight: bold;
+      font-size: 0.9em;
+    }
+    select, input[type="range"], input[type="color"] {
+      width: 100%;
+      padding: 8px;
+      background: #0a1428;
+      color: #e0e0e0;
+      border: 1px solid #4da8da;
+      border-radius: 4px;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.9em;
+    }
+    input[type="range"] {
+      cursor: pointer;
+    }
+    .color-inputs {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+    }
+    .color-input {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .color-input input[type="color"] {
+      width: 100%;
+      height: 50px;
+      cursor: pointer;
+      padding: 2px;
+    }
+    .color-input small {
+      font-size: 0.75em;
+      color: #a0a0a0;
+      text-align: center;
+    }
+    button {
+      padding: 12px;
+      background: linear-gradient(135deg, #4da8da 0%, #2d6fa0 100%);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-family: 'Space Mono', monospace;
+      font-weight: bold;
+      transition: all 0.3s ease;
+    }
+    button:hover {
+      background: linear-gradient(135deg, #6db8ea 0%, #3d7fb0 100%);
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(77, 168, 218, 0.3);
+    }
+    .toggle-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .toggle-btn {
+      padding: 10px;
+      background: #0a1428;
+      color: #4da8da;
+      border: 2px solid #4da8da;
+      border-radius: 6px;
+      cursor: pointer;
+      font-family: 'Space Mono', monospace;
+      transition: all 0.2s ease;
+    }
+    .toggle-btn.active {
+      background: #4da8da;
+      color: #0a1428;
+    }
+    .stats {
+      background: rgba(77, 168, 218, 0.15);
+      padding: 20px;
+      border-radius: 8px;
+      border: 2px solid #4da8da;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+    }
+    .stat-item {
+      background: rgba(10, 20, 40, 0.6);
+      padding: 12px;
+      border-radius: 6px;
+      border-left: 3px solid #4da8da;
+    }
+    .stat-label {
+      font-size: 0.8em;
+      color: #a0a0a0;
+      margin-bottom: 4px;
+    }
+    .stat-value {
+      font-size: 1.3em;
+      color: #ffd700;
+      font-weight: bold;
+    }
+    .export-btn {
+      background: linear-gradient(135deg, #00ff88 0%, #00cc66 100%);
+      color: #0a1428;
+    }
+    .export-btn:hover {
+      background: linear-gradient(135deg, #33ff99 0%, #00dd77 100%);
+    }
+    @media (max-width: 1024px) {
+      .main-grid { grid-template-columns: 1fr; }
+      canvas { max-width: 100%; }
+      .container { padding: 20px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🧵 Loom Craft</h1>
+    <p class="subtitle">Design authentic textile patterns with real weaving mathematics</p>
+    
+    <div class="main-grid">
+      <div>
+        <canvas id="loomCanvas"></canvas>
+      </div>
+      
+      <div class="controls">
+        <div class="control-group">
+          <label for="weaveType">Weave Type</label>
+          <select id="weaveType">
+            <option value="plain">Plain Weave (1/1)</option>
+            <option value="twill">Twill (2/2)</option>
+            <option value="satin">Satin (4/4)</option>
+            <option value="herringbone">Herringbone</option>
+            <option value="damask">Damask</option>
+          </select>
+        </div>
+        
+        <div class="control-group">
+          <label for="warpCount">Warp Count: <span id="warpDisplay">32</span></label>
+          <input type="range" id="warpCount" min="8" max="64" value="32">
+        </div>
+        
+        <div class="control-group">
+          <label>Weft Colors</label>
+          <div class="color-inputs">
+            <div class="color-input">
+              <input type="color" id="color1" value="#ff6b6b">
+              <small>Color 1</small>
+            </div>
+            <div class="color-input">
+              <input type="color" id="color2" value="#4ecdc4">
+              <small>Color 2</small>
+            </div>
+            <div class="color-input">
+              <input type="color" id="color3" value="#ffe66d">
+              <small>Color 3</small>
+            </div>
+          </div>
+        </div>
+        
+        <div class="control-group">
+          <label for="patternDensity">Pattern Density: <span id="densityDisplay">1.0x</span></label>
+          <input type="range" id="patternDensity" min="0.5" max="2" step="0.1" value="1">
+        </div>
+        
+        <div class="control-group">
+          <label>Pattern Variations</label>
+          <div class="toggle-group">
+            <button class="toggle-btn active" data-toggle="symmetry">Symmetry</button>
+            <button class="toggle-btn" data-toggle="colorShift">Color Shift</button>
+          </div>
+        </div>
+        
+        <button id="exportSVG" class="export-btn">📥 Export as SVG</button>
+      </div>
+    </div>
+    
+    <div class="stats">
+      <div class="stat-item">
+        <div class="stat-label">Thread Count</div>
+        <div class="stat-value" id="threadCount">32</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-label">Pattern Complexity</div>
+        <div class="stat-value" id="complexity">Simple</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-label">Weft Rows</div>
+        <div class="stat-value" id="weftRows">32</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-label">Weave Type</div>
+        <div class="stat-value" id="weaveLabel">Plain</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('loomCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    // Ensure canvas size
+    canvas.width = 500;
+    canvas.height = 500;
+    
+    const state = {
+      weaveType: 'plain',
+      warpCount: 32,
+      colors: ['#ff6b6b', '#4ecdc4', '#ffe66d'],
+      density: 1,
+      symmetry: true,
+      colorShift: false
+    };
+    
+    // Weave pattern definitions (authentic textile mathematics)
+    const weaves = {
+      plain: (x, y) => (x + y) % 2 === 0,
+      twill: (x, y) => (x + y) % 4 < 2,
+      satin: (x, y) => {
+        const shift = Math.floor(x / 4) * 4;
+        return (y + shift) % 8 < 4;
+      },
+      herringbone: (x, y) => {
+        const row = Math.floor(y / 4);
+        if (row % 2 === 0) return (x + y) % 4 < 2;
+        else return (x - y + 1000) % 4 < 2;
+      },
+      damask: (x, y) => {
+        const px = x % 8;
+        const py = y % 8;
+        const pattern = [
+          [1, 0, 1, 0, 1, 0, 1, 0],
+          [0, 1, 1, 0, 0, 1, 1, 0],
+          [1, 1, 0, 1, 1, 0, 0, 1],
+          [0, 0, 1, 1, 0, 0, 1, 1],
+          [1, 0, 1, 0, 1, 0, 1, 0],
+          [0, 1, 1, 0, 0, 1, 1, 0],
+          [1, 1, 0, 1, 1, 0, 0, 1],
+          [0, 0, 1, 1, 0, 0, 1, 1]
+        ];
+        return pattern[py][px] === 1;
+      }
+    };
+    
+    function getColor(x, y) {
+      const colorIndex = Math.floor((y + (state.colorShift ? x * 0.5 : 0)) / 4) % state.colors.length;
+      return state.colors[colorIndex];
+    }
+    
+    function drawPattern() {
+      ctx.fillStyle = '#0a1428';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      const threadSize = canvas.width / state.warpCount;
+      const weftCount = Math.floor(state.warpCount * state.density);
+      
+      const weaveFunc = weaves[state.weaveType];
+      
+      for (let y = 0; y < weftCount; y++) {
+        for (let x = 0; x < state.warpCount; x++) {
+          const isWarp = weaveFunc(x, y);
+          const color = getColor(x, y);
+          
+          const sx = x * threadSize;
+          const sy = y * threadSize;
+          
+          if (isWarp) {
+            // Warp thread (vertical) — darker
+            ctx.fillStyle = adjustColor(color, -30);
+            ctx.fillRect(sx, sy, threadSize, threadSize);
+          } else {
+            // Weft thread (horizontal) — lighter
+            ctx.fillStyle = color;
+            ctx.fillRect(sx, sy, threadSize, threadSize);
+          }
+          
+          // Thread outline
+          ctx.strokeStyle = 'rgba(77, 168, 218, 0.2)';
+          ctx.lineWidth = 0.5;
+          ctx.strokeRect(sx, sy, threadSize, threadSize);
+        }
+      }
+      
+      updateStats();
+    }
+    
+    function adjustColor(hex, amount) {
+      const r = Math.max(0, Math.min(255, parseInt(hex.slice(1, 3), 16) + amount));
+      const g = Math.max(0, Math.min(255, parseInt(hex.slice(3, 5), 16) + amount));
+      const b = Math.max(0, Math.min(255, parseInt(hex.slice(5, 7), 16) + amount));
+      return `rgb(${r}, ${g}, ${b})`;
+    }
+    
+    function updateStats() {
+      document.getElementById('threadCount').textContent = state.warpCount;
+      document.getElementById('weftRows').textContent = Math.floor(state.warpCount * state.density);
+      const complexity = { plain: 'Simple', twill: 'Moderate', satin: 'Complex', herringbone: 'Complex', damask: 'Very Complex' };
+      document.getElementById('complexity').textContent = complexity[state.weaveType];
+      document.getElementById('weaveLabel').textContent = state.weaveType.charAt(0).toUpperCase() + state.weaveType.slice(1);
+    }
+    
+    // Event listeners
+    document.getElementById('weaveType').addEventListener('change', (e) => {
+      state.weaveType = e.target.value;
+      drawPattern();
+    });
+    
+    document.getElementById('warpCount').addEventListener('input', (e) => {
+      state.warpCount = parseInt(e.target.value);
+      document.getElementById('warpDisplay').textContent = state.warpCount;
+      drawPattern();
+    });
+    
+    document.getElementById('patternDensity').addEventListener('input', (e) => {
+      state.density = parseFloat(e.target.value);
+      document.getElementById('densityDisplay').textContent = state.density.toFixed(1) + 'x';
+      drawPattern();
+    });
+    
+    document.getElementById('color1').addEventListener('change', (e) => {
+      state.colors[0] = e.target.value;
+      drawPattern();
+    });
+    
+    document.getElementById('color2').addEventListener('change', (e) => {
+      state.colors[1] = e.target.value;
+      drawPattern();
+    });
+    
+    document.getElementById('color3').addEventListener('change', (e) => {
+      state.colors[2] = e.target.value;
+      drawPattern();
+    });
+    
+    document.querySelectorAll('[data-toggle]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const toggle = btn.dataset.toggle;
+        state[toggle] = !state[toggle];
+        btn.classList.toggle('active');
+        drawPattern();
+      });
+    });
+    
+    document.getElementById('exportSVG').addEventListener('click', () => {
+      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      const weftCount = Math.floor(state.warpCount * state.density);
+      svg.setAttribute('width', '500');
+      svg.setAttribute('height', '500');
+      svg.setAttribute('viewBox', '0 0 500 500');
+      
+      const threadSize = 500 / state.warpCount;
+      const weaveFunc = weaves[state.weaveType];
+      
+      for (let y = 0; y < weftCount; y++) {
+        for (let x = 0; x < state.warpCount; x++) {
+          const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+          const isWarp = weaveFunc(x, y);
+          const color = getColor(x, y);
+          const fillColor = isWarp ? adjustColor(color, -30) : color;
+          
+          rect.setAttribute('x', x * threadSize);
+          rect.setAttribute('y', y * threadSize);
+          rect.setAttribute('width', threadSize);
+          rect.setAttribute('height', threadSize);
+          rect.setAttribute('fill', fillColor);
+          rect.setAttribute('stroke', 'rgba(77, 168, 218, 0.2)');
+          rect.setAttribute('stroke-width', '0.5');
+          svg.appendChild(rect);
+        }
+      }
+      
+      const svgString = new XMLSerializer().serializeToString(svg);
+      const blob = new Blob([svgString], { type: 'image/svg+xml' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `loom-pattern-${state.weaveType}-${Date.now()}.svg`;
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+    
+    // Initial render
+    drawPattern();
+  </script>
+</body>
+</html>
