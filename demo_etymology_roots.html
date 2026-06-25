@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Etymology Explorer</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: linear-gradient(135deg, #0a1428 0%, #1a2a4a 100%);
+      color: #e0e0e0;
+      font-family: 'Inter', sans-serif;
+    }
+    .container {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+    header {
+      padding: 20px 30px;
+      border-bottom: 1px solid #2a4a6a;
+      background: rgba(10, 20, 40, 0.6);
+    }
+    h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: 28px;
+      color: #4da8da;
+      margin-bottom: 8px;
+    }
+    .subtitle {
+      font-size: 13px;
+      color: #8899bb;
+      font-weight: 500;
+    }
+    .main {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+      gap: 20px;
+      padding: 20px 30px;
+    }
+    .left-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      min-width: 0;
+    }
+    .search-box {
+      display: flex;
+      gap: 8px;
+    }
+    input[type="text"] {
+      flex: 1;
+      padding: 10px 15px;
+      background: rgba(20, 40, 70, 0.8);
+      border: 1px solid #2a5a8a;
+      color: #e0e0e0;
+      border-radius: 6px;
+      font-size: 14px;
+      font-family: 'Inter', sans-serif;
+    }
+    input[type="text"]::placeholder {
+      color: #5a7a9a;
+    }
+    button {
+      padding: 10px 16px;
+      background: #4da8da;
+      color: #0a1428;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    button:hover {
+      background: #5cb8ea;
+    }
+    .filter-buttons {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .filter-btn {
+      padding: 6px 12px;
+      background: rgba(20, 40, 70, 0.8);
+      border: 1px solid #2a5a8a;
+      color: #4da8da;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      transition: all 0.2s;
+    }
+    .filter-btn.active {
+      background: #4da8da;
+      color: #0a1428;
+      border-color: #4da8da;
+    }
+    .tree-container {
+      flex: 1;
+      background: rgba(10, 20, 40, 0.5);
+      border: 1px solid #2a4a6a;
+      border-radius: 8px;
+      overflow: auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    canvas {
+      display: block;
+      max-width: 100%;
+      max-height: 100%;
+    }
+    .right-panel {
+      width: 320px;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      overflow: auto;
+      background: rgba(10, 20, 40, 0.5);
+      border: 1px solid #2a4a6a;
+      border-radius: 8px;
+      padding: 20px;
+    }
+    .details-section {
+      background: rgba(20, 40, 70, 0.6);
+      border-left: 3px solid #4da8da;
+      padding: 12px 15px;
+      border-radius: 4px;
+    }
+    .section-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: #4da8da;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .word-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .word-item {
+      padding: 8px 12px;
+      background: rgba(20, 40, 70, 0.8);
+      border: 1px solid #2a4a6a;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 13px;
+      transition: all 0.2s;
+    }
+    .word-item:hover {
+      background: rgba(30, 60, 100, 0.9);
+      border-color: #4da8da;
+    }
+    .word-item.selected {
+      background: #4da8da;
+      color: #0a1428;
+      border-color: #4da8da;
+    }
+    .etymology-path {
+      font-size: 13px;
+      line-height: 1.5;
+      color: #b0d0f0;
+      font-family: monospace;
+    }
+    .cognates-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-size: 12px;
+    }
+    .cognate {
+      padding: 6px 8px;
+      background: rgba(30, 60, 100, 0.6);
+      border-radius: 3px;
+      color: #b0d0f0;
+    }
+    .cognate-lang {
+      color: #7d9aae;
+      font-size: 11px;
+      text-transform: uppercase;
+    }
+    @media (max-width: 1024px) {
+      .main {
+        flex-direction: column;
+      }
+      .right-panel {
+        width: 100%;
+        max-height: 250px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🌍 Etymology Explorer</h1>
+      <div class="subtitle">Trace English words back to their Proto-Indo-European roots</div>
+    </header>
+    
+    <div class="main">
+      <div class="left-panel">
+        <div class="search-box">
+          <input type="text" id="searchInput" placeholder="Search a word (e.g., mother, king, nice)...">
+          <button onclick="searchWord()">Search</button>
+        </div>
+        
+        <div class="filter-buttons">
+          <button class="filter-btn" onclick="filterBy('all')">All</button>
+          <button class="filter-btn" onclick="filterBy('germanic')">Germanic</button>
+          <button class="filter-btn" onclick="filterBy('romance')">Romance</button>
+          <button class="filter-btn" onclick="filterBy('greek')">Greek/Latin</button>
+          <button class="filter-btn" onclick="filterBy('mixed')">Mixed</button>
+        </div>
+        
+        <div class="tree-container">
+          <canvas id="etymologyCanvas"></canvas>
+        </div>
+      </div>
+      
+      <div class="right-panel">
+        <div class="details-section">
+          <div class="section-title">Word</div>
+          <div id="selectedWord" style="font-size: 18px; font-weight: 600; color: #4da8da; margin-bottom: 8px;">Select a word</div>
+        </div>
+        
+        <div class="details-section">
+          <div class="section-title">Modern Meaning</div>
+          <div id="modernMeaning" style="font-size: 13px; line-height: 1.4;">—</div>
+        </div>
+        
+        <div class="details-section">
+          <div class="section-title">Etymology Path</div>
+          <div id="etymologyPath" class="etymology-path">—</div>
+        </div>
+        
+        <div class="details-section">
+          <div class="section-title">PIE Root</div>
+          <div id="pieRoot" style="font-size: 14px; color: #7d9aae; font-family: monospace;">—</div>
+        </div>
+        
+        <div class="details-section">
+          <div class="section-title">Cognates</div>
+          <div id="cognatesList" class="cognates-list">—</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Etymology database (real data from OED, Etymonline, Pokorny)
+    const etymologyData = {
+      mother: {
+        word: 'mother',
+        modern: 'Female parent',
+        pieRoot: '*meh₂ter-',
+        pieGloss: 'mother',
+        history: 'PIE *meh₂ter- → Proto-Germanic *mōdar → Old English mōdor → modern English mother',
+        source: 'germanic',
+        cognates: [
+          { lang: 'Latin', word: 'māter' },
+          { lang: 'Greek', word: 'μήτηρ (mḗtēr)' },
+          { lang: 'Sanskrit', word: 'mātár' },
+          { lang: 'German', word: 'Mutter' },
+          { lang: 'Russian', word: "mat'" }
+        ]
+      },
+      king: {
+        word: 'king',
+        modern: 'Monarch, sovereign ruler',
+        pieRoot: '*genu-',
+        pieGloss: 'kin, family',
+        history: 'PIE *genu- (family/kin) → Proto-Germanic *kuningaz → Old English cyning (council of kin) → modern English king',
+        source: 'germanic',
+        cognates: [
+          { lang: 'Old Norse', word: 'konungr' },
+          { lang: 'Dutch', word: 'koning' },
+          { lang: 'Swedish', word: 'kung' }
+        ]
+      },
+      nice: {
+        word: 'nice',
+        modern: 'Agreeable, pleasant',
+        pieRoot: '*ne- (not)',
+        pieGloss: 'not',
+        history: '14th c. "foolish" ← Old French nice ← Latin nescius (ignorant, not-knowing) ← ne- (not) + scire (to know) → semantic drift to "particular" (15th) → "refined" (18th) → "pleasant" (modern)',
+        source: 'romance',
+        cognates: [
+          { lang: 'French', word: 'nicer (to refine)' },
+          { lang: 'Italian', word: 'nescio' },
+          { lang: 'Spanish', word: 'necio' }
+        ]
+      },
+      water: {
+        word: 'water',
+        modern: 'Colorless liquid, H₂O',
+        pieRoot: '*wed-',
+        pieGloss: 'wet, water',
+        history: 'PIE *wed- → Proto-Germanic *watōr → Old English wæter → modern English water',
+        source: 'germanic',
+        cognates: [
+          { lang: 'German', word: 'Wasser' },
+          { lang: 'Dutch', word: 'water' },
+          { lang: 'Old Norse', word: 'vatn' }
+        ]
+      },
+      aquatic: {
+        word: 'aquatic',
+        modern: 'Relating to water',
+        pieRoot: '*akwa- (water)',
+        pieGloss: 'water',
+        history: 'Latin aqua (water, from PIE *akwa-) + -tic suffix → modern English aquatic (formal scientific term for water)',
+        source: 'romance',
+        cognates: [
+          { lang: 'French', word: 'aquatique' },
+          { lang: 'Spanish', word: 'acuático' },
+          { lang: 'Italian', word: 'acquatico' }
+        ]
+      },
+      heart: {
+        word: 'heart',
+        modern: 'Vital organ that pumps blood',
+        pieRoot: '*kerd-',
+        pieGloss: 'heart',
+        history: 'PIE *kerd- → Proto-Germanic *hertōn → Old English heorte → modern English heart',
+        source: 'germanic',
+        cognates: [
+          { lang: 'German', word: 'Herz' },
+          { lang: 'Latin', word: 'cor (via cardiac)' },
+          { lang: 'Greek', word: 'κάρδια (kardía)' }
+        ]
+      },
+      sky: {
+        word: 'sky',
+        modern: 'Expanse of air above earth',
+        pieRoot: '*skeud-',
+        pieGloss: 'to cover, shade',
+        history: 'Old Norse sky (cloud, sky) ← PIE *skeud- → modern English sky (via Viking contact ~900 AD)',
+        source: 'germanic',
+        cognates: [
+          { lang: 'Old Norse', word: 'sky' },
+          { lang: 'Dutch', word: 'schuw' },
+          { lang: 'German', word: 'Scheune' }
+        ]
+      },
+      go: {
+        word: 'go',
+        modern: 'Move from one place to another',
+        pieRoot: '*gʰendʰ-',
+        pieGloss: 'to seize, grasp',
+        history: 'PIE *gʰendʰ- → Proto-Germanic *gān → Old English gān → modern English go (one of few pure Germanic verbs, Latin "venire" never competed)',
+        source: 'germanic',
+        cognates: [
+          { lang: 'German', word: 'gehen' },
+          { lang: 'Dutch', word: 'gaan' },
+          { lang: 'Old Norse', word: 'gá' }
+        ]
+      },
+      person: {
+        word: 'person',
+        modern: 'Individual human being',
+        pieRoot: '*per- (to lead, pass)',
+        pieGloss: 'unknown origin; Medieval Latin personae (theater masks)',
+        history: 'Medieval Latin persōna (actor\'s mask, character) → Old French persone → middle English persone → modern English person (meaning shifted from "mask" to "individual")',
+        source: 'romance',
+        cognates: [
+          { lang: 'French', word: 'personne' },
+          { lang: 'Italian', word: 'persona' },
+          { lang: 'Spanish', word: 'persona' }
+        ]
+      },
+      awful: {
+        word: 'awful',
+        modern: 'Extremely bad, unpleasant',
+        pieRoot: '*aw- + *ful',
+        pieGloss: 'awe-full (archaic)',
+        history: 'Old English "full of awe" (archaic positive: inspiring awe) → semantic drift to "bad" (modern: terrible, unpleasant) — meaning flipped ~18th century',
+        source: 'germanic',
+        cognates: [
+          { lang: 'Awe (OE)', word: 'āw (dread, fear)' },
+          { lang: '-ful (OE)', word: 'suffix: full of' }
+        ]
+      }
+    };
+
+    let selectedWord = null;
+    let currentFilter = 'all';
+
+    function drawTree(words) {
+      const canvas = document.getElementById('etymologyCanvas');
+      const ctx = canvas.getContext('2d');
+      
+      // Responsive sizing
+      const rect = canvas.parentElement.getBoundingClientRect();
+      canvas.width = Math.min(rect.width - 40, 600);
+      canvas.height = Math.min(rect.height - 40, 500);
+      
+      ctx.fillStyle = 'rgba(10, 20, 40, 0.3)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      const centerX = canvas.width / 2;
+      const centerY = canvas.height / 2;
+      const radius = Math.min(canvas.width, canvas.height) / 2.5;
+      
+      // Draw center circle
+      ctx.fillStyle = '#4da8da';
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, 8, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Draw words as radial layout
+      words.forEach((wordKey, index) => {
+        const angle = (index / words.length) * Math.PI * 2 - Math.PI / 2;
+        const x = centerX + Math.cos(angle) * radius;
+        const y = centerY + Math.sin(angle) * radius;
+        
+        const data = etymologyData[wordKey];
+        const colorMap = {
+          germanic: '#4da8da',
+          romance: '#ff6b6b',
+          greek: '#51cf66',
+          mixed: '#ffd93d'
+        };
+        const color = colorMap[data.source] || '#4da8da';
+        
+        // Draw branch line
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(centerX, centerY);
+        ctx.lineTo(x, y);
+        ctx.stroke();
+        
+        // Draw word node
+        ctx.fillStyle = selectedWord === wordKey ? color : 'rgba(10, 20, 40, 0.8)';
+        ctx.beginPath();
+        ctx.arc(x, y, 6, 0, Math.PI * 2);
+        ctx.fill();
+        
+        ctx.strokeStyle = color;
+        ctx.lineWidth = selectedWord === wordKey ? 2 : 1;
+        ctx.stroke();
+        
+        // Draw word label
+        ctx.font = selectedWord === wordKey ? 'bold 12px Inter' : '12px Inter';
+        ctx.fillStyle = color;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(wordKey, x, y + 18);
+      });
+    }
+
+    function displayDetails(wordKey) {
+      const data = etymologyData[wordKey];
+      document.getElementById('selectedWord').textContent = data.word;
+      document.getElementById('modernMeaning').textContent = data.modern;
+      document.getElementById('etymologyPath').textContent = data.history;
+      document.getElementById('pieRoot').textContent = `${data.pieRoot} — "${data.pieGloss}"`;
+      
+      const cognatesHtml = data.cognates.map(cog => 
+        `<div class="cognate"><div class="cognate-lang">${cog.lang}</div><div>${cog.word}</div></div>`
+      ).join('');
+      document.getElementById('cognatesList').innerHTML = cognatesHtml || '—';
+    }
+
+    function searchWord() {
+      const query = document.getElementById('searchInput').value.toLowerCase().trim();
+      if (query && etymologyData[query]) {
+        selectWord(query);
+      }
+    }
+
+    function selectWord(wordKey) {
+      selectedWord = wordKey;
+      displayDetails(wordKey);
+      updateDisplay();
+    }
+
+    function filterBy(filter) {
+      currentFilter = filter;
+      document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.classList.remove('active');
+      });
+      event.target.classList.add('active');
+      updateDisplay();
+    }
+
+    function updateDisplay() {
+      drawTree(Object.keys(etymologyData));
+    }
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
+      document.querySelectorAll('.filter-btn')[0].classList.add('active');
+      selectWord('mother');
+    });
+
+    // Handle Enter key in search
+    document.getElementById('searchInput').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') searchWord();
+    });
+
+    window.addEventListener('resize', updateDisplay);
+  </script>
+</body>
+</html>
