@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bioluminescence Depth Explorer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Space+Mono:wght@400&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Space Mono', monospace;
+      background: #0a0a1a;
+      color: #e0e6ff;
+      padding: 20px;
+    }
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr 400px;
+      gap: 30px;
+    }
+    h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: 2.5em;
+      margin-bottom: 10px;
+      color: #00ffff;
+      text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+    }
+    .subtitle {
+      font-size: 0.9em;
+      color: #8899cc;
+      margin-bottom: 20px;
+    }
+    .main-content {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .canvas-container {
+      background: rgba(10, 13, 30, 0.8);
+      border: 1px solid #1a3a5f;
+      border-radius: 8px;
+      padding: 15px;
+    }
+    canvas {
+      display: block;
+      width: 100%;
+      height: auto;
+      border-radius: 4px;
+    }
+    .depth-profile-container { min-height: 450px; }
+    .spectrum-container { min-height: 120px; }
+    .species-container { min-height: 300px; }
+    .sidebar {
+      background: rgba(10, 20, 40, 0.9);
+      border: 1px solid #1a3a5f;
+      border-radius: 8px;
+      padding: 20px;
+      height: fit-content;
+      position: sticky;
+      top: 20px;
+    }
+    .stat-box {
+      background: rgba(77, 168, 218, 0.1);
+      border-left: 3px solid #4da8da;
+      padding: 10px 12px;
+      margin-bottom: 12px;
+      border-radius: 4px;
+      font-size: 0.85em;
+    }
+    .stat-label {
+      color: #8899cc;
+      font-size: 0.75em;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .stat-value {
+      color: #00ffff;
+      font-weight: bold;
+      margin-top: 4px;
+      font-size: 1.1em;
+    }
+    .zone-name {
+      color: #64b5f6;
+      font-size: 0.9em;
+    }
+    .slider-group {
+      margin: 20px 0;
+    }
+    input[type="range"] {
+      width: 100%;
+      height: 6px;
+      background: #1a3a5f;
+      border-radius: 3px;
+      outline: none;
+      -webkit-appearance: none;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #00ffff;
+      cursor: pointer;
+      box-shadow: 0 0 8px rgba(0, 255, 255, 0.6);
+    }
+    input[type="range"]::-moz-range-thumb {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #00ffff;
+      cursor: pointer;
+      box-shadow: 0 0 8px rgba(0, 255, 255, 0.6);
+      border: none;
+    }
+    .toggle-group {
+      display: flex;
+      gap: 8px;
+      margin: 10px 0;
+      flex-wrap: wrap;
+    }
+    button {
+      flex: 1;
+      min-width: 80px;
+      padding: 8px 12px;
+      background: rgba(77, 168, 218, 0.2);
+      border: 1px solid #4da8da;
+      color: #4da8da;
+      border-radius: 4px;
+      cursor: pointer;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.75em;
+      transition: all 0.3s;
+    }
+    button.active {
+      background: #4da8da;
+      color: #0a0a1a;
+      font-weight: bold;
+    }
+    button:hover {
+      border-color: #7dd3fc;
+      color: #7dd3fc;
+    }
+    .fact-carousel {
+      background: rgba(26, 58, 95, 0.5);
+      border-radius: 4px;
+      padding: 12px;
+      margin-top: 15px;
+      font-size: 0.8em;
+      line-height: 1.4;
+      color: #a0b0d0;
+      font-style: italic;
+      min-height: 60px;
+      display: flex;
+      align-items: center;
+    }
+    .species-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+      gap: 8px;
+      margin-top: 15px;
+    }
+    .species-item {
+      background: rgba(77, 168, 218, 0.1);
+      border: 1px solid #1a3a5f;
+      border-radius: 4px;
+      padding: 8px;
+      text-align: center;
+      cursor: pointer;
+      font-size: 0.7em;
+      transition: all 0.2s;
+    }
+    .species-item:hover {
+      background: rgba(77, 168, 218, 0.25);
+      border-color: #4da8da;
+    }
+    .species-item.selected {
+      background: rgba(0, 255, 255, 0.2);
+      border-color: #00ffff;
+      box-shadow: 0 0 8px rgba(0, 255, 255, 0.3);
+    }
+    .species-icon {
+      font-size: 1.4em;
+      margin-bottom: 4px;
+    }
+    .species-name {
+      color: #7dd3fc;
+      font-weight: bold;
+    }
+    @media (max-width: 1024px) {
+      .container {
+        grid-template-columns: 1fr;
+      }
+      .sidebar {
+        position: relative;
+        top: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="main-content">
+      <div>
+        <h1>🌊 Bioluminescence Depth Explorer</h1>
+        <p class="subtitle">Drag the depth slider to explore organisms and their light in the deep sea.</p>
+      </div>
+
+      <div class="canvas-container depth-profile-container">
+        <canvas id="depthCanvas" width="800" height="450"></canvas>
+      </div>
+
+      <div class="canvas-container spectrum-container">
+        <canvas id="spectrumCanvas" width="800" height="100"></canvas>
+      </div>
+
+      <div class="canvas-container species-container">
+        <div style="padding: 10px; font-size: 0.85em; color: #8899cc; margin-bottom: 10px;">ORGANISM CATALOG — Click to highlight</div>
+        <div class="species-grid" id="speciesGrid"></div>
+      </div>
+    </div>
+
+    <div class="sidebar">
+      <div style="margin-bottom: 25px;">
+        <div class="stat-label">Current Depth</div>
+        <div class="stat-value"><span id="depthValue">0</span> m</div>
+        <div class="zone-name" id="zoneName">Epipelagic (Sunlit)</div>
+      </div>
+
+      <div class="slider-group">
+        <label style="font-size: 0.8em; color: #8899cc;">DEPTH SLIDER</label>
+        <input type="range" id="depthSlider" min="0" max="6000" value="0" step="100">
+      </div>
+
+      <div class="stat-box">
+        <div class="stat-label">Light Penetration</div>
+        <div class="stat-value" id="lightPenetration">100%</div>
+      </div>
+
+      <div class="stat-box">
+        <div class="stat-label">Bioluminescent Visible</div>
+        <div class="stat-value" id="bioCount">0 organisms</div>
+      </div>
+
+      <div class="stat-box">
+        <div class="stat-label">Dominant Wavelength</div>
+        <div class="stat-value" id="wavelength">N/A</div>
+      </div>
+
+      <div class="stat-box">
+        <div class="stat-label">Pressure</div>
+        <div class="stat-value"><span id="pressure">1</span> atm</div>
+      </div>
+
+      <div style="margin-top: 20px; border-top: 1px solid #1a3a5f; padding-top: 15px;">
+        <div class="toggle-group">
+          <button id="togglePenetration" class="active">Sunlight ✓</button>
+          <button id="toggleParticles" class="active">Particles ✓</button>
+        </div>
+      </div>
+
+      <div class="fact-carousel" id="factCarousel">
+        Most deep-sea organisms generate their own light via bioluminescence.
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Organism data: hardcoded from MBARI, spectrophotometry papers, marine biology literature
+    const organisms = [
+      {
+        id: 'dinoflagellate',
+        name: 'Dinoflagellates',
+        icon: '✨',
+        wavelength: 475, // violet-blue (420-490nm range)
+        minDepth: 0,
+        maxDepth: 300,
+        size: 0.05,
+        function: 'Predator escape flash',
+        color: '#00ffff'
+      },
+      {
+        id: 'hatchetfish',
+        name: 'Hatchetfish',
+        icon: '🐟',
+        wavelength: 470,
+        minDepth: 300,
+        maxDepth: 1200,
+        size: 2,
+        function: 'Counter-illumination',
+        color: '#0099ff'
+      },
+      {
+        id: 'lanternfish',
+        name: 'Lanternfish',
+        icon: '💡',
+        wavelength: 485,
+        minDepth: 200,
+        maxDepth: 1000,
+        size: 4,
+        function: 'Communication',
+        color: '#00ccff'
+      },
+      {
+        id: 'atolla',
+        name: 'Atolla Jellyfish',
+        icon: '🪼',
+        wavelength: 490,
+        minDepth: 200,
+        maxDepth: 1500,
+        size: 15,
+        function: 'Alarm display',
+        color: '#00ff99'
+      },
+      {
+        id: 'anglerfish',
+        name: 'Anglerfish',
+        icon: '🎣',
+        wavelength: 480,
+        minDepth: 1000,
+        maxDepth: 4000,
+        size: 20,
+        function: 'Prey lure',
+        color: '#0066ff'
+      },
+      {
+        id: 'viperfish',
+        name: 'Viperfish',
+        icon: '🦷',
+        wavelength: 620, // red
+        minDepth: 1000,
+        maxDepth: 2000,
+        size: 25,
+        function: 'Invisible headlamp',
+        color: '#ff0033'
+      },
+      {
+        id: 'vampire_squid',
+        name: 'Vampire Squid',
+        icon: '🦑',
+        wavelength: 480,
+        minDepth: 600,
+        maxDepth: 1200,
+        size: 30,
+        function: 'Cloud defense',
+        color: '#ff1493'
+      },
+      {
+        id: 'siphonophore',
+        name: 'Siphonophore',
+        icon: '🌿',
+        wavelength: 490,
+        minDepth: 500,
+        maxDepth: 1500,
+        size: 10000, // colonies
+        function: 'Coordination',
+        color: '#00ffcc'
+      },
+      {
+        id: 'oarfish',
+        name: 'Oarfish',
+        icon: '🐍',
+        wavelength: 510,
+        minDepth: 200,
+        maxDepth: 1000,
+        size: 5000,
+        function: 'Counter-illum',
+        color: '#00ff66'
+      },
+      {
+        id: 'hydrozoan',
+        name: 'Hydrozoan',
+        icon: '🌊',
+        wavelength: 475,
+        minDepth: 200,
+        maxDepth: 800,
+        size: 1,
+        function: 'Ambush lighting',
+        color: '#00ddff'
+      },
+      {
+        id: 'gulper_eel',
+        name: 'Gulper Eel',
+        icon: '🎪',
+        wavelength: 645, // red
+        minDepth: 1500,
+        maxDepth: 3000,
+        size: 15,
+        function: 'Lure & disguise',
+        color: '#ff3366'
+      },
+      {
+        id: 'dumbo_octopus',
+        name: 'Dumbo Octopus',
+        icon: '🐙',
+        wavelength: 0, // no bioluminescence
+        minDepth: 2000,
+        maxDepth: 5000,
+        size: 30,
+        function: 'No light (control)',
+        color: '#888888'
+      }
+    ];
+
+    const depthZones = [
+      { name: 'Epipelagic', min: 0, max: 200, color: '#00ccff' },
+      { name: 'Mesopelagic', min: 200, max: 1000, color: '#1e90ff' },
+      { name: 'Bathypelagic', min: 1000, max: 4000, color: '#0a2560' },
+      { name: 'Hadapelagic', min: 4000, max: 6000, color: '#000000' }
+    ];
+
+    const facts = [
+      'Bioluminescence evolved over 200 million years ago — older than dinosaurs.',
+      'Anglerfish use bioluminescent lures to attract prey in total darkness.',
+      'The viperfish glows red — invisible to most deep-sea eyes tuned only to blue.',
+      'Counter-illumination: organisms glow on their bellies to match downwelling light.',
+      'Dinoflagellates flash blue light when attacked — a stunning predator escape.',
+      'Only 1% of surface sunlight penetrates below 200 meters.',
+      'The deep sea harbors MORE light diversity than human eyes can see.',
+      'Vampire squid ejects bioluminescent clouds to confuse predators.',
+      'Lanternfish perform vertical migrations nightly — hunting in darkness, hiding at dawn.',
+      'Lorenzen\'s hypothesis: counter-illumination hides your shadow from predators hunting below.'
+    ];
+
+    let currentDepth = 0;
+    let selectedOrganism = null;
+    let showPenetration = true;
+    let showParticles = true;
+    let particles = [];
+
+    const depthCanvas = document.getElementById('depthCanvas');
+    const depthCtx = depthCanvas.getContext('2d');
+    const spectrumCanvas = document.getElementById('spectrumCanvas');
+    const spectrumCtx = spectrumCanvas.getContext('2d');
+    const depthSlider = document.getElementById('depthSlider');
+    const sidebar = document.querySelector('.sidebar');
+
+    // Initialize species grid
+    function initSpeciesGrid() {
+      const grid = document.getElementById('speciesGrid');
+      organisms.forEach(org => {
+        const item = document.createElement('div');
+        item.className = 'species-item';
+        item.innerHTML = `<div class="species-icon">${org.icon}</div><div class="species-name">${org.name.split(' ')[0]}</div>`;
+        item.addEventListener('click', () => {
+          selectedOrganism = selectedOrganism === org.id ? null : org.id;
+          updateSpeciesGrid();
+          render();
+        });
+        grid.appendChild(item);
+      });
+    }
+
+    function updateSpeciesGrid() {
+      document.querySelectorAll('.species-item').forEach((item, idx) => {
+        if (organisms[idx].id === selectedOrganism) {
+          item.classList.add('selected');
+        } else {
+          item.classList.remove('selected');
+        }
+      });
+    }
+
+    // Get zone at depth
+    function getZoneAtDepth(depth) {
+      return depthZones.find(z => depth >= z.min && depth <= z.max) || depthZones[depthZones.length - 1];
+    }
+
+    // Calculate light penetration (Jerlov model)
+    function getLightPenetration(depth) {
+      if (depth < 10) return 100;
+      if (depth < 50) return Math.max(0, 100 - depth);
+      if (depth < 200) return Math.max(1, 100 * Math.pow(0.1, depth / 230));
+      if (depth < 1000) return Math.max(0.01, 1 * Math.pow(0.1, (depth - 200) / 300));
+      return 0;
+    }
+
+    // Calculate pressure in atmospheres
+    function getPressure(depth) {
+      return 1 + (depth / 10); // roughly 1 atm per 10m
+    }
+
+    // Get organisms visible at depth
+    function getOrganismsAtDepth(depth) {
+      return organisms.filter(org => depth >= org.minDepth && depth <= org.maxDepth);
+    }
+
+    // Draw depth profile
+    function drawDepthProfile() {
+      const width = depthCanvas.width;
+      const height = depthCanvas.height;
+      const padding = 40;
+
+      // Background gradient (ocean water column)
+      const gradient = depthCtx.createLinearGradient(0, padding, 0, height - padding);
+      gradient.addColorStop(0, '#00ccff');
+      gradient.addColorStop(0.15, '#1e90ff');
+      gradient.addColorStop(0.4, '#1a3a5f');
+      gradient.addColorStop(1, '#000000');
+
+      depthCtx.fillStyle = gradient;
+      depthCtx.fillRect(padding, padding, width - 2 * padding, height - 2 * padding);
+
+      // Light penetration overlay
+      if (showPenetration) {
+        for (let y = padding; y < height - padding; y++) {
+          const depth = ((y - padding) / (height - 2 * padding)) * 6000;
+          const pen = getLightPenetration(depth);
+          depthCtx.fillStyle = `rgba(255, 255, 150, ${pen / 100 * 0.3})`;
+          depthCtx.fillRect(padding, y, width - 2 * padding, 1);
+        }
+      }
+
+      // Draw depth zones boundaries
+      depthZones.forEach((zone, idx) => {
+        const y = padding + ((zone.max / 6000) * (height - 2 * padding));
+        depthCtx.strokeStyle = 'rgba(100, 150, 200, 0.3)';
+        depthCtx.lineWidth = 1;
+        depthCtx.setLineDash([5, 5]);
+        depthCtx.beginPath();
+        depthCtx.moveTo(padding, y);
+        depthCtx.lineTo(width - padding, y);
+        depthCtx.stroke();
+        depthCtx.setLineDash([]);
+      });
+
+      // Draw all organisms at all depths
+      organisms.forEach(org => {
+        const avgDepth = (org.minDepth + org.maxDepth) / 2;
+        const y = padding + ((avgDepth / 6000) * (height - 2 * padding));
+
+        // Multiple instances for richness
+        for (let i = 0; i < 3; i++) {
+          const xOffset = (Math.sin(i * 1.3 + org.minDepth) * 80);
+          const x = padding + 80 + xOffset;
+
+          // Draw organism circle
+          depthCtx.fillStyle = org.color;
+          depthCtx.globalAlpha = org.wavelength === 0 ? 0.5 : 0.8;
+          depthCtx.beginPath();
+          depthCtx.arc(x, y + Math.sin(i) * 20, 6, 0, Math.PI * 2);
+          depthCtx.fill();
+          depthCtx.globalAlpha = 1;
+
+          // Glow for bioluminescent organisms
+          if (org.wavelength > 0) {
+            depthCtx.strokeStyle = org.color;
+            depthCtx.lineWidth = 2;
+            depthCtx.globalAlpha = 0.4;
+            depthCtx.beginPath();
+            depthCtx.arc(x, y + Math.sin(i) * 20, 12, 0, Math.PI * 2);
+            depthCtx.stroke();
+            depthCtx.globalAlpha = 1;
+          }
+        }
+
+        // Highlight selected organism
+        if (org.id === selectedOrganism) {
+          for (let i = 0; i < 3; i++) {
+            const xOffset = (Math.sin(i * 1.3 + org.minDepth) * 80);
+            const x = padding + 80 + xOffset;
+            const y = padding + ((avgDepth / 6000) * (height - 2 * padding));
+            depthCtx.strokeStyle = '#ffff00';
+            depthCtx.lineWidth = 3;
+            depthCtx.beginPath();
+            depthCtx.arc(x, y + Math.sin(i) * 20, 10, 0, Math.PI * 2);
+            depthCtx.stroke();
+          }
+        }
+      });
+
+      // Draw current depth line
+      const currentY = padding + ((currentDepth / 6000) * (height - 2 * padding));
+      depthCtx.strokeStyle = '#ffff00';
+      depthCtx.lineWidth = 3;
+      depthCtx.setLineDash([8, 4]);
+      depthCtx.beginPath();
+      depthCtx.moveTo(padding, currentY);
+      depthCtx.lineTo(width - padding, currentY);
+      depthCtx.stroke();
+      depthCtx.setLineDash([]);
+
+      // Axis labels
+      depthCtx.fillStyle = '#a0b0d0';
+      depthCtx.font = '11px Space Mono';
+      depthCtx.textAlign = 'right';
+      for (let d = 0; d <= 6000; d += 1000) {
+        const y = padding + ((d / 6000) * (height - 2 * padding));
+        depthCtx.fillText(d + 'm', padding - 10, y + 4);
+      }
+
+      // Legend
+      depthCtx.fillStyle = '#8899cc';
+      depthCtx.font = '10px Space Mono';
+      depthCtx.textAlign = 'left';
+      depthCtx.fillText('Organisms colored by bioluminescent wavelength', padding + 5, height - 10);
+    }
+
+    // Draw light spectrum
+    function drawSpectrum() {
+      const width = spectrumCanvas.width;
+      const height = spectrumCanvas.height;
+      const padding = 20;
+      const spectrumWidth = width - 2 * padding;
+      const spectrumHeight = 30;
+
+      // Title
+      spectrumCtx.fillStyle = '#8899cc';
+      spectrumCtx.font = '10px Space Mono';
+      spectrumCtx.textAlign = 'left';
+      spectrumCtx.fillText('LIGHT SPECTRUM AT DEPTH', padding, 15);
+
+      // Visible light spectrum (400-700nm rainbow)
+      const wl_start = 400;
+      const wl_end = 700;
+      const pen = getLightPenetration(currentDepth);
+
+      for (let wl = wl_start; wl < wl_end; wl += 1) {
+        const hue = ((wl - wl_start) / (wl_end - wl_start)) * 360;
+        const x = padding + ((wl - wl_start) / (wl_end - wl_start)) * spectrumWidth;
+
+        // Color intensity fades with depth
+        const alpha = Math.max(0, pen / 100);
+        spectrumCtx.fillStyle = `hsla(${hue}, 100%, 50%, ${alpha})`;
+        spectrumCtx.fillRect(x, padding + 20, 1, spectrumHeight);
+      }
+
+      // Bioluminescence peaks overlay
+      const visibleOrgs = getOrganismsAtDepth(currentDepth);
+      visibleOrgs.forEach(org => {
+        if (org.wavelength > 0) {
+          const x = padding + ((org.wavelength - wl_start) / (wl_end - wl_start)) * spectrumWidth;
+          spectrumCtx.strokeStyle = org.color;
+          spectrumCtx.lineWidth = 3;
+          spectrumCtx.globalAlpha = 0.7;
+          spectrumCtx.beginPath();
+          spectrumCtx.moveTo(x, padding + 20);
+          spectrumCtx.lineTo(x, padding + 20 + spectrumHeight);
+          spectrumCtx.stroke();
+          spectrumCtx.globalAlpha = 1;
+        }
+      });
+
+      // Wavelength labels
+      spectrumCtx.fillStyle = '#7dd3fc';
+      spectrumCtx.font = '9px Space Mono';
+      spectrumCtx.textAlign = 'center';
+      spectrumCtx.fillText('400nm (UV)', padding, padding + 70);
+      spectrumCtx.fillText('550nm (Green)', padding + spectrumWidth / 2, padding + 70);
+      spectrumCtx.fillText('700nm (Red)', padding + spectrumWidth, padding + 70);
+    }
+
+    // Update sidebar stats
+    function updateSidebar() {
+      const zone = getZoneAtDepth(currentDepth);
+      const pen = getLightPenetration(currentDepth);
+      const pressure = getPressure(currentDepth);
+      const visibleOrgs = getOrganismsAtDepth(currentDepth);
+
+      document.getElementById('depthValue').textContent = currentDepth;
+      document.getElementById('zoneName').textContent = zone.name + ' Zone';
+      document.getElementById('lightPenetration').textContent = pen.toFixed(1) + '%';
+      document.getElementById('bioCount').textContent = visibleOrgs.length + ' organisms';
+      document.getElementById('pressure').textContent = pressure.toFixed(1);
+
+      // Dominant wavelength
+      let dominantWL = 'None';
+      if (visibleOrgs.length > 0) {
+        const avgWL = visibleOrgs.filter(o => o.wavelength > 0).reduce((sum, o) => sum + o.wavelength, 0) / visibleOrgs.filter(o => o.wavelength > 0).length;
+        if (!isNaN(avgWL) && avgWL > 0) {
+          dominantWL = avgWL.toFixed(0) + 'nm';
+          if (avgWL < 450) dominantWL += ' (UV-Blue)';
+          else if (avgWL < 500) dominantWL += ' (Blue)';
+          else if (avgWL < 550) dominantWL += ' (Cyan)';
+          else if (avgWL < 600) dominantWL += ' (Green)';
+          else dominantWL += ' (Red)';
+        }
+      }
+      document.getElementById('wavelength').textContent = dominantWL;
+
+      // Rotating fact
+      const factIdx = Math.floor((currentDepth / 6000) * facts.length) % facts.length;
+      document.getElementById('factCarousel').textContent = facts[factIdx];
+    }
+
+    // Main render loop
+    function render() {
+      depthCtx.clearRect(0, 0, depthCanvas.width, depthCanvas.height);
+      spectrumCtx.clearRect(0, 0, spectrumCanvas.width, spectrumCanvas.height);
+
+      drawDepthProfile();
+      drawSpectrum();
+      updateSidebar();
+    }
+
+    // Event listeners
+    depthSlider.addEventListener('input', (e) => {
+      currentDepth = parseInt(e.target.value);
+      render();
+    });
+
+    document.getElementById('togglePenetration').addEventListener('click', (e) => {
+      showPenetration = !showPenetration;
+      e.target.classList.toggle('active');
+      e.target.textContent = showPenetration ? 'Sunlight ✓' : 'Sunlight ✗';
+      render();
+    });
+
+    document.getElementById('toggleParticles').addEventListener('click', (e) => {
+      showParticles = !showParticles;
+      e.target.classList.toggle('active');
+      e.target.textContent = showParticles ? 'Particles ✓' : 'Particles ✗';
+    });
+
+    // Initial render
+    initSpeciesGrid();
+    render();
+
+    // Assertions for testing
+    console.assert(organisms.length === 12, 'Should have 12 organisms');
+    console.assert(depthZones.length === 4, 'Should have 4 depth zones');
+    console.assert(organisms.every(o => o.wavelength === 0 || (o.wavelength >= 400 && o.wavelength <= 700)), 'Wavelengths should be valid');
+    console.assert(organisms.every(o => o.minDepth >= 0 && o.maxDepth <= 6000), 'Depths should be within range');
+    console.log('✓ Bioluminescence Explorer: all assertions passed');
+  </script>
+</body>
+</html>
