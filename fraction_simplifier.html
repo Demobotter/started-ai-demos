@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fraction Simplifier — GCD Algorithm Visualizer</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Space+Mono:wght@400&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: 'Space Mono', monospace;
+      background: linear-gradient(135deg, #0a1428 0%, #1d3a5c 100%);
+      color: #e8f0ff;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .container {
+      max-width: 1000px;
+      width: 100%;
+      background: rgba(15, 30, 50, 0.9);
+      border-radius: 16px;
+      padding: 40px;
+      border: 1px solid #2d5a9e;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+    }
+    h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: 2.5em;
+      margin-bottom: 10px;
+      color: #4da8da;
+      text-align: center;
+    }
+    .subtitle {
+      text-align: center;
+      color: #a0c4ff;
+      margin-bottom: 30px;
+      font-size: 0.95em;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 30px;
+      margin-bottom: 30px;
+    }
+    @media (max-width: 768px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    .input-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    label {
+      font-size: 0.9em;
+      color: #a0c4ff;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    input[type="number"] {
+      padding: 12px;
+      font-family: 'Space Mono', monospace;
+      font-size: 1.1em;
+      background: #1a2f4d;
+      border: 2px solid #2d5a9e;
+      border-radius: 8px;
+      color: #4da8da;
+      transition: all 0.2s;
+    }
+    input[type="number"]:focus {
+      outline: none;
+      border-color: #4da8da;
+      box-shadow: 0 0 10px rgba(77, 168, 218, 0.3);
+    }
+    button {
+      padding: 14px 28px;
+      font-family: 'Space Mono', monospace;
+      font-size: 1em;
+      background: linear-gradient(135deg, #4da8da 0%, #2d7dba 100%);
+      color: #0a1428;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: all 0.3s;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px rgba(77, 168, 218, 0.4);
+    }
+    button:active {
+      transform: translateY(0);
+    }
+    .canvas-container {
+      background: #0d1f35;
+      border-radius: 12px;
+      border: 2px solid #2d5a9e;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 400px;
+    }
+    canvas {
+      display: block;
+    }
+    .output-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+    .stat-box {
+      background: rgba(77, 168, 218, 0.1);
+      border-left: 4px solid #4da8da;
+      padding: 15px;
+      border-radius: 8px;
+      font-size: 0.95em;
+    }
+    .stat-label {
+      color: #a0c4ff;
+      font-size: 0.85em;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 5px;
+    }
+    .stat-value {
+      color: #4da8da;
+      font-size: 1.5em;
+      font-weight: bold;
+      font-family: 'Space Mono', monospace;
+    }
+    .algorithm-steps {
+      background: rgba(77, 168, 218, 0.08);
+      border: 1px solid rgba(77, 168, 218, 0.3);
+      border-radius: 8px;
+      padding: 15px;
+      max-height: 300px;
+      overflow-y: auto;
+      font-size: 0.85em;
+      line-height: 1.6;
+    }
+    .step {
+      color: #a0c4ff;
+      margin-bottom: 8px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid rgba(77, 168, 218, 0.2);
+    }
+    .step:last-child {
+      border-bottom: none;
+    }
+    .step.active {
+      color: #4da8da;
+      font-weight: bold;
+      background: rgba(77, 168, 218, 0.15);
+      padding: 8px;
+      border-radius: 4px;
+    }
+    .step .number {
+      color: #4da8da;
+      font-weight: bold;
+      margin-right: 8px;
+    }
+    .step .result {
+      color: #7dd3fc;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>⚙️ Fraction Simplifier</h1>
+    <p class="subtitle">Watch the Euclidean algorithm find the GCD step by step</p>
+    
+    <div class="grid">
+      <div class="input-panel">
+        <div class="input-group">
+          <label for="numerator">Numerator</label>
+          <input type="number" id="numerator" value="48" min="1" max="10000">
+        </div>
+        <div class="input-group">
+          <label for="denominator">Denominator</label>
+          <input type="number" id="denominator" value="18" min="1" max="10000">
+        </div>
+        <button id="runBtn">Run Algorithm</button>
+      </div>
+
+      <div class="canvas-container">
+        <canvas id="gcdCanvas" width="350" height="350"></canvas>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="output-panel">
+        <div class="stat-box">
+          <div class="stat-label">Original Fraction</div>
+          <div class="stat-value" id="originalFraction">48/18</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Greatest Common Divisor</div>
+          <div class="stat-value" id="gcdResult">—</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Simplified Fraction</div>
+          <div class="stat-value" id="simplifiedFraction">—</div>
+        </div>
+      </div>
+
+      <div>
+        <div class="stat-label" style="margin-bottom: 10px; color: #a0c4ff;">Algorithm Steps</div>
+        <div class="algorithm-steps" id="steps"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('gcdCanvas');
+    const ctx = canvas.getContext('2d');
+    const numInput = document.getElementById('numerator');
+    const denInput = document.getElementById('denominator');
+    const runBtn = document.getElementById('runBtn');
+    const originalFracEl = document.getElementById('originalFraction');
+    const gcdResultEl = document.getElementById('gcdResult');
+    const simplifiedFracEl = document.getElementById('simplifiedFraction');
+    const stepsEl = document.getElementById('steps');
+
+    let animationRunning = false;
+    let currentStep = 0;
+    let allSteps = [];
+
+    function euclideanGCD(a, b) {
+      const steps = [];
+      let x = a, y = b;
+      steps.push({ a: x, b: y, remainder: null });
+      while (y !== 0) {
+        const remainder = x % y;
+        steps.push({ a: x, b: y, remainder: remainder });
+        x = y;
+        y = remainder;
+      }
+      return { gcd: x, steps: steps };
+    }
+
+    function drawRectangle(x, y, width, height, color, alpha = 1) {
+      ctx.fillStyle = color;
+      ctx.globalAlpha = alpha;
+      ctx.fillRect(x, y, width, height);
+      ctx.globalAlpha = 1;
+    }
+
+    function drawRect(x, y, w, h, color, stroke = true) {
+      ctx.fillStyle = color;
+      ctx.fillRect(x, y, w, h);
+      if (stroke) {
+        ctx.strokeStyle = 'rgba(77, 168, 218, 0.5)';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x, y, w, h);
+      }
+    }
+
+    function animateVisualization(a, b) {
+      const result = euclideanGCD(a, b);
+      const gcd = result.gcd;
+      const steps = result.steps;
+      allSteps = steps;
+
+      stepsEl.innerHTML = '';
+      steps.forEach((step, idx) => {
+        const stepDiv = document.createElement('div');
+        stepDiv.className = 'step';
+        if (step.remainder === null) {
+          stepDiv.innerHTML = `<span class="number">Start:</span> ${step.a} ÷ ${step.b}`;
+        } else {
+          stepDiv.innerHTML = `<span class="number">${idx}:</span> ${step.a} = ${step.b} × ${Math.floor(step.a / step.b)} + <span class="result">${step.remainder}</span>`;
+        }
+        stepsEl.appendChild(stepDiv);
+      });
+
+      originalFracEl.textContent = `${a}/${b}`;
+      gcdResultEl.textContent = gcd;
+      const simplified = `${a / gcd}/${b / gcd}`;
+      simplifiedFracEl.textContent = simplified;
+
+      currentStep = 0;
+      animationRunning = true;
+      animateFrame(a, b, steps, gcd);
+    }
+
+    function animateFrame(a, b, steps, gcd) {
+      if (currentStep <= steps.length) {
+        drawVisualization(a, b, steps, currentStep, gcd);
+        currentStep++;
+        setTimeout(() => animateFrame(a, b, steps, gcd), 800);
+      } else {
+        animationRunning = false;
+      }
+    }
+
+    function drawVisualization(a, b, steps, stepIdx, gcd) {
+      ctx.fillStyle = '#0d1f35';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      const maxDim = Math.max(a, b);
+      const cellSize = Math.min(320 / a, 320 / b);
+      const startX = (canvas.width - a * cellSize) / 2;
+      const startY = (canvas.height - b * cellSize) / 2;
+
+      ctx.fillStyle = 'rgba(45, 90, 158, 0.3)';
+      ctx.fillRect(startX - 10, startY - 10, a * cellSize + 20, b * cellSize + 20);
+
+      if (stepIdx === 0) {
+        // Show full rectangle
+        for (let i = 0; i < a; i++) {
+          for (let j = 0; j < b; j++) {
+            const x = startX + i * cellSize;
+            const y = startY + j * cellSize;
+            ctx.fillStyle = '#4da8da';
+            ctx.globalAlpha = 0.5;
+            ctx.fillRect(x, y, cellSize - 1, cellSize - 1);
+            ctx.globalAlpha = 1;
+          }
+        }
+      } else if (stepIdx < steps.length) {
+        const step = steps[stepIdx];
+        const larger = step.a;
+        const smaller = step.b;
+        const quotient = Math.floor(larger / smaller);
+        const remainder = step.remainder;
+
+        // Draw full smaller rectangles (quotient)
+        for (let q = 0; q < quotient; q++) {
+          ctx.fillStyle = '#7dd3fc';
+          ctx.globalAlpha = 0.7;
+          ctx.fillRect(startX + q * smaller * cellSize, startY, smaller * cellSize, smaller * cellSize);
+          ctx.globalAlpha = 1;
+          ctx.strokeStyle = 'rgba(77, 168, 218, 0.8)';
+          ctx.lineWidth = 1;
+          ctx.strokeRect(startX + q * smaller * cellSize, startY, smaller * cellSize, smaller * cellSize);
+        }
+
+        // Draw remainder rectangle
+        if (remainder > 0) {
+          ctx.fillStyle = '#ff6b6b';
+          ctx.globalAlpha = 0.6;
+          ctx.fillRect(startX, startY + smaller * cellSize, remainder * cellSize, smaller * cellSize);
+          ctx.globalAlpha = 1;
+          ctx.strokeStyle = 'rgba(255, 107, 107, 0.8)';
+          ctx.lineWidth = 2;
+          ctx.strokeRect(startX, startY + smaller * cellSize, remainder * cellSize, smaller * cellSize);
+        }
+      } else {
+        // Final GCD grid
+        ctx.fillStyle = '#00ff88';
+        ctx.globalAlpha = 0.6;
+        for (let i = 0; i < a / gcd; i++) {
+          for (let j = 0; j < b / gcd; j++) {
+            const x = startX + i * gcd * cellSize;
+            const y = startY + j * gcd * cellSize;
+            ctx.fillRect(x, y, gcd * cellSize, gcd * cellSize);
+          }
+        }
+        ctx.globalAlpha = 1;
+        ctx.strokeStyle = 'rgba(0, 255, 136, 0.9)';
+        ctx.lineWidth = 2;
+        for (let i = 0; i <= a / gcd; i++) {
+          ctx.beginPath();
+          ctx.moveTo(startX + i * gcd * cellSize, startY);
+          ctx.lineTo(startX + i * gcd * cellSize, startY + b * cellSize);
+          ctx.stroke();
+        }
+        for (let j = 0; j <= b / gcd; j++) {
+          ctx.beginPath();
+          ctx.moveTo(startX, startY + j * gcd * cellSize);
+          ctx.lineTo(startX + a * cellSize, startY + j * gcd * cellSize);
+          ctx.stroke();
+        }
+      }
+
+      // Step label
+      ctx.fillStyle = '#a0c4ff';
+      ctx.font = 'bold 14px Space Mono';
+      ctx.textAlign = 'center';
+      ctx.fillText(`Step ${stepIdx} of ${steps.length}`, canvas.width / 2, 30);
+    }
+
+    function handleRun() {
+      if (animationRunning) return;
+      const a = parseInt(numInput.value);
+      const b = parseInt(denInput.value);
+      if (a < 1 || b < 1) {
+        alert('Please enter positive integers');
+        return;
+      }
+      animateVisualization(a, b);
+    }
+
+    runBtn.addEventListener('click', handleRun);
+    numInput.addEventListener('keypress', (e) => e.key === 'Enter' && handleRun());
+    denInput.addEventListener('keypress', (e) => e.key === 'Enter' && handleRun());
+
+    // Initial draw
+    animateVisualization(48, 18);
+  </script>
+</body>
+</html>
