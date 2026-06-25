@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Urban Heat Island Simulator</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Space+Mono:wght@400&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      background: linear-gradient(135deg, #0a1428 0%, #1a2d4a 100%);
+      color: #e0e0e0;
+      font-family: 'Space Mono', monospace;
+      padding: 20px;
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    h1 {
+      font-family: 'Playfair Display', serif;
+      text-align: center;
+      margin-bottom: 30px;
+      font-size: 2.5em;
+      color: #fff;
+    }
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1fr 300px;
+      gap: 20px;
+      align-items: start;
+    }
+    canvas {
+      display: block;
+      background: #0a0f1a;
+      border: 2px solid #4da8da;
+      border-radius: 8px;
+      cursor: crosshair;
+      width: 100%;
+      max-width: 600px;
+      height: auto;
+    }
+    .sidebar {
+      background: rgba(10, 20, 40, 0.8);
+      border: 1px solid #4da8da;
+      border-radius: 8px;
+      padding: 20px;
+      max-height: 700px;
+      overflow-y: auto;
+    }
+    .sidebar h3 {
+      font-family: 'Playfair Display', serif;
+      color: #4da8da;
+      margin-bottom: 15px;
+      border-bottom: 1px solid #4da8da;
+      padding-bottom: 10px;
+    }
+    .control-group {
+      margin-bottom: 20px;
+    }
+    .control-group label {
+      display: block;
+      font-size: 0.85em;
+      margin-bottom: 6px;
+      color: #a0d0f0;
+    }
+    input[type="range"] {
+      width: 100%;
+      height: 6px;
+      border-radius: 3px;
+      background: #1f4d7f;
+      outline: none;
+      -webkit-appearance: none;
+      margin-bottom: 8px;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #4da8da;
+      cursor: pointer;
+    }
+    input[type="range"]::-moz-range-thumb {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #4da8da;
+      cursor: pointer;
+      border: none;
+    }
+    .value-display {
+      font-size: 0.85em;
+      color: #7dd3fc;
+      text-align: right;
+      margin-top: 4px;
+    }
+    button {
+      background: #4da8da;
+      color: #0a1428;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 4px;
+      font-family: 'Space Mono', monospace;
+      font-weight: bold;
+      cursor: pointer;
+      margin-right: 8px;
+      margin-bottom: 8px;
+      font-size: 0.85em;
+      transition: background 0.2s;
+    }
+    button:hover {
+      background: #7dd3fc;
+    }
+    button.tool-btn {
+      width: 100%;
+      margin-right: 0;
+      margin-bottom: 6px;
+      background: #1f4d7f;
+      color: #4da8da;
+    }
+    button.tool-btn.active {
+      background: #4da8da;
+      color: #0a1428;
+    }
+    .stats {
+      background: rgba(20, 40, 80, 0.6);
+      border-left: 2px solid #4da8da;
+      padding: 12px;
+      border-radius: 4px;
+      margin-bottom: 15px;
+      font-size: 0.8em;
+    }
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 6px;
+      color: #a0d0f0;
+    }
+    .stat-label {
+      color: #7dd3fc;
+    }
+    .stat-value {
+      color: #fff;
+      font-weight: bold;
+    }
+    .color-legend {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      font-size: 0.75em;
+      margin-top: 15px;
+      padding-top: 15px;
+      border-top: 1px solid #1f4d7f;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .legend-color {
+      width: 20px;
+      height: 20px;
+      border-radius: 3px;
+    }
+    @media (max-width: 900px) {
+      .main-grid {
+        grid-template-columns: 1fr;
+      }
+      canvas {
+        max-width: 100%;
+      }
+      .sidebar {
+        max-height: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🌡️ Urban Heat Island</h1>
+    
+    <div class="main-grid">
+      <div>
+        <canvas id="heatmapCanvas" width="500" height="500"></canvas>
+      </div>
+      
+      <div class="sidebar">
+        <h3>Simulation</h3>
+        
+        <div class="control-group">
+          <label for="timeSlider">Time of Day</label>
+          <input type="range" id="timeSlider" min="0" max="24" value="12" step="0.1">
+          <div class="value-display"><span id="timeValue">12:00</span></div>
+        </div>
+        
+        <div class="control-group">
+          <label for="seasonSlider">Season</label>
+          <input type="range" id="seasonSlider" min="0" max="3" value="2" step="0.1">
+          <div class="value-display"><span id="seasonValue">Summer</span></div>
+        </div>
+        
+        <h3 style="margin-top: 20px;">Paint Tools</h3>
+        <button class="tool-btn active" data-tool="building">🏢 Building</button>
+        <button class="tool-btn" data-tool="road">🛣️ Road</button>
+        <button class="tool-btn" data-tool="park">🌳 Park</button>
+        <button class="tool-btn" data-tool="forest">🌲 Forest</button>
+        <button class="tool-btn" data-tool="clear">🗑️ Clear</button>
+        <button style="width: 100%; margin-top: 10px;">Reset Grid</button>
+        
+        <h3 style="margin-top: 20px;">Real Urban Heat Islands</h3>
+        <div style="font-size: 0.8em; color: #a0d0f0; line-height: 1.5; margin-bottom: 15px;">
+          <div>NYC: +5°C vs suburbs</div>
+          <div>Phoenix: +8°C vs suburbs</div>
+          <div>Atlanta: +3°C vs suburbs</div>
+        </div>
+        
+        <h3>City Stats</h3>
+        <div class="stats">
+          <div class="stat-row">
+            <span class="stat-label">Avg Temp</span>
+            <span class="stat-value"><span id="avgTemp">22.0</span>°C</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Heat Island</span>
+            <span class="stat-value"><span id="heatIsland">0.0</span>°C</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Hottest Cell</span>
+            <span class="stat-value"><span id="maxTemp">22.0</span>°C</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Coolest Cell</span>
+            <span class="stat-value"><span id="minTemp">22.0</span>°C</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Buildings</span>
+            <span class="stat-value"><span id="pctBuildings">0</span>%</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Parks</span>
+            <span class="stat-value"><span id="pctParks">0</span>%</span>
+          </div>
+        </div>
+        
+        <h3 style="margin-top: 20px;">Presets</h3>
+        <button style="width: 100%; margin-bottom: 6px;" data-preset="dense">Dense Urban</button>
+        <button style="width: 100%; margin-bottom: 6px;" data-preset="suburban">Suburban</button>
+        <button style="width: 100%;" data-preset="green">Green City</button>
+        
+        <div class="color-legend">
+          <div class="legend-item">
+            <div class="legend-color" style="background: #0033ff;"></div>
+            <span>15°C</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-color" style="background: #33ff33;"></div>
+            <span>20°C</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-color" style="background: #ffff00;"></div>
+            <span>25°C</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-color" style="background: #ff6600;"></div>
+            <span>30°C</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-color" style="background: #ff0000;"></div>
+            <span>35°C+</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-color" style="background: #00aa00;"></div>
+            <span>Water</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const GRID_SIZE = 20;
+    const CELL_SIZE = 25;
+    const canvas = document.getElementById('heatmapCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    // Land cover types
+    const TYPES = {
+      empty: 0,
+      building: 1,
+      road: 2,
+      park: 3,
+      forest: 4,
+      water: 5
+    };
+    
+    // Thermal properties: [base_temp_offset, diffusion_coeff, evapotranspiration_cooling]
+    const THERMAL_PROPS = {
+      0: [0, 0.3, 0],        // empty (neutral)
+      1: [+3, 0.4, 0],       // building (hot, absorbs)
+      2: [+2.5, 0.5, 0],     // road (hot)
+      3: [-1, 0.2, 0.3],     // park (cool, evapotranspiration)
+      4: [-2.5, 0.15, 0.5],  // forest (cool, high evapotranspiration)
+      5: [-1.5, 0.1, 0.2]    // water (cool, stable)
+    };
+    
+    // Initialize grid
+    let grid = Array(GRID_SIZE).fill().map(() => Array(GRID_SIZE).fill(TYPES.empty));
+    let temps = Array(GRID_SIZE).fill().map(() => Array(GRID_SIZE).fill(20));
+    
+    let currentTool = 'building';
+    let isPainting = false;
+    
+    // UI elements
+    const timeSlider = document.getElementById('timeSlider');
+    const seasonSlider = document.getElementById('seasonSlider');
+    const timeValue = document.getElementById('timeValue');
+    const seasonValue = document.getElementById('seasonValue');
+    
+    // Update time display
+    timeSlider.addEventListener('input', (e) => {
+      const hour = Math.floor(e.target.value);
+      const minute = Math.floor((parseFloat(e.target.value) % 1) * 60);
+      timeValue.textContent = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+    });
+    
+    // Update season display
+    seasonSlider.addEventListener('input', (e) => {
+      const val = parseFloat(e.target.value);
+      const seasons = ['Winter', 'Spring', 'Summer', 'Fall'];
+      seasonValue.textContent = seasons[Math.floor(val)];
+    });
+    
+    // Tool button handlers
+    document.querySelectorAll('.tool-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentTool = btn.dataset.tool;
+      });
+    });
+    
+    // Reset button
+    document.querySelector('button:nth-of-type(6)').addEventListener('click', () => {
+      grid = Array(GRID_SIZE).fill().map(() => Array(GRID_SIZE).fill(TYPES.empty));
+      temps = Array(GRID_SIZE).fill().map(() => Array(GRID_SIZE).fill(20));
+    });
+    
+    // Preset buttons
+    document.querySelectorAll('button[data-preset]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const preset = e.target.dataset.preset;
+        grid = Array(GRID_SIZE).fill().map(() => Array(GRID_SIZE).fill(TYPES.empty));
+        
+        if (preset === 'dense') {
+          // 80% buildings/roads, 5% parks
+          for (let i = 0; i < GRID_SIZE; i++) {
+            for (let j = 0; j < GRID_SIZE; j++) {
+              const r = Math.random();
+              if (r < 0.5) grid[i][j] = TYPES.building;
+              else if (r < 0.8) grid[i][j] = TYPES.road;
+              else if (r < 0.85) grid[i][j] = TYPES.park;
+            }
+          }
+        } else if (preset === 'suburban') {
+          // Mix of buildings, roads, parks
+          for (let i = 0; i < GRID_SIZE; i++) {
+            for (let j = 0; j < GRID_SIZE; j++) {
+              const r = Math.random();
+              if (r < 0.35) grid[i][j] = TYPES.building;
+              else if (r < 0.6) grid[i][j] = TYPES.road;
+              else if (r < 0.8) grid[i][j] = TYPES.park;
+            }
+          }
+        } else if (preset === 'green') {
+          // 40% parks/forest, efficient roads
+          for (let i = 0; i < GRID_SIZE; i++) {
+            for (let j = 0; j < GRID_SIZE; j++) {
+              const r = Math.random();
+              if (r < 0.25) grid[i][j] = TYPES.building;
+              else if (r < 0.35) grid[i][j] = TYPES.road;
+              else if (r < 0.6) grid[i][j] = TYPES.forest;
+              else if (r < 0.75) grid[i][j] = TYPES.park;
+            }
+          }
+        }
+        temps = Array(GRID_SIZE).fill().map(() => Array(GRID_SIZE).fill(20));
+      });
+    });
+    
+    // Canvas painting
+    canvas.addEventListener('mousedown', (e) => {
+      isPainting = true;
+      paintCell(e);
+    });
+    canvas.addEventListener('mousemove', (e) => {
+      if (isPainting) paintCell(e);
+    });
+    canvas.addEventListener('mouseup', () => {
+      isPainting = false;
+    });
+    canvas.addEventListener('mouseleave', () => {
+      isPainting = false;
+    });
+    
+    function paintCell(e) {
+      const rect = canvas.getBoundingClientRect();
+      const x = Math.floor((e.clientX - rect.left) / CELL_SIZE);
+      const y = Math.floor((e.clientY - rect.top) / CELL_SIZE);
+      
+      if (x >= 0 && x < GRID_SIZE && y >= 0 && y < GRID_SIZE) {
+        if (currentTool === 'clear') {
+          grid[y][x] = TYPES.empty;
+        } else {
+          grid[y][x] = TYPES[currentTool];
+        }
+      }
+    }
+    
+    // Thermal simulation
+    function simulateThermics() {
+      const time = parseFloat(timeSlider.value);
+      const season = parseFloat(seasonSlider.value);
+      
+      // Solar intensity (peak at noon)
+      const solarIntensity = Math.max(0, Math.cos((time - 12) * Math.PI / 12)) * 0.5;
+      
+      // Seasonal base temp
+      const seasonalBase = [15, 18, 25, 20][Math.floor(season)];
+      
+      // Calculate new temperatures
+      const newTemps = Array(GRID_SIZE).fill().map(() => Array(GRID_SIZE).fill(0));
+      
+      for (let i = 0; i < GRID_SIZE; i++) {
+        for (let j = 0; j < GRID_SIZE; j++) {
+          const landType = grid[i][j];
+          const [tempOffset, diffusion, evapotranspiration] = THERMAL_PROPS[landType];
+          
+          // Base temperature
+          let T = seasonalBase + tempOffset + (solarIntensity * 5);
+          
+          // Evapotranspiration cooling
+          T -= evapotranspiration * 1.5;
+          
+          // Diffuse heat from neighbors
+          let neighborAvg = 0;
+          let count = 0;
+          for (let di = -1; di <= 1; di++) {
+            for (let dj = -1; dj <= 1; dj++) {
+              if (di === 0 && dj === 0) continue;
+              const ni = (i + di + GRID_SIZE) % GRID_SIZE;
+              const nj = (j + dj + GRID_SIZE) % GRID_SIZE;
+              neighborAvg += temps[ni][nj];
+              count++;
+            }
+          }
+          neighborAvg /= count;
+          
+          // Blend with current temperature
+          T = T * (1 - diffusion * 0.1) + neighborAvg * diffusion * 0.1;
+          
+          newTemps[i][j] = T;
+        }
+      }
+      
+      temps = newTemps;
+    }
+    
+    // Color mapping
+    function tempToColor(t) {
+      if (t < 15) return '#0033ff';      // deep blue
+      if (t < 20) return '#33ff33';      // green
+      if (t < 25) return '#ffff00';      // yellow
+      if (t < 30) return '#ff6600';      // orange
+      return '#ff0000';                   // red
+    }
+    
+    // Render
+    function render() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      for (let i = 0; i < GRID_SIZE; i++) {
+        for (let j = 0; j < GRID_SIZE; j++) {
+          ctx.fillStyle = tempToColor(temps[i][j]);
+          ctx.fillRect(j * CELL_SIZE, i * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+          
+          // Grid lines
+          ctx.strokeStyle = 'rgba(77, 168, 218, 0.2)';
+          ctx.lineWidth = 1;
+          ctx.strokeRect(j * CELL_SIZE, i * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+        }
+      }
+      
+      // Update stats
+      updateStats();
+    }
+    
+    function updateStats() {
+      let totalTemp = 0;
+      let minT = Infinity, maxT = -Infinity;
+      let parkTemp = 0, parkCount = 0;
+      let buildingCount = 0, parkCount2 = 0, roadCount = 0;
+      
+      for (let i = 0; i < GRID_SIZE; i++) {
+        for (let j = 0; j < GRID_SIZE; j++) {
+          totalTemp += temps[i][j];
+          minT = Math.min(minT, temps[i][j]);
+          maxT = Math.max(maxT, temps[i][j]);
+          
+          if (grid[i][j] === TYPES.park || grid[i][j] === TYPES.forest) {
+            parkTemp += temps[i][j];
+            parkCount++;
+          }
+          if (grid[i][j] === TYPES.building) buildingCount++;
+          if (grid[i][j] === TYPES.park) parkCount2++;
+          if (grid[i][j] === TYPES.road) roadCount++;
+        }
+      }
+      
+      const avgT = totalTemp / (GRID_SIZE * GRID_SIZE);
+      const avgParkT = parkCount > 0 ? parkTemp / parkCount : avgT;
+      const heatIsland = avgT - avgParkT;
+      
+      document.getElementById('avgTemp').textContent = avgT.toFixed(1);
+      document.getElementById('maxTemp').textContent = maxT.toFixed(1);
+      document.getElementById('minTemp').textContent = minT.toFixed(1);
+      document.getElementById('heatIsland').textContent = heatIsland.toFixed(1);
+      document.getElementById('pctBuildings').textContent = Math.round(buildingCount / (GRID_SIZE * GRID_SIZE) * 100);
+      document.getElementById('pctParks').textContent = Math.round(parkCount2 / (GRID_SIZE * GRID_SIZE) * 100);
+    }
+    
+    // Main loop
+    function animate() {
+      simulateThermics();
+      render();
+      requestAnimationFrame(animate);
+    }
+    
+    // Start
+    render();
+    animate();
+  </script>
+</body>
+</html>
