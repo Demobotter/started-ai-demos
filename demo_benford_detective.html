@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Benford Detective — Spot Faked Numbers</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0f1117; --panel:#171a23; --panel2:#1d212c; --line:#2a2f3c;
+    --ink:#e8eaf0; --muted:#9098a8; --accent:#e4b363; --good:#5fd38d;
+    --bad:#ef6f6c; --warn:#f0c05a; --radius:14px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--ink);font-family:'Inter',system-ui,sans-serif;line-height:1.55;padding:24px;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:920px;margin:0 auto}
+  header{text-align:center;margin-bottom:8px}
+  h1{font-family:'Fraunces',serif;font-weight:600;font-size:2rem;letter-spacing:-0.5px}
+  h1 .em{color:var(--accent)}
+  .sub{color:var(--muted);font-size:.95rem;margin-top:6px;max-width:620px;margin-left:auto;margin-right:auto}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:20px;margin-top:18px}
+  label{display:block;font-size:.8rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:8px;font-weight:600}
+  textarea{width:100%;min-height:120px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;color:var(--ink);font-family:'Inter',monospace;font-size:.9rem;padding:12px;resize:vertical}
+  textarea:focus{outline:none;border-color:var(--accent)}
+  .row{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+  button{font-family:inherit;font-weight:600;font-size:.85rem;border:1px solid var(--line);background:var(--panel2);color:var(--ink);padding:9px 14px;border-radius:9px;cursor:pointer;transition:.15s}
+  button:hover{border-color:var(--accent);color:var(--accent)}
+  button.primary{background:var(--accent);color:#1a1206;border-color:var(--accent)}
+  button.primary:hover{filter:brightness(1.08);color:#1a1206}
+  .presets{margin-top:6px}
+  .presets .lbl{font-size:.75rem;color:var(--muted);margin-bottom:8px}
+  .verdict{display:none;margin-top:18px}
+  .verdict.show{display:block;animation:fade .4s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  .vbadge{display:inline-flex;align-items:center;gap:8px;font-family:'Fraunces',serif;font-size:1.5rem;font-weight:600;padding:4px 0}
+  .vbadge .dot{width:14px;height:14px;border-radius:50%}
+  .vmeta{color:var(--muted);font-size:.9rem;margin-top:4px}
+  .chartwrap{margin-top:18px;display:grid;gap:14px}
+  .bars{display:grid;grid-template-columns:repeat(9,1fr);gap:8px;align-items:end;height:200px;padding:10px;background:var(--panel2);border-radius:10px;border:1px solid var(--line)}
+  .digit{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;position:relative}
+  .barpair{position:relative;width:100%;height:100%;display:flex;align-items:flex-end;justify-content:center;gap:3px}
+  .bar{width:42%;border-radius:4px 4px 0 0;transition:height .6s cubic-bezier(.2,.8,.2,1)}
+  .bar.actual{background:var(--accent)}
+  .bar.expected{background:#3a4150;opacity:.85}
+  .dlabel{font-size:.8rem;color:var(--muted);margin-top:6px;font-weight:600}
+  .legend{display:flex;gap:18px;justify-content:center;font-size:.8rem;color:var(--muted);margin-top:4px}
+  .legend i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-top:16px}
+  .stat{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+  .stat .k{font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+  .stat .v{font-family:'Fraunces',serif;font-size:1.35rem;font-weight:600;margin-top:2px}
+  .explain{margin-top:18px;font-size:.9rem;color:var(--muted)}
+  .explain b{color:var(--ink)}
+  .tbl{width:100%;border-collapse:collapse;margin-top:12px;font-size:.85rem}
+  .tbl th,.tbl td{text-align:right;padding:6px 8px;border-bottom:1px solid var(--line)}
+  .tbl th{color:var(--muted);font-weight:600;text-transform:uppercase;font-size:.7rem;letter-spacing:.05em}
+  .tbl td:first-child,.tbl th:first-child{text-align:left}
+  footer{text-align:center;color:var(--muted);font-size:.8rem;margin-top:26px}
+  .live-note{font-size:.75rem;color:var(--muted);margin-top:8px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Benford <span class="em">Detective</span></h1>
+    <p class="sub">Real-world numbers obey a hidden law: about 30% start with a <b>1</b>, only 5% with a <b>9</b>. Fakers don't know this. Drop in numbers and let frequency analysis decide if they look natural — or fudged.</p>
+  </header>
+
+  <div class="card">
+    <label for="input">Paste numbers (any separator — commas, spaces, newlines)</label>
+    <textarea id="input" placeholder="e.g. 1234, 87, 4501, 12, 9, 230 ..."></textarea>
+    <div class="presets">
+      <div class="lbl" style="margin-top:14px">Or load a sample — guess which are real before you run it:</div>
+      <div class="row">
+        <button data-set="population">🌍 World city populations</button>
+        <button data-set="fibonacci">🔢 Fibonacci numbers</button>
+        <button data-set="random">🎲 "Random" (human-typed)</button>
+        <button data-set="fraud">🧾 Cooked expense report</button>
+        <button data-set="live" id="liveBtn">🛰️ Live: 100 crypto market caps</button>
+      </div>
+      <div class="live-note" id="liveNote"></div>
+    </div>
+    <div class="row" style="margin-top:16px">
+      <button class="primary" id="run">Run the analysis →</button>
+      <button id="clear">Clear</button>
+    </div>
+  </div>
+
+  <div class="verdict card" id="verdict">
+    <div class="vbadge"><span class="dot" id="vdot"></span><span id="vtext"></span></div>
+    <div class="vmeta" id="vmeta"></div>
+
+    <div class="chartwrap">
+      <div class="bars" id="bars"></div>
+      <div class="legend">
+        <span><i style="background:var(--accent)"></i>Your data</span>
+        <span><i style="background:#3a4150"></i>Benford's prediction</span>
+      </div>
+    </div>
+
+    <div class="stats" id="stats"></div>
+
+    <table class="tbl" id="tbl">
+      <thead><tr><th>Lead digit</th><th>Your %</th><th>Benford %</th><th>Gap</th></tr></thead>
+      <tbody></tbody>
+    </table>
+
+    <div class="explain" id="explain"></div>
+  </div>
+
+  <footer>The math: chi-square goodness-of-fit + mean absolute deviation against Benford's logarithmic distribution P(d)=log&#8321;&#8320;(1+1/d). Used by the IRS, auditors &amp; election forensics to flag manipulated data.</footer>
+</div>
+
+<script>
+const BENFORD = [0,0.301,0.176,0.125,0.097,0.079,0.067,0.058,0.051,0.046]; // index 1..9
+const $ = s => document.querySelector(s);
+
+const SAMPLES = {
+  population: [37400068,32000000,21900000,20996000,20411000,20076000,19980000,19618000,19222000,18804000,15400000,14967000,14681000,13923000,13634000,13293000,13215000,12442000,11908000,11036000,10770000,10539000,10500000,10145000,9904000,9630000,9500000,9304000,9121000,8908000,8601186,8400000,8175133,7556000,7494000,7000000,6945000,6786000,6700000,6453000,6388000,6357000,6300000,6200000,6098000,5950000,5832000,5700000,5635000,5500000,5328000,5183700,5104000,5000000,4887000,4731000,4622000,4500000,4467000,4324000,4200000,4100000,4030000,3979576,3900000,3850000,3792621,3700000,3641000,3600000,3500000,3417000,3300000,3255000,3200000,3140000,3100000,3043000,3000000,2950000,2900000,2850000,2800000,2750000,2700000,2650000,2600000,2550000,2500000,2450000,2400000,2350000,2300000,2250000,2200000,2150000,2100000,2050000,2000000],
+  fibonacci: (function(){var a=1,b=1,o=[1,1];for(var i=0;i<90;i++){var t=a+b;a=b;b=t;o.push(b);}return o;})(),
+  random: [4729,3856,5723,6482,7391,4528,2937,5817,6493,3782,4915,5263,7384,4628,3957,5719,6284,4873,3596,5728,6391,4827,3958,5617,7294,4839,5728,3967,6483,5219,4738,3856,5927,6483,4729,3958,5817,6294,4738,5827,3956,6483,5729,4827,3958,6184,5273,4938,5817,3627],
+  fraud: [248,495,245,498,247,499,246,248,495,247,499,245,498,246,495,248,499,247,245,498,246,495,248,499,247,245,498,246,248,495,247,499,245,498,246,495,248,499,247,245,2400,2450,2480,2490,2495,2499,4800,4850,4900,4950]
+};
+
+function leadDigit(x){
+  x = Math.abs(x);
+  if(x===0||!isFinite(x)) return null;
+  while(x<1) x*=10;
+  while(x>=10) x=Math.floor(x/10);
+  return Math.floor(x);
+}
+
+function parseInput(str){
+  var m = str.match(/-?\d[\d,]*\.?\d*/g)||[];
+  return m.map(function(s){return parseFloat(s.replace(/,(?=\d{3}(\D|$))/g,''));})
+    .filter(function(n){return isFinite(n)&&Math.abs(n)>0;});
+}
+
+function analyze(nums){
+  var counts=[0,0,0,0,0,0,0,0,0,0];
+  var n=0;
+  nums.forEach(function(x){var d=leadDigit(x); if(d){counts[d]++;n++;}});
+  if(n<1) return null;
+  var actual=counts.map(function(c){return c/n;});
+  var mad=0; for(var d=1;d<=9;d++){mad+=Math.abs(actual[d]-BENFORD[d]);} mad=mad/9*100;
+  var chi=0; for(var d2=1;d2<=9;d2++){var exp=BENFORD[d2]*n; chi+=Math.pow(counts[d2]-exp,2)/exp;}
+  return {counts:counts,actual:actual,n:n,mad:mad,chi:chi};
+}
+
+function verdict(mad,chi,n){
+  if(n<30) return {label:'Too few numbers',color:'var(--warn)',msg:'Only '+n+' values — Benford needs ~30+ to be meaningful. Treat this as a hint, not a verdict.'};
+  if(mad<1.2 && chi<15.51) return {label:'Looks natural',color:'var(--good)',msg:'Strong Benford fit. These numbers behave like organic, real-world data.'};
+  if(mad<2.2 && chi<20.09) return {label:'Probably natural',color:'var(--good)',msg:'Reasonable fit. Minor wobble, but within what real data does.'};
+  if(mad<3.5) return {label:'Suspicious',color:'var(--warn)',msg:'Noticeable deviation from Benford. Could be a constrained dataset — or someone tampered with it.'};
+  return {label:'Likely fabricated',color:'var(--bad)',msg:'Big departure from Benford. This is the fingerprint auditors flag as manufactured numbers.'};
+}
+
+function render(res){
+  if(!res){alert('No usable numbers found. Paste some figures or load a sample.');return;}
+  var counts=res.counts, actual=res.actual, n=res.n, mad=res.mad, chi=res.chi;
+  var v=verdict(mad,chi,n);
+  $('#vdot').style.background=v.color;
+  $('#vtext').textContent=v.label;
+  $('#vmeta').textContent=v.msg;
+
+  var maxv=Math.max.apply(null,actual.slice(1).concat(BENFORD.slice(1)));
+  var bh='';
+  for(var d=1;d<=9;d++){
+    var ah=(actual[d]/maxv*100).toFixed(1);
+    var eh=(BENFORD[d]/maxv*100).toFixed(1);
+    bh+='<div class="digit"><div class="barpair">'
+      +'<div class="bar actual" style="height:'+ah+'%" title="Your data: '+(actual[d]*100).toFixed(1)+'%"></div>'
+      +'<div class="bar expected" style="height:'+eh+'%" title="Benford: '+(BENFORD[d]*100).toFixed(1)+'%"></div>'
+      +'</div><div class="dlabel">'+d+'</div></div>';
+  }
+  $('#bars').innerHTML=bh;
+
+  $('#stats').innerHTML=
+    '<div class="stat"><div class="k">Numbers analyzed</div><div class="v">'+n.toLocaleString()+'</div></div>'
+    +'<div class="stat"><div class="k">Mean abs. deviation</div><div class="v">'+mad.toFixed(2)+'%</div></div>'
+    +'<div class="stat"><div class="k">Chi-square</div><div class="v">'+chi.toFixed(1)+'</div></div>'
+    +'<div class="stat"><div class="k">Lead with "1"</div><div class="v">'+(actual[1]*100).toFixed(1)+'%</div></div>';
+
+  var tb='';
+  for(var t=1;t<=9;t++){
+    var a=actual[t]*100, e=BENFORD[t]*100, gap=a-e;
+    var gc=Math.abs(gap)>3?'var(--bad)':Math.abs(gap)>1.5?'var(--warn)':'var(--muted)';
+    tb+='<tr><td>'+t+'</td><td>'+a.toFixed(1)+'%</td><td>'+e.toFixed(1)+'%</td><td style="color:'+gc+'">'+(gap>0?'+':'')+gap.toFixed(1)+'</td></tr>';
+  }
+  $('#tbl tbody').innerHTML=tb;
+
+  $('#explain').innerHTML='<b>How to read this:</b> the chi-square crosses the fraud-alert line at <b>15.5</b> (5% confidence) and <b>20.1</b> (1%). Your value is <b>'+chi.toFixed(1)+'</b>. Mean absolute deviation above ~3.5% is the classic "manufactured numbers" tell. The bigger the orange bars stray from the grey Benford bars, the less these numbers look like something that grew on its own.';
+
+  $('#verdict').classList.add('show');
+  $('#verdict').scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+Array.prototype.slice.call(document.querySelectorAll('.presets button[data-set]')).forEach(function(b){
+  b.addEventListener('click',function(){
+    var k=b.dataset.set;
+    if(k==='live'){return loadLive();}
+    $('#input').value=SAMPLES[k].join(', ');
+    $('#liveNote').textContent='';
+  });
+});
+
+function loadLive(){
+  var note=$('#liveNote');
+  note.textContent='Fetching live crypto market caps…';
+  fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1')
+    .then(function(r){if(!r.ok)throw new Error('http '+r.status);return r.json();})
+    .then(function(data){
+      var caps=data.map(function(c){return c.market_cap;}).filter(function(x){return x&&x>0;});
+      if(caps.length<10) throw new Error('thin data');
+      $('#input').value=caps.join(', ');
+      note.textContent='Loaded '+caps.length+' live market caps from CoinGecko. Real financial data — should obey Benford. Hit run.';
+    })
+    .catch(function(){note.textContent='Live fetch unavailable right now — try a sample dataset instead.';});
+}
+
+$('#run').addEventListener('click',function(){render(analyze(parseInput($('#input').value)));});
+$('#clear').addEventListener('click',function(){$('#input').value='';$('#verdict').classList.remove('show');$('#liveNote').textContent='';});
+</script>
+</body>
+</html>
