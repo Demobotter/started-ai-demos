@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tennis Serve Physics</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Space+Mono:wght@400&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Space Mono', monospace;
+      background: #0a0a0a;
+      color: #e0e0e0;
+      overflow-x: hidden;
+    }
+    .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+    h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: 2.5rem;
+      margin-bottom: 10px;
+      text-align: center;
+      color: #ffff00;
+      text-shadow: 0 0 10px rgba(255,255,0,0.3);
+    }
+    .subtitle {
+      text-align: center;
+      font-size: 0.9rem;
+      color: #888;
+      margin-bottom: 20px;
+    }
+    .layout {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 20px;
+      margin-top: 20px;
+    }
+    .canvas-wrapper {
+      background: #0a1a0a;
+      border-radius: 8px;
+      padding: 15px;
+      border: 1px solid #1f6d1f;
+      position: relative;
+    }
+    canvas {
+      display: block;
+      background: #1a3a1a;
+      border-radius: 4px;
+      margin: 0 auto;
+      width: 100%;
+      max-width: 800px;
+    }
+    .canvas-label {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.1rem;
+      color: #ffff00;
+      margin-bottom: 10px;
+      text-align: center;
+    }
+    .controls {
+      background: #0a1a0a;
+      border-radius: 8px;
+      padding: 20px;
+      border: 1px solid #1f6d1f;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .control-label {
+      font-size: 0.9rem;
+      color: #ffff00;
+      font-family: 'Playfair Display', serif;
+    }
+    input[type="range"] {
+      width: 100%;
+      height: 6px;
+      border-radius: 3px;
+      background: #1f6d1f;
+      outline: none;
+      -webkit-appearance: none;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #ffff00;
+      cursor: pointer;
+      box-shadow: 0 0 5px rgba(255,255,0,0.5);
+    }
+    input[type="range"]::-moz-range-thumb {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #ffff00;
+      cursor: pointer;
+      border: none;
+      box-shadow: 0 0 5px rgba(255,255,0,0.5);
+    }
+    button {
+      background: #1f6d1f;
+      border: 1px solid #ffff00;
+      color: #ffff00;
+      padding: 8px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.85rem;
+      transition: all 0.2s;
+    }
+    button:hover { background: #ffff00; color: #0a0a0a; }
+    button.active {
+      background: #ffff00;
+      color: #0a0a0a;
+      box-shadow: 0 0 10px rgba(255,255,0,0.5);
+    }
+    .stats {
+      background: rgba(255,255,0,0.05);
+      border-left: 3px solid #ffff00;
+      padding: 12px;
+      border-radius: 4px;
+      font-size: 0.85rem;
+      line-height: 1.6;
+    }
+    .stat-row { display: flex; justify-content: space-between; margin-bottom: 4px; }
+    .stat-label { color: #ffff00; }
+    .stat-value { color: #fff; }
+    .button-group { display: flex; gap: 8px; flex-wrap: wrap; }
+    .info-box {
+      background: rgba(255,255,0,0.05);
+      border-left: 3px solid #00ff88;
+      padding: 10px;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      line-height: 1.5;
+      color: #ccc;
+    }
+    .serve-type-display {
+      background: #0a1a0a;
+      border: 1px solid #ffff00;
+      border-radius: 4px;
+      padding: 8px;
+      text-align: center;
+      font-family: 'Playfair Display', serif;
+      color: #ffff00;
+      font-size: 1rem;
+    }
+    @media (max-width: 1000px) {
+      .layout { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎾 Serve Physics Lab</h1>
+    <div class="subtitle">Watch serve speed, spin, and trajectory respond to racket angle and swing power</div>
+
+    <div class="layout">
+      <!-- Court Canvas -->
+      <div>
+        <div class="canvas-wrapper">
+          <div class="canvas-label">Court View (Top Down)</div>
+          <canvas id="courtCanvas" width="800" height="600"></canvas>
+        </div>
+      </div>
+
+      <!-- Controls & Stats -->
+      <div>
+        <div class="controls">
+          <div class="serve-type-display" id="serveTypeDisplay">Flat Serve</div>
+          
+          <div class="control-group">
+            <div class="control-label">Racket Speed (mph)</div>
+            <input type="range" id="speedSlider" min="50" max="150" value="90" step="1">
+            <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: #888;">
+              <span>50</span>
+              <span id="speedValue">90</span>
+              <span>150</span>
+            </div>
+          </div>
+
+          <div class="control-group">
+            <div class="control-label">Racket Angle (°)</div>
+            <input type="range" id="angleSlider" min="-20" max="20" value="0" step="1">
+            <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: #888;">
+              <span>-20° (Down)</span>
+              <span id="angleValue">0°</span>
+              <span>+20° (Up)</span>
+            </div>
+          </div>
+
+          <div class="control-group">
+            <div class="control-label">Topspin (rpm)</div>
+            <input type="range" id="spinSlider" min="0" max="4000" value="2000" step="100">
+            <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: #888;">
+              <span>0 (Flat)</span>
+              <span id="spinValue">2000</span>
+              <span>4000 (Heavy)</span>
+            </div>
+          </div>
+
+          <div class="stats">
+            <div class="stat-row">
+              <span class="stat-label">Ball Speed:</span>
+              <span class="stat-value" id="ballSpeed">90 mph</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">Service Box Hit:</span>
+              <span class="stat-value" id="serviceHit">In</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">Max Depth:</span>
+              <span class="stat-value" id="maxDepth">Baseline</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">Spin Effect:</span>
+              <span class="stat-value" id="spinEffect">Moderate</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">Court Position:</span>
+              <span class="stat-value" id="courtPos">T (Center)</span>
+            </div>
+          </div>
+
+          <div class="button-group">
+            <button onclick="simulateServe()">▶ Serve</button>
+            <button id="traceToggle" onclick="toggleTrace()">📍 Trace</button>
+          </div>
+
+          <div class="info-box">
+            ⚡ Pro tip: High RPM with slight up-angle creates topspin that curves down into the box (like Nadal).
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('courtCanvas');
+    const ctx = canvas.getContext('2d');
+    const speedSlider = document.getElementById('speedSlider');
+    const angleSlider = document.getElementById('angleSlider');
+    const spinSlider = document.getElementById('spinSlider');
+    const speedValue = document.getElementById('speedValue');
+    const angleValue = document.getElementById('angleValue');
+    const spinValue = document.getElementById('spinValue');
+    const ballSpeedDisplay = document.getElementById('ballSpeed');
+    const serviceHitDisplay = document.getElementById('serviceHit');
+    const maxDepthDisplay = document.getElementById('maxDepth');
+    const spinEffectDisplay = document.getElementById('spinEffect');
+    const courtPosDisplay = document.getElementById('courtPos');
+    const serveTypeDisplay = document.getElementById('serveTypeDisplay');
+
+    let traceEnabled = false;
+    let trajectoryPoints = [];
+
+    // Tennis court dimensions (feet)
+    const courtWidth = 27; // singles width
+    const courtLength = 78;
+    const serviceBoxLength = 21;
+    const netHeight = 3; // feet
+
+    // Canvas scaling
+    const pixelsPerFoot = 5;
+    const courtCanvasW = courtWidth * pixelsPerFoot;
+    const courtCanvasH = courtLength * pixelsPerFoot;
+
+    function updateDisplay() {
+      const speed = parseFloat(speedSlider.value);
+      const angle = parseFloat(angleSlider.value);
+      const spin = parseFloat(spinSlider.value);
+
+      speedValue.textContent = speed;
+      angleValue.textContent = angle + '°';
+      spinValue.textContent = Math.round(spin);
+
+      // Determine serve type
+      let serveType = 'Flat';
+      if (spin > 2500 && angle > 5) serveType = 'Topspin';
+      else if (spin < 500 && angle > 10) serveType = 'Slice';
+      else if (spin < 500) serveType = 'Flat';
+      serveTypeDisplay.textContent = serveType + ' Serve';
+
+      // Calculate spin effect
+      const spinEffect = spin < 800 ? 'Light' : spin < 2000 ? 'Moderate' : spin < 3500 ? 'Heavy' : 'Extreme';
+      spinEffectDisplay.textContent = spinEffect + ' (' + spin + ' rpm)';
+
+      ballSpeedDisplay.textContent = Math.round(speed * 0.98) + ' mph'; // slight reduction from racket speed
+
+      drawCourt(speed, angle, spin);
+    }
+
+    function drawCourt(speed, angle, spin) {
+      ctx.fillStyle = '#1a3a1a';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Draw court lines
+      const w = courtCanvasW;
+      const h = courtCanvasH;
+      const offsetX = (canvas.width - w) / 2;
+      const offsetY = (canvas.height - h) / 2;
+
+      ctx.strokeStyle = '#ffff00';
+      ctx.lineWidth = 2;
+      ctx.globalAlpha = 0.7;
+
+      // Court outline
+      ctx.strokeRect(offsetX, offsetY, w, h);
+
+      // Service line (21 ft from net)
+      const serviceY = offsetY + serviceBoxLength * pixelsPerFoot;
+      ctx.beginPath();
+      ctx.moveTo(offsetX, serviceY);
+      ctx.lineTo(offsetX + w, serviceY);
+      ctx.stroke();
+
+      // Center service line
+      const centerX = offsetX + w / 2;
+      ctx.beginPath();
+      ctx.moveTo(centerX, offsetY);
+      ctx.lineTo(centerX, offsetY + h);
+      ctx.stroke();
+
+      // Net line (at center)
+      const netY = offsetY + h / 2;
+      ctx.strokeStyle = '#888';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(offsetX, netY);
+      ctx.lineTo(offsetX + w, netY);
+      ctx.stroke();
+
+      ctx.globalAlpha = 1;
+
+      // Draw ball trajectory
+      calculateTrajectory(speed, angle, spin, offsetX, offsetY);
+      drawTrajectory(offsetX, offsetY);
+
+      // Draw serve position (baseline, center)
+      const serveX = offsetX + w / 2;
+      const serveY = offsetY + h;
+      ctx.fillStyle = '#00ff88';
+      ctx.fillRect(serveX - 8, serveY - 15, 16, 15);
+      ctx.fillStyle = '#0a0a0a';
+      ctx.font = 'bold 8px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText('P', serveX, serveY - 5);
+
+      // Draw server racket angle indicator
+      ctx.strokeStyle = '#ffff00';
+      ctx.lineWidth = 1;
+      const angleRad = (angle * Math.PI) / 180;
+      const racketLen = 30;
+      ctx.beginPath();
+      ctx.moveTo(serveX, serveY - 10);
+      ctx.lineTo(
+        serveX + racketLen * Math.sin(angleRad),
+        serveY - 10 - racketLen * Math.cos(angleRad)
+      );
+      ctx.stroke();
+    }
+
+    function calculateTrajectory(speed, angle, spin, offsetX, offsetY) {
+      trajectoryPoints = [];
+
+      // Convert speed (mph) to feet/second
+      const speedFts = speed * 1.467;
+
+      // Physics: ball loses speed & dips due to gravity & spin
+      // Serve starts at 8 feet high (reach), must clear net (3 ft), land in service box (21 ft away)
+      const startHeight = 8;
+      const startX = courtWidth / 2; // center of court
+      const distanceToNet = 39; // feet (half court + service line)
+      const g = 32.174; // ft/s^2
+
+      // Time to reach net
+      const timeToNet = distanceToNet / speedFts;
+
+      // Vertical drop due to gravity
+      const gravityDropAtNet = 0.5 * g * timeToNet * timeToNet;
+
+      // Spin effect (topspin reduces drop, slice increases)
+      const spinFactor = spin > 2500 ? -0.3 : spin < 500 ? 0.2 : 0;
+      const netClearance = startHeight - gravityDropAtNet + spinFactor * 2;
+
+      // Angle effect on initial vertical velocity
+      const angleRad = (angle * Math.PI) / 180;
+      const verticalVelocity = speedFts * Math.sin(angleRad);
+      const netHeightAtNet =
+        startHeight +
+        verticalVelocity * timeToNet -
+        0.5 * g * timeToNet * timeToNet;
+
+      // Check if serve is in
+      let serveIn = netHeightAtNet > 3 && netHeightAtNet < 10;
+      if (!serveIn) {
+        // Recalculate with slight angle adjustment
+        if (netHeightAtNet <= 3) {
+          // Too low, adjust up
+          angle = Math.min(20, angle + 3);
+        }
+      }
+
+      // Simulate trajectory points for drawing
+      const steps = 50;
+      for (let i = 0; i <= steps; i++) {
+        const t = (i / steps) * (2 * distanceToNet / speedFts);
+        const horizontalDist = speedFts * t;
+        const verticalPos =
+          startHeight +
+          verticalVelocity * t -
+          0.5 * g * t * t +
+          (spin / 1000) * 0.5; // spin adds lift
+
+        if (verticalPos < 0) break;
+
+        const pixelX = offsetX + (courtWidth / 2 + horizontalDist / 78 * (courtWidth / 2)) * pixelsPerFoot;
+        const pixelY = offsetY + (courtLength / 2 - verticalPos / 3) * pixelsPerFoot;
+
+        trajectoryPoints.push({ x: pixelX, y: pixelY, dist: horizontalDist });
+      }
+
+      // Update stats
+      updateServeStats(speed, angle, spin, serveIn);
+    }
+
+    function updateServeStats(speed, angle, spin, serveIn) {
+      serviceHitDisplay.textContent = serveIn ? 'In ✓' : 'Out ✗';
+      maxDepthDisplay.textContent =
+        angle > 10 && spin > 2000 ? 'Shallow (topspin)' : 'Deep';
+      courtPosDisplay.textContent = angle < -5 ? 'Wide (Slice)' : angle > 5 ? 'T (Topspin)' : 'T (Flat)';
+    }
+
+    function drawTrajectory(offsetX, offsetY) {
+      if (trajectoryPoints.length < 2) return;
+
+      // Draw trajectory line
+      ctx.strokeStyle = '#ffff00';
+      ctx.lineWidth = 2;
+      ctx.globalAlpha = 0.8;
+      ctx.beginPath();
+      ctx.moveTo(trajectoryPoints[0].x, trajectoryPoints[0].y);
+      for (let i = 1; i < trajectoryPoints.length; i++) {
+        ctx.lineTo(trajectoryPoints[i].x, trajectoryPoints[i].y);
+      }
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+
+      // Draw ball at landing
+      if (trajectoryPoints.length > 0) {
+        const landing = trajectoryPoints[trajectoryPoints.length - 1];
+        ctx.fillStyle = '#ffff00';
+        ctx.beginPath();
+        ctx.arc(landing.x, landing.y, 6, 0, Math.PI * 2);
+        ctx.fill();
+
+        if (traceEnabled) {
+          // Draw trace markers
+          for (let i = 0; i < trajectoryPoints.length; i += 5) {
+            ctx.fillStyle = `rgba(255,255,0,${0.3 + (i / trajectoryPoints.length) * 0.7})`;
+            ctx.beginPath();
+            ctx.arc(trajectoryPoints[i].x, trajectoryPoints[i].y, 3, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+      }
+    }
+
+    function simulateServe() {
+      updateDisplay();
+    }
+
+    function toggleTrace() {
+      traceEnabled = !traceEnabled;
+      document.getElementById('traceToggle').classList.toggle('active', traceEnabled);
+      updateDisplay();
+    }
+
+    speedSlider.addEventListener('input', updateDisplay);
+    angleSlider.addEventListener('input', updateDisplay);
+    spinSlider.addEventListener('input', updateDisplay);
+
+    // Initial draw
+    updateDisplay();
+  </script>
+</body>
+</html>
