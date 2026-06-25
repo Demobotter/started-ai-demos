@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ocean Acidification Timeline</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: #fffaf0;
+            font-family: 'Space Mono', monospace;
+            color: #0a1428;
+            overflow-x: hidden;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1 {
+            font-family: 'Playfair Display', serif;
+            text-align: center;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            color: #0a5a8a;
+        }
+        .subtitle {
+            text-align: center;
+            color: #4da8da;
+            margin-bottom: 30px;
+            font-size: 0.9rem;
+        }
+        .layout {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 30px;
+            align-items: start;
+        }
+        .sidebar {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(10, 90, 138, 0.1);
+            height: fit-content;
+            position: sticky;
+            top: 20px;
+        }
+        .sidebar h3 {
+            font-family: 'Playfair Display', serif;
+            color: #0a5a8a;
+            font-size: 1.2rem;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #4da8da;
+            padding-bottom: 10px;
+        }
+        .stat {
+            margin-bottom: 15px;
+            padding: 10px;
+            background: #f5f5f5;
+            border-radius: 4px;
+            border-left: 3px solid #4da8da;
+        }
+        .stat-label {
+            font-size: 0.8rem;
+            color: #666;
+            text-transform: uppercase;
+        }
+        .stat-value {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #0a5a8a;
+            margin-top: 4px;
+        }
+        .stat-danger {
+            border-left-color: #c1272d;
+        }
+        .stat-danger .stat-value {
+            color: #c1272d;
+        }
+        .controls-section {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 2px solid #e0e0e0;
+        }
+        .slider-group {
+            margin-bottom: 20px;
+        }
+        .slider-label {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: #0a5a8a;
+            margin-bottom: 5px;
+            display: block;
+        }
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #e0e0e0;
+            outline: none;
+            -webkit-appearance: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #4da8da;
+            cursor: pointer;
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #4da8da;
+            cursor: pointer;
+            border: none;
+        }
+        .timeline-events {
+            margin-top: 20px;
+        }
+        .event-btn {
+            display: block;
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 6px;
+            background: white;
+            border: 1px solid #4da8da;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: 'Space Mono', monospace;
+            font-size: 0.75rem;
+            color: #0a5a8a;
+            transition: all 0.2s;
+        }
+        .event-btn:hover {
+            background: #4da8da;
+            color: white;
+        }
+        .event-btn.active {
+            background: #0a5a8a;
+            color: white;
+        }
+        .visualizations {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        .viz-card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(10, 90, 138, 0.1);
+        }
+        .viz-card h4 {
+            font-family: 'Playfair Display', serif;
+            color: #0a5a8a;
+            font-size: 1rem;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #4da8da;
+            padding-bottom: 8px;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: auto;
+            border-radius: 4px;
+        }
+        .event-description {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 20px;
+            border-left: 3px solid #4da8da;
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+        .pteropod-meter {
+            margin-top: 15px;
+            padding: 10px;
+            background: #f0f8ff;
+            border-radius: 4px;
+            text-align: center;
+        }
+        .pteropod-label {
+            font-size: 0.8rem;
+            color: #666;
+        }
+        .pteropod-value {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #2d5016;
+            margin-top: 4px;
+        }
+        .pteropod-value.danger {
+            color: #c1272d;
+        }
+        @media (max-width: 768px) {
+            .layout {
+                grid-template-columns: 1fr;
+            }
+            .visualizations {
+                grid-template-columns: 1fr;
+            }
+            h1 {
+                font-size: 1.8rem;
+            }
+            .sidebar {
+                position: static;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌊 Ocean Acidification Timeline</h1>
+        <p class="subtitle">Explore 3.8 billion years of ocean chemistry and the carbonate crisis</p>
+
+        <div class="layout">
+            <!-- Sidebar -->
+            <div class="sidebar">
+                <h3>Current Era</h3>
+                <div class="stat">
+                    <div class="stat-label">Era</div>
+                    <div class="stat-value" id="eraName">Present</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-label">CO₂ (ppm)</div>
+                    <div class="stat-value" id="co2Value">420</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-label">Ocean pH</div>
+                    <div class="stat-value" id="phValue">8.12</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-label">pH Change Since 1750</div>
+                    <div class="stat-value" id="phChange">-0.10</div>
+                </div>
+                <div class="stat" id="saturationStat">
+                    <div class="stat-label">Aragonite Ω</div>
+                    <div class="stat-value" id="omegaValue">2.1</div>
+                </div>
+
+                <div class="controls-section">
+                    <div class="slider-group">
+                        <label class="slider-label">Time Slider (Ma → Future)</label>
+                        <input type="range" id="timeSlider" min="0" max="1000" value="10" step="1">
+                        <div style="font-size: 0.75rem; color: #666; margin-top: 4px;">
+                            <span id="timeLabel">4000 Ma</span> → <span id="timeLabelEnd">Present</span>
+                        </div>
+                    </div>
+
+                    <div class="timeline-events">
+                        <label class="slider-label" style="border-bottom: none; padding-bottom: 0; margin-bottom: 10px;">Major Events</label>
+                        <button class="event-btn" data-time="3800">🌍 Early Earth (3800 Ma)</button>
+                        <button class="event-btn" data-time="2400">⚡ Great Oxidation (2400 Ma)</button>
+                        <button class="event-btn" data-time="541">🦪 Cambrian (541 Ma)</button>
+                        <button class="event-btn" data-time="252">☠️ Permian Extinction (252 Ma)</button>
+                        <button class="event-btn" data-time="66">💥 K-T Impact (66 Ma)</button>
+                        <button class="event-btn" data-time="55">🔥 PETM (55 Ma)</button>
+                        <button class="event-btn" data-time="1750" style="background:#f0f0f0;">📊 Pre-Industrial (1750)</button>
+                        <button class="event-btn" data-time="2024" style="background:#e8f4ff; border-color:#0a5a8a;">📈 Today (2024)</button>
+                        <button class="event-btn" data-time="2050" style="background:#fff0f0; border-color:#c1272d; color:#c1272d;">⚠️ 2050 Scenario</button>
+                        <button class="event-btn" data-time="2100" style="background:#fff0f0; border-color:#c1272d; color:#c1272d;">🚨 2100 Projection</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Visualizations -->
+            <div style="display: flex; flex-direction: column; gap: 20px;">
+                <div class="visualizations">
+                    <!-- pH Gauge -->
+                    <div class="viz-card">
+                        <h4>🔬 Ocean pH</h4>
+                        <canvas id="phCanvas" width="280" height="240"></canvas>
+                        <div style="text-align: center; margin-top: 10px; font-size: 0.85rem; color: #666;">
+                            Neutral (7) ← Basic Ocean (8+) →
+                        </div>
+                    </div>
+
+                    <!-- Carbonate Speciation -->
+                    <div class="viz-card">
+                        <h4>🧪 DIC Carbonate Speciation</h4>
+                        <canvas id="specCanvas" width="280" height="240"></canvas>
+                        <div style="text-align: center; margin-top: 10px; font-size: 0.75rem; color: #666;">
+                            H₂CO₃ (red) | HCO₃⁻ (blue) | CO₃²⁻ (green)
+                        </div>
+                    </div>
+
+                    <!-- Aragonite Saturation -->
+                    <div class="viz-card">
+                        <h4>🐚 Aragonite Saturation (Ω)</h4>
+                        <canvas id="omegaCanvas" width="280" height="240"></canvas>
+                        <div style="text-align: center; margin-top: 10px; font-size: 0.75rem; color: #666;">
+                            Red zone: Ω < 1.5 (shell danger)
+                        </div>
+                    </div>
+
+                    <!-- Pteropod Health -->
+                    <div class="viz-card">
+                        <h4>🦑 Pteropod Shell Integrity</h4>
+                        <canvas id="pteropodCanvas" width="280" height="240"></canvas>
+                        <div class="pteropod-meter">
+                            <div class="pteropod-label">Shell Health</div>
+                            <div class="pteropod-value" id="pteropodHealth">100%</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Event Description -->
+                <div class="event-description" id="eventDescription">
+                    <strong>Present (2024):</strong> Ocean surface pH is 8.12, down 0.10 units from pre-industrial baselines. Pteropods in the deep Pacific show shell dissolution. CO₂ continues rising ~2 ppm/year. By 2100, without action, surface pH could drop to 7.80, triggering massive ecosystem stress.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Era data: time (Ma), name, CO2 (ppm), pH, Omega (Aragonite saturation), temperature (°C), O2 (anoxic: 0-1, oxic: 1+)
+        const eras = [
+            { time: 3800, name: "Early Earth", co2: 1000, pH: 5.8, omega: 0.2, temp: 70, oxic: false, note: "Anoxic oceans, wildly acidic by modern standards" },
+            { time: 2400, name: "Great Oxidation Event", co2: 800, pH: 6.5, omega: 0.5, temp: 50, oxic: true, note: "O₂ rises, ocean begins buffering upward" },
+            { time: 541, name: "Cambrian Explosion", co2: 400, pH: 8.1, omega: 3.2, temp: 22, oxic: true, note: "Shells first appear at high pH and saturation" },
+            { time: 252, name: "Permian Extinction", co2: 1500, pH: 7.4, omega: 1.8, temp: 35, oxic: false, note: "Volcanic CO₂ surge, massive acidification" },
+            { time: 66, name: "K-T Impact", co2: 500, pH: 7.6, omega: 2.0, temp: 20, oxic: true, note: "Dust + acid rain spike, recovery over centuries" },
+            { time: 55, name: "PETM (Thermal Max)", co2: 1200, pH: 7.8, omega: 1.5, temp: 28, oxic: true, note: "5000 ppm CO₂ scenario, calcareous plankton suffer" },
+            { time: 1750, name: "Pre-Industrial", co2: 280, pH: 8.30, omega: 3.5, temp: 15, oxic: true, note: "Baseline for modern comparison" },
+            { time: 2024, name: "Present", co2: 420, pH: 8.12, omega: 2.1, temp: 16, oxic: true, note: "Pteropod shells measurably thinner" },
+            { time: 2050, name: "2050 Scenario", co2: 550, pH: 7.95, omega: 1.5, temp: 17.5, oxic: true, note: "50% of pteropod habitats become unsaturated" },
+            { time: 2100, name: "2100 Projection", co2: 800, pH: 7.80, omega: 1.3, temp: 19, oxic: true, note: "Massive ecosystem stress, coral abandonment" }
+        ];
+
+        // Interpolate between eras
+        function getEraAtTime(time) {
+            if (time <= eras[0].time) return eras[0];
+            if (time >= eras[eras.length - 1].time) return eras[eras.length - 1];
+            for (let i = 0; i < eras.length - 1; i++) {
+                if (time >= eras[i].time && time <= eras[i + 1].time) {
+                    const t1 = eras[i].time;
+                    const t2 = eras[i + 1].time;
+                    const frac = (time - t1) / (t2 - t1);
+                    const e1 = eras[i];
+                    const e2 = eras[i + 1];
+                    return {
+                        time: time,
+                        name: e1.name,
+                        co2: e1.co2 + (e2.co2 - e1.co2) * frac,
+                        pH: e1.pH + (e2.pH - e1.pH) * frac,
+                        omega: e1.omega + (e2.omega - e1.omega) * frac,
+                        temp: e1.temp + (e2.temp - e1.temp) * frac,
+                        oxic: frac > 0.5 ? e2.oxic : e1.oxic,
+                        note: e1.note
+                    };
+                }
+            }
+            return eras[eras.length - 1];
+        }
+
+        function drawPHGauge(canvas, pH) {
+            const ctx = canvas.getContext('2d');
+            const w = canvas.width;
+            const h = canvas.height;
+            ctx.fillStyle = '#fffaf0';
+            ctx.fillRect(0, 0, w, h);
+
+            const cx = w / 2;
+            const cy = h * 0.65;
+            const radius = 50;
+
+            // Gauge arc: pH 5 to 9
+            const minPH = 5;
+            const maxPH = 9;
+            const arcStart = Math.PI * 0.2;
+            const arcEnd = Math.PI * 0.8;
+
+            // Background arc
+            ctx.strokeStyle = '#e0e0e0';
+            ctx.lineWidth = 12;
+            ctx.beginPath();
+            ctx.arc(cx, cy, radius, arcStart, arcEnd);
+            ctx.stroke();
+
+            // Color-coded arc segments
+            const colors = ['#c1272d', '#ff6b6b', '#ffa500', '#ffeb3b', '#90ee90', '#4da8da', '#0a5a8a'];
+            const segments = 7;
+            for (let i = 0; i < segments; i++) {
+                const a1 = arcStart + (arcEnd - arcStart) * (i / segments);
+                const a2 = arcStart + (arcEnd - arcStart) * ((i + 1) / segments);
+                ctx.strokeStyle = colors[i];
+                ctx.lineWidth = 10;
+                ctx.beginPath();
+                ctx.arc(cx, cy, radius, a1, a2);
+                ctx.stroke();
+            }
+
+            // Needle
+            const pHNorm = (pH - minPH) / (maxPH - minPH);
+            const needleAngle = arcStart + (arcEnd - arcStart) * Math.max(0, Math.min(1, pHNorm));
+            const needleLen = radius - 5;
+            ctx.strokeStyle = '#0a1428';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(cx, cy);
+            ctx.lineTo(cx + Math.cos(needleAngle) * needleLen, cy + Math.sin(needleAngle) * needleLen);
+            ctx.stroke();
+
+            // Center circle
+            ctx.fillStyle = '#0a1428';
+            ctx.beginPath();
+            ctx.arc(cx, cy, 6, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Labels
+            ctx.fillStyle = '#0a1428';
+            ctx.font = 'bold 10px "Space Mono"';
+            ctx.textAlign = 'center';
+            ctx.fillText('5', cx - radius - 15, cy + 4);
+            ctx.fillText('7', cx - radius / 2 - 10, cy - radius - 8);
+            ctx.fillText('9', cx + radius + 15, cy + 4);
+
+            // pH value
+            ctx.font = 'bold 24px "Space Mono"';
+            ctx.fillStyle = '#0a5a8a';
+            ctx.fillText(pH.toFixed(2), cx, cy + 40);
+        }
+
+        function drawSpeciation(canvas, pH) {
+            const ctx = canvas.getContext('2d');
+            const w = canvas.width;
+            const h = canvas.height;
+            ctx.fillStyle = '#fffaf0';
+            ctx.fillRect(0, 0, w, h);
+
+            // Calculate carbonate species fractions from pH
+            // Simplified: at pH 8.3: ~2% acid, ~88% bicarbonate, ~10% carbonate
+            // At pH 7.8: ~12% acid, ~85% bicarbonate, ~3% carbonate
+            let fracAcid, fracBicarbonate, fracCarbonate;
+            if (pH >= 8.3) {
+                fracAcid = 0.02;
+                fracCarbonate = 0.10;
+            } else if (pH <= 7.0) {
+                fracAcid = 0.50;
+                fracCarbonate = 0.01;
+            } else {
+                // Interpolate between 7.0 and 8.3
+                const frac = (pH - 7.0) / (8.3 - 7.0);
+                fracAcid = 0.50 - (0.50 - 0.02) * frac;
+                fracCarbonate = 0.01 + (0.10 - 0.01) * frac;
+            }
+            fracBicarbonate = 1 - fracAcid - fracCarbonate;
+
+            const barWidth = w * 0.7;
+            const barX = (w - barWidth) / 2;
+            const barHeight = 120;
+            const barY = h / 2 - barHeight / 2;
+
+            // Stacked bar
+            let y = barY;
+            // H2CO3 (red)
+            ctx.fillStyle = '#c1272d';
+            ctx.fillRect(barX, y, barWidth, barHeight * fracAcid);
+            y += barHeight * fracAcid;
+            // HCO3- (blue)
+            ctx.fillStyle = '#4da8da';
+            ctx.fillRect(barX, y, barWidth, barHeight * fracBicarbonate);
+            y += barHeight * fracBicarbonate;
+            // CO3 2- (green)
+            ctx.fillStyle = '#2d5016';
+            ctx.fillRect(barX, y, barWidth, barHeight * fracCarbonate);
+
+            // Border
+            ctx.strokeStyle = '#0a1428';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(barX, barY, barWidth, barHeight);
+
+            // Labels
+            ctx.font = 'bold 11px "Space Mono"';
+            ctx.fillStyle = '#0a1428';
+            ctx.textAlign = 'left';
+            const labels = [
+                { name: 'H₂CO₃', color: '#c1272d', frac: fracAcid },
+                { name: 'HCO₃⁻', color: '#4da8da', frac: fracBicarbonate },
+                { name: 'CO₃²⁻', color: '#2d5016', frac: fracCarbonate }
+            ];
+            let labelY = barY + 25;
+            for (const label of labels) {
+                ctx.fillStyle = label.color;
+                ctx.fillRect(barX - 20, labelY - 8, 12, 12);
+                ctx.fillStyle = '#0a1428';
+                ctx.fillText(label.name + ' ' + (label.frac * 100).toFixed(0) + '%', barX + barWidth + 15, labelY);
+                labelY += 30;
+            }
+        }
+
+        function drawOmega(canvas, omega) {
+            const ctx = canvas.getContext('2d');
+            const w = canvas.width;
+            const h = canvas.height;
+            ctx.fillStyle = '#fffaf0';
+            ctx.fillRect(0, 0, w, h);
+
+            const barWidth = w * 0.6;
+            const barX = (w - barWidth) / 2;
+            const barHeight = 30;
+            const barY = h * 0.4;
+
+            // Danger zone (Ω < 1.5)
+            const dangerLimit = 1.5;
+            const maxOmega = 4;
+            const safeColor = '#2d5016';
+            const dangerColor = '#c1272d';
+
+            // Background bar (safe zone)
+            ctx.fillStyle = safeColor;
+            ctx.fillRect(barX, barY, barWidth, barHeight);
+
+            // Danger zone
+            const dangerWidth = (barWidth * (1 - dangerLimit / maxOmega));
+            ctx.fillStyle = dangerColor;
+            ctx.fillRect(barX + barWidth - dangerWidth, barY, dangerWidth, barHeight);
+
+            // Pointer
+            const omegaNorm = Math.min(omega / maxOmega, 1);
+            const pointerX = barX + barWidth * omegaNorm;
+            ctx.fillStyle = '#0a1428';
+            ctx.beginPath();
+            ctx.moveTo(pointerX, barY - 10);
+            ctx.lineTo(pointerX - 8, barY);
+            ctx.lineTo(pointerX + 8, barY);
+            ctx.closePath();
+            ctx.fill();
+
+            // Labels
+            ctx.font = 'bold 10px "Space Mono"';
+            ctx.fillStyle = '#0a1428';
+            ctx.textAlign = 'center';
+            ctx.fillText('0', barX - 15, barY + barHeight / 2 + 4);
+            ctx.fillText('Ω=1', barX + barWidth * (1 - dangerLimit / maxOmega), barY + barHeight + 15);
+            ctx.fillText(maxOmega, barX + barWidth + 15, barY + barHeight / 2 + 4);
+
+            // Value and status
+            ctx.font = 'bold 20px "Space Mono"';
+            ctx.fillStyle = omega < dangerLimit ? dangerColor : safeColor;
+            ctx.fillText(omega.toFixed(2) + '×', w / 2, barY + barHeight + 50);
+
+            ctx.font = '11px "Space Mono"';
+            ctx.fillStyle = '#666';
+            if (omega < 1) {
+                ctx.fillText('SHELLS DISSOLVING', w / 2, barY + barHeight + 70);
+            } else if (omega < dangerLimit) {
+                ctx.fillText('Danger zone', w / 2, barY + barHeight + 70);
+            } else {
+                ctx.fillText('Safe', w / 2, barY + barHeight + 70);
+            }
+        }
+
+        function drawPteropod(canvas, omega, pH) {
+            const ctx = canvas.getContext('2d');
+            const w = canvas.width;
+            const h = canvas.height;
+            ctx.fillStyle = '#fffaf0';
+            ctx.fillRect(0, 0, w, h);
+
+            const cx = w / 2;
+            const cy = h / 2;
+            const shellSize = 40;
+
+            // Shell integrity calculation
+            let health = 100;
+            if (omega < 1.5) {
+                health = Math.max(0, 100 * (omega - 0.5) / (1.5 - 0.5));
+            }
+
+            // Draw pteropod (simple spiral shell)
+            ctx.save();
+            ctx.translate(cx - 20, cy - 30);
+
+            // Shell
+            ctx.strokeStyle = '#4da8da';
+            ctx.lineWidth = health > 50 ? 2 : 1;
+            ctx.beginPath();
+            ctx.arc(20, 20, shellSize, 0, Math.PI * 1.5);
+            ctx.stroke();
+
+            // Draw cracks if damaged
+            if (health < 50) {
+                ctx.strokeStyle = '#c1272d';
+                ctx.lineWidth = 1.5;
+                ctx.globalAlpha = (100 - health) / 50;
+                ctx.beginPath();
+                ctx.moveTo(20, 10);
+                ctx.lineTo(15, 5);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(30, 15);
+                ctx.lineTo(38, 10);
+                ctx.stroke();
+                ctx.globalAlpha = 1;
+            }
+
+            ctx.restore();
+
+            // Health bar
+            const barWidth = w * 0.6;
+            const barX = (w - barWidth) / 2;
+            const barY = cy + 50;
+            const barHeight = 20;
+
+            ctx.fillStyle = '#e0e0e0';
+            ctx.fillRect(barX, barY, barWidth, barHeight);
+
+            ctx.fillStyle = health > 50 ? '#2d5016' : '#c1272d';
+            ctx.fillRect(barX, barY, barWidth * (health / 100), barHeight);
+
+            ctx.strokeStyle = '#0a1428';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(barX, barY, barWidth, barHeight);
+
+            // Percentage
+            ctx.font = 'bold 12px "Space Mono"';
+            ctx.fillStyle = '#0a1428';
+            ctx.textAlign = 'center';
+            ctx.fillText(health.toFixed(0) + '%', w / 2, barY + barHeight + 18);
+        }
+
+        // Get DOM elements
+        const timeSlider = document.getElementById('timeSlider');
+        const eraName = document.getElementById('eraName');
+        const co2Value = document.getElementById('co2Value');
+        const phValue = document.getElementById('phValue');
+        const phChange = document.getElementById('phChange');
+        const omegaValue = document.getElementById('omegaValue');
+        const eventDescription = document.getElementById('eventDescription');
+        const pteropodHealth = document.getElementById('pteropodHealth');
+        const phCanvas = document.getElementById('phCanvas');
+        const specCanvas = document.getElementById('specCanvas');
+        const omegaCanvas = document.getElementById('omegaCanvas');
+        const pteropodCanvas = document.getElementById('pteropodCanvas');
+        const eventButtons = document.querySelectorAll('.event-btn');
+
+        function updateDisplay() {
+            // Get time from slider: 0 = 3800 Ma, 1000 = 2100
+            const sliderValue = parseInt(timeSlider.value);
+            let time;
+            if (sliderValue <= 800) {
+                // 0-800 maps to 3800 Ma - Present
+                time = 3800 - (sliderValue / 800) * (3800 - 2024);
+            } else {
+                // 800-1000 maps to Present - 2100
+                time = 2024 + ((sliderValue - 800) / 200) * (2100 - 2024);
+            }
+
+            const era = getEraAtTime(time);
+
+            eraName.textContent = era.name;
+            co2Value.textContent = era.co2.toFixed(0);
+            phValue.textContent = era.pH.toFixed(2);
+            phChange.textContent = (era.pH - 8.30).toFixed(2);
+            omegaValue.textContent = era.omega.toFixed(2);
+
+            // Update saturation stat color
+            const satStat = document.getElementById('saturationStat');
+            if (era.omega < 1.5) {
+                satStat.classList.add('stat-danger');
+            } else {
+                satStat.classList.remove('stat-danger');
+            }
+
+            // Update pteropod health
+            let health = 100;
+            if (era.omega < 1.5) {
+                health = Math.max(0, 100 * (era.omega - 0.5) / (1.5 - 0.5));
+            }
+            pteropodHealth.textContent = health.toFixed(0) + '%';
+            if (health < 50) {
+                pteropodHealth.classList.add('danger');
+            } else {
+                pteropodHealth.classList.remove('danger');
+            }
+
+            // Draw canvases
+            drawPHGauge(phCanvas, era.pH);
+            drawSpeciation(specCanvas, era.pH);
+            drawOmega(omegaCanvas, era.omega);
+            drawPteropod(pteropodCanvas, era.omega, era.pH);
+
+            // Update event description
+            eventDescription.innerHTML = `<strong>${era.name}:</strong> ${era.note}`;
+
+            // Update event buttons
+            eventButtons.forEach(btn => {
+                if (parseInt(btn.dataset.time) === Math.round(time)) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+
+            // Update time label
+            if (time > 2024) {
+                document.getElementById('timeLabel').textContent = (time - 2024).toFixed(0) + ' (future)';
+            } else if (time >= 1000) {
+                document.getElementById('timeLabel').textContent = (time).toFixed(0);
+            } else {
+                document.getElementById('timeLabel').textContent = (time).toFixed(0) + ' Ma';
+            }
+        }
+
+        timeSlider.addEventListener('input', updateDisplay);
+
+        eventButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const eventTime = parseInt(btn.dataset.time);
+                let sliderValue;
+                if (eventTime <= 2024) {
+                    sliderValue = Math.round((3800 - eventTime) / (3800 - 2024) * 800);
+                } else {
+                    sliderValue = Math.round(800 + (eventTime - 2024) / (2100 - 2024) * 200);
+                }
+                timeSlider.value = Math.max(0, Math.min(1000, sliderValue));
+                updateDisplay();
+            });
+        });
+
+        // Initial draw
+        updateDisplay();
+    </script>
+</body>
+</html>
