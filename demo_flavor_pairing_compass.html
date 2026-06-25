@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flavor Pairing Compass</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0f1419 0%, #1a1f2e 100%);
+            color: #e0e0e0;
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .container {
+            max-width: 1200px;
+            width: 100%;
+            background: rgba(15, 20, 25, 0.8);
+            border-radius: 16px;
+            border: 1px solid rgba(77, 168, 218, 0.2);
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+        header {
+            padding: 30px;
+            background: linear-gradient(135deg, rgba(77, 168, 218, 0.1) 0%, rgba(255, 107, 107, 0.05) 100%);
+            border-bottom: 1px solid rgba(77, 168, 218, 0.1);
+        }
+        h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.5em;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 8px;
+            letter-spacing: -1px;
+        }
+        .subtitle {
+            color: #4da8da;
+            font-size: 0.95em;
+            font-weight: 500;
+        }
+        .content {
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 30px;
+            padding: 30px;
+            min-height: 600px;
+        }
+        .canvas-wrapper {
+            background: rgba(26, 31, 46, 0.6);
+            border-radius: 12px;
+            border: 1px solid rgba(77, 168, 218, 0.15);
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 500px;
+        }
+        canvas {
+            max-width: 100%;
+            max-height: 100%;
+            display: block;
+        }
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .control-group {
+            background: rgba(77, 168, 218, 0.05);
+            border: 1px solid rgba(77, 168, 218, 0.15);
+            border-radius: 10px;
+            padding: 16px;
+        }
+        .control-label {
+            font-size: 0.85em;
+            font-weight: 600;
+            color: #4da8da;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            margin-bottom: 10px;
+            display: block;
+        }
+        select {
+            width: 100%;
+            padding: 10px;
+            background: rgba(10, 20, 40, 0.6);
+            border: 1px solid rgba(77, 168, 218, 0.3);
+            border-radius: 6px;
+            color: #e0e0e0;
+            font-family: 'Inter', sans-serif;
+            cursor: pointer;
+            font-size: 0.9em;
+        }
+        select:hover {
+            border-color: rgba(77, 168, 218, 0.6);
+        }
+        select:focus {
+            outline: none;
+            border-color: #4da8da;
+            box-shadow: 0 0 0 2px rgba(77, 168, 218, 0.2);
+        }
+        .flavor-modes {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        button {
+            padding: 10px;
+            background: rgba(77, 168, 218, 0.1);
+            border: 1px solid rgba(77, 168, 218, 0.3);
+            border-radius: 6px;
+            color: #e0e0e0;
+            font-family: 'Inter', sans-serif;
+            cursor: pointer;
+            font-size: 0.85em;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+        button:hover {
+            background: rgba(77, 168, 218, 0.2);
+            border-color: rgba(77, 168, 218, 0.6);
+        }
+        button.active {
+            background: rgba(77, 168, 218, 0.4);
+            border-color: #4da8da;
+            color: #4da8da;
+        }
+        .info-panel {
+            background: rgba(77, 168, 218, 0.05);
+            border: 1px solid rgba(77, 168, 218, 0.15);
+            border-radius: 10px;
+            padding: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .info-title {
+            font-weight: 600;
+            color: #4da8da;
+            font-size: 0.9em;
+            margin-bottom: 8px;
+        }
+        .info-text {
+            font-size: 0.8em;
+            color: #b0b0b0;
+            line-height: 1.4;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .info-empty {
+            font-size: 0.8em;
+            color: #666;
+            font-style: italic;
+        }
+        @media (max-width: 900px) {
+            .content {
+                grid-template-columns: 1fr;
+            }
+            h1 {
+                font-size: 1.8em;
+            }
+        }
+        .legend {
+            font-size: 0.75em;
+            color: #888;
+            margin-top: 10px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 4px;
+        }
+        .legend-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🧂 Flavor Pairing Compass</h1>
+            <p class="subtitle">Click ingredients to explore real flavor chemistry & culinary pairings</p>
+        </header>
+        
+        <div class="content">
+            <div class="canvas-wrapper">
+                <canvas id="compassCanvas"></canvas>
+            </div>
+            
+            <div class="controls">
+                <div class="control-group">
+                    <label class="control-label">Central Ingredient</label>
+                    <select id="ingredientSelect">
+                        <option value="chocolate">Chocolate</option>
+                        <option value="basil">Basil</option>
+                        <option value="tomato">Tomato</option>
+                        <option value="apple">Apple</option>
+                        <option value="cinnamon">Cinnamon</option>
+                        <option value="chili">Chili Pepper</option>
+                        <option value="salmon">Salmon</option>
+                        <option value="lemon">Lemon</option>
+                        <option value="coffee">Coffee</option>
+                        <option value="garlic">Garlic</option>
+                        <option value="vanilla">Vanilla</option>
+                        <option value="rosemary">Rosemary</option>
+                    </select>
+                </div>
+                
+                <div class="control-group">
+                    <label class="control-label">Pairing Mode</label>
+                    <div class="flavor-modes">
+                        <button class="mode-btn active" data-mode="classic">Classic Pairs</button>
+                        <button class="mode-btn" data-mode="molecular">Molecular Match</button>
+                    </div>
+                </div>
+                
+                <div class="control-group">
+                    <div class="info-panel">
+                        <div class="info-title">Ingredient Details</div>
+                        <div id="infoContent" class="info-empty">Select or hover over ingredients to see flavor compounds.</div>
+                    </div>
+                </div>
+                
+                <div class="control-group">
+                    <div class="legend">
+                        <div class="info-title">Flavor Classes</div>
+                        <div class="legend-item"><div class="legend-dot" style="background: #ff6b6b;"></div>Fruity</div>
+                        <div class="legend-item"><div class="legend-dot" style="background: #ff7db8;"></div>Floral</div>
+                        <div class="legend-item"><div class="legend-dot" style="background: #51cf66;"></div>Herbal</div>
+                        <div class="legend-item"><div class="legend-dot" style="background: #ff9f43;"></div>Spicy</div>
+                        <div class="legend-item"><div class="legend-dot" style="background: #a29bfe;"></div>Sweet</div>
+                        <div class="legend-item"><div class="legend-dot" style="background: #8b6914;"></div>Umami</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Real flavor compound data from culinary science research
+        const flavorDatabase = {
+            chocolate: {
+                compounds: ['Vanillin', '2-Phenylethanol', 'Theobromine'],
+                classes: ['Sweet', 'Floral', 'Bitter'],
+                pairedWith: ['Chili Pepper', 'Orange', 'Raspberry', 'Coffee', 'Sea Salt'],
+                notes: 'Sweet, floral, subtle bitter. Rich in phenolic compounds and methylxanthines.',
+                molecular: ['Chili Pepper (fruity + spicy overlap)', 'Coffee (both have phenolic complexity)']
+            },
+            basil: {
+                compounds: ['Linalool', 'Geraniol', 'Methyl Cinnamate'],
+                classes: ['Floral', 'Herbal', 'Fruity'],
+                pairedWith: ['Tomato', 'Mozzarella', 'Garlic', 'Lemon', 'Pine Nuts'],
+                notes: 'Floral + herbal. Share geraniol with rose and geranium compounds.',
+                molecular: ['Tomato (geraniol class overlap)', 'Lemon (citrus terpenes)']
+            },
+            tomato: {
+                compounds: ['2-Methyl Butanoate', 'Hexanal', 'Geranylacetone'],
+                classes: ['Fruity', 'Vegetal', 'Green'],
+                pairedWith: ['Basil', 'Garlic', 'Oregano', 'Olive Oil', 'Mozzarella'],
+                notes: 'Fruity + vegetal. Contains key esters and aldehydes for savory notes.',
+                molecular: ['Basil (geraniol series)', 'Garlic (sulfur-esters)']
+            },
+            apple: {
+                compounds: ['Ethyl Butyrate', 'Hexanal', 'Linalool'],
+                classes: ['Fruity', 'Floral', 'Green'],
+                pairedWith: ['Cinnamon', 'Pork', 'Walnut', 'Vanilla', 'Rosemary'],
+                notes: 'Fruity + floral + green. Share limonene pathway with citrus.',
+                molecular: ['Cinnamon (limonene bridge)', 'Pork (shared esters)']
+            },
+            cinnamon: {
+                compounds: ['Cinnamaldehyde', 'Eugenol', 'Limonene'],
+                classes: ['Spicy', 'Herbal', 'Fruity'],
+                pairedWith: ['Apple', 'Pear', 'Chocolate', 'Coffee', 'Nutmeg'],
+                notes: 'Spicy + aromatic. Eugenol is clove-like; limonene adds citrus notes.',
+                molecular: ['Apple (limonene series)', 'Chocolate (sweet phenolics)']
+            },
+            chili: {
+                compounds: ['Capsaicin', 'Fruity Esters', 'Terpenes'],
+                classes: ['Spicy', 'Fruity', 'Herbal'],
+                pairedWith: ['Chocolate', 'Lime', 'Cilantro', 'Garlic', 'Ginger'],
+                notes: 'Spicy heat + fruity esters. Capsaicin + volatile esters.',
+                molecular: ['Chocolate (phenolic overlap)', 'Lime (citral overlap)']
+            },
+            salmon: {
+                compounds: ['Dimethyl Sulfide', 'Aldehydes', 'Fatty Esters'],
+                classes: ['Umami', 'Fishy', 'Earthy'],
+                pairedWith: ['Dill', 'Lemon', 'Capers', 'Horseradish', 'Fennel'],
+                notes: 'Umami-rich. Sulfur compounds + fatty volatiles create savory profile.',
+                molecular: ['Dill (anethol + sulfur)', 'Lemon (aldehyde pairs)']
+            },
+            lemon: {
+                compounds: ['Limonene', 'Citral', 'β-Pinene'],
+                classes: ['Fruity', 'Herbal', 'Fresh'],
+                pairedWith: ['Fish', 'Chicken', 'Garlic', 'Herbs', 'White Wine'],
+                notes: 'Citrus terpenes. Limonene is most abundant volatile in lemon peel.',
+                molecular: ['Basil (shared terpenes)', 'Fish (aldehyde bridges)']
+            },
+            coffee: {
+                compounds: ['Furans', 'Pyrazines', 'Thiols'],
+                classes: ['Bitter', 'Roasted', 'Nutty'],
+                pairedWith: ['Chocolate', 'Vanilla', 'Hazelnut', 'Caramel', 'Cinnamon'],
+                notes: 'Complex. Roasting creates furans + pyrazines (earthy/roasted).',
+                molecular: ['Chocolate (phenolic complexity)', 'Cinnamon (roasted overlap)']
+            },
+            garlic: {
+                compounds: ['Allicin', 'Sulfides', 'Disulfides'],
+                classes: ['Pungent', 'Umami', 'Herbal'],
+                pairedWith: ['Tomato', 'Basil', 'Olive Oil', 'Lemon', 'Ginger'],
+                notes: 'Sulfur volatiles create pungency. Heat transforms chemistry.',
+                molecular: ['Tomato (sulfur-esters)', 'Basil (herbal)']
+            },
+            vanilla: {
+                compounds: ['Vanillin', 'Anisaldehyde', 'Eugenol'],
+                classes: ['Sweet', 'Floral', 'Spicy'],
+                pairedWith: ['Chocolate', 'Coffee', 'Cinnamon', 'Cream', 'Berries'],
+                notes: 'Sweet + aromatic. Vanillin is also in oak, chocolate, spices.',
+                molecular: ['Chocolate (vanillin source)', 'Cinnamon (eugenol overlap)']
+            },
+            rosemary: {
+                compounds: ['1,8-Cineole', 'Pinene', 'Limonene'],
+                classes: ['Herbal', 'Minty', 'Fruity'],
+                pairedWith: ['Lamb', 'Potato', 'Garlic', 'Apple', 'Mushroom'],
+                notes: 'Herbal + piney. Cineole creates minty/eucalyptus notes.',
+                molecular: ['Apple (limonene)', 'Garlic (herbal compounds)']
+            }
+        };
+
+        // UI state
+        let currentIngredient = 'chocolate';
+        let currentMode = 'classic';
+        let hoveredIngredient = null;
+
+        const canvas = document.getElementById('compassCanvas');
+        const ctx = canvas.getContext('2d');
+        const select = document.getElementById('ingredientSelect');
+        const infoContent = document.getElementById('infoContent');
+
+        // Responsive canvas sizing
+        function resizeCanvas() {
+            const wrapper = canvas.parentElement;
+            canvas.width = wrapper.clientWidth - 40;
+            canvas.height = wrapper.clientHeight - 40;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // Get all unique flavor classes for positioning
+        function getUniqueClasses() {
+            const classes = new Set();
+            Object.values(flavorDatabase).forEach(ing => {
+                ing.classes.forEach(c => classes.add(c));
+            });
+            return Array.from(classes);
+        }
+
+        const flavorClasses = getUniqueClasses();
+        const classColors = {
+            'Fruity': '#ff6b6b',
+            'Floral': '#ff7db8',
+            'Herbal': '#51cf66',
+            'Spicy': '#ff9f43',
+            'Sweet': '#a29bfe',
+            'Umami': '#8b6914',
+            'Green': '#4da8da',
+            'Fishy': '#7dd3fc',
+            'Bitter': '#8b7355',
+            'Roasted': '#a68a64',
+            'Nutty': '#d4a574',
+            'Pungent': '#ff6b9d',
+            'Minty': '#4ecca3',
+            'Fresh': '#5dde95',
+            'Vegetal': '#7bc67b',
+            'Earthy': '#8b7355'
+        };
+
+        // Calculate ingredient position on polar grid
+        function getIngredientPosition(ingredient) {
+            const data = flavorDatabase[ingredient];
+            const mainClass = data.classes[0];
+            const angleIndex = flavorClasses.indexOf(mainClass);
+            const angle = (angleIndex / flavorClasses.length) * Math.PI * 2 - Math.PI / 2;
+            
+            // Similarity score based on compound overlap with central ingredient
+            const centralData = flavorDatabase[currentIngredient];
+            const overlap = data.compounds.filter(c => centralData.compounds.includes(c)).length;
+            const radius = 100 + (overlap * 60);
+            
+            return { angle, radius, mainClass };
+        }
+
+        // Calculate similarity between two ingredients
+        function calculateSimilarity(ing1, ing2) {
+            const data1 = flavorDatabase[ing1];
+            const data2 = flavorDatabase[ing2];
+            const overlap = data1.compounds.filter(c => data2.compounds.includes(c)).length;
+            return overlap / Math.max(data1.compounds.length, data2.compounds.length);
+        }
+
+        // Draw function
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const maxRadius = Math.min(canvas.width, canvas.height) / 2.5;
+
+            // Draw polar grid
+            ctx.strokeStyle = 'rgba(77, 168, 218, 0.15)';
+            ctx.lineWidth = 1;
+            for (let i = 1; i <= 3; i++) {
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, (maxRadius / 3) * i, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+
+            // Draw radial axes for flavor classes
+            ctx.strokeStyle = 'rgba(77, 168, 218, 0.1)';
+            flavorClasses.forEach((_, i) => {
+                const angle = (i / flavorClasses.length) * Math.PI * 2 - Math.PI / 2;
+                const x = centerX + Math.cos(angle) * maxRadius;
+                const y = centerY + Math.sin(angle) * maxRadius;
+                ctx.beginPath();
+                ctx.moveTo(centerX, centerY);
+                ctx.lineTo(x, y);
+                ctx.stroke();
+            });
+
+            // Draw all ingredients as nodes
+            Object.keys(flavorDatabase).forEach(ingredient => {
+                const pos = getIngredientPosition(ingredient);
+                const x = centerX + Math.cos(pos.angle) * (pos.radius / 200) * maxRadius;
+                const y = centerY + Math.sin(pos.angle) * (pos.radius / 200) * maxRadius;
+
+                const isCenter = ingredient === currentIngredient;
+                const isHovered = ingredient === hoveredIngredient;
+
+                // Draw node
+                ctx.fillStyle = classColors[pos.mainClass] || '#4da8da';
+                ctx.globalAlpha = isCenter ? 1 : (isHovered ? 0.8 : 0.6);
+                ctx.beginPath();
+                ctx.arc(x, y, isCenter ? 14 : 10, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Draw border for hovered/center
+                if (isCenter || isHovered) {
+                    ctx.strokeStyle = '#fff';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                }
+
+                ctx.globalAlpha = 1;
+
+                // Draw label
+                ctx.fillStyle = '#e0e0e0';
+                ctx.font = isCenter ? 'bold 11px Inter' : '10px Inter';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                
+                // Truncate long names
+                const label = ingredient.length > 10 ? ingredient.substring(0, 8) + '.' : ingredient;
+                ctx.fillText(label, x, y + (isCenter ? 24 : 20));
+            });
+
+            // Draw connection lines for current mode
+            if (currentMode === 'classic') {
+                const data = flavorDatabase[currentIngredient];
+                const centerX2 = canvas.width / 2;
+                const centerY2 = canvas.height / 2;
+                
+                data.pairedWith.forEach(paired => {
+                    if (flavorDatabase[paired]) {
+                        const pos1 = getIngredientPosition(currentIngredient);
+                        const pos2 = getIngredientPosition(paired);
+                        const x1 = centerX2 + Math.cos(pos1.angle) * (pos1.radius / 200) * maxRadius;
+                        const y1 = centerY2 + Math.sin(pos1.angle) * (pos1.radius / 200) * maxRadius;
+                        const x2 = centerX2 + Math.cos(pos2.angle) * (pos2.radius / 200) * maxRadius;
+                        const y2 = centerY2 + Math.sin(pos2.angle) * (pos2.radius / 200) * maxRadius;
+
+                        ctx.strokeStyle = 'rgba(77, 168, 218, 0.3)';
+                        ctx.lineWidth = 2;
+                        ctx.setLineDash([5, 5]);
+                        ctx.beginPath();
+                        ctx.moveTo(x1, y1);
+                        ctx.lineTo(x2, y2);
+                        ctx.stroke();
+                        ctx.setLineDash([]);
+                    }
+                });
+            } else if (currentMode === 'molecular') {
+                // Draw lines for high similarity ingredients
+                const centerX2 = canvas.width / 2;
+                const centerY2 = canvas.height / 2;
+
+                Object.keys(flavorDatabase).forEach(ing1 => {
+                    Object.keys(flavorDatabase).forEach(ing2 => {
+                        if (ing1 < ing2) {
+                            const sim = calculateSimilarity(ing1, ing2);
+                            if (sim > 0.2) {
+                                const pos1 = getIngredientPosition(ing1);
+                                const pos2 = getIngredientPosition(ing2);
+                                const x1 = centerX2 + Math.cos(pos1.angle) * (pos1.radius / 200) * maxRadius;
+                                const y1 = centerY2 + Math.sin(pos1.angle) * (pos1.radius / 200) * maxRadius;
+                                const x2 = centerX2 + Math.cos(pos2.angle) * (pos2.radius / 200) * maxRadius;
+                                const y2 = centerY2 + Math.sin(pos2.angle) * (pos2.radius / 200) * maxRadius;
+
+                                ctx.strokeStyle = sim > 0.4 ? 'rgba(77, 168, 218, 0.5)' : 'rgba(77, 168, 218, 0.2)';
+                                ctx.lineWidth = sim > 0.4 ? 2 : 1;
+                                ctx.beginPath();
+                                ctx.moveTo(x1, y1);
+                                ctx.lineTo(x2, y2);
+                                ctx.stroke();
+                            }
+                        }
+                    });
+                });
+            }
+        }
+
+        // Mouse tracking for hover
+        canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const maxRadius = Math.min(canvas.width, canvas.height) / 2.5;
+
+            hoveredIngredient = null;
+            Object.keys(flavorDatabase).forEach(ingredient => {
+                const pos = getIngredientPosition(ingredient);
+                const nodeX = centerX + Math.cos(pos.angle) * (pos.radius / 200) * maxRadius;
+                const nodeY = centerY + Math.sin(pos.angle) * (pos.radius / 200) * maxRadius;
+                const dist = Math.sqrt((x - nodeX) ** 2 + (y - nodeY) ** 2);
+                if (dist < 15) {
+                    hoveredIngredient = ingredient;
+                    canvas.style.cursor = 'pointer';
+                }
+            });
+            if (!hoveredIngredient) canvas.style.cursor = 'default';
+
+            if (hoveredIngredient) {
+                const data = flavorDatabase[hoveredIngredient];
+                infoContent.innerHTML = `<strong>${hoveredIngredient.toUpperCase()}</strong>\n\nCompounds:\n${data.compounds.join(', ')}\n\n${data.notes}`;
+            }
+
+            draw();
+        });
+
+        // Click to select ingredient
+        canvas.addEventListener('click', (e) => {
+            if (hoveredIngredient) {
+                select.value = hoveredIngredient;
+                currentIngredient = hoveredIngredient;
+                hoveredIngredient = null;
+                updateInfo();
+            }
+        });
+
+        // Select dropdown
+        select.addEventListener('change', (e) => {
+            currentIngredient = e.target.value;
+            hoveredIngredient = null;
+            updateInfo();
+        });
+
+        // Mode buttons
+        document.querySelectorAll('.mode-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentMode = btn.dataset.mode;
+                draw();
+            });
+        });
+
+        function updateInfo() {
+            const data = flavorDatabase[currentIngredient];
+            infoContent.innerHTML = `<strong>${currentIngredient.toUpperCase()}</strong>\n\nKey Compounds:\n${data.compounds.join(', ')}\n\nClassic Pairings:\n${data.pairedWith.join(', ')}\n\n${data.notes}`;
+            draw();
+        }
+
+        // Initial draw
+        updateInfo();
+    </script>
+</body>
+</html>
