@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Protein Unfold</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Space+Mono:wght@400&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Space Mono', monospace;
+      background: #0a0e27;
+      color: #e0e0e0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    
+    .container {
+      max-width: 900px;
+      width: 100%;
+      background: #1a1f3a;
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    }
+    
+    h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: 2.5em;
+      margin-bottom: 8px;
+      color: #00d4ff;
+      text-align: center;
+    }
+    
+    .subtitle {
+      text-align: center;
+      color: #b0b0b0;
+      margin-bottom: 24px;
+      font-size: 0.95em;
+    }
+    
+    .content {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin-bottom: 24px;
+    }
+    
+    @media (max-width: 768px) {
+      .content {
+        grid-template-columns: 1fr;
+      }
+      
+      h1 {
+        font-size: 2em;
+      }
+    }
+    
+    canvas {
+      display: block;
+      width: 100%;
+      height: auto;
+      background: #0f1420;
+      border-radius: 8px;
+      border: 1px solid #2d3561;
+    }
+    
+    .controls {
+      background: #242d4a;
+      padding: 20px;
+      border-radius: 8px;
+      border: 1px solid #2d3561;
+    }
+    
+    .control-group {
+      margin-bottom: 18px;
+    }
+    
+    .control-group:last-child {
+      margin-bottom: 0;
+    }
+    
+    label {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 0.9em;
+      color: #00d4ff;
+      font-weight: bold;
+    }
+    
+    select, textarea, input[type="text"] {
+      width: 100%;
+      padding: 8px;
+      background: #1a1f3a;
+      color: #e0e0e0;
+      border: 1px solid #2d3561;
+      border-radius: 6px;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.9em;
+    }
+    
+    textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+    
+    .stats {
+      background: #242d4a;
+      padding: 20px;
+      border-radius: 8px;
+      border: 1px solid #2d3561;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 12px;
+    }
+    
+    .stat-box {
+      background: #1a1f3a;
+      padding: 12px;
+      border-radius: 6px;
+      border-left: 3px solid #00d4ff;
+    }
+    
+    .stat-label {
+      font-size: 0.8em;
+      color: #b0b0b0;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    
+    .stat-value {
+      font-size: 1.2em;
+      color: #00d4ff;
+      font-weight: bold;
+      margin-top: 4px;
+      font-family: 'Playfair Display', serif;
+    }
+    
+    button {
+      width: 100%;
+      padding: 10px;
+      background: #00d4ff;
+      color: #0a0e27;
+      border: none;
+      border-radius: 6px;
+      font-weight: bold;
+      font-family: 'Space Mono', monospace;
+      cursor: pointer;
+      margin-top: 12px;
+      transition: background 0.2s;
+    }
+    
+    button:hover {
+      background: #00e8ff;
+    }
+    
+    button:active {
+      background: #00b8d4;
+    }
+    
+    .legend {
+      font-size: 0.8em;
+      color: #b0b0b0;
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid #2d3561;
+    }
+    
+    .legend-item {
+      margin-bottom: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🧬 Protein Unfold</h1>
+    <p class="subtitle">Heat your protein and watch it denature as hydrophobic cores expose to water</p>
+    
+    <div class="content">
+      <div>
+        <canvas id="proteinCanvas" width="450" height="450"></canvas>
+        <div class="legend">
+          <div class="legend-item">🔵 Hydrophobic (buried)</div>
+          <div class="legend-item">🔴 Hydrophilic (surface)</div>
+          <div class="legend-item">🟡 Mixed polarity</div>
+        </div>
+      </div>
+      
+      <div>
+        <div class="controls">
+          <div class="control-group">
+            <label for="sequence">
+              Protein Sequence
+            </label>
+            <textarea id="sequence" placeholder="MVHLTPEEKS">MVHLTPEEKS</textarea>
+            <small style="color: #888; display: block; margin-top: 4px;">Single-letter amino acid codes</small>
+          </div>
+          
+          <div class="control-group">
+            <label for="temperature">
+              Temperature (K)
+              <span style="color: #4da8da;">300 K</span>
+            </label>
+            <input type="range" id="temperature" min="300" max="400" value="300" step="5">
+          </div>
+          
+          <button id="foldBtn">FOLD NOW</button>
+          <button id="resetBtn">RESET</button>
+        </div>
+        
+        <div class="stats">
+          <div class="stat-box">
+            <div class="stat-label">Hydrophobic</div>
+            <div class="stat-value" id="hydrophobicCount">0</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Hydrophilic</div>
+            <div class="stat-value" id="hydrophilicCount">0</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Stability</div>
+            <div class="stat-value" id="stabilityDisplay">100%</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Radius</div>
+            <div class="stat-value" id="radiusDisplay">100%</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Hydrophobicity scale (Kyte & Doolittle)
+    const hydrophobicity = {
+      'A': 1.8,  'R': -4.5, 'N': -3.5, 'D': -3.5, 'C': 2.5,
+      'Q': -3.5, 'E': -3.5, 'G': -0.4, 'H': -3.2, 'I': 4.5,
+      'L': 3.8,  'K': -3.9, 'M': 1.9,  'F': 2.8,  'P': -1.6,
+      'S': -0.8, 'T': -0.7, 'W': -0.9, 'Y': -1.3, 'V': 4.2
+    };
+    
+    const canvas = document.getElementById('proteinCanvas');
+    const ctx = canvas.getContext('2d');
+    const sequenceTextarea = document.getElementById('sequence');
+    const temperatureSlider = document.getElementById('temperature');
+    const foldBtn = document.getElementById('foldBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const hydrophobicDisplay = document.getElementById('hydrophobicCount');
+    const hydrophilicDisplay = document.getElementById('hydrophilicCount');
+    const stabilityDisplay = document.getElementById('stabilityDisplay');
+    const radiusDisplay = document.getElementById('radiusDisplay');
+    
+    let aminoAcids = [];
+    let targetX = canvas.width / 2;
+    let targetY = canvas.height / 2;
+    let radius = 100;
+    let stability = 100;
+    let isAnimating = false;
+    
+    class AminoAcid {
+      constructor(index, code, angle) {
+        this.code = code;
+        this.index = index;
+        this.angle = angle;
+        this.hydrophobicity = hydrophobicity[code] || 0;
+        this.x = targetX + Math.cos(angle) * radius;
+        this.y = targetY + Math.sin(angle) * radius;
+        this.targetX = this.x;
+        this.targetY = this.y;
+        this.vx = 0;
+        this.vy = 0;
+      }
+      
+      getColor() {
+        if (this.hydrophobicity > 2) {
+          return '#ff0055'; // Hydrophobic
+        } else if (this.hydrophobicity < -2) {
+          return '#00ff88'; // Hydrophilic
+        } else {
+          return '#ffaa00'; // Mixed
+        }
+      }
+      
+      update(temperature, globalRadius) {
+        // Thermal motion increases with temperature
+        const thermalEnergy = (temperature - 300) / 100;
+        
+        // At high temp, try to escape (denaturation)
+        if (thermalEnergy > 0) {
+          const escapeForce = thermalEnergy * 0.02;
+          this.targetX += (Math.random() - 0.5) * escapeForce * 20;
+          this.targetY += (Math.random() - 0.5) * escapeForce * 20;
+          
+          // But hydrophobic residues resist escape (fold inward)
+          if (this.hydrophobicity > 0) {
+            const pullInward = this.hydrophobicity / 4.5; // Normalize 0-1
+            const distFromCenter = Math.sqrt(Math.pow(this.x - targetX, 2) + Math.pow(this.y - targetY, 2));
+            const pullForce = pullInward * 0.015;
+            this.vx += ((targetX - this.x) / (distFromCenter || 1)) * pullForce;
+            this.vy += ((targetY - this.y) / (distFromCenter || 1)) * pullForce;
+          }
+        }
+        
+        // Damping
+        this.vx *= 0.95;
+        this.vy *= 0.95;
+        
+        // Smooth motion to target
+        const dx = this.targetX - this.x;
+        const dy = this.targetY - this.y;
+        this.vx += dx * 0.05;
+        this.vy += dy * 0.05;
+        
+        this.x += this.vx;
+        this.y += this.vy;
+      }
+      
+      draw(ctx) {
+        const size = this.hydrophobicity > 2 ? 8 : this.hydrophobicity < -2 ? 6 : 7;
+        ctx.fillStyle = this.getColor();
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, size, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Glow effect
+        ctx.strokeStyle = this.getColor() + '44';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      }
+    }
+    
+    function initializeProtein() {
+      const sequence = sequenceTextarea.value.toUpperCase().replace(/[^ARNDCQEGHILKMFPSTWYV]/g, '');
+      aminoAcids = [];
+      
+      if (sequence.length === 0) {
+        return;
+      }
+      
+      const angleStep = (Math.PI * 2) / sequence.length;
+      for (let i = 0; i < sequence.length; i++) {
+        const angle = angleStep * i;
+        aminoAcids.push(new AminoAcid(i, sequence[i], angle));
+      }
+      
+      radius = 100;
+      stability = 100;
+    }
+    
+    function fold() {
+      isAnimating = true;
+      initializeProtein();
+    }
+    
+    function reset() {
+      temperatureSlider.value = '300';
+      isAnimating = false;
+      aminoAcids = [];
+      radius = 100;
+      stability = 100;
+    }
+    
+    foldBtn.addEventListener('click', fold);
+    resetBtn.addEventListener('click', reset);
+    
+    temperatureSlider.addEventListener('input', () => {
+      document.querySelector('label[for="temperature"]').innerHTML = `Temperature (K)<span style="color: #4da8da;">${temperatureSlider.value} K</span>`;
+    });
+    
+    function animate() {
+      const temperature = parseInt(temperatureSlider.value);
+      
+      // Draw background
+      ctx.fillStyle = '#0f1420';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // Draw background gradient
+      const grad = ctx.createRadialGradient(canvas.width / 2, canvas.height / 2, 0, canvas.width / 2, canvas.height / 2, 300);
+      grad.addColorStop(0, '#1a3a5a22');
+      grad.addColorStop(1, '#0a1420');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      if (aminoAcids.length > 0) {
+        // Calculate dynamic radius based on temperature (denaturation)
+        const thermalFactor = Math.pow((temperature - 300) / 100, 2);
+        const targetRadius = 100 + thermalFactor * 150;
+        radius += (targetRadius - radius) * 0.05;
+        
+        // Stability decreases with high temperature
+        const stressTemp = Math.max(0, temperature - 320);
+        stability = Math.max(0, 100 - stressTemp * 1.5);
+        
+        // Update and draw amino acids
+        let hydrophobicCount = 0;
+        let hydrophilicCount = 0;
+        
+        for (const aa of aminoAcids) {
+          aa.update(temperature, radius);
+          aa.draw(ctx);
+          
+          if (aa.hydrophobicity > 2) hydrophobicCount++;
+          else if (aa.hydrophobicity < -2) hydrophilicCount++;
+        }
+        
+        // Draw connections
+        for (let i = 0; i < aminoAcids.length; i++) {
+          const aa1 = aminoAcids[i];
+          const aa2 = aminoAcids[(i + 1) % aminoAcids.length];
+          
+          ctx.strokeStyle = '#4da8da22';
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(aa1.x, aa1.y);
+          ctx.lineTo(aa2.x, aa2.y);
+          ctx.stroke();
+        }
+        
+        // Update stats
+        hydrophobicDisplay.textContent = hydrophobicCount;
+        hydrophilicDisplay.textContent = hydrophilicCount;
+        stabilityDisplay.textContent = Math.floor(stability) + '%';
+        radiusDisplay.textContent = Math.floor((radius / 100) * 100) + '%';
+      }
+      
+      requestAnimationFrame(animate);
+    }
+    
+    // Initialize with default sequence
+    initializeProtein();
+    animate();
+  </script>
+</body>
+</html>
