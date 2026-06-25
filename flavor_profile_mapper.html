@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flavor Profile Mapper</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Space Mono', monospace;
+            background: #fffaf0;
+            color: #2d2d2d;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.5em;
+            color: #5a3a2a;
+            margin-bottom: 8px;
+        }
+        .subtitle {
+            color: #7a5a4a;
+            font-size: 0.9em;
+        }
+        .content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        .wheel-section, .data-section {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+        canvas {
+            display: block;
+            max-width: 100%;
+            border-radius: 8px;
+            background: #faf8f3;
+        }
+        .section-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.3em;
+            color: #5a3a2a;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .controls {
+            margin-bottom: 20px;
+        }
+        .control-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            font-size: 0.85em;
+            font-weight: 600;
+            color: #5a3a2a;
+            margin-bottom: 6px;
+        }
+        select, input[type="range"] {
+            width: 100%;
+            padding: 8px 10px;
+            border: 2px solid #e8d4c4;
+            border-radius: 6px;
+            font-family: 'Space Mono', monospace;
+            font-size: 0.9em;
+            background: white;
+            color: #2d2d2d;
+            cursor: pointer;
+        }
+        input[type="range"] {
+            padding: 0;
+            height: 8px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: #e8d4c4;
+            border-radius: 4px;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #c1272d;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #c1272d;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .pair-button {
+            width: 100%;
+            padding: 10px;
+            background: #722d4a;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-family: 'Space Mono', monospace;
+            font-size: 0.9em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .pair-button:hover {
+            background: #8b3a55;
+        }
+        .data-table {
+            overflow-y: auto;
+            max-height: 500px;
+            border: 1px solid #e8d4c4;
+            border-radius: 6px;
+            background: #fafaf8;
+        }
+        table {
+            width: 100%;
+            font-size: 0.85em;
+            border-collapse: collapse;
+        }
+        th {
+            background: #e8b923;
+            color: #2d2d2d;
+            padding: 8px;
+            text-align: left;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+        }
+        td {
+            padding: 8px;
+            border-bottom: 1px solid #e8d4c4;
+        }
+        tr:hover {
+            background: #f5f1eb;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-top: 15px;
+        }
+        .stat-box {
+            background: #fafaf8;
+            border-left: 3px solid #c1272d;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 0.85em;
+        }
+        .stat-label {
+            color: #7a5a4a;
+            font-size: 0.8em;
+            margin-bottom: 3px;
+        }
+        .stat-value {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.3em;
+            color: #5a3a2a;
+        }
+        .pairing-result {
+            background: #f5f1eb;
+            border: 1px solid #e8d4c4;
+            border-radius: 6px;
+            padding: 12px;
+            margin-top: 15px;
+            font-size: 0.85em;
+            display: none;
+        }
+        .pairing-result.active {
+            display: block;
+        }
+        @media (max-width: 900px) {
+            .content {
+                grid-template-columns: 1fr;
+            }
+            h1 { font-size: 1.8em; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🍃 Flavor Profile Mapper</h1>
+            <p class="subtitle">Discover the molecular chemistry of taste</p>
+        </div>
+
+        <div class="content">
+            <div class="wheel-section">
+                <div class="section-title">🎨 Flavor Wheel</div>
+                <canvas id="flavorWheel" width="400" height="400"></canvas>
+                <div class="controls">
+                    <div class="control-group">
+                        <label>Select Ingredient</label>
+                        <select id="ingredientSelect">
+                            <option value="lemon">🍋 Lemon</option>
+                            <option value="basil">🌿 Basil</option>
+                            <option value="garlic">🧄 Garlic</option>
+                            <option value="chocolate">🍫 Chocolate</option>
+                            <option value="orange">🍊 Orange</option>
+                            <option value="truffle">🍄 Truffle</option>
+                            <option value="coffee">☕ Coffee</option>
+                            <option value="chili">🌶️ Chili</option>
+                            <option value="mint">🌱 Mint</option>
+                            <option value="honey">🍯 Honey</option>
+                        </select>
+                    </div>
+                    <div class="control-group">
+                        <label>Temperature (°C)</label>
+                        <input type="range" id="tempSlider" min="20" max="180" value="20">
+                        <div style="text-align: center; margin-top: 4px; font-size: 0.9em; color: #7a5a4a;">
+                            <span id="tempDisplay">20</span>°C
+                        </div>
+                    </div>
+                    <div class="stats">
+                        <div class="stat-box">
+                            <div class="stat-label">Pungency</div>
+                            <div class="stat-value" id="pungency">0%</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-label">Complexity</div>
+                            <div class="stat-value" id="complexity">0%</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-label">Aromatics</div>
+                            <div class="stat-value" id="aromatics">0%</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-label">Umami</div>
+                            <div class="stat-value" id="umami">0%</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="data-section">
+                <div class="section-title">🧪 Compound Profile</div>
+                <div class="controls">
+                    <div class="control-group">
+                        <label>Pairing Analysis</label>
+                        <select id="pairingSelect">
+                            <option value="">Select second ingredient...</option>
+                            <option value="lemon">🍋 Lemon</option>
+                            <option value="basil">🌿 Basil</option>
+                            <option value="garlic">🧄 Garlic</option>
+                            <option value="chocolate">🍫 Chocolate</option>
+                            <option value="orange">🍊 Orange</option>
+                            <option value="truffle">🍄 Truffle</option>
+                            <option value="coffee">☕ Coffee</option>
+                            <option value="chili">🌶️ Chili</option>
+                            <option value="mint">🌱 Mint</option>
+                            <option value="honey">🍯 Honey</option>
+                        </select>
+                    </div>
+                    <button class="pair-button" onclick="analyzePairing()">Analyze Pairing</button>
+                </div>
+                <div class="pairing-result" id="pairingResult"></div>
+                <div class="data-table">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Compound</th>
+                                <th>Concentration</th>
+                                <th>Flavor Role</th>
+                            </tr>
+                        </thead>
+                        <tbody id="compoundTable">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Flavor compound database
+        const flavorData = {
+            lemon: {
+                name: 'Lemon',
+                color: '#f4d03f',
+                compounds: [
+                    { name: 'Limonene', conc: 2.3, role: 'Citrus brightness', sector: 0 },
+                    { name: 'Citric Acid', conc: 5.2, role: 'Sour modality', sector: 2 },
+                    { name: 'Geraniol', conc: 0.8, role: 'Floral-fresh', sector: 1 },
+                    { name: 'β-Pinene', conc: 0.6, role: 'Piney notes', sector: 1 },
+                    { name: 'Linalool', conc: 0.4, role: 'Aromatic', sector: 1 }
+                ],
+                sectors: [75, 60, 45, 10, 8, 5, 12, 20, 15, 0, 0, 0]
+            },
+            basil: {
+                name: 'Basil',
+                color: '#2d5016',
+                compounds: [
+                    { name: 'Linalool', conc: 3.1, role: 'Aromatic-sweet', sector: 1 },
+                    { name: 'Eugenol', conc: 2.0, role: 'Spicy-clove', sector: 4 },
+                    { name: 'Estragole', conc: 1.8, role: 'Anise-licorice', sector: 1 },
+                    { name: 'Methyl Salicylate', conc: 0.9, role: 'Fresh-minty', sector: 1 },
+                    { name: 'Geraniol', conc: 0.7, role: 'Floral', sector: 1 }
+                ],
+                sectors: [65, 72, 35, 12, 48, 18, 25, 8, 10, 5, 3, 2]
+            },
+            garlic: {
+                name: 'Garlic',
+                color: '#f5f5dc',
+                compounds: [
+                    { name: 'Allicin', conc: 0.8, role: 'Pungent bite', sector: 4 },
+                    { name: 'Dimethyl Disulfide', conc: 0.5, role: 'Sulfurous-meaty', sector: 10 },
+                    { name: 'Thiols', conc: 0.4, role: 'Onion-savory', sector: 7 },
+                    { name: 'Glutamates', conc: 0.3, role: 'Umami', sector: 7 },
+                    { name: 'Fructose', conc: 0.2, role: 'Residual sweet', sector: 0 }
+                ],
+                sectors: [8, 10, 5, 3, 65, 15, 40, 55, 12, 8, 20, 3]
+            },
+            chocolate: {
+                name: 'Chocolate',
+                color: '#4a2c1a',
+                compounds: [
+                    { name: 'Theobromine', conc: 1.5, role: 'Bitter-stimulant', sector: 3 },
+                    { name: 'Phenolic Esters', conc: 1.2, role: 'Bitter complexity', sector: 3 },
+                    { name: 'Vanillin', conc: 0.6, role: 'Sweet-vanilla', sector: 0 },
+                    { name: 'Pyrazines', conc: 0.5, role: 'Nutty-roasted', sector: 9 },
+                    { name: 'Aldehydes', conc: 0.3, role: 'Aromatic notes', sector: 1 }
+                ],
+                sectors: [35, 15, 8, 50, 12, 5, 8, 4, 20, 18, 5, 10]
+            },
+            orange: {
+                name: 'Orange',
+                color: '#ff9500',
+                compounds: [
+                    { name: 'Limonene', conc: 3.2, role: 'Citrus brightness', sector: 0 },
+                    { name: 'Myrcene', conc: 0.7, role: 'Herbal-spicy', sector: 4 },
+                    { name: 'Citric Acid', conc: 4.1, role: 'Sour', sector: 2 },
+                    { name: 'Fructose', conc: 8.0, role: 'Sweetness', sector: 0 },
+                    { name: 'Geraniol', conc: 0.5, role: 'Floral', sector: 1 }
+                ],
+                sectors: [80, 50, 40, 15, 8, 5, 10, 6, 12, 0, 0, 0]
+            },
+            truffle: {
+                name: 'Truffle',
+                color: '#3a3a2a',
+                compounds: [
+                    { name: '2-Methylthiophene', conc: 0.6, role: 'Sulfurous-earthy', sector: 9 },
+                    { name: 'Dimethyl Disulfide', conc: 0.5, role: 'Earthy-meaty', sector: 10 },
+                    { name: 'Glutamates', conc: 0.4, role: 'Umami savory', sector: 7 },
+                    { name: 'Nucleotides', conc: 0.3, role: 'Meat-savory', sector: 7 },
+                    { name: 'Benzene Compounds', conc: 0.2, role: 'Aromatic-complex', sector: 1 }
+                ],
+                sectors: [5, 8, 3, 2, 8, 3, 5, 60, 50, 75, 10, 5]
+            },
+            coffee: {
+                name: 'Coffee',
+                color: '#6b4423',
+                compounds: [
+                    { name: 'Pyrazines', conc: 1.2, role: 'Roasted-nutty', sector: 9 },
+                    { name: 'Furans', conc: 0.8, role: 'Caramel-bitter', sector: 3 },
+                    { name: 'Thiazoles', conc: 0.6, role: 'Meaty-savory', sector: 7 },
+                    { name: 'Aldehydes', conc: 0.5, role: 'Aromatic-floral', sector: 1 },
+                    { name: 'Organic Acids', conc: 0.4, role: 'Acidity', sector: 2 }
+                ],
+                sectors: [12, 15, 18, 40, 10, 5, 8, 35, 25, 45, 8, 12]
+            },
+            chili: {
+                name: 'Chili',
+                color: '#c1272d',
+                compounds: [
+                    { name: 'Capsaicin', conc: 16.0, role: 'Pungent heat', sector: 4 },
+                    { name: 'Dimethyl Disulfide', conc: 0.3, role: 'Sulfurous', sector: 10 },
+                    { name: 'Lycopene', conc: 0.8, role: 'Fruity sweetness', sector: 0 },
+                    { name: 'Glutamates', conc: 0.2, role: 'Umami', sector: 7 },
+                    { name: 'Carotenoids', conc: 0.5, role: 'Fruity-floral', sector: 1 }
+                ],
+                sectors: [20, 8, 3, 5, 85, 12, 8, 10, 5, 3, 2, 1]
+            },
+            mint: {
+                name: 'Mint',
+                color: '#98d8c8',
+                compounds: [
+                    { name: 'Menthol', conc: 4.0, role: 'Cooling-fresh', sector: 1 },
+                    { name: 'Menthone', conc: 2.5, role: 'Herbaceous-minty', sector: 4 },
+                    { name: 'Linalool', conc: 1.2, role: 'Floral-sweet', sector: 1 },
+                    { name: 'Limonene', conc: 0.8, role: 'Citrus notes', sector: 0 },
+                    { name: 'Cineole', conc: 0.6, role: 'Eucalyptus-fresh', sector: 1 }
+                ],
+                sectors: [35, 82, 12, 8, 45, 10, 8, 5, 3, 0, 0, 2]
+            },
+            honey: {
+                name: 'Honey',
+                color: '#d4a574',
+                compounds: [
+                    { name: 'Fructose', conc: 38.0, role: 'Primary sweetness', sector: 0 },
+                    { name: 'Glucose', conc: 30.0, role: 'Sweetness', sector: 0 },
+                    { name: 'Benzaldehyde', conc: 0.4, role: 'Almond-floral', sector: 1 },
+                    { name: 'Terpenes', conc: 0.3, role: 'Aromatic', sector: 1 },
+                    { name: 'Organic Acids', conc: 0.2, role: 'Acidity', sector: 2 }
+                ],
+                sectors: [85, 12, 8, 5, 3, 2, 4, 2, 1, 0, 0, 1]
+            }
+        };
+
+        // Pairing data (based on shared compound profiles)
+        const pairingScores = {
+            'lemon-basil': { score: 78, reason: 'Both share linalool + geraniol (bright aromatics), classic Italian pairing' },
+            'basil-lemon': { score: 78, reason: 'Both share linalool + geraniol (bright aromatics), classic Italian pairing' },
+            'lemon-orange': { score: 85, reason: 'Both rich in limonene (citrus) + citric acid, complementary brightness' },
+            'orange-lemon': { score: 85, reason: 'Both rich in limonene (citrus) + citric acid, complementary brightness' },
+            'chocolate-orange': { score: 82, reason: 'Phenolic esters align, theobromine + limonene create complexity, timeless combo' },
+            'orange-chocolate': { score: 82, reason: 'Phenolic esters align, theobromine + limonene create complexity, timeless combo' },
+            'coffee-chocolate': { score: 79, reason: 'Pyrazines + furans overlap, both roasted-bitter, share aromatic aldehydes' },
+            'chocolate-coffee': { score: 79, reason: 'Pyrazines + furans overlap, both roasted-bitter, share aromatic aldehydes' },
+            'garlic-basil': { score: 68, reason: 'Umami + aromatic match, but sulfur (garlic) dominates over fresh (basil)' },
+            'basil-garlic': { score: 68, reason: 'Umami + aromatic match, but sulfur (garlic) dominates over fresh (basil)' },
+            'chili-garlic': { score: 72, reason: 'Capsaicin heat + allicin pungency, complementary savory (glutamates), builds intensity' },
+            'garlic-chili': { score: 72, reason: 'Capsaicin heat + allicin pungency, complementary savory (glutamates), builds intensity' },
+            'truffle-garlic': { score: 81, reason: 'Both meaty-umami, share dimethyl disulfide + glutamates, earthy-savory harmony' },
+            'garlic-truffle': { score: 81, reason: 'Both meaty-umami, share dimethyl disulfide + glutamates, earthy-savory harmony' },
+            'honey-mint': { score: 88, reason: 'Menthol coolness tempers fructose sweetness perfectly, classic cooling effect' },
+            'mint-honey': { score: 88, reason: 'Menthol coolness tempers fructose sweetness perfectly, classic cooling effect' },
+            'coffee-mint': { score: 61, reason: 'Bitter roasted clashes with cooling-sweet (menthol + fructose would dominate)' },
+            'mint-coffee': { score: 61, reason: 'Bitter roasted clashes with cooling-sweet (menthol + fructose would dominate)' },
+            'truffle-honey': { score: 45, reason: 'Umami-meaty vs pure sweetness, high contrast without aromatic bridge, challenging pairing' },
+            'honey-truffle': { score: 45, reason: 'Umami-meaty vs pure sweetness, high contrast without aromatic bridge, challenging pairing' }
+        };
+
+        let currentIngredient = 'lemon';
+        let currentTemp = 20;
+
+        function getTemperatureAdjustedCompounds(ingredient, temp) {
+            const baseCompounds = flavorData[ingredient].compounds;
+            const volatilityMap = {
+                'Limonene': 0.8,
+                'Geraniol': 0.75,
+                'Linalool': 0.8,
+                'β-Pinene': 0.85,
+                'Estragole': 0.7,
+                'Menthol': 0.6,
+                'Menthone': 0.5,
+                'Cineole': 0.7,
+                'Benzaldehyde': 0.9,
+                'Terpenes': 0.75,
+                'Allicin': 0.6,
+                'Capsaicin': 0.05
+            };
+            
+            if (temp < 40) return baseCompounds;
+            
+            return baseCompounds.map(comp => {
+                const volatility = volatilityMap[comp.name] || 0.3;
+                const tempFactor = 1 - (volatility * Math.min((temp - 40) / 140, 1) * 0.6);
+                return {
+                    ...comp,
+                    conc: comp.conc * tempFactor
+                };
+            });
+        }
+
+        function drawFlavorWheel() {
+            const canvas = document.getElementById('flavorWheel');
+            const ctx = canvas.getContext('2d');
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const radius = 140;
+
+            const sectors = flavorData[currentIngredient].sectors;
+            const sectorLabels = ['Sweet', 'Fresh', 'Sour', 'Bitter', 'Spicy', 'Savory', 'Earthy', 'Umami', 'Meaty', 'Roasted', 'Floral', 'Woody'];
+            const sectorColors = ['#f4d03f', '#98d8c8', '#f39c12', '#8b4513', '#c1272d', '#722d4a', '#7a5a4a', '#2d5016', '#d4a574', '#6b4423', '#d8a9d8', '#8b7355'];
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw concentric rings
+            for (let r = 1; r <= 4; r++) {
+                ctx.strokeStyle = 'rgba(0,0,0,0.1)';
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, (radius / 4) * r, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+
+            // Draw sectors
+            sectors.forEach((value, i) => {
+                const startAngle = (i * Math.PI * 2 / 12) - Math.PI / 2;
+                const endAngle = ((i + 1) * Math.PI * 2 / 12) - Math.PI / 2;
+                const sectorRadius = (radius * value) / 100;
+
+                // Sector fill
+                ctx.fillStyle = sectorColors[i];
+                ctx.globalAlpha = 0.6;
+                ctx.beginPath();
+                ctx.moveTo(centerX, centerY);
+                ctx.arc(centerX, centerY, sectorRadius, startAngle, endAngle);
+                ctx.lineTo(centerX, centerY);
+                ctx.fill();
+                ctx.globalAlpha = 1;
+
+                // Sector border
+                ctx.strokeStyle = sectorColors[i];
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, sectorRadius, startAngle, endAngle);
+                ctx.stroke();
+
+                // Label
+                const labelAngle = (startAngle + endAngle) / 2;
+                const labelRadius = (radius * 1.15);
+                const labelX = centerX + Math.cos(labelAngle) * labelRadius;
+                const labelY = centerY + Math.sin(labelAngle) * labelRadius;
+                ctx.fillStyle = '#5a3a2a';
+                ctx.font = 'bold 11px "Space Mono"';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(sectorLabels[i], labelX, labelY);
+            });
+
+            // Center circle
+            ctx.fillStyle = flavorData[currentIngredient].color;
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 25, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#5a3a2a';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Center text
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold 11px "Space Mono"';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(flavorData[currentIngredient].name, centerX, centerY - 8);
+            ctx.font = '9px "Space Mono"';
+            ctx.fillText('@ ' + currentTemp + '°C', centerX, centerY + 8);
+        }
+
+        function updateProfile() {
+            currentIngredient = document.getElementById('ingredientSelect').value;
+            currentTemp = parseInt(document.getElementById('tempSlider').value);
+            document.getElementById('tempDisplay').textContent = currentTemp;
+
+            drawFlavorWheel();
+            updateCompoundTable();
+            updateStats();
+        }
+
+        function updateCompoundTable() {
+            const compounds = getTemperatureAdjustedCompounds(currentIngredient, currentTemp);
+            const table = document.getElementById('compoundTable');
+            table.innerHTML = compounds
+                .sort((a, b) => b.conc - a.conc)
+                .map(c => `
+                    <tr>
+                        <td><strong>${c.name}</strong></td>
+                        <td>${c.conc.toFixed(2)}%</td>
+                        <td>${c.role}</td>
+                    </tr>
+                `).join('');
+        }
+
+        function updateStats() {
+            const sectors = flavorData[currentIngredient].sectors;
+            const pungency = Math.round((sectors[4] + sectors[5]) / 2);
+            const complexity = Math.round((sectors[3] + sectors[9] + sectors[10]) / 3);
+            const aromatics = Math.round((sectors[1] + sectors[10]) / 2);
+            const umami = Math.round(sectors[7]);
+
+            document.getElementById('pungency').textContent = pungency + '%';
+            document.getElementById('complexity').textContent = complexity + '%';
+            document.getElementById('aromatics').textContent = aromatics + '%';
+            document.getElementById('umami').textContent = umami + '%';
+        }
+
+        function analyzePairing() {
+            const pairing2 = document.getElementById('pairingSelect').value;
+            if (!pairing2) return;
+
+            const key1 = currentIngredient + '-' + pairing2;
+            const key2 = pairing2 + '-' + currentIngredient;
+            const pairingData = pairingScores[key1] || pairingScores[key2];
+
+            if (!pairingData) {
+                document.getElementById('pairingResult').innerHTML = '<em>No data for this pairing.</em>';
+                document.getElementById('pairingResult').classList.add('active');
+                return;
+            }
+
+            const scoreColor = pairingData.score >= 75 ? '#2d5016' : pairingData.score >= 60 ? '#e8b923' : '#c1272d';
+            document.getElementById('pairingResult').innerHTML = `
+                <div style="font-weight: 600; color: ${scoreColor}; margin-bottom: 6px;">
+                    Harmony Score: ${pairingData.score}%
+                </div>
+                <div style="color: #7a5a4a; font-size: 0.9em; line-height: 1.4;">
+                    ${pairingData.reason}
+                </div>
+            `;
+            document.getElementById('pairingResult').classList.add('active');
+        }
+
+        document.getElementById('ingredientSelect').addEventListener('change', updateProfile);
+        document.getElementById('tempSlider').addEventListener('input', updateProfile);
+
+        // Initial render
+        updateProfile();
+    </script>
+</body>
+</html>
