@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Symbiosis Network</title>
-    <script src="https://d3js.org/d3.v7.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -42,12 +41,9 @@
             background: #0f2744;
             border-radius: 12px;
             border: 2px solid #1f4d7f;
-            min-height: 600px;
-            position: relative;
-        }
-        svg {
+            display: block;
             width: 100%;
-            height: 100%;
+            height: 600px;
         }
         .controls {
             background: #0f2744;
@@ -57,6 +53,7 @@
             display: flex;
             flex-direction: column;
             gap: 15px;
+            height: fit-content;
         }
         .control-group h3 {
             font-family: 'Playfair Display', serif;
@@ -93,26 +90,28 @@
             color: #0a1428;
         }
         .tooltip {
-            position: absolute;
-            background: rgba(15, 39, 68, 0.95);
+            position: fixed;
+            background: rgba(15, 39, 68, 0.98);
             color: #7dd3fc;
             padding: 12px;
             border-radius: 6px;
-            border: 1px solid #1f4d7f;
+            border: 2px solid #1f4d7f;
             font-size: 0.85em;
             pointer-events: none;
-            max-width: 250px;
+            max-width: 280px;
             z-index: 100;
             display: none;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
         }
         .tooltip-title {
-            font-weight: 600;
+            font-weight: 700;
             color: #7dd3fc;
-            margin-bottom: 4px;
+            margin-bottom: 6px;
+            font-size: 1em;
         }
         .tooltip-relation {
             color: #94d5f9;
-            margin: 2px 0;
+            margin: 4px 0;
             font-size: 0.8em;
         }
         .legend {
@@ -126,9 +125,10 @@
             margin-bottom: 6px;
         }
         .legend-color {
-            width: 16px;
-            height: 16px;
-            border-radius: 3px;
+            width: 14px;
+            height: 14px;
+            border-radius: 2px;
+            flex-shrink: 0;
         }
         @media (max-width: 1024px) {
             .main {
@@ -137,16 +137,19 @@
             h1 {
                 font-size: 1.8em;
             }
+            .controls {
+                grid-row: 2;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>🌊 Symbiosis Network</h1>
-        <p class="subtitle">Explore how ocean species depend on each other</p>
+        <p class="subtitle">Click filter buttons to explore marine partnerships</p>
         
         <div class="main">
-            <div id="network"></div>
+            <canvas id="network"></canvas>
             <div class="controls">
                 <div class="control-group">
                     <h3>Filter</h3>
@@ -190,7 +193,7 @@
                         </div>
                         <div class="legend-item">
                             <div class="legend-color" style="background: #b8a6db;"></div>
-                            <span>Twilight (200-1000m)</span>
+                            <span>Twilight (200-1k)</span>
                         </div>
                         <div class="legend-item">
                             <div class="legend-color" style="background: #0d3b66;"></div>
@@ -205,94 +208,155 @@
     <div class="tooltip" id="tooltip"></div>
 
     <script>
+        const canvas = document.getElementById("network");
+        const ctx = canvas.getContext("2d");
+        const tooltip = document.getElementById("tooltip");
+
+        // Set canvas size
+        function resizeCanvas() {
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+        }
+        resizeCanvas();
+        window.addEventListener("resize", resizeCanvas);
+
         // Marine symbiosis database
         const speciesData = [
             { id: "clownfish", name: "Clownfish", emoji: "🐠", zone: "shallow", color: "#7dd3fc" },
             { id: "anemone", name: "Sea Anemone", emoji: "🌸", zone: "shallow", color: "#7dd3fc" },
             { id: "coral", name: "Coral", emoji: "🪸", zone: "shallow", color: "#7dd3fc" },
             { id: "zooxanthellae", name: "Zooxanthellae", emoji: "🌿", zone: "shallow", color: "#7dd3fc" },
-            { id: "wrasse", name: "Cleaner Wrasse", emoji: "🐟", zone: "shallow", color: "#7dd3fc" },
+            { id: "wrasse", name: "Wrasse", emoji: "🐟", zone: "shallow", color: "#7dd3fc" },
             { id: "grouper", name: "Grouper", emoji: "🐡", zone: "shallow", color: "#7dd3fc" },
             { id: "dolphin", name: "Dolphin", emoji: "🐬", zone: "shallow", color: "#7dd3fc" },
             { id: "schoolfish", name: "Fish School", emoji: "🐠", zone: "shallow", color: "#7dd3fc" },
-            { id: "remora", name: "Remora Fish", emoji: "🐟", zone: "shallow", color: "#7dd3fc" },
+            { id: "remora", name: "Remora", emoji: "🐟", zone: "shallow", color: "#7dd3fc" },
             { id: "shark", name: "Shark", emoji: "🦈", zone: "shallow", color: "#7dd3fc" },
-            { id: "turtle", name: "Sea Turtle", emoji: "🐢", zone: "shallow", color: "#7dd3fc" },
+            { id: "turtle", name: "Turtle", emoji: "🐢", zone: "shallow", color: "#7dd3fc" },
             { id: "barnacle", name: "Barnacle", emoji: "🪨", zone: "shallow", color: "#7dd3fc" },
             { id: "lamprey", name: "Lamprey", emoji: "⚫", zone: "twilight", color: "#b8a6db" },
             { id: "salmon", name: "Salmon", emoji: "🐟", zone: "twilight", color: "#b8a6db" },
             { id: "lice", name: "Sea Lice", emoji: "🦟", zone: "twilight", color: "#b8a6db" },
             { id: "jellyfish", name: "Jellyfish", emoji: "🪼", zone: "twilight", color: "#b8a6db" },
-            { id: "larvae", name: "Fish Larvae", emoji: "🐣", zone: "twilight", color: "#b8a6db" },
             { id: "copepod", name: "Copepod", emoji: "🦐", zone: "twilight", color: "#b8a6db" },
             { id: "plankton", name: "Plankton", emoji: "🔬", zone: "twilight", color: "#b8a6db" },
             { id: "anglerfish", name: "Anglerfish", emoji: "🐠", zone: "deep", color: "#0d3b66" },
-            { id: "bacteria", name: "Bioluminescent Bacteria", emoji: "✨", zone: "deep", color: "#0d3b66" },
+            { id: "bacteria", name: "Bio. Bacteria", emoji: "✨", zone: "deep", color: "#0d3b66" },
             { id: "gulpereel", name: "Gulper Eel", emoji: "🐍", zone: "deep", color: "#0d3b66" },
-            { id: "squid", name: "Giant Squid", emoji: "🦑", zone: "deep", color: "#0d3b66" },
+            { id: "squid", name: "Squid", emoji: "🦑", zone: "deep", color: "#0d3b66" },
             { id: "whale", name: "Sperm Whale", emoji: "🐋", zone: "deep", color: "#0d3b66" },
             { id: "tubeworm", name: "Tube Worm", emoji: "🪱", zone: "deep", color: "#0d3b66" },
-            { id: "chemobacteria", name: "Chemosynthetic Bacteria", emoji: "🔬", zone: "deep", color: "#0d3b66" },
             { id: "octopus", name: "Octopus", emoji: "🐙", zone: "twilight", color: "#b8a6db" },
-            { id: "crab", name: "Crab", emoji: "🦀", zone: "shallow", color: "#7dd3fc" },
-            { id: "cucumber", name: "Sea Cucumber", emoji: "🌶️", zone: "shallow", color: "#7dd3fc" },
-            { id: "nudibranch", name: "Nudibranch", emoji: "🦎", zone: "shallow", color: "#7dd3fc" }
+            { id: "crab", name: "Crab", emoji: "🦀", zone: "shallow", color: "#7dd3fc" }
         ];
 
         const linksData = [
             { source: "clownfish", target: "anemone", type: "mutualism", desc: "Protection & food" },
             { source: "coral", target: "zooxanthellae", type: "mutualism", desc: "Energy exchange" },
-            { source: "wrasse", target: "grouper", type: "mutualism", desc: "Parasites removed" },
+            { source: "wrasse", target: "grouper", type: "mutualism", desc: "Parasites cleaned" },
             { source: "dolphin", target: "schoolfish", type: "mutualism", desc: "Hunt together" },
             { source: "remora", target: "shark", type: "commensalism", desc: "Free ride" },
             { source: "turtle", target: "barnacle", type: "commensalism", desc: "Transport" },
             { source: "lamprey", target: "salmon", type: "parasitism", desc: "Feed on blood" },
             { source: "lice", target: "salmon", type: "parasitism", desc: "Feed on skin" },
-            { source: "jellyfish", target: "larvae", type: "parasitism", desc: "Larvae eaten" },
-            { source: "coral", target: "wrasse", type: "mutualism", desc: "Parasites removed" },
-            { source: "plankton", target: "copepod", type: "mutualism", desc: "Nutrient cycling" },
-            { source: "anglerfish", target: "bacteria", type: "mutualism", desc: "Light production" },
-            { source: "tubeworm", target: "chemobacteria", type: "mutualism", desc: "Sulfur fixing" },
+            { source: "jellyfish", target: "plankton", type: "parasitism", desc: "Consume plankton" },
+            { source: "coral", target: "wrasse", type: "mutualism", desc: "Parasite removal" },
+            { source: "plankton", target: "copepod", type: "mutualism", desc: "Nutrient cycle" },
+            { source: "anglerfish", target: "bacteria", type: "mutualism", desc: "Bioluminescent" },
             { source: "whale", target: "squid", type: "parasitism", desc: "Predation" },
             { source: "crab", target: "anemone", type: "commensalism", desc: "Shelter" },
-            { source: "octopus", target: "crab", type: "parasitism", desc: "Predation" },
-            { source: "schoolfish", target: "plankton", type: "parasitism", desc: "Feed on plankton" }
+            { source: "octopus", target: "crab", type: "parasitism", desc: "Hunt prey" }
         ];
 
         let currentFilter = "all";
         let currentZone = "all";
+        let nodes = [];
+        let visibleLinks = [];
 
-        const networkDiv = document.getElementById("network");
-        const rect = networkDiv.getBoundingClientRect();
-        const width = networkDiv.offsetWidth;
-        const height = 600;
+        // Physics simulation
+        class Node {
+            constructor(species) {
+                this.id = species.id;
+                this.name = species.name;
+                this.emoji = species.emoji;
+                this.zone = species.zone;
+                this.color = species.color;
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.vx = 0;
+                this.vy = 0;
+            }
 
-        const svg = d3.select("#network")
-            .append("svg")
-            .attr("viewBox", [0, 0, width, height])
-            .attr("style", "max-width: 100%; height: auto;");
+            update(nodes, links) {
+                const repulsion = 300;
+                const attraction = 0.05;
+                
+                this.vx *= 0.95;
+                this.vy *= 0.95;
 
-        const g = svg.append("g");
+                // Repulsion from other nodes
+                for (let other of nodes) {
+                    if (this === other) continue;
+                    const dx = this.x - other.x;
+                    const dy = this.y - other.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy) + 1;
+                    this.vx += (dx / dist) * repulsion;
+                    this.vy += (dy / dist) * repulsion;
+                }
 
-        // Create simulation with proper initial positions
-        let nodes = [...speciesData];
-        let links = [...linksData];
+                // Attraction to linked nodes
+                for (let link of links) {
+                    let other = null;
+                    if (link.source.id === this.id) other = link.target;
+                    if (link.target.id === this.id) other = link.source;
+                    if (other) {
+                        const dx = other.x - this.x;
+                        const dy = other.y - this.y;
+                        this.vx += dx * attraction;
+                        this.vy += dy * attraction;
+                    }
+                }
 
-        let simulation = d3.forceSimulation(nodes)
-            .force("link", d3.forceLink(links).id(d => d.id).distance(80))
-            .force("charge", d3.forceManyBody().strength(-300))
-            .force("center", d3.forceCenter(width / 2, height / 2))
-            .force("collision", d3.forceCollide().radius(35));
+                // Center attraction
+                const centerX = canvas.width / 2;
+                const centerY = canvas.height / 2;
+                const dx = centerX - this.x;
+                const dy = centerY - this.y;
+                this.vx += dx * 0.01;
+                this.vy += dy * 0.01;
 
-        const tooltip = document.getElementById("tooltip");
+                // Update position
+                this.x += this.vx;
+                this.y += this.vy;
+
+                // Bounds
+                this.x = Math.max(40, Math.min(canvas.width - 40, this.x));
+                this.y = Math.max(40, Math.min(canvas.height - 40, this.y));
+            }
+
+            draw() {
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, 24, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.strokeStyle = "#e8f1f5";
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                ctx.font = "24px Arial";
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+                ctx.fillText(this.emoji, this.x, this.y);
+            }
+        }
 
         function updateVisualization() {
-            // Filter data
+            // Filter
             let filteredLinks = linksData;
-            let filteredSpecies = [...speciesData];
+            let filteredSpecies = speciesData;
 
             if (currentFilter !== "all") {
-                filteredLinks = linksData.filter(l => l.type === currentFilter);
+                filteredLinks = filteredLinks.filter(l => l.type === currentFilter);
                 const linkedIds = new Set();
                 filteredLinks.forEach(l => {
                     linkedIds.add(l.source);
@@ -307,84 +371,40 @@
                 filteredLinks = filteredLinks.filter(l => zoneIds.has(l.source) && zoneIds.has(l.target));
             }
 
-            // Update simulation
-            simulation.nodes(filteredSpecies);
-            simulation.force("link").links(filteredLinks);
-            simulation.alpha(1).restart();
+            // Create node objects
+            nodes = filteredSpecies.map(s => new Node(s));
+            
+            // Map string IDs to node objects in links
+            visibleLinks = filteredLinks.map(l => {
+                const sourceNode = nodes.find(n => n.id === l.source);
+                const targetNode = nodes.find(n => n.id === l.target);
+                return sourceNode && targetNode ? { ...l, source: sourceNode, target: targetNode } : null;
+            }).filter(Boolean);
+        }
 
-            // Remove old elements
-            g.selectAll(".link").remove();
-            g.selectAll(".node").remove();
-            g.selectAll(".label").remove();
+        function animate() {
+            ctx.fillStyle = "#0f2744";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            // Create links
-            const linkElements = g.selectAll(".link")
-                .data(filteredLinks)
-                .enter()
-                .append("line")
-                .attr("class", "link")
-                .attr("stroke", d => {
-                    if (d.type === "mutualism") return "#00b894";
-                    if (d.type === "parasitism") return "#ff6b6b";
-                    return "#4da8da";
-                })
-                .attr("stroke-width", 2)
-                .attr("opacity", 0.6);
+            // Update physics
+            nodes.forEach(node => node.update(nodes, visibleLinks));
 
-            // Create nodes
-            const nodeElements = g.selectAll(".node")
-                .data(filteredSpecies)
-                .enter()
-                .append("circle")
-                .attr("class", "node")
-                .attr("r", 24)
-                .attr("fill", d => d.color)
-                .attr("stroke", "#e8f1f5")
-                .attr("stroke-width", 2)
-                .style("cursor", "pointer")
-                .on("mouseover", (e, d) => {
-                    tooltip.style.display = "block";
-                    const relations = filteredLinks.filter(l => l.source === d.id || l.target === d.id);
-                    let html = `<div class="tooltip-title">${d.emoji} ${d.name}</div>`;
-                    relations.forEach(r => {
-                        html += `<div class="tooltip-relation">${r.type}: ${r.desc}</div>`;
-                    });
-                    tooltip.innerHTML = html;
-                })
-                .on("mousemove", (e) => {
-                    tooltip.style.left = (e.pageX + 10) + "px";
-                    tooltip.style.top = (e.pageY + 10) + "px";
-                })
-                .on("mouseout", () => {
-                    tooltip.style.display = "none";
-                });
-
-            // Node labels (emojis)
-            const labelElements = g.selectAll(".label")
-                .data(filteredSpecies)
-                .enter()
-                .append("text")
-                .attr("class", "label")
-                .attr("text-anchor", "middle")
-                .attr("dy", "0.3em")
-                .attr("font-size", "20px")
-                .attr("pointer-events", "none")
-                .text(d => d.emoji);
-
-            // Tick function
-            simulation.on("tick", () => {
-                linkElements
-                    .attr("x1", d => d.source.x)
-                    .attr("y1", d => d.source.y)
-                    .attr("x2", d => d.target.x)
-                    .attr("y2", d => d.target.y);
-                nodeElements
-                    .attr("cx", d => Math.max(24, Math.min(width - 24, d.x)))
-                    .attr("cy", d => Math.max(24, Math.min(height - 24, d.y)));
-                labelElements
-                    .attr("x", d => d.x)
-                    .attr("y", d => d.y);
+            // Draw links
+            visibleLinks.forEach(link => {
+                ctx.strokeStyle = link.type === "mutualism" ? "#00b894" : link.type === "parasitism" ? "#ff6b6b" : "#4da8da";
+                ctx.lineWidth = 2;
+                ctx.globalAlpha = 0.6;
+                ctx.beginPath();
+                ctx.moveTo(link.source.x, link.source.y);
+                ctx.lineTo(link.target.x, link.target.y);
+                ctx.stroke();
+                ctx.globalAlpha = 1;
             });
+
+            // Draw nodes
+            nodes.forEach(node => node.draw());
+
+            requestAnimationFrame(animate);
         }
 
         // Event listeners
@@ -406,8 +426,43 @@
             });
         });
 
-        // Initial render
+        // Hover tooltip
+        canvas.addEventListener("mousemove", (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            let hoveredNode = null;
+            for (let node of nodes) {
+                const dist = Math.sqrt((x - node.x) ** 2 + (y - node.y) ** 2);
+                if (dist < 24) {
+                    hoveredNode = node;
+                    break;
+                }
+            }
+
+            if (hoveredNode) {
+                const relations = visibleLinks.filter(l => l.source === hoveredNode || l.target === hoveredNode);
+                let html = `<div class="tooltip-title">${hoveredNode.emoji} ${hoveredNode.name}</div>`;
+                relations.forEach(r => {
+                    html += `<div class="tooltip-relation"><strong>${r.type}:</strong> ${r.desc}</div>`;
+                });
+                tooltip.innerHTML = html;
+                tooltip.style.display = "block";
+                tooltip.style.left = e.clientX + 12 + "px";
+                tooltip.style.top = e.clientY + 12 + "px";
+            } else {
+                tooltip.style.display = "none";
+            }
+        });
+
+        canvas.addEventListener("mouseleave", () => {
+            tooltip.style.display = "none";
+        });
+
+        // Start
         updateVisualization();
+        animate();
     </script>
 </body>
 </html>
