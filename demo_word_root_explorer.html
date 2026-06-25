@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Word Root Explorer</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; font-family: 'Space Mono', monospace; background: #0a1428; color: #e0e0e0; }
+    body { display: flex; flex-direction: column; padding: 1rem; }
+    .header { text-align: center; margin-bottom: 1.5rem; }
+    .header h1 { font-family: 'Playfair Display', serif; font-size: 2rem; color: #d4af37; margin-bottom: 0.5rem; }
+    .header p { font-size: 0.85rem; color: #a0a0a0; }
+    .container { display: flex; flex: 1; gap: 1.5rem; min-height: 0; }
+    .left { flex: 2; display: flex; flex-direction: column; gap: 1rem; }
+    .right { flex: 1; background: #0f1f2e; border: 1px solid #1f4d7f; border-radius: 8px; padding: 1rem; overflow-y: auto; }
+    .controls { background: #0f1f2e; border: 1px solid #1f4d7f; border-radius: 8px; padding: 1rem; }
+    .control-group { margin-bottom: 1rem; }
+    .control-group label { display: block; font-size: 0.8rem; color: #4da8da; font-weight: 700; margin-bottom: 0.4rem; text-transform: uppercase; letter-spacing: 0.5px; }
+    .control-group input, .control-group select {
+      width: 100%; padding: 0.6rem; background: #1a2a38; border: 1px solid #1f4d7f; color: #e0e0e0; border-radius: 4px; font-family: 'Space Mono', monospace; font-size: 0.85rem;
+    }
+    .control-group input:focus, .control-group select:focus { outline: none; border-color: #4da8da; }
+    #treeCanvas { width: 100%; height: 300px; background: #0f1f2e; border: 1px solid #1f4d7f; border-radius: 8px; cursor: grab; }
+    #treeCanvas:active { cursor: grabbing; }
+    .table-header { font-size: 0.75rem; color: #4da8da; font-weight: 700; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid #1f4d7f; display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+    .table-row { font-size: 0.8rem; margin-bottom: 0.8rem; padding: 0.6rem; background: #1a2a38; border-left: 3px solid #4da8da; border-radius: 4px; line-height: 1.5; }
+    .row-label { color: #4da8da; font-weight: 700; }
+    .row-value { color: #7dd3fc; }
+    .keyword { color: #d4af37; }
+    .error { color: #ff6b6b; }
+    .note { font-size: 0.75rem; color: #a0a0a0; margin-top: 0.5rem; font-style: italic; }
+    @media (max-width: 900px) {
+      .container { flex-direction: column; }
+      .left, .right { flex: 1; }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>📚 Word Root Explorer</h1>
+    <p>Trace English words back through Proto-Indo-European roots</p>
+  </div>
+
+  <div class="container">
+    <div class="left">
+      <div class="controls">
+        <div class="control-group">
+          <label for="wordInput">Enter an English word or select from list:</label>
+          <input type="text" id="wordInput" placeholder="e.g., mother, water, horse, fire..." autocomplete="off" list="wordList">
+          <datalist id="wordList">
+            <option value="mother"><option value="water"><option value="horse"><option value="brother">
+            <option value="fire"><option value="foot"><option value="three"><option value="heart">
+            <option value="sleep"><option value="dream"><option value="eye"><option value="hand">
+            <option value="tooth"><option value="bone"><option value="blood"><option value="door">
+            <option value="wheel"><option value="bread"><option value="milk"><option value="snow">
+            <option value="star"><option value="moon"><option value="sun"><option value="light">
+            <option value="dark"><option value="cold"><option value="warm"><option value="strong">
+            <option value="weak"><option value="big"><option value="small"><option value="good">
+            <option value="bad"><option value="life"><option value="death"><option value="king">
+            <option value="queen"><option value="sheep"><option value="cow"><option value="pig">
+          </datalist>
+          <div class="note" id="wordNote"></div>
+        </div>
+      </div>
+      <canvas id="treeCanvas"></canvas>
+    </div>
+
+    <div class="right">
+      <div id="tableContainer">
+        <div class="table-header">
+          <div><strong>Language / Stage</strong></div>
+          <div><strong>Form & Meaning</strong></div>
+        </div>
+        <div id="tableRows" style="max-height: 100%; overflow-y: auto;"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Etymological database: real PIE roots → modern descendants
+    const etymologyDB = {
+      mother: {
+        pie: { root: '*méh₂tēr', meaning: 'mother', date: '~6000 years ago' },
+        protolanguages: [
+          { lang: 'Proto-Germanic', form: '*mōder', meaning: 'mother', date: '~2000 years ago' },
+          { lang: 'Proto-Latin', form: '*mātēr', meaning: 'mother', date: '~2500 years ago' },
+          { lang: 'Proto-Greek', form: '*meter', meaning: 'mother', date: '~2500 years ago' },
+          { lang: 'Proto-Balto-Slavic', form: '*mātē', meaning: 'mother', date: '~2500 years ago' },
+          { lang: 'Proto-Indo-Iranian', form: '*mātár', meaning: 'mother', date: '~3000 years ago' }
+        ],
+        descendants: [
+          { lang: 'English', form: 'mother', meaning: 'female parent', cognate: true },
+          { lang: 'German', form: 'Mutter', meaning: 'mother', cognate: true },
+          { lang: 'Dutch', form: 'moeder', meaning: 'mother', cognate: true },
+          { lang: 'French', form: 'mère', meaning: 'mother', cognate: true },
+          { lang: 'Spanish', form: 'madre', meaning: 'mother', cognate: true },
+          { lang: 'Italian', form: 'madre', meaning: 'mother', cognate: true },
+          { lang: 'Latin (classical)', form: 'māter', meaning: 'mother', cognate: true },
+          { lang: 'Greek (ancient)', form: 'meter', meaning: 'mother', cognate: true },
+          { lang: 'Russian', form: 'мать (mat\')', meaning: 'mother', cognate: true },
+          { lang: 'Polish', form: 'matka', meaning: 'mother', cognate: true },
+          { lang: 'Lithuanian', form: 'motina', meaning: 'mother', cognate: true },
+          { lang: 'Sanskrit', form: 'mātar', meaning: 'mother', cognate: true }
+        ]
+      },
+      water: {
+        pie: { root: '*wedōr', meaning: 'water', date: '~6000 years ago' },
+        protolanguages: [
+          { lang: 'Proto-Germanic', form: '*watōr', meaning: 'water', date: '~2000 years ago' },
+          { lang: 'Proto-Latin', form: '*undā', meaning: 'wave/water', date: '~2500 years ago' },
+          { lang: 'Proto-Baltic', form: '*vandū', meaning: 'water', date: '~2500 years ago' }
+        ],
+        descendants: [
+          { lang: 'English', form: 'water', meaning: 'H₂O liquid', cognate: true },
+          { lang: 'German', form: 'Wasser', meaning: 'water', cognate: true },
+          { lang: 'Dutch', form: 'water', meaning: 'water', cognate: true },
+          { lang: 'Latin', form: 'unda', meaning: 'wave', cognate: true },
+          { lang: 'French', form: 'onde', meaning: 'wave', cognate: true },
+          { lang: 'Russian', form: 'вода (voda)', meaning: 'water', cognate: true },
+          { lang: 'Lithuanian', form: 'vanduo', meaning: 'water', cognate: true },
+          { lang: 'Sanskrit', form: 'vāri', meaning: 'water', cognate: true },
+          { lang: 'Greek (ancient)', form: 'hydōr', meaning: 'water', cognate: true }
+        ]
+      },
+      horse: {
+        pie: { root: '*h₂éḱwos', meaning: 'horse (swift animal)', date: '~6000 years ago' },
+        protolanguages: [
+          { lang: 'Proto-Germanic', form: '*ehwaz', meaning: 'horse', date: '~2000 years ago' },
+          { lang: 'Proto-Latin', form: '*equus', meaning: 'horse', date: '~2500 years ago' },
+          { lang: 'Proto-Greek', form: '*hippos', meaning: 'horse', date: '~2500 years ago' },
+          { lang: 'Proto-Indo-Iranian', form: '*aśva', meaning: 'horse', date: '~3000 years ago' }
+        ],
+        descendants: [
+          { lang: 'English', form: 'horse', meaning: 'equine animal', cognate: true },
+          { lang: 'German', form: 'Ross', meaning: 'horse (poetic)', cognate: true },
+          { lang: 'Latin', form: 'equus', meaning: 'horse', cognate: true },
+          { lang: 'French', form: 'équipe', meaning: 'team (from mounted riders)', cognate: true },
+          { lang: 'Spanish', form: 'equipo', meaning: 'team', cognate: true },
+          { lang: 'Italian', form: 'equipe', meaning: 'team', cognate: true },
+          { lang: 'Greek', form: 'hippos', meaning: 'horse', cognate: true },
+          { lang: 'Sanskrit', form: 'aśva', meaning: 'horse', cognate: true },
+          { lang: 'Persian', form: 'asb', meaning: 'horse', cognate: true }
+        ]
+      },
+      fire: {
+        pie: { root: '*péh₂ur', meaning: 'fire (ignite)', date: '~6000 years ago' },
+        protolanguages: [
+          { lang: 'Proto-Germanic', form: '*fuir', meaning: 'fire', date: '~2000 years ago' },
+          { lang: 'Proto-Latin', form: '*pūr', meaning: 'fire', date: '~2500 years ago' },
+          { lang: 'Proto-Greek', form: '*pŷr', meaning: 'fire', date: '~2500 years ago' }
+        ],
+        descendants: [
+          { lang: 'English', form: 'fire', meaning: 'burning flame', cognate: true },
+          { lang: 'German', form: 'Feuer', meaning: 'fire', cognate: true },
+          { lang: 'Dutch', form: 'vuur', meaning: 'fire', cognate: true },
+          { lang: 'Latin', form: 'pūrus', meaning: 'pure (cleansed by fire)', cognate: true },
+          { lang: 'French', form: 'pur', meaning: 'pure', cognate: true },
+          { lang: 'Greek', form: 'pŷr', meaning: 'fire', cognate: true },
+          { lang: 'Russian', form: 'пар (par)', meaning: 'steam', cognate: true },
+          { lang: 'Sanskrit', form: 'pur', meaning: 'fire', cognate: true }
+        ]
+      },
+      foot: {
+        pie: { root: '*pēds', meaning: 'foot', date: '~6000 years ago' },
+        protolanguages: [
+          { lang: 'Proto-Germanic', form: '*fōt', meaning: 'foot', date: '~2000 years ago' },
+          { lang: 'Proto-Latin', form: '*pēs', meaning: 'foot', date: '~2500 years ago' },
+          { lang: 'Proto-Greek', form: '*pous', meaning: 'foot', date: '~2500 years ago' }
+        ],
+        descendants: [
+          { lang: 'English', form: 'foot', meaning: 'lower extremity', cognate: true },
+          { lang: 'German', form: 'Fuß', meaning: 'foot', cognate: true },
+          { lang: 'Dutch', form: 'voet', meaning: 'foot', cognate: true },
+          { lang: 'Latin', form: 'pēs', meaning: 'foot', cognate: true },
+          { lang: 'French', form: 'pied', meaning: 'foot', cognate: true },
+          { lang: 'Spanish', form: 'pie', meaning: 'foot', cognate: true },
+          { lang: 'Italian', form: 'piede', meaning: 'foot', cognate: true },
+          { lang: 'Greek', form: 'pous', meaning: 'foot', cognate: true },
+          { lang: 'Russian', form: 'пята (pyata)', meaning: 'heel', cognate: true }
+        ]
+      },
+      three: {
+        pie: { root: '*treyes', meaning: 'three (cardinal)', date: '~6000 years ago' },
+        protolanguages: [
+          { lang: 'Proto-Germanic', form: '*thrijiz', meaning: 'three', date: '~2000 years ago' },
+          { lang: 'Proto-Latin', form: '*trēs', meaning: 'three', date: '~2500 years ago' },
+          { lang: 'Proto-Greek', form: '*treis', meaning: 'three', date: '~2500 years ago' }
+        ],
+        descendants: [
+          { lang: 'English', form: 'three', meaning: 'number 3', cognate: true },
+          { lang: 'German', form: 'drei', meaning: 'three', cognate: true },
+          { lang: 'Dutch', form: 'drie', meaning: 'three', cognate: true },
+          { lang: 'Latin', form: 'trēs', meaning: 'three', cognate: true },
+          { lang: 'French', form: 'trois', meaning: 'three', cognate: true },
+          { lang: 'Spanish', form: 'tres', meaning: 'three', cognate: true },
+          { lang: 'Italian', form: 'tre', meaning: 'three', cognate: true },
+          { lang: 'Greek', form: 'treis', meaning: 'three', cognate: true },
+          { lang: 'Russian', form: 'три (tri)', meaning: 'three', cognate: true },
+          { lang: 'Lithuanian', form: 'trys', meaning: 'three', cognate: true },
+          { lang: 'Sanskrit', form: 'traya', meaning: 'three', cognate: true }
+        ]
+      },
+      heart: {
+        pie: { root: '*ḱérd', meaning: 'heart', date: '~6000 years ago' },
+        protolanguages: [
+          { lang: 'Proto-Germanic', form: '*hert', meaning: 'heart', date: '~2000 years ago' },
+          { lang: 'Proto-Latin', form: '*cord', meaning: 'heart', date: '~2500 years ago' },
+          { lang: 'Proto-Greek', form: '*kardia', meaning: 'heart', date: '~2500 years ago' }
+        ],
+        descendants: [
+          { lang: 'English', form: 'heart', meaning: 'organ/courage', cognate: true },
+          { lang: 'German', form: 'Herz', meaning: 'heart', cognate: true },
+          { lang: 'Dutch', form: 'hart', meaning: 'heart', cognate: true },
+          { lang: 'Latin', form: 'cor', meaning: 'heart', cognate: true },
+          { lang: 'French', form: 'cœur', meaning: 'heart', cognate: true },
+          { lang: 'Spanish', form: 'corazón', meaning: 'heart', cognate: true },
+          { lang: 'Italian', form: 'cuore', meaning: 'heart', cognate: true },
+          { lang: 'Greek', form: 'kardia', meaning: 'heart', cognate: true },
+          { lang: 'Sanskrit', form: 'hṛd', meaning: 'heart', cognate: true }
+        ]
+      },
+      sleep: {
+        pie: { root: '*slep', meaning: 'to slipstorm/sleep', date: '~6000 years ago' },
+        protolanguages: [
+          { lang: 'Proto-Germanic', form: '*slēpaz', meaning: 'sleep', date: '~2000 years ago' },
+          { lang: 'Proto-Balto-Slavic', form: '*slep', meaning: 'sleep', date: '~2500 years ago' }
+        ],
+        descendants: [
+          { lang: 'English', form: 'sleep', meaning: 'rest state', cognate: true },
+          { lang: 'German', form: 'Schlaf', meaning: 'sleep', cognate: true },
+          { lang: 'Dutch', form: 'slaap', meaning: 'sleep', cognate: true },
+          { lang: 'Russian', form: 'сон (son)', meaning: 'sleep', cognate: false },
+          { lang: 'Polish', form: 'sen', meaning: 'dream/sleep', cognate: true },
+          { lang: 'Lithuanian', form: 'sapnas', meaning: 'dream', cognate: true }
+        ]
+      }
+    };
+
+    let currentWord = 'mother';
+    let zoomLevel = 1;
+    let panX = 0, panY = 0;
+    let isDragging = false;
+    let lastX = 0, lastY = 0;
+
+    const wordInput = document.getElementById('wordInput');
+    const treeCanvas = document.getElementById('treeCanvas');
+    const ctx = treeCanvas.getContext('2d');
+    const tableRows = document.getElementById('tableRows');
+
+    // Resize canvas to parent
+    function resizeCanvas() {
+      const rect = treeCanvas.parentElement.getBoundingClientRect();
+      treeCanvas.width = rect.width;
+      treeCanvas.height = rect.height;
+      drawTree();
+    }
+
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    // Input handler
+    wordInput.addEventListener('input', (e) => {
+      const word = e.target.value.toLowerCase().trim();
+      if (etymologyDB[word]) {
+        currentWord = word;
+        panX = 0;
+        panY = 0;
+        zoomLevel = 1;
+        updateTable();
+        drawTree();
+      }
+    });
+
+    // Mouse wheel zoom
+    treeCanvas.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      const delta = e.deltaY > 0 ? 0.9 : 1.1;
+      zoomLevel *= delta;
+      zoomLevel = Math.max(0.5, Math.min(3, zoomLevel));
+      drawTree();
+    });
+
+    // Pan on drag
+    treeCanvas.addEventListener('mousedown', (e) => {
+      isDragging = true;
+      lastX = e.clientX;
+      lastY = e.clientY;
+    });
+
+    document.addEventListener('mousemove', (e) => {
+      if (isDragging) {
+        const deltaX = e.clientX - lastX;
+        const deltaY = e.clientY - lastY;
+        panX += deltaX;
+        panY += deltaY;
+        lastX = e.clientX;
+        lastY = e.clientY;
+        drawTree();
+      }
+    });
+
+    document.addEventListener('mouseup', () => {
+      isDragging = false;
+    });
+
+    // Update right-side table
+    function updateTable() {
+      const data = etymologyDB[currentWord];
+      let html = '';
+
+      html += `<div class="table-row"><div class="row-label">PIE Root:</div><div class="row-value">${data.pie.root} (${data.pie.meaning})</div><div class="note">${data.pie.date}</div></div>`;
+
+      data.protolanguages.forEach(p => {
+        html += `<div class="table-row"><div class="row-label">${p.lang}:</div><div class="row-value">${p.form} — ${p.meaning}</div><div class="note">${p.date}</div></div>`;
+      });
+
+      html += `<div class="table-row" style="border-left-color: #7dd3fc; margin-top: 1rem;"><div class="row-label">Modern Descendants:</div></div>`;
+
+      data.descendants.slice(0, 10).forEach(d => {
+        html += `<div class="table-row" style="border-left-color: #7dd3fc; padding: 0.4rem;"><span class="keyword">${d.lang}</span>: <span class="row-value">${d.form}</span> (${d.meaning})</div>`;
+      });
+
+      if (data.descendants.length > 10) {
+        html += `<div class="table-row" style="border-left-color: #a0a0a0; color: #a0a0a0;">+ ${data.descendants.length - 10} more languages</div>`;
+      }
+
+      tableRows.innerHTML = html;
+    }
+
+    // Draw etymological tree
+    function drawTree() {
+      ctx.fillStyle = '#0f1f2e';
+      ctx.fillRect(0, 0, treeCanvas.width, treeCanvas.height);
+
+      ctx.save();
+      ctx.translate(treeCanvas.width / 2 + panX, 40 + panY);
+      ctx.scale(zoomLevel, zoomLevel);
+
+      const data = etymologyDB[currentWord];
+      const canvasWidth = treeCanvas.width / zoomLevel;
+      const canvasHeight = treeCanvas.height / zoomLevel;
+      const centerX = -canvasWidth / 2;
+      const centerY = -40 / zoomLevel;
+
+      // PIE root node (top)
+      const rootY = centerY;
+      const rootX = centerX + canvasWidth / 2;
+      drawNode(rootX, rootY, data.pie.root, '#d4af37', 8);
+
+      // Proto-languages (middle layer)
+      const protoY = rootY + 80;
+      const protoCount = data.protolanguages.length;
+      const protoSpacing = canvasWidth / (protoCount + 1);
+
+      data.protolanguages.forEach((proto, i) => {
+        const protoX = centerX + (i + 1) * protoSpacing;
+        drawNode(protoX, protoY, proto.form, '#4da8da', 6);
+        drawLine(rootX, rootY + 8, protoX, protoY - 6, '#1f4d7f');
+      });
+
+      // Modern descendants (bottom layer)
+      const descY = protoY + 80;
+      const descCount = Math.min(data.descendants.length, 10);
+      const descSpacing = canvasWidth / (descCount + 1);
+
+      data.descendants.slice(0, descCount).forEach((desc, i) => {
+        const descX = centerX + (i + 1) * descSpacing;
+        const color = desc.cognate ? '#7dd3fc' : '#ff6b6b';
+        drawNode(descX, descY, desc.form, color, 5);
+
+        // Connect to nearest proto-language (simple: first proto)
+        const nearestProto = data.protolanguages[Math.min(i, data.protolanguages.length - 1)];
+        const nearestProtoX = centerX + (Math.min(i, data.protolanguages.length - 1) + 1) * protoSpacing;
+        drawLine(nearestProtoX, protoY + 6, descX, descY - 5, '#1f4d7f');
+      });
+
+      // Legend
+      ctx.fillStyle = '#a0a0a0';
+      ctx.font = '10px "Space Mono"';
+      ctx.fillText('PIE = Proto-Indo-European | Drag to pan | Scroll to zoom', centerX, descY + 60);
+
+      ctx.restore();
+
+      // Draw UI hint
+      ctx.fillStyle = '#a0a0a0';
+      ctx.font = '11px "Space Mono"';
+      ctx.fillText('Zoom: scroll wheel | Pan: drag mouse', 10, treeCanvas.height - 10);
+    }
+
+    function drawNode(x, y, label, color, radius) {
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(x, y, radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(224, 224, 224, 0.3)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      // Label
+      ctx.fillStyle = '#e0e0e0';
+      ctx.font = '9px "Space Mono"';
+      ctx.textAlign = 'center';
+      ctx.fillText(label, x, y + 12);
+    }
+
+    function drawLine(x1, y1, x2, y2, color) {
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x2, y2);
+      ctx.stroke();
+    }
+
+    // Initialize
+    wordInput.value = currentWord;
+    updateTable();
+  </script>
+</body>
+</html>
