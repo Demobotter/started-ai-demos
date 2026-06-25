@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Birdsong Spectrogram Lab</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Space+Mono:wght@400&display=swap" rel="stylesheet" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Space Mono', monospace;
+      background: linear-gradient(135deg, #0a1428 0%, #1a2a4a 100%);
+      color: #e0e6ff;
+      padding: 20px;
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: 2.5rem;
+      text-align: center;
+      margin-bottom: 10px;
+      color: #fff;
+    }
+    .subtitle {
+      text-align: center;
+      font-size: 0.95rem;
+      color: #8899dd;
+      margin-bottom: 30px;
+    }
+    .main-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+    @media (max-width: 768px) {
+      .main-grid { grid-template-columns: 1fr; }
+    }
+    .canvas-panel {
+      background: rgba(15, 30, 60, 0.6);
+      border: 1px solid #4da8da;
+      border-radius: 8px;
+      padding: 15px;
+    }
+    canvas {
+      display: block;
+      width: 100%;
+      height: auto;
+      background: #0a1428;
+      border-radius: 4px;
+      margin-bottom: 15px;
+    }
+    .controls-panel {
+      background: rgba(15, 30, 60, 0.6);
+      border: 1px solid #4da8da;
+      border-radius: 8px;
+      padding: 20px;
+      max-height: 700px;
+      overflow-y: auto;
+    }
+    .control-group {
+      margin-bottom: 20px;
+    }
+    .control-label {
+      font-size: 0.85rem;
+      color: #8899dd;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+      display: block;
+      font-weight: bold;
+    }
+    select, button {
+      width: 100%;
+      padding: 10px;
+      background: rgba(77, 168, 218, 0.1);
+      border: 1px solid #4da8da;
+      color: #e0e6ff;
+      border-radius: 4px;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    select:hover, button:hover {
+      background: rgba(77, 168, 218, 0.2);
+      border-color: #6dbce8;
+    }
+    select:focus, button:focus {
+      outline: none;
+      border-color: #4da8da;
+      box-shadow: 0 0 8px rgba(77, 168, 218, 0.3);
+    }
+    .play-btn {
+      width: 100%;
+      margin-bottom: 10px;
+      background: rgba(0, 255, 136, 0.15);
+      border-color: #00ff88;
+      color: #00ff88;
+    }
+    .play-btn:hover {
+      background: rgba(0, 255, 136, 0.25);
+    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .stat-box {
+      background: rgba(77, 168, 218, 0.1);
+      border-left: 3px solid #4da8da;
+      padding: 12px;
+      border-radius: 4px;
+    }
+    .stat-label {
+      font-size: 0.75rem;
+      color: #7dd3fc;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+    .stat-value {
+      font-size: 1.1rem;
+      color: #e0e6ff;
+      font-weight: bold;
+    }
+    .species-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .species-btn {
+      width: 100%;
+      padding: 12px 8px;
+      font-size: 0.8rem;
+      text-align: center;
+      background: rgba(77, 168, 218, 0.1);
+      border: 1px solid #4da8da;
+      color: #e0e6ff;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    .species-btn:hover {
+      background: rgba(77, 168, 218, 0.2);
+    }
+    .species-btn.active {
+      background: rgba(77, 168, 218, 0.4);
+      border-color: #00ff88;
+      color: #00ff88;
+    }
+    .info-text {
+      font-size: 0.85rem;
+      line-height: 1.5;
+      color: #b8c5e0;
+      margin-bottom: 15px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🐦 Birdsong Spectrogram Lab</h1>
+    <div class="subtitle">Pick a bird species, hear its call, study the frequency structure</div>
+
+    <div class="main-grid">
+      <!-- Spectrogram Canvas -->
+      <div class="canvas-panel">
+        <canvas id="spectrogramCanvas" width="600" height="400"></canvas>
+        <button class="play-btn" id="playBtn">▶️ Play Audio</button>
+        <div class="info-text" id="infoText">
+          Select a species to load its spectrogram and audio sample.
+        </div>
+      </div>
+
+      <!-- Control Panel -->
+      <div class="controls-panel">
+        <div class="control-group">
+          <label class="control-label">Select Species</label>
+          <div class="species-grid" id="speciesGrid"></div>
+        </div>
+
+        <div class="control-group">
+          <div class="stats-grid" id="statsGrid"></div>
+        </div>
+
+        <div class="control-group">
+          <label class="control-label">Ornithological Data</label>
+          <div id="ornithData" class="info-text"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Bird species database with real ornithological data
+    const birds = {
+      loon: {
+        name: 'Common Loon',
+        scientific: 'Gavia immer',
+        minFreq: 0.2,
+        maxFreq: 8.0,
+        peakFreq: 1.2,
+        callType: 'Wail Call',
+        range: 'North America (lakes, coastal)',
+        habitat: 'Freshwater lakes, northern coasts',
+        season: 'Breeding: May–Aug, resident winters',
+        icon: '🌊'
+      },
+      heron: {
+        name: 'Great Blue Heron',
+        scientific: 'Ardea herodias',
+        minFreq: 0.1,
+        maxFreq: 5.0,
+        peakFreq: 0.8,
+        callType: 'Alarm Call',
+        range: 'North America (wetlands)',
+        habitat: 'Marshes, estuaries, lake edges',
+        season: 'Year-round, more vocal breeding',
+        icon: '🏞️'
+      },
+      owl: {
+        name: 'Barred Owl',
+        scientific: 'Strix varia',
+        minFreq: 0.3,
+        maxFreq: 3.5,
+        peakFreq: 0.7,
+        callType: 'Hoot Series',
+        range: 'Eastern North America',
+        habitat: 'Dense forests, wooded swamps',
+        season: 'Year-round resident',
+        icon: '🌙'
+      },
+      wren: {
+        name: 'Carolina Wren',
+        scientific: 'Thryothorus ludovicianus',
+        minFreq: 1.5,
+        maxFreq: 8.0,
+        peakFreq: 3.5,
+        callType: 'Song (trill)',
+        range: 'Southeastern North America',
+        habitat: 'Brushy areas, forest edges',
+        season: 'Year-round resident',
+        icon: '🌳'
+      },
+      thrush: {
+        name: 'Wood Thrush',
+        scientific: 'Hylocichla mustelina',
+        minFreq: 2.0,
+        maxFreq: 7.5,
+        peakFreq: 4.0,
+        callType: 'Song (flute-like)',
+        range: 'Eastern North America',
+        habitat: 'Deciduous & mixed forests',
+        season: 'Breeding: May–Aug (migratory)',
+        icon: '🍃'
+      },
+      robin: {
+        name: 'American Robin',
+        scientific: 'Turdus migratorius',
+        minFreq: 1.8,
+        maxFreq: 6.5,
+        peakFreq: 3.2,
+        callType: 'Song & alarm',
+        range: 'North America (widespread)',
+        habitat: 'Gardens, forests, open areas',
+        season: 'Mostly migratory, year-round some areas',
+        icon: '🏡'
+      },
+      cardinal: {
+        name: 'Northern Cardinal',
+        scientific: 'Cardinalis cardinalis',
+        minFreq: 1.2,
+        maxFreq: 6.0,
+        peakFreq: 2.8,
+        callType: 'Song & chip calls',
+        range: 'Eastern & Central North America',
+        habitat: 'Forests, shrublands, gardens',
+        season: 'Year-round resident',
+        icon: '❤️'
+      },
+      chickadee: {
+        name: 'Black-capped Chickadee',
+        scientific: 'Poecile atricapillus',
+        minFreq: 2.5,
+        maxFreq: 8.5,
+        peakFreq: 4.5,
+        callType: 'Chick-a-dee call & song',
+        range: 'Northern North America',
+        habitat: 'Woodlands, brushy areas',
+        season: 'Year-round resident',
+        icon: '⚫'
+      },
+      woodpecker: {
+        name: 'Pileated Woodpecker',
+        scientific: 'Dryocopus pileatus',
+        minFreq: 0.5,
+        maxFreq: 6.0,
+        peakFreq: 2.0,
+        callType: 'Drum & call',
+        range: 'North American forests',
+        habitat: 'Mature forest (dead trees)',
+        season: 'Year-round resident',
+        icon: '🪵'
+      },
+      towhee: {
+        name: 'Eastern Towhee',
+        scientific: 'Pipilo erythrophthalmus',
+        minFreq: 1.0,
+        maxFreq: 7.0,
+        peakFreq: 3.5,
+        callType: 'Song (drink-your-tea)',
+        range: 'Eastern North America',
+        habitat: 'Brushy, weedy areas',
+        season: 'Breeding: Apr–Oct (migratory)',
+        icon: '🌾'
+      },
+      bunting: {
+        name: 'Indigo Bunting',
+        scientific: 'Passerina cyanea',
+        minFreq: 2.0,
+        maxFreq: 8.0,
+        peakFreq: 4.2,
+        callType: 'Song (variable)',
+        range: 'Eastern North America',
+        habitat: 'Open woodlands, field edges',
+        season: 'Breeding: May–Sep (migratory)',
+        icon: '💙'
+      },
+      tanager: {
+        name: 'Scarlet Tanager',
+        scientific: 'Piranga olivacea',
+        minFreq: 1.5,
+        maxFreq: 6.5,
+        peakFreq: 3.8,
+        callType: 'Song (similar to robin)',
+        range: 'Eastern North America',
+        habitat: 'Deciduous & mixed forests',
+        season: 'Breeding: May–Aug (migratory)',
+        icon: '🔴'
+      }
+    };
+
+    let currentSpecies = null;
+    let currentAudio = null;
+
+    // Generate synthetic spectrogram data based on bird frequency range
+    function generateSpectrogramData(bird) {
+      const canvas = document.getElementById('spectrogramCanvas');
+      const ctx = canvas.getContext('2d');
+      const width = canvas.width;
+      const height = canvas.height;
+
+      // Create spectrogram using gradient-based visualization
+      // Time axis: 0-5 seconds (width)
+      // Frequency axis: 0-10 kHz (height)
+      const imageData = ctx.createImageData(width, height);
+      const data = imageData.data;
+
+      for (let x = 0; x < width; x++) {
+        for (let y = 0; y < height; y++) {
+          const idx = (y * width + x) * 4;
+          
+          // Frequency at this pixel (0-10 kHz)
+          const freq = (1 - y / height) * 10;
+          const timePos = x / width * 5; // 0-5 seconds
+          
+          // Intensity based on bird's frequency range and harmonic series
+          let intensity = 0;
+          
+          if (freq >= bird.minFreq && freq <= bird.maxFreq) {
+            // Core frequency band
+            const distToPeak = Math.abs(freq - bird.peakFreq);
+            intensity = Math.max(0, 1 - (distToPeak / (bird.maxFreq - bird.minFreq)));
+            
+            // Add harmonic structure (harmonics every octave)
+            let harmonic = 1;
+            while (bird.peakFreq * harmonic <= 10) {
+              const harmFreq = bird.peakFreq * harmonic;
+              if (Math.abs(freq - harmFreq) < 0.3) {
+                intensity += 0.3 / (harmonic * harmonic);
+              }
+              harmonic += 1;
+            }
+            
+            // Temporal variation: bursts/chirps
+            const chirpPhase = Math.sin(timePos * Math.PI * 2) * 0.5 + 0.5;
+            intensity *= (0.7 + chirpPhase * 0.3);
+            
+            // Small random variation for natural look
+            intensity *= (0.85 + Math.random() * 0.3);
+          }
+          
+          intensity = Math.min(1, intensity);
+          
+          // Color map: blue → cyan → green → yellow → red
+          let r, g, b;
+          if (intensity < 0.25) {
+            r = Math.round(10 + intensity * 80);
+            g = Math.round(20 + intensity * 150);
+            b = Math.round(40 + intensity * 150);
+          } else if (intensity < 0.5) {
+            r = Math.round(90 + (intensity - 0.25) * 80);
+            g = Math.round(170 + (intensity - 0.25) * 40);
+            b = Math.round(190 - (intensity - 0.25) * 100);
+          } else if (intensity < 0.75) {
+            r = Math.round(170 + (intensity - 0.5) * 80);
+            g = Math.round(210 - (intensity - 0.5) * 60);
+            b = Math.round(90 - (intensity - 0.5) * 180);
+          } else {
+            r = Math.round(255);
+            g = Math.round(210 - (intensity - 0.75) * 120);
+            b = Math.round(0);
+          }
+          
+          data[idx] = r;
+          data[idx + 1] = g;
+          data[idx + 2] = b;
+          data[idx + 3] = 255;
+        }
+      }
+
+      ctx.putImageData(imageData, 0, 0);
+      
+      // Draw axes
+      ctx.strokeStyle = '#4da8da';
+      ctx.fillStyle = '#8899dd';
+      ctx.font = '12px Space Mono';
+      
+      // Frequency axis labels
+      ctx.textAlign = 'right';
+      for (let f = 0; f <= 10; f += 2) {
+        const y = height - (f / 10) * height;
+        ctx.fillText(f + ' kHz', width + 5, y + 4);
+      }
+      
+      // Time axis label
+      ctx.textAlign = 'center';
+      ctx.fillText('Time (seconds)', width / 2, height + 20);
+      ctx.textAlign = 'left';
+      ctx.fillText('Frequency', -30, height / 2);
+    }
+
+    // Create synthetic audio using Web Audio API
+    function createBirdAudio(bird) {
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const duration = 3;
+      const sampleRate = audioCtx.sampleRate;
+      const audioBuffer = audioCtx.createBuffer(1, sampleRate * duration, sampleRate);
+      const data = audioBuffer.getChannelData(0);
+
+      // Generate bird-like audio: frequency modulation + harmonics
+      for (let i = 0; i < sampleRate * duration; i++) {
+        const t = i / sampleRate;
+        
+        // Frequency modulation (birds often sweep frequencies)
+        const chirpShape = Math.sin(t * Math.PI / duration);
+        const freq = bird.peakFreq * 1000 + bird.peakFreq * 500 * chirpShape;
+        
+        // Envelope (fade in/out, bursts)
+        const envelope = Math.sin(t * Math.PI) * 0.7;
+        const burstPattern = Math.sin(t * 8 * Math.PI) > 0 ? 1 : 0;
+        
+        // Main tone + harmonics
+        let sample = 0;
+        for (let h = 1; h <= 3; h++) {
+          const harmPhase = 2 * Math.PI * freq * h * t / 1000;
+          sample += Math.sin(harmPhase) / h;
+        }
+        
+        // Add some complexity with sub-harmonics
+        sample += Math.sin(2 * Math.PI * (freq * 0.5) * t / 1000) * 0.3;
+        
+        // Apply envelope and burst pattern
+        data[i] = (sample / 6) * envelope * burstPattern * 0.3;
+      }
+
+      return audioBuffer;
+    }
+
+    // Play audio
+    function playBirdAudio(bird) {
+      if (currentAudio) {
+        currentAudio.stop();
+      }
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const audioBuffer = createBirdAudio(bird);
+      const source = audioCtx.createBufferSource();
+      source.buffer = audioBuffer;
+      source.connect(audioCtx.destination);
+      source.start(0);
+      currentAudio = source;
+    }
+
+    // Update display for selected bird
+    function selectSpecies(key) {
+      currentSpecies = key;
+      const bird = birds[key];
+      
+      // Update buttons
+      document.querySelectorAll('.species-btn').forEach(btn => {
+        btn.classList.remove('active');
+      });
+      document.querySelector(`[data-bird="${key}"]`).classList.add('active');
+      
+      // Generate and display spectrogram
+      generateSpectrogramData(bird);
+      
+      // Update info
+      document.getElementById('infoText').textContent = 
+        `${bird.icon} ${bird.name} (${bird.scientific}) — ${bird.callType}`;
+      
+      // Update stats
+      updateStats(bird);
+      updateOrnithData(bird);
+    }
+
+    function updateStats(bird) {
+      const statsGrid = document.getElementById('statsGrid');
+      statsGrid.innerHTML = `
+        <div class="stat-box">
+          <div class="stat-label">Freq Range</div>
+          <div class="stat-value">${bird.minFreq}–${bird.maxFreq} kHz</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Peak Freq</div>
+          <div class="stat-value">${bird.peakFreq} kHz</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Call Type</div>
+          <div class="stat-value">${bird.callType}</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">Habitat</div>
+          <div class="stat-value">${bird.habitat.split(',')[0]}</div>
+        </div>
+      `;
+    }
+
+    function updateOrnithData(bird) {
+      document.getElementById('ornithData').innerHTML = `
+        <strong>${bird.icon} ${bird.name}</strong><br>
+        <em>${bird.scientific}</em><br><br>
+        <strong>Range:</strong> ${bird.range}<br>
+        <strong>Habitat:</strong> ${bird.habitat}<br>
+        <strong>Season:</strong> ${bird.season}
+      `;
+    }
+
+    // Build species grid
+    function initUI() {
+      const grid = document.getElementById('speciesGrid');
+      Object.entries(birds).forEach(([key, bird]) => {
+        const btn = document.createElement('button');
+        btn.classList.add('species-btn');
+        btn.setAttribute('data-bird', key);
+        btn.textContent = `${bird.icon}\n${bird.name.split(' ')[0]}`;
+        btn.addEventListener('click', () => selectSpecies(key));
+        grid.appendChild(btn);
+      });
+      
+      // Play button
+      document.getElementById('playBtn').addEventListener('click', () => {
+        if (currentSpecies) {
+          playBirdAudio(birds[currentSpecies]);
+        }
+      });
+      
+      // Select first species
+      selectSpecies('loon');
+    }
+
+    // Initialize on page load
+    window.addEventListener('load', initUI);
+  </script>
+</body>
+</html>
