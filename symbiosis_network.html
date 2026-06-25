@@ -37,13 +37,16 @@
             gap: 20px;
             margin-bottom: 20px;
         }
-        #network {
+        #canvas-wrapper {
             background: #0f2744;
             border-radius: 12px;
             border: 2px solid #1f4d7f;
+            padding: 0;
+            overflow: hidden;
+        }
+        #network {
             display: block;
             width: 100%;
-            height: 600px;
         }
         .controls {
             background: #0f2744;
@@ -134,22 +137,18 @@
             .main {
                 grid-template-columns: 1fr;
             }
-            h1 {
-                font-size: 1.8em;
-            }
-            .controls {
-                grid-row: 2;
-            }
         }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>🌊 Symbiosis Network</h1>
-        <p class="subtitle">Click filter buttons to explore marine partnerships</p>
+        <p class="subtitle">Click filters to explore ocean partnerships</p>
         
         <div class="main">
-            <canvas id="network"></canvas>
+            <div id="canvas-wrapper">
+                <canvas id="network" height="600"></canvas>
+            </div>
             <div class="controls">
                 <div class="control-group">
                     <h3>Filter</h3>
@@ -186,19 +185,6 @@
                             <div class="legend-color" style="background: #4da8da;"></div>
                             <span>Commensalism</span>
                         </div>
-                        <hr style="border: none; border-top: 1px solid #1f4d7f; margin: 10px 0;">
-                        <div class="legend-item">
-                            <div class="legend-color" style="background: #7dd3fc;"></div>
-                            <span>Shallow (0-200m)</span>
-                        </div>
-                        <div class="legend-item">
-                            <div class="legend-color" style="background: #b8a6db;"></div>
-                            <span>Twilight (200-1k)</span>
-                        </div>
-                        <div class="legend-item">
-                            <div class="legend-color" style="background: #0d3b66;"></div>
-                            <span>Deep (1000m+)</span>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -211,139 +197,122 @@
         const canvas = document.getElementById("network");
         const ctx = canvas.getContext("2d");
         const tooltip = document.getElementById("tooltip");
+        
+        // Force canvas size ASAP
+        const wrapper = document.getElementById("canvas-wrapper");
+        setTimeout(() => {
+            canvas.width = wrapper.offsetWidth;
+        }, 50);
 
-        // Set canvas size
-        function resizeCanvas() {
-            canvas.width = canvas.offsetWidth;
-            canvas.height = canvas.offsetHeight;
-        }
-        resizeCanvas();
-        window.addEventListener("resize", resizeCanvas);
-
-        // Marine symbiosis database
+        // Marine symbiosis data
         const speciesData = [
-            { id: "clownfish", name: "Clownfish", emoji: "🐠", zone: "shallow", color: "#7dd3fc" },
-            { id: "anemone", name: "Sea Anemone", emoji: "🌸", zone: "shallow", color: "#7dd3fc" },
-            { id: "coral", name: "Coral", emoji: "🪸", zone: "shallow", color: "#7dd3fc" },
-            { id: "zooxanthellae", name: "Zooxanthellae", emoji: "🌿", zone: "shallow", color: "#7dd3fc" },
-            { id: "wrasse", name: "Wrasse", emoji: "🐟", zone: "shallow", color: "#7dd3fc" },
-            { id: "grouper", name: "Grouper", emoji: "🐡", zone: "shallow", color: "#7dd3fc" },
-            { id: "dolphin", name: "Dolphin", emoji: "🐬", zone: "shallow", color: "#7dd3fc" },
-            { id: "schoolfish", name: "Fish School", emoji: "🐠", zone: "shallow", color: "#7dd3fc" },
-            { id: "remora", name: "Remora", emoji: "🐟", zone: "shallow", color: "#7dd3fc" },
-            { id: "shark", name: "Shark", emoji: "🦈", zone: "shallow", color: "#7dd3fc" },
-            { id: "turtle", name: "Turtle", emoji: "🐢", zone: "shallow", color: "#7dd3fc" },
-            { id: "barnacle", name: "Barnacle", emoji: "🪨", zone: "shallow", color: "#7dd3fc" },
-            { id: "lamprey", name: "Lamprey", emoji: "⚫", zone: "twilight", color: "#b8a6db" },
-            { id: "salmon", name: "Salmon", emoji: "🐟", zone: "twilight", color: "#b8a6db" },
-            { id: "lice", name: "Sea Lice", emoji: "🦟", zone: "twilight", color: "#b8a6db" },
-            { id: "jellyfish", name: "Jellyfish", emoji: "🪼", zone: "twilight", color: "#b8a6db" },
-            { id: "copepod", name: "Copepod", emoji: "🦐", zone: "twilight", color: "#b8a6db" },
-            { id: "plankton", name: "Plankton", emoji: "🔬", zone: "twilight", color: "#b8a6db" },
-            { id: "anglerfish", name: "Anglerfish", emoji: "🐠", zone: "deep", color: "#0d3b66" },
-            { id: "bacteria", name: "Bio. Bacteria", emoji: "✨", zone: "deep", color: "#0d3b66" },
-            { id: "gulpereel", name: "Gulper Eel", emoji: "🐍", zone: "deep", color: "#0d3b66" },
-            { id: "squid", name: "Squid", emoji: "🦑", zone: "deep", color: "#0d3b66" },
-            { id: "whale", name: "Sperm Whale", emoji: "🐋", zone: "deep", color: "#0d3b66" },
-            { id: "tubeworm", name: "Tube Worm", emoji: "🪱", zone: "deep", color: "#0d3b66" },
-            { id: "octopus", name: "Octopus", emoji: "🐙", zone: "twilight", color: "#b8a6db" },
-            { id: "crab", name: "Crab", emoji: "🦀", zone: "shallow", color: "#7dd3fc" }
+            { id: "clownfish", name: "Clownfish", emoji: "🐠", zone: "shallow" },
+            { id: "anemone", name: "Anemone", emoji: "🌸", zone: "shallow" },
+            { id: "coral", name: "Coral", emoji: "🪸", zone: "shallow" },
+            { id: "zooxanthellae", name: "Algae", emoji: "🌿", zone: "shallow" },
+            { id: "wrasse", name: "Wrasse", emoji: "🐟", zone: "shallow" },
+            { id: "grouper", name: "Grouper", emoji: "🐡", zone: "shallow" },
+            { id: "dolphin", name: "Dolphin", emoji: "🐬", zone: "shallow" },
+            { id: "school", name: "Fish School", emoji: "🐠", zone: "shallow" },
+            { id: "remora", name: "Remora", emoji: "🐟", zone: "shallow" },
+            { id: "shark", name: "Shark", emoji: "🦈", zone: "shallow" },
+            { id: "turtle", name: "Turtle", emoji: "🐢", zone: "shallow" },
+            { id: "lamprey", name: "Lamprey", emoji: "⚫", zone: "twilight" },
+            { id: "salmon", name: "Salmon", emoji: "🐟", zone: "twilight" },
+            { id: "lice", name: "Sea Lice", emoji: "🦟", zone: "twilight" },
+            { id: "jellyfish", name: "Jellyfish", emoji: "🪼", zone: "twilight" },
+            { id: "copepod", name: "Copepod", emoji: "🦐", zone: "twilight" },
+            { id: "anglerfish", name: "Anglerfish", emoji: "🐠", zone: "deep" },
+            { id: "bacteria", name: "Bacteria", emoji: "✨", zone: "deep" },
+            { id: "squid", name: "Squid", emoji: "🦑", zone: "deep" },
+            { id: "whale", name: "Whale", emoji: "🐋", zone: "deep" }
         ];
 
         const linksData = [
-            { source: "clownfish", target: "anemone", type: "mutualism", desc: "Protection & food" },
-            { source: "coral", target: "zooxanthellae", type: "mutualism", desc: "Energy exchange" },
-            { source: "wrasse", target: "grouper", type: "mutualism", desc: "Parasites cleaned" },
-            { source: "dolphin", target: "schoolfish", type: "mutualism", desc: "Hunt together" },
-            { source: "remora", target: "shark", type: "commensalism", desc: "Free ride" },
-            { source: "turtle", target: "barnacle", type: "commensalism", desc: "Transport" },
-            { source: "lamprey", target: "salmon", type: "parasitism", desc: "Feed on blood" },
-            { source: "lice", target: "salmon", type: "parasitism", desc: "Feed on skin" },
-            { source: "jellyfish", target: "plankton", type: "parasitism", desc: "Consume plankton" },
-            { source: "coral", target: "wrasse", type: "mutualism", desc: "Parasite removal" },
-            { source: "plankton", target: "copepod", type: "mutualism", desc: "Nutrient cycle" },
-            { source: "anglerfish", target: "bacteria", type: "mutualism", desc: "Bioluminescent" },
-            { source: "whale", target: "squid", type: "parasitism", desc: "Predation" },
-            { source: "crab", target: "anemone", type: "commensalism", desc: "Shelter" },
-            { source: "octopus", target: "crab", type: "parasitism", desc: "Hunt prey" }
+            { source: "clownfish", target: "anemone", type: "mutualism" },
+            { source: "coral", target: "zooxanthellae", type: "mutualism" },
+            { source: "wrasse", target: "grouper", type: "mutualism" },
+            { source: "dolphin", target: "school", type: "mutualism" },
+            { source: "remora", target: "shark", type: "commensalism" },
+            { source: "turtle", target: "anemone", type: "commensalism" },
+            { source: "lamprey", target: "salmon", type: "parasitism" },
+            { source: "lice", target: "salmon", type: "parasitism" },
+            { source: "jellyfish", target: "copepod", type: "parasitism" },
+            { source: "coral", target: "wrasse", type: "mutualism" },
+            { source: "anglerfish", target: "bacteria", type: "mutualism" },
+            { source: "whale", target: "squid", type: "parasitism" },
+            { source: "school", target: "jellyfish", type: "parasitism" }
         ];
 
         let currentFilter = "all";
         let currentZone = "all";
-        let nodes = [];
+        let particles = [];
         let visibleLinks = [];
 
-        // Physics simulation
-        class Node {
+        class Particle {
             constructor(species) {
                 this.id = species.id;
                 this.name = species.name;
                 this.emoji = species.emoji;
                 this.zone = species.zone;
-                this.color = species.color;
                 this.x = Math.random() * canvas.width;
                 this.y = Math.random() * canvas.height;
-                this.vx = 0;
-                this.vy = 0;
+                this.vx = (Math.random() - 0.5) * 2;
+                this.vy = (Math.random() - 0.5) * 2;
             }
 
-            update(nodes, links) {
-                const repulsion = 300;
-                const attraction = 0.05;
-                
+            update(all, links) {
                 this.vx *= 0.95;
                 this.vy *= 0.95;
 
-                // Repulsion from other nodes
-                for (let other of nodes) {
+                // Repulsion
+                for (let other of all) {
                     if (this === other) continue;
                     const dx = this.x - other.x;
                     const dy = this.y - other.y;
                     const dist = Math.sqrt(dx * dx + dy * dy) + 1;
-                    this.vx += (dx / dist) * repulsion;
-                    this.vy += (dy / dist) * repulsion;
+                    const force = 200 / (dist * dist);
+                    this.vx += (dx / dist) * force;
+                    this.vy += (dy / dist) * force;
                 }
 
-                // Attraction to linked nodes
+                // Attraction to connected
                 for (let link of links) {
-                    let other = null;
-                    if (link.source.id === this.id) other = link.target;
-                    if (link.target.id === this.id) other = link.source;
-                    if (other) {
-                        const dx = other.x - this.x;
-                        const dy = other.y - this.y;
-                        this.vx += dx * attraction;
-                        this.vy += dy * attraction;
+                    if (link.source.id === this.id) {
+                        const dx = link.target.x - this.x;
+                        const dy = link.target.y - this.y;
+                        this.vx += dx * 0.03;
+                        this.vy += dy * 0.03;
+                    } else if (link.target.id === this.id) {
+                        const dx = link.source.x - this.x;
+                        const dy = link.source.y - this.y;
+                        this.vx += dx * 0.03;
+                        this.vy += dy * 0.03;
                     }
                 }
 
-                // Center attraction
-                const centerX = canvas.width / 2;
-                const centerY = canvas.height / 2;
-                const dx = centerX - this.x;
-                const dy = centerY - this.y;
-                this.vx += dx * 0.01;
-                this.vy += dy * 0.01;
+                // Center
+                this.vx += (canvas.width / 2 - this.x) * 0.005;
+                this.vy += (canvas.height / 2 - this.y) * 0.005;
 
-                // Update position
                 this.x += this.vx;
                 this.y += this.vy;
 
-                // Bounds
-                this.x = Math.max(40, Math.min(canvas.width - 40, this.x));
-                this.y = Math.max(40, Math.min(canvas.height - 40, this.y));
+                this.x = Math.max(30, Math.min(canvas.width - 30, this.x));
+                this.y = Math.max(30, Math.min(canvas.height - 30, this.y));
             }
 
             draw() {
-                ctx.fillStyle = this.color;
+                const color = this.zone === "shallow" ? "#7dd3fc" : this.zone === "twilight" ? "#b8a6db" : "#0d3b66";
+                ctx.fillStyle = color;
                 ctx.beginPath();
-                ctx.arc(this.x, this.y, 24, 0, Math.PI * 2);
+                ctx.arc(this.x, this.y, 20, 0, Math.PI * 2);
                 ctx.fill();
                 ctx.strokeStyle = "#e8f1f5";
                 ctx.lineWidth = 2;
                 ctx.stroke();
 
-                ctx.font = "24px Arial";
+                ctx.font = "20px Arial";
                 ctx.textAlign = "center";
                 ctx.textBaseline = "middle";
                 ctx.fillText(this.emoji, this.x, this.y);
@@ -351,34 +320,27 @@
         }
 
         function updateVisualization() {
-            // Filter
             let filteredLinks = linksData;
             let filteredSpecies = speciesData;
 
             if (currentFilter !== "all") {
                 filteredLinks = filteredLinks.filter(l => l.type === currentFilter);
-                const linkedIds = new Set();
-                filteredLinks.forEach(l => {
-                    linkedIds.add(l.source);
-                    linkedIds.add(l.target);
-                });
-                filteredSpecies = filteredSpecies.filter(s => linkedIds.has(s.id));
+                const ids = new Set();
+                filteredLinks.forEach(l => { ids.add(l.source); ids.add(l.target); });
+                filteredSpecies = filteredSpecies.filter(s => ids.has(s.id));
             }
 
             if (currentZone !== "all") {
                 filteredSpecies = filteredSpecies.filter(s => s.zone === currentZone);
-                const zoneIds = new Set(filteredSpecies.map(s => s.id));
-                filteredLinks = filteredLinks.filter(l => zoneIds.has(l.source) && zoneIds.has(l.target));
+                const ids = new Set(filteredSpecies.map(s => s.id));
+                filteredLinks = filteredLinks.filter(l => ids.has(l.source) && ids.has(l.target));
             }
 
-            // Create node objects
-            nodes = filteredSpecies.map(s => new Node(s));
-            
-            // Map string IDs to node objects in links
+            particles = filteredSpecies.map(s => new Particle(s));
             visibleLinks = filteredLinks.map(l => {
-                const sourceNode = nodes.find(n => n.id === l.source);
-                const targetNode = nodes.find(n => n.id === l.target);
-                return sourceNode && targetNode ? { ...l, source: sourceNode, target: targetNode } : null;
+                const src = particles.find(p => p.id === l.source);
+                const tgt = particles.find(p => p.id === l.target);
+                return src && tgt ? { source: src, target: tgt, type: l.type } : null;
             }).filter(Boolean);
         }
 
@@ -386,14 +348,12 @@
             ctx.fillStyle = "#0f2744";
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            // Update physics
-            nodes.forEach(node => node.update(nodes, visibleLinks));
+            particles.forEach(p => p.update(particles, visibleLinks));
 
-            // Draw links
             visibleLinks.forEach(link => {
                 ctx.strokeStyle = link.type === "mutualism" ? "#00b894" : link.type === "parasitism" ? "#ff6b6b" : "#4da8da";
                 ctx.lineWidth = 2;
-                ctx.globalAlpha = 0.6;
+                ctx.globalAlpha = 0.5;
                 ctx.beginPath();
                 ctx.moveTo(link.source.x, link.source.y);
                 ctx.lineTo(link.target.x, link.target.y);
@@ -401,13 +361,10 @@
                 ctx.globalAlpha = 1;
             });
 
-            // Draw nodes
-            nodes.forEach(node => node.draw());
-
+            particles.forEach(p => p.draw());
             requestAnimationFrame(animate);
         }
 
-        // Event listeners
         document.querySelectorAll(".filter-btn").forEach(btn => {
             btn.addEventListener("click", (e) => {
                 document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
@@ -426,27 +383,15 @@
             });
         });
 
-        // Hover tooltip
         canvas.addEventListener("mousemove", (e) => {
             const rect = canvas.getBoundingClientRect();
             const x = e.clientX - rect.left;
             const y = e.clientY - rect.top;
-
-            let hoveredNode = null;
-            for (let node of nodes) {
-                const dist = Math.sqrt((x - node.x) ** 2 + (y - node.y) ** 2);
-                if (dist < 24) {
-                    hoveredNode = node;
-                    break;
-                }
-            }
-
-            if (hoveredNode) {
-                const relations = visibleLinks.filter(l => l.source === hoveredNode || l.target === hoveredNode);
-                let html = `<div class="tooltip-title">${hoveredNode.emoji} ${hoveredNode.name}</div>`;
-                relations.forEach(r => {
-                    html += `<div class="tooltip-relation"><strong>${r.type}:</strong> ${r.desc}</div>`;
-                });
+            let hovered = particles.find(p => Math.hypot(p.x - x, p.y - y) < 20);
+            
+            if (hovered) {
+                const rels = visibleLinks.filter(l => l.source === hovered || l.target === hovered);
+                let html = `<div class="tooltip-title">${hovered.emoji} ${hovered.name}</div>`;
                 tooltip.innerHTML = html;
                 tooltip.style.display = "block";
                 tooltip.style.left = e.clientX + 12 + "px";
@@ -456,11 +401,6 @@
             }
         });
 
-        canvas.addEventListener("mouseleave", () => {
-            tooltip.style.display = "none";
-        });
-
-        // Start
         updateVisualization();
         animate();
     </script>
