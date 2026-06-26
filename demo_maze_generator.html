@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Maze Generator</title>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, #0a1428 0%, #1a2d4d 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .container {
+      background: #0f2a4a;
+      border-radius: 12px;
+      padding: 32px;
+      max-width: 900px;
+      width: 100%;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+      border: 1px solid rgba(77, 168, 218, 0.3);
+    }
+    h1 {
+      font-family: 'Fraunces', serif;
+      font-size: 32px;
+      color: #4da8da;
+      margin-bottom: 8px;
+      font-weight: 700;
+    }
+    .subtitle {
+      color: #a0d8ff;
+      margin-bottom: 24px;
+      font-size: 14px;
+    }
+    .control-panel {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    label {
+      color: #7dd3fc;
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    input[type="range"] {
+      width: 150px;
+      height: 6px;
+      border-radius: 3px;
+      background: linear-gradient(to right, #4da8da, #00ff88);
+      outline: none;
+      -webkit-appearance: none;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #4da8da;
+      cursor: pointer;
+      border: 2px solid #0a1428;
+    }
+    input[type="range"]::-moz-range-thumb {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #4da8da;
+      cursor: pointer;
+      border: 2px solid #0a1428;
+    }
+    #sizeDisplay {
+      color: #00ff88;
+      font-weight: 600;
+      min-width: 40px;
+    }
+    .button-group {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      font-family: 'Inter', sans-serif;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      transition: all 0.2s ease;
+    }
+    button.primary {
+      background: linear-gradient(135deg, #4da8da, #00ff88);
+      color: #0a1428;
+    }
+    button.primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(77, 168, 218, 0.4);
+    }
+    button.secondary {
+      background: #1a4d7f;
+      color: #7dd3fc;
+      border: 1px solid #4da8da;
+    }
+    button.secondary:hover {
+      background: #234d6f;
+      box-shadow: 0 4px 12px rgba(77, 168, 218, 0.2);
+    }
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .canvas-container {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 24px;
+      background: #050d1a;
+      border-radius: 8px;
+      padding: 16px;
+      border: 1px solid rgba(77, 168, 218, 0.2);
+    }
+    canvas {
+      border: 2px solid #4da8da;
+      border-radius: 4px;
+      display: block;
+      background: #0a1428;
+    }
+    .status {
+      color: #7dd3fc;
+      font-size: 13px;
+      height: 20px;
+      margin-bottom: 12px;
+    }
+    .info-panel {
+      background: rgba(77, 168, 218, 0.1);
+      border: 1px solid rgba(77, 168, 218, 0.3);
+      border-radius: 8px;
+      padding: 16px;
+      color: #a0d8ff;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    .info-title {
+      color: #4da8da;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    @media (max-width: 600px) {
+      .container {
+        padding: 20px;
+      }
+      h1 {
+        font-size: 24px;
+      }
+      .control-panel {
+        flex-direction: column;
+        gap: 12px;
+      }
+      input[type="range"] {
+        width: 100%;
+      }
+      .canvas-container {
+        padding: 8px;
+      }
+      canvas {
+        max-width: 100%;
+        height: auto;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Maze Generator</h1>
+    <p class="subtitle">Generate perfect mazes with recursive backtracking algorithm</p>
+    
+    <div class="control-panel">
+      <div class="control-group">
+        <label for="sizeSlider">Grid Size</label>
+        <div style="display: flex; gap: 12px; align-items: center;">
+          <input type="range" id="sizeSlider" min="5" max="50" value="15">
+          <span id="sizeDisplay">15×15</span>
+        </div>
+      </div>
+      <div class="button-group">
+        <button class="primary" id="generateBtn">Generate Maze</button>
+        <button class="secondary" id="downloadBtn">Download PNG</button>
+      </div>
+    </div>
+
+    <div class="status" id="status"></div>
+    
+    <div class="canvas-container">
+      <canvas id="mazeCanvas" width="600" height="600"></canvas>
+    </div>
+
+    <div class="info-panel">
+      <div class="info-title">How it works</div>
+      <p>
+        This generator uses the <strong>Recursive Backtracking Algorithm</strong>, a depth-first search that carves paths through a grid.
+        Starting from a random cell, the algorithm randomly chooses an unvisited neighbor, carves a passage, and repeats.
+        When stuck, it backtracks until finding an unvisited cell. The result is a <strong>perfect maze</strong> — one with exactly one path between any two cells.
+      </p>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('mazeCanvas');
+    const ctx = canvas.getContext('2d');
+    const sizeSlider = document.getElementById('sizeSlider');
+    const sizeDisplay = document.getElementById('sizeDisplay');
+    const generateBtn = document.getElementById('generateBtn');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const statusDiv = document.getElementById('status');
+
+    let gridSize = 15;
+    let maze = null;
+    let cellSize = 40;
+
+    // Update size display on slider change
+    sizeSlider.addEventListener('change', (e) => {
+      gridSize = parseInt(e.target.value);
+      sizeDisplay.textContent = `${gridSize}×${gridSize}`;
+    });
+
+    // Generate button
+    generateBtn.addEventListener('click', () => {
+      generateBtn.disabled = true;
+      statusDiv.textContent = 'Generating...';
+      setTimeout(() => {
+        generateMaze();
+        drawMaze();
+        statusDiv.textContent = `Generated ${gridSize}×${gridSize} maze with ${gridSize * gridSize} cells`;
+        generateBtn.disabled = false;
+      }, 50);
+    });
+
+    // Download button
+    downloadBtn.addEventListener('click', () => {
+      if (!maze) {
+        statusDiv.textContent = 'Please generate a maze first';
+        return;
+      }
+      const link = document.createElement('a');
+      link.href = canvas.toDataURL('image/png');
+      link.download = `maze_${gridSize}x${gridSize}_${Date.now()}.png`;
+      link.click();
+      statusDiv.textContent = 'Maze downloaded!';
+    });
+
+    // Recursive backtracking maze generation algorithm
+    function generateMaze() {
+      maze = Array(gridSize).fill().map(() => Array(gridSize).fill(true)); // All walls initially
+      const visited = Array(gridSize).fill().map(() => Array(gridSize).fill(false));
+
+      const stack = [];
+      const startX = Math.floor(Math.random() * gridSize);
+      const startY = Math.floor(Math.random() * gridSize);
+
+      // Carve starting cell
+      maze[startY][startX] = false;
+      visited[startY][startX] = true;
+      stack.push([startX, startY]);
+
+      const dirs = [
+        [0, -2], // up
+        [2, 0],  // right
+        [0, 2],  // down
+        [-2, 0]  // left
+      ];
+
+      while (stack.length > 0) {
+        const [x, y] = stack[stack.length - 1];
+        const neighbors = [];
+
+        // Check each direction for unvisited neighbors
+        for (const [dx, dy] of dirs) {
+          const nx = x + dx;
+          const ny = y + dy;
+          if (nx >= 0 && nx < gridSize && ny >= 0 && ny < gridSize && !visited[ny][nx]) {
+            neighbors.push([nx, ny, dx, dy]);
+          }
+        }
+
+        if (neighbors.length === 0) {
+          stack.pop(); // Backtrack
+        } else {
+          // Randomly pick a neighbor
+          const [nx, ny, dx, dy] = neighbors[Math.floor(Math.random() * neighbors.length)];
+          
+          // Mark as visited
+          visited[ny][nx] = true;
+          
+          // Carve passages: the new cell and the cell between
+          maze[ny][nx] = false;
+          maze[y + dy / 2][x + dx / 2] = false;
+          
+          stack.push([nx, ny]);
+        }
+      }
+    }
+
+    // Draw maze on canvas
+    function drawMaze() {
+      if (!maze) return;
+
+      // Recalculate cell size to fit canvas
+      cellSize = Math.min(canvas.width, canvas.height) / gridSize;
+
+      // Clear canvas
+      ctx.fillStyle = '#0a1428';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Draw maze
+      ctx.fillStyle = '#ffffff';
+      for (let y = 0; y < gridSize; y++) {
+        for (let x = 0; x < gridSize; x++) {
+          if (maze[y][x]) { // Wall
+            ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+          }
+        }
+      }
+
+      // Add entry and exit
+      ctx.fillStyle = '#00ff88';
+      ctx.fillRect(0, 0, cellSize, cellSize); // Entry (top-left)
+      ctx.fillRect((gridSize - 1) * cellSize, (gridSize - 1) * cellSize, cellSize, cellSize); // Exit (bottom-right)
+    }
+
+    // Generate initial maze on load
+    window.addEventListener('load', () => {
+      generateMaze();
+      drawMaze();
+      statusDiv.textContent = `Generated ${gridSize}×${gridSize} maze with ${gridSize * gridSize} cells`;
+    });
+  </script>
+</body>
+</html>
