@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nim Master</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Space+Mono:wght@400&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: #0a1428;
+      color: #e0e0e0;
+      font-family: 'Space Mono', monospace;
+      padding: 20px;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: 3.5rem;
+      text-align: center;
+      margin-bottom: 10px;
+      color: #4da8da;
+      text-shadow: 0 0 20px rgba(77, 168, 218, 0.3);
+    }
+
+    .rules {
+      text-align: center;
+      color: #999;
+      margin-bottom: 30px;
+      font-size: 0.95rem;
+      line-height: 1.6;
+    }
+
+    .game-board {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 40px;
+      padding: 30px;
+      background: rgba(31, 77, 127, 0.2);
+      border-radius: 8px;
+      border: 2px solid #4da8da;
+    }
+
+    .pile {
+      background: rgba(77, 168, 218, 0.1);
+      border: 2px solid #4da8da;
+      border-radius: 8px;
+      padding: 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .pile:hover {
+      background: rgba(77, 168, 218, 0.2);
+      box-shadow: 0 0 15px rgba(77, 168, 218, 0.4);
+    }
+
+    .pile.selected {
+      border-color: #fbbf24;
+      background: rgba(251, 191, 36, 0.15);
+      box-shadow: 0 0 20px rgba(251, 191, 36, 0.3);
+    }
+
+    .pile-label {
+      font-size: 1.2rem;
+      color: #4da8da;
+      margin-bottom: 15px;
+      font-weight: bold;
+    }
+
+    .stones {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      min-height: 100px;
+      align-items: center;
+    }
+
+    .stone {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #4da8da;
+      box-shadow: 0 0 8px rgba(77, 168, 218, 0.5);
+      transition: opacity 0.3s ease;
+    }
+
+    .stone.ai {
+      background: #ff00ff;
+      box-shadow: 0 0 8px rgba(255, 0, 255, 0.5);
+    }
+
+    .controls {
+      background: rgba(31, 77, 127, 0.2);
+      border: 2px solid #4da8da;
+      border-radius: 8px;
+      padding: 30px;
+      margin-bottom: 30px;
+    }
+
+    .control-group {
+      margin-bottom: 20px;
+    }
+
+    .control-label {
+      color: #4da8da;
+      font-size: 0.95rem;
+      margin-bottom: 10px;
+      display: block;
+      font-weight: bold;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      height: 6px;
+      background: #1f4d7f;
+      border-radius: 3px;
+      outline: none;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #fbbf24;
+      cursor: pointer;
+      box-shadow: 0 0 10px rgba(251, 191, 36, 0.5);
+    }
+
+    input[type="range"]::-moz-range-thumb {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #fbbf24;
+      cursor: pointer;
+      border: none;
+      box-shadow: 0 0 10px rgba(251, 191, 36, 0.5);
+    }
+
+    .stone-count {
+      text-align: center;
+      color: #fbbf24;
+      font-weight: bold;
+      margin-top: 8px;
+      font-size: 1.1rem;
+    }
+
+    .action-buttons {
+      display: flex;
+      gap: 15px;
+      justify-content: center;
+      margin-top: 20px;
+    }
+
+    button {
+      padding: 12px 30px;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.95rem;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: all 0.2s ease;
+    }
+
+    button.take {
+      background: #fbbf24;
+      color: #0a1428;
+    }
+
+    button.take:hover:not(:disabled) {
+      background: #fcd34d;
+      box-shadow: 0 0 15px rgba(251, 191, 36, 0.5);
+    }
+
+    button.take:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    button.reset {
+      background: #4da8da;
+      color: #0a1428;
+    }
+
+    button.reset:hover {
+      background: #6db8ea;
+      box-shadow: 0 0 15px rgba(77, 168, 218, 0.5);
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+
+    .stat-box {
+      background: rgba(77, 168, 218, 0.1);
+      border-left: 4px solid #4da8da;
+      padding: 15px;
+      border-radius: 4px;
+    }
+
+    .stat-label {
+      color: #999;
+      font-size: 0.85rem;
+      margin-bottom: 5px;
+    }
+
+    .stat-value {
+      color: #4da8da;
+      font-size: 1.4rem;
+      font-weight: bold;
+    }
+
+    .message-box {
+      background: rgba(255, 107, 107, 0.1);
+      border-left: 4px solid #ff6b6b;
+      padding: 15px;
+      border-radius: 4px;
+      margin-bottom: 20px;
+      color: #ffb0b0;
+      display: none;
+    }
+
+    .message-box.show {
+      display: block;
+    }
+
+    .message-box.success {
+      background: rgba(0, 255, 136, 0.1);
+      border-left-color: #00ff88;
+      color: #00ff88;
+    }
+
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.8);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .modal.show {
+      display: flex;
+    }
+
+    .modal-content {
+      background: #0a1428;
+      border: 2px solid #4da8da;
+      border-radius: 8px;
+      padding: 40px;
+      text-align: center;
+      max-width: 500px;
+    }
+
+    .modal-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 2.5rem;
+      margin-bottom: 20px;
+    }
+
+    .modal-title.win {
+      color: #00ff88;
+      text-shadow: 0 0 20px rgba(0, 255, 136, 0.5);
+    }
+
+    .modal-title.lose {
+      color: #ff6b6b;
+      text-shadow: 0 0 20px rgba(255, 107, 107, 0.5);
+    }
+
+    .modal-text {
+      color: #e0e0e0;
+      margin-bottom: 30px;
+      font-size: 1rem;
+      line-height: 1.6;
+    }
+
+    .modal button {
+      padding: 15px 40px;
+      font-size: 1rem;
+      background: #4da8da;
+      color: #0a1428;
+    }
+
+    .modal button:hover {
+      background: #6db8ea;
+      box-shadow: 0 0 15px rgba(77, 168, 218, 0.5);
+    }
+
+    .turn-indicator {
+      text-align: center;
+      color: #e0e0e0;
+      margin-bottom: 20px;
+      font-size: 1.1rem;
+    }
+
+    .turn-indicator.player {
+      color: #4da8da;
+    }
+
+    .turn-indicator.ai {
+      color: #ff00ff;
+    }
+
+    .nim-sum-display {
+      text-align: center;
+      color: #fbbf24;
+      margin-top: 15px;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Nim Master</h1>
+    <div class="rules">
+      <p>Remove stones from any pile. Avoid taking the last stone and you win.</p>
+      <p>The AI uses the nim-sum algorithm to play perfectly.</p>
+    </div>
+
+    <div class="turn-indicator player" id="turnIndicator">Your Turn</div>
+
+    <div class="game-board" id="gameBoard">
+      <!-- Piles will be rendered here -->
+    </div>
+
+    <div class="controls">
+      <div class="stats">
+        <div class="stat-box">
+          <div class="stat-label">Player Stones Taken</div>
+          <div class="stat-value" id="playerStones">0</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">AI Stones Taken</div>
+          <div class="stat-value" id="aiStones">0</div>
+        </div>
+      </div>
+
+      <div id="messageBox" class="message-box"></div>
+
+      <div id="selectedPileInfo" style="display: none;">
+        <div class="control-group">
+          <label class="control-label" id="pileLabel">Select pile first</label>
+          <input type="range" id="stoneSlider" min="1" max="10" value="1">
+          <div class="stone-count"><span id="selectedCount">1</span> stone(s)</div>
+        </div>
+      </div>
+
+      <div class="action-buttons">
+        <button class="take" id="takeBtn" disabled>Take Stones</button>
+        <button class="reset" id="resetBtn">New Game</button>
+      </div>
+
+      <div class="nim-sum-display">
+        Nim-Sum (XOR of piles): <span id="nimSum" style="color: #ff00ff; font-weight: bold;">0</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="gameModal">
+    <div class="modal-content">
+      <div class="modal-title" id="modalTitle">You Won!</div>
+      <div class="modal-text" id="modalText"></div>
+      <button onclick="location.reload()">Play Again</button>
+    </div>
+  </div>
+
+  <script>
+    // Game state
+    let piles = [3, 5, 7];
+    let selectedPile = null;
+    let playerStonesTaken = 0;
+    let aiStonesTaken = 0;
+    let gameOver = false;
+
+    // Nim-sum calculation (XOR of all piles)
+    function calculateNimSum(piles) {
+      let result = 0;
+      for (let p of piles) {
+        result ^= p;
+      }
+      return result;
+    }
+
+    // AI move using nim-sum strategy
+    function getAIMove(piles) {
+      let nimSum = calculateNimSum(piles);
+
+      // If nim-sum is 0, player is in losing position; AI makes arbitrary move
+      if (nimSum === 0) {
+        for (let i = 0; i < piles.length; i++) {
+          if (piles[i] > 0) {
+            return { pile: i, stones: 1 };
+          }
+        }
+      }
+
+      // Otherwise, find the move that makes nim-sum = 0
+      for (let i = 0; i < piles.length; i++) {
+        for (let remove = 1; remove <= piles[i]; remove++) {
+          let newPile = piles[i] - remove;
+          let testPiles = [...piles];
+          testPiles[i] = newPile;
+          if (calculateNimSum(testPiles) === 0) {
+            return { pile: i, stones: remove };
+          }
+        }
+      }
+
+      // Fallback (shouldn't reach)
+      return { pile: 0, stones: 1 };
+    }
+
+    // Render game board
+    function renderBoard() {
+      const board = document.getElementById('gameBoard');
+      board.innerHTML = '';
+
+      piles.forEach((count, idx) => {
+        const pile = document.createElement('div');
+        pile.className = 'pile';
+        if (selectedPile === idx) pile.classList.add('selected');
+        pile.onclick = () => selectPile(idx);
+
+        const label = document.createElement('div');
+        label.className = 'pile-label';
+        label.textContent = `Pile ${idx + 1}`;
+
+        const stones = document.createElement('div');
+        stones.className = 'stones';
+        for (let i = 0; i < count; i++) {
+          const stone = document.createElement('div');
+          stone.className = 'stone';
+          stones.appendChild(stone);
+        }
+
+        pile.appendChild(label);
+        pile.appendChild(stones);
+        board.appendChild(pile);
+      });
+
+      // Update nim-sum display
+      document.getElementById('nimSum').textContent = calculateNimSum(piles);
+    }
+
+    // Select a pile
+    function selectPile(idx) {
+      if (gameOver) return;
+      selectedPile = idx;
+      const maxStones = piles[idx];
+      const slider = document.getElementById('stoneSlider');
+      slider.max = maxStones;
+      slider.value = 1;
+      document.getElementById('selectedCount').textContent = 1;
+      document.getElementById('pileLabel').textContent = `Pile ${idx + 1} (${maxStones} stones available)`;
+      document.getElementById('selectedPileInfo').style.display = 'block';
+      document.getElementById('takeBtn').disabled = false;
+      renderBoard();
+    }
+
+    // Update slider display
+    document.getElementById('stoneSlider').addEventListener('input', (e) => {
+      document.getElementById('selectedCount').textContent = e.target.value;
+    });
+
+    // Player takes stones
+    document.getElementById('takeBtn').addEventListener('click', () => {
+      if (selectedPile === null || gameOver) return;
+
+      const stonesCount = parseInt(document.getElementById('stoneSlider').value);
+      piles[selectedPile] -= stonesCount;
+      playerStonesTaken += stonesCount;
+
+      // Check if player took last stone
+      const remaining = piles.reduce((a, b) => a + b, 0);
+      if (remaining === 0) {
+        endGame(false); // Player loses (took last stone)
+        return;
+      }
+
+      renderBoard();
+      selectedPile = null;
+      document.getElementById('selectedPileInfo').style.display = 'none';
+      document.getElementById('takeBtn').disabled = true;
+      showMessage(`You took ${stonesCount} stone(s). AI thinking...`, '');
+
+      // AI move
+      setTimeout(() => {
+        const aiMove = getAIMove(piles);
+        piles[aiMove.pile] -= aiMove.stones;
+        aiStonesTaken += aiMove.stones;
+
+        showMessage(`AI took ${aiMove.stones} stone(s) from Pile ${aiMove.pile + 1}.`, '');
+
+        const remaining2 = piles.reduce((a, b) => a + b, 0);
+        if (remaining2 === 0) {
+          endGame(true); // AI took last stone, player wins
+          return;
+        }
+
+        renderBoard();
+        document.getElementById('turnIndicator').textContent = 'Your Turn';
+        document.getElementById('turnIndicator').className = 'turn-indicator player';
+      }, 800);
+    });
+
+    // Reset game
+    document.getElementById('resetBtn').addEventListener('click', () => {
+      piles = [3, 5, 7];
+      selectedPile = null;
+      playerStonesTaken = 0;
+      aiStonesTaken = 0;
+      gameOver = false;
+      document.getElementById('playerStones').textContent = '0';
+      document.getElementById('aiStones').textContent = '0';
+      document.getElementById('selectedPileInfo').style.display = 'none';
+      document.getElementById('takeBtn').disabled = true;
+      document.getElementById('messageBox').classList.remove('show');
+      document.getElementById('gameModal').classList.remove('show');
+      document.getElementById('turnIndicator').textContent = 'Your Turn';
+      document.getElementById('turnIndicator').className = 'turn-indicator player';
+      renderBoard();
+    });
+
+    // End game
+    function endGame(playerWins) {
+      gameOver = true;
+      const modal = document.getElementById('gameModal');
+      const title = document.getElementById('modalTitle');
+      const text = document.getElementById('modalText');
+
+      if (playerWins) {
+        title.textContent = 'You Won!';
+        title.className = 'modal-title win';
+        text.textContent = 'You forced the AI to take the last stone! The nim-sum strategy only works if the AI always has a move—when you left 0 stones, the AI had no choice.';
+      } else {
+        title.textContent = 'You Lost!';
+        title.className = 'modal-title lose';
+        text.textContent = 'The AI used the nim-sum algorithm to maintain a winning position. Whenever the XOR of all piles equaled zero after the AI\'s move, you were in a losing position.';
+      }
+
+      modal.classList.add('show');
+    }
+
+    // Show message
+    function showMessage(msg, type) {
+      const box = document.getElementById('messageBox');
+      box.textContent = msg;
+      box.className = `message-box show ${type}`;
+      setTimeout(() => box.classList.remove('show'), 3000);
+    }
+
+    // Update stats
+    setInterval(() => {
+      document.getElementById('playerStones').textContent = playerStonesTaken;
+      document.getElementById('aiStones').textContent = aiStonesTaken;
+    }, 100);
+
+    // Initialize
+    renderBoard();
+  </script>
+</body>
+</html>
