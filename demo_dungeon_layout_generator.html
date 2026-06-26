@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dungeon Layout Generator</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Space Mono', monospace;
+      background: #0a1428;
+      color: #ecf0f1;
+      padding: 20px;
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .header {
+      text-align: center;
+    }
+    .header h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: 2.5rem;
+      margin-bottom: 8px;
+      color: #4da8da;
+    }
+    .header p {
+      font-size: 0.95rem;
+      color: #b0b8c1;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    .main-row {
+      display: flex;
+      gap: 20px;
+      flex: 1;
+    }
+    .sidebar {
+      width: 280px;
+      background: rgba(15, 23, 42, 0.8);
+      border: 2px solid #4da8da;
+      border-radius: 8px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      max-height: 600px;
+      overflow-y: auto;
+    }
+    .sidebar label {
+      font-size: 0.85rem;
+      color: #4da8da;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-top: 8px;
+      display: block;
+    }
+    .sidebar label:first-child {
+      margin-top: 0;
+    }
+    .sidebar input[type="range"],
+    .sidebar select {
+      width: 100%;
+      padding: 6px;
+      background: #1a2a4a;
+      border: 1px solid #4da8da;
+      border-radius: 4px;
+      color: #ecf0f1;
+      font-family: 'Space Mono', monospace;
+      cursor: pointer;
+    }
+    .sidebar input[type="range"] {
+      cursor: pointer;
+      accent-color: #4da8da;
+    }
+    .slider-value {
+      font-size: 0.8rem;
+      color: #fbbf24;
+      text-align: right;
+      margin-top: -4px;
+    }
+    .button-group {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+      flex-wrap: wrap;
+    }
+    .button-group button {
+      flex: 1;
+      min-width: 60px;
+      padding: 8px 12px;
+      border: none;
+      border-radius: 4px;
+      font-family: 'Space Mono', monospace;
+      font-weight: 700;
+      cursor: pointer;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      transition: all 0.2s;
+    }
+    .btn-generate {
+      background: #4da8da;
+      color: #0a1428;
+    }
+    .btn-generate:hover {
+      background: #64b5f6;
+      transform: translateY(-2px);
+    }
+    .btn-regenerate {
+      background: #fbbf24;
+      color: #0a1428;
+    }
+    .btn-regenerate:hover {
+      background: #fcc15d;
+      transform: translateY(-2px);
+    }
+    .btn-download {
+      background: #00ff88;
+      color: #0a1428;
+    }
+    .btn-download:hover {
+      background: #33ff99;
+      transform: translateY(-2px);
+    }
+    .btn-copy-seed {
+      background: #9966ff;
+      color: #fff;
+    }
+    .btn-copy-seed:hover {
+      background: #b399ff;
+      transform: translateY(-2px);
+    }
+    .canvas-area {
+      flex: 1;
+      background: rgba(15, 23, 42, 0.8);
+      border: 2px solid #4da8da;
+      border-radius: 8px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 500px;
+    }
+    svg {
+      width: 100%;
+      max-width: 100%;
+      height: auto;
+      border: 1px solid #64b5f6;
+      border-radius: 4px;
+      background: #0f172a;
+    }
+    .stats-box {
+      margin-top: 16px;
+      padding: 12px;
+      background: rgba(77, 168, 218, 0.1);
+      border-left: 3px solid #4da8da;
+      border-radius: 4px;
+      font-size: 0.85rem;
+      color: #ecf0f1;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 8px;
+    }
+    .stat-item {
+      display: flex;
+      flex-direction: column;
+    }
+    .stat-label {
+      color: #4da8da;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+    .stat-value {
+      color: #fbbf24;
+      font-weight: 700;
+    }
+    .legend {
+      margin-top: 16px;
+      padding: 12px;
+      background: rgba(77, 168, 218, 0.1);
+      border: 1px solid #64b5f6;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 8px;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .legend-color {
+      width: 16px;
+      height: 16px;
+      border-radius: 2px;
+    }
+    .error-msg {
+      color: #ff6b6b;
+      font-size: 0.9rem;
+      padding: 12px;
+      background: rgba(255, 107, 107, 0.1);
+      border-left: 3px solid #ff6b6b;
+      border-radius: 4px;
+      display: none;
+      margin-top: 12px;
+    }
+    .seed-input {
+      margin-top: 8px;
+    }
+    .seed-input input {
+      width: 100%;
+      padding: 6px;
+      background: #1a2a4a;
+      border: 1px solid #4da8da;
+      border-radius: 4px;
+      color: #ecf0f1;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.8rem;
+    }
+    @media (max-width: 900px) {
+      .main-row {
+        flex-direction: column;
+      }
+      .sidebar {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🏰 Dungeon Layout Generator</h1>
+      <p>Design infinite unique dungeons with procedural generation. Adjust room count, theme, and connectivity, then download your layout.</p>
+    </div>
+
+    <div class="main-row">
+      <div class="sidebar">
+        <label for="roomCount">Room Count</label>
+        <input type="range" id="roomCount" min="5" max="20" value="12">
+        <div class="slider-value"><span id="roomCountValue">12</span> rooms</div>
+
+        <label for="theme">Theme</label>
+        <select id="theme">
+          <option value="medieval">Medieval Castle</option>
+          <option value="ruins">Ancient Ruins</option>
+          <option value="cavern">Underground Cavern</option>
+          <option value="undercity">Underground City</option>
+        </select>
+
+        <label for="connectivity">Connectivity</label>
+        <select id="connectivity">
+          <option value="linear">Linear Chain</option>
+          <option value="web">Interconnected Web</option>
+          <option value="hub">Hub-and-Spoke</option>
+        </select>
+
+        <label for="seedInput" class="seed-input">Seed (optional)</label>
+        <input type="text" id="seedInput" placeholder="Leave blank for random">
+
+        <div class="button-group" style="margin-top: 16px;">
+          <button class="btn-generate" onclick="generateDungeon()">Generate</button>
+          <button class="btn-regenerate" onclick="regenerateDungeon()">Regenerate</button>
+        </div>
+
+        <div class="button-group">
+          <button class="btn-download" onclick="downloadSVG()">Download SVG</button>
+          <button class="btn-copy-seed" onclick="copySeed()">Copy Seed</button>
+        </div>
+
+        <div class="error-msg" id="errorMsg"></div>
+      </div>
+
+      <div class="canvas-area">
+        <svg id="dungeonSVG" width="600" height="500" viewBox="0 0 1000 800" preserveAspectRatio="xMidYMid meet">
+          <rect width="1000" height="800" fill="#0f172a"/>
+          <text x="500" y="400" font-family="Space Mono" font-size="20" fill="#4da8da" text-anchor="middle">Click "Generate" to create your first dungeon</text>
+        </svg>
+
+        <div class="stats-box">
+          <div class="stat-item">
+            <span class="stat-label">Rooms</span>
+            <span class="stat-value" id="statRooms">—</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Corridors</span>
+            <span class="stat-value" id="statCorridors">—</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Enemies</span>
+            <span class="stat-value" id="statEnemies">—</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Treasures</span>
+            <span class="stat-value" id="statTreasures">—</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Seed</span>
+            <span class="stat-value" id="statSeed" style="word-break: break-all;">—</span>
+          </div>
+        </div>
+
+        <div class="legend">
+          <div class="legend-item">
+            <div class="legend-color" style="background: #6b7a8f;"></div>
+            <span>Medieval Room</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-color" style="background: #9a8b6f;"></div>
+            <span>Ruin Room</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-color" style="background: #2b7a9b;"></div>
+            <span>Cavern Room</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-color" style="background: #5a6f7d;"></div>
+            <span>City Room</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-color" style="background: #ff4444;"></div>
+            <span>⚔️ Enemy</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-color" style="background: #ffdd00;"></div>
+            <span>💎 Treasure</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Seeded PRNG for reproducibility
+    class SeededRandom {
+      constructor(seed) {
+        this.seed = seed || Math.random() * 0x100000000;
+      }
+      next() {
+        this.seed = (this.seed * 9301 + 49297) % 233280;
+        return this.seed / 233280;
+      }
+      nextInt(max) {
+        return Math.floor(this.next() * max);
+      }
+    }
+
+    let currentSeed = null;
+    let currentLayout = null;
+
+    // Theme colors
+    const themeColors = {
+      medieval: '#6b7a8f',
+      ruins: '#9a8b6f',
+      cavern: '#2b7a9b',
+      undercity: '#5a6f7d'
+    };
+
+    const themeNames = {
+      medieval: 'Medieval Castle',
+      ruins: 'Ancient Ruins',
+      cavern: 'Underground Cavern',
+      undercity: 'Underground City'
+    };
+
+    const roomNames = {
+      medieval: ['Throne Room', 'Guard Post', 'Treasury', 'Barracks', 'Kitchen', 'Well', 'Prison', 'War Room', 'Gallery', 'Vault', 'Chapel', 'Armory', 'Cellar', 'Tower', 'Courtyard', 'Great Hall', 'Library', 'Crypt', 'Forge', 'Stable'],
+      ruins: ['Ancient Hall', 'Tomb', 'Altar', 'Archive', 'Sacrifice Chamber', 'Library Remnant', 'Vault', 'Ossuary', 'Ritual Pit', 'Treasure Room', 'Sealed Chamber', 'Stone Circle', 'Hidden Grotto', 'Artifact Room', 'Curse Chamber', 'Underground River', 'Skeletal Nest', 'Ruin Entrance', 'Flooded Cavern', 'Mystery Door'],
+      cavern: ['Crystal Grotto', 'Underground Lake', 'Mineral Vein', 'Deep Chasm', 'Echo Chamber', 'Stalactite Hall', 'Fossil Bed', 'Magma Chamber', 'Luminous Cavern', 'Hidden Pool', 'Narrow Passage', 'Grand Hall', 'Lair', 'Spider Nest', 'Gem Deposit', 'Bat Roost', 'Slime Pit', 'Stone Forest', 'Waterfall', 'Abyss'],
+      undercity: ['Market Square', 'Guard Tower', 'Treasury', 'Archive', 'Barracks', 'Workshop', 'Smithy', 'Library', 'Throne Hall', 'Temple', 'Market Stall', 'Prison Block', 'Water Works', 'Power Plant', 'Residential', 'Marketplace', 'Vault', 'Shrine', 'Tower Top', 'Central Hub']
+    };
+
+    // Poisson-disk sampling for room placement
+    function poissonDiskSampling(width, height, minDistance, maxSamples, rng) {
+      const cellSize = minDistance / Math.sqrt(2);
+      const grid = {};
+      const points = [];
+      const active = [];
+
+      const gridKey = (x, y) => Math.floor(x / cellSize) + ',' + Math.floor(y / cellSize);
+
+      const addPoint = (x, y) => {
+        const key = gridKey(x, y);
+        if (!grid[key]) {
+          grid[key] = [];
+        }
+        grid[key].push([x, y]);
+        points.push([x, y]);
+        active.push([x, y]);
+      };
+
+      addPoint(rng.next() * width, rng.next() * height);
+
+      let attempts = 0;
+      while (active.length > 0 && attempts < maxSamples) {
+        const idx = rng.nextInt(active.length);
+        const [x, y] = active[idx];
+        let found = false;
+
+        for (let i = 0; i < 30; i++) {
+          const angle = rng.next() * Math.PI * 2;
+          const dist = minDistance + rng.next() * minDistance;
+          const nx = x + Math.cos(angle) * dist;
+          const ny = y + Math.sin(angle) * dist;
+
+          if (nx > 0 && nx < width && ny > 0 && ny < height) {
+            let valid = true;
+            const nKey = gridKey(nx, ny);
+            const searchRadius = Math.ceil(minDistance / cellSize);
+
+            for (let dx = -searchRadius; dx <= searchRadius; dx++) {
+              for (let dy = -searchRadius; dy <= searchRadius; dy++) {
+                const checkKey = (Math.floor(nx / cellSize) + dx) + ',' + (Math.floor(ny / cellSize) + dy);
+                if (grid[checkKey]) {
+                  for (const point of grid[checkKey]) {
+                    const d = Math.hypot(nx - point[0], ny - point[1]);
+                    if (d < minDistance) {
+                      valid = false;
+                      break;
+                    }
+                  }
+                }
+              }
+            }
+
+            if (valid) {
+              addPoint(nx, ny);
+              found = true;
+              break;
+            }
+          }
+        }
+
+        if (!found) {
+          active.splice(idx, 1);
+        }
+        attempts++;
+      }
+
+      return points;
+    }
+
+    // Generate dungeon layout
+    function generateDungeon() {
+      const roomCount = parseInt(document.getElementById('roomCount').value);
+      const theme = document.getElementById('theme').value;
+      const connectivity = document.getElementById('connectivity').value;
+      let seedInput = document.getElementById('seedInput').value.trim();
+
+      if (!seedInput) {
+        seedInput = Math.random().toString(36).substring(7);
+      }
+      currentSeed = seedInput;
+
+      const rng = new SeededRandom(hashSeed(seedInput));
+
+      // Generate rooms using Poisson-disk sampling
+      const width = 1000, height = 800;
+      const minDist = Math.max(60, 1000 / Math.sqrt(roomCount));
+      const roomPositions = poissonDiskSampling(width - 100, height - 100, minDist, roomCount * 5, rng);
+
+      const rooms = roomPositions.slice(0, roomCount).map((pos, i) => {
+        const baseSize = theme === 'cavern' ? 80 : (theme === 'undercity' ? 70 : 60);
+        const sizeVar = rng.next() * 30 - 15;
+        return {
+          id: i,
+          x: pos[0],
+          y: pos[1],
+          width: baseSize + sizeVar,
+          height: baseSize + sizeVar,
+          name: roomNames[theme][rng.nextInt(roomNames[theme].length)]
+        };
+      });
+
+      // Generate corridors based on connectivity
+      const corridors = [];
+      if (connectivity === 'linear') {
+        for (let i = 0; i < rooms.length - 1; i++) {
+          corridors.push([i, i + 1]);
+        }
+      } else if (connectivity === 'web') {
+        for (let i = 0; i < rooms.length; i++) {
+          for (let j = i + 1; j < rooms.length; j++) {
+            const dist = Math.hypot(rooms[i].x - rooms[j].x, rooms[i].y - rooms[j].y);
+            if (dist < 400 && rng.next() < 0.3) {
+              corridors.push([i, j]);
+            }
+          }
+        }
+      } else if (connectivity === 'hub') {
+        const hub = 0;
+        for (let i = 1; i < rooms.length; i++) {
+          corridors.push([hub, i]);
+        }
+      }
+
+      // Generate enemies
+      const enemies = [];
+      const enemyCount = Math.max(2, Math.floor(roomCount * 0.6));
+      for (let i = 0; i < enemyCount; i++) {
+        enemies.push({
+          roomId: rng.nextInt(rooms.length),
+          x: rooms[rng.nextInt(rooms.length)].x + (rng.next() - 0.5) * 40,
+          y: rooms[rng.nextInt(rooms.length)].y + (rng.next() - 0.5) * 40
+        });
+      }
+
+      // Generate treasures
+      const treasures = [];
+      const treasureCount = Math.max(1, Math.floor(roomCount * 0.25));
+      for (let i = 0; i < treasureCount; i++) {
+        treasures.push({
+          roomId: rng.nextInt(rooms.length),
+          x: rooms[rng.nextInt(rooms.length)].x + (rng.next() - 0.5) * 40,
+          y: rooms[rng.nextInt(rooms.length)].y + (rng.next() - 0.5) * 40
+        });
+      }
+
+      currentLayout = { rooms, corridors, enemies, treasures, theme, connectivity };
+      renderDungeon();
+      updateStats();
+    }
+
+    function hashSeed(seed) {
+      let hash = 0;
+      for (let i = 0; i < seed.length; i++) {
+        const char = seed.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash;
+      }
+      return Math.abs(hash) || 1;
+    }
+
+    function renderDungeon() {
+      if (!currentLayout) return;
+
+      const svg = document.getElementById('dungeonSVG');
+      svg.innerHTML = `<rect width="1000" height="800" fill="#0f172a"/>`;
+
+      const { rooms, corridors, enemies, treasures, theme } = currentLayout;
+      const color = themeColors[theme];
+
+      // Draw corridors
+      corridors.forEach(([id1, id2]) => {
+        const r1 = rooms[id1];
+        const r2 = rooms[id2];
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('x1', r1.x);
+        line.setAttribute('y1', r1.y);
+        line.setAttribute('x2', r2.x);
+        line.setAttribute('y2', r2.y);
+        line.setAttribute('stroke', '#64b5f6');
+        line.setAttribute('stroke-width', '4');
+        line.setAttribute('stroke-dasharray', '5,5');
+        svg.appendChild(line);
+      });
+
+      // Draw rooms
+      rooms.forEach(room => {
+        const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        rect.setAttribute('x', room.x - room.width / 2);
+        rect.setAttribute('y', room.y - room.height / 2);
+        rect.setAttribute('width', room.width);
+        rect.setAttribute('height', room.height);
+        rect.setAttribute('fill', color);
+        rect.setAttribute('stroke', '#4da8da');
+        rect.setAttribute('stroke-width', '2');
+        rect.setAttribute('rx', '4');
+        svg.appendChild(rect);
+
+        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        text.setAttribute('x', room.x);
+        text.setAttribute('y', room.y);
+        text.setAttribute('text-anchor', 'middle');
+        text.setAttribute('dominant-baseline', 'middle');
+        text.setAttribute('font-family', 'Space Mono');
+        text.setAttribute('font-size', '10');
+        text.setAttribute('fill', '#ecf0f1');
+        text.textContent = room.name.substring(0, 12);
+        svg.appendChild(text);
+      });
+
+      // Draw enemies
+      enemies.forEach(enemy => {
+        const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        circle.setAttribute('cx', enemy.x);
+        circle.setAttribute('cy', enemy.y);
+        circle.setAttribute('r', '8');
+        circle.setAttribute('fill', '#ff4444');
+        circle.setAttribute('stroke', '#ff6b6b');
+        circle.setAttribute('stroke-width', '2');
+        svg.appendChild(circle);
+
+        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        text.setAttribute('x', enemy.x);
+        text.setAttribute('y', enemy.y - 12);
+        text.setAttribute('text-anchor', 'middle');
+        text.setAttribute('font-size', '12');
+        text.textContent = '⚔️';
+        svg.appendChild(text);
+      });
+
+      // Draw treasures
+      treasures.forEach(treasure => {
+        const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        circle.setAttribute('cx', treasure.x);
+        circle.setAttribute('cy', treasure.y);
+        circle.setAttribute('r', '6');
+        circle.setAttribute('fill', '#ffdd00');
+        circle.setAttribute('stroke', '#fbbf24');
+        circle.setAttribute('stroke-width', '2');
+        svg.appendChild(circle);
+
+        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        text.setAttribute('x', treasure.x);
+        text.setAttribute('y', treasure.y - 10);
+        text.setAttribute('text-anchor', 'middle');
+        text.setAttribute('font-size', '12');
+        text.textContent = '💎';
+        svg.appendChild(text);
+      });
+    }
+
+    function regenerateDungeon() {
+      generateDungeon();
+    }
+
+    function updateStats() {
+      if (!currentLayout) return;
+
+      const { rooms, corridors, enemies, treasures } = currentLayout;
+      document.getElementById('statRooms').textContent = rooms.length;
+      document.getElementById('statCorridors').textContent = corridors.length;
+      document.getElementById('statEnemies').textContent = enemies.length;
+      document.getElementById('statTreasures').textContent = treasures.length;
+      document.getElementById('statSeed').textContent = currentSeed.substring(0, 8) + '...';
+    }
+
+    function downloadSVG() {
+      if (!currentLayout) {
+        showError('Generate a dungeon first!');
+        return;
+      }
+
+      const svg = document.getElementById('dungeonSVG');
+      const serializer = new XMLSerializer();
+      const svgString = serializer.serializeToString(svg);
+      const blob = new Blob([svgString], { type: 'image/svg+xml' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `dungeon-${currentSeed.substring(0, 8)}.svg`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function copySeed() {
+      if (!currentSeed) {
+        showError('Generate a dungeon first!');
+        return;
+      }
+      navigator.clipboard.writeText(currentSeed).then(() => {
+        const btn = event.target;
+        const oldText = btn.textContent;
+        btn.textContent = 'Copied!';
+        setTimeout(() => btn.textContent = oldText, 1500);
+      });
+    }
+
+    function showError(msg) {
+      const errorDiv = document.getElementById('errorMsg');
+      errorDiv.textContent = msg;
+      errorDiv.style.display = 'block';
+      setTimeout(() => errorDiv.style.display = 'none', 3000);
+    }
+
+    // Update room count display
+    document.getElementById('roomCount').addEventListener('input', (e) => {
+      document.getElementById('roomCountValue').textContent = e.target.value;
+    });
+  </script>
+</body>
+</html>
