@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RC4 Cipher Visualizer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@400;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #0f1419;
+            color: #e0e0e0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        h1 {
+            font-family: 'Fraunces', serif;
+            font-size: 2.2rem;
+            margin-bottom: 10px;
+            color: #fff;
+        }
+        .subtitle {
+            color: #999;
+            margin-bottom: 30px;
+            font-size: 0.95rem;
+        }
+        .panel {
+            background: #1a1f36;
+            border-radius: 8px;
+            padding: 25px;
+            margin-bottom: 25px;
+            border-left: 4px solid #00d084;
+        }
+        .panel h2 {
+            font-family: 'Fraunces', serif;
+            font-size: 1.4rem;
+            color: #00d084;
+            margin-bottom: 15px;
+        }
+        .panel.prga { border-left-color: #00ccff; }
+        .panel.prga h2 { color: #00ccff; }
+        .panel.xor { border-left-color: #ff6b35; }
+        .panel.xor h2 { color: #ff6b35; }
+        
+        .controls {
+            display: grid;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        label {
+            font-size: 0.9rem;
+            color: #ccc;
+            font-weight: 500;
+        }
+        input[type="text"], input[type="password"], select {
+            background: #0f1419;
+            border: 1px solid #333;
+            color: #00d084;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+        }
+        input[type="text"]:focus, input[type="password"]:focus, select:focus {
+            outline: none;
+            border-color: #00d084;
+            background: #0f1419;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 12px;
+            flex-wrap: wrap;
+        }
+        button {
+            background: #00d084;
+            color: #000;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 4px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: background 0.2s;
+        }
+        button:hover {
+            background: #00ff99;
+        }
+        button.secondary {
+            background: #333;
+            color: #00d084;
+        }
+        button.secondary:hover {
+            background: #444;
+        }
+        
+        .s-box-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(28px, 1fr));
+            gap: 4px;
+            margin-bottom: 15px;
+            background: #0f1419;
+            padding: 12px;
+            border-radius: 4px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .s-box-cell {
+            background: #1a1f36;
+            border: 1px solid #333;
+            padding: 4px;
+            text-align: center;
+            font-family: 'Courier New', monospace;
+            font-size: 0.8rem;
+            border-radius: 2px;
+            transition: all 0.1s;
+        }
+        .s-box-cell.highlight-i {
+            background: #ff8c00;
+            color: #000;
+            border-color: #ffaa00;
+        }
+        .s-box-cell.highlight-j {
+            background: #00ccff;
+            color: #000;
+            border-color: #00eeff;
+        }
+        .s-box-cell.swapping {
+            background: #ff6b35;
+            color: #fff;
+            border-color: #ff8c00;
+        }
+        
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 12px;
+            margin-bottom: 15px;
+        }
+        .stat {
+            background: #0f1419;
+            padding: 12px;
+            border-radius: 4px;
+            border-left: 3px solid #00d084;
+        }
+        .stat.i { border-left-color: #ff8c00; }
+        .stat.j { border-left-color: #00ccff; }
+        .stat label {
+            display: block;
+            font-size: 0.8rem;
+            color: #999;
+            margin-bottom: 4px;
+        }
+        .stat-value {
+            font-family: 'Courier New', monospace;
+            font-size: 1.2rem;
+            color: #00d084;
+        }
+        .stat.i .stat-value { color: #ff8c00; }
+        .stat.j .stat-value { color: #00ccff; }
+        
+        .keystream-display {
+            background: #0f1419;
+            padding: 12px;
+            border-radius: 4px;
+            margin-bottom: 12px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+            color: #00ccff;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .text-area {
+            background: #0f1419;
+            border: 1px solid #333;
+            color: #e0e0e0;
+            padding: 12px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+            min-height: 60px;
+            resize: vertical;
+        }
+        .text-area:focus {
+            outline: none;
+            border-color: #00d084;
+        }
+        
+        .result-box {
+            background: #0f1419;
+            padding: 12px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            word-break: break-all;
+            color: #ff6b35;
+            margin-top: 10px;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+        
+        .info-box {
+            background: #1a1f36;
+            border-left: 4px solid #00d084;
+            padding: 12px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            margin-bottom: 12px;
+        }
+        
+        .toggle-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+        .toggle-btn {
+            padding: 8px 14px;
+            font-size: 0.85rem;
+            background: #333;
+            border: 1px solid #555;
+        }
+        .toggle-btn.active {
+            background: #00d084;
+            color: #000;
+            border-color: #00d084;
+        }
+        
+        @media (max-width: 600px) {
+            h1 { font-size: 1.6rem; }
+            .panel { padding: 15px; }
+            .s-box-grid { grid-template-columns: repeat(auto-fit, minmax(24px, 1fr)); }
+            button { padding: 8px 12px; font-size: 0.85rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 RC4 Cipher</h1>
+        <p class="subtitle">Watch the algorithm shuffle and generate an unbreakable keystream</p>
+        
+        <!-- Panel 1: KSA -->
+        <div class="panel">
+            <h2>1. Key Scheduling Algorithm (KSA)</h2>
+            <div class="controls">
+                <div class="control-group">
+                    <label for="keyInput">Passphrase (e.g., "hello"):</label>
+                    <input type="password" id="keyInput" value="hello" placeholder="Enter passphrase">
+                </div>
+            </div>
+            
+            <div class="info-box">
+                <strong>KSA:</strong> Takes your key and shuffles a table of numbers 0–255. Each shuffle step swaps two positions based on the key bytes. The final shuffled table (S-box) is the secret state used to generate the keystream.
+            </div>
+            
+            <div class="button-group">
+                <button onclick="runKSA()">Start KSA</button>
+                <button class="secondary" onclick="stepKSA()">Step (→)</button>
+                <button class="secondary" onclick="toggleAutoKSA()">Auto-Animate</button>
+            </div>
+            
+            <div class="stats-row">
+                <div class="stat i"><label>i</label><div class="stat-value" id="statI">0</div></div>
+                <div class="stat j"><label>j</label><div class="stat-value" id="statJ">0</div></div>
+                <div class="stat" style="border-left-color: #00d084;"><label>Step</label><div class="stat-value" id="statStep">0</div></div>
+            </div>
+            
+            <div class="info-box" style="font-size: 0.85rem;">
+                <strong>S-box state:</strong> Green cells = initialized. <span style="background: #ff8c00; color: #000; padding: 2px 4px; border-radius: 2px;">Orange = i (read position)</span> <span style="background: #00ccff; color: #000; padding: 2px 4px; border-radius: 2px;">Cyan = j (swap target)</span>
+            </div>
+            
+            <div class="s-box-grid" id="sboxGrid"></div>
+        </div>
+        
+        <!-- Panel 2: PRGA -->
+        <div class="panel prga">
+            <h2>2. Pseudo-Random Generation Algorithm (PRGA)</h2>
+            
+            <div class="info-box">
+                <strong>PRGA:</strong> After KSA finishes, generate keystream bytes one at a time. Each byte is derived from the S-box by advancing i and j, then extracting a value. These keystream bytes are random-looking (but deterministic from the key) — they're what gets XORed with your plaintext.
+            </div>
+            
+            <div class="button-group">
+                <button onclick="runPRGA(20)">Generate 20 Bytes</button>
+                <button class="secondary" onclick="clearKeystream()">Clear</button>
+            </div>
+            
+            <div class="keystream-display" id="keystreamDisplay">Keystream bytes will appear here (hex and decimal)...</div>
+            
+            <div class="info-box" style="font-size: 0.85rem;">
+                Example: keystream = [0xd4, 0x7a, 0x3e, ...] = [212, 122, 62, ...]
+            </div>
+        </div>
+        
+        <!-- Panel 3: XOR Demo -->
+        <div class="panel xor">
+            <h2>3. XOR Encryption / Decryption</h2>
+            
+            <div class="info-box">
+                <strong>The Magic:</strong> XOR each plaintext byte with each keystream byte → ciphertext. Same XOR with the keystream again → plaintext back. The ciphertext is unbreakable because only someone with your key can generate the same keystream.
+            </div>
+            
+            <div class="controls">
+                <div class="control-group">
+                    <label for="plaintextInput">Plaintext:</label>
+                    <textarea class="text-area" id="plaintextInput" placeholder="e.g., hello world">hello world</textarea>
+                </div>
+            </div>
+            
+            <div class="button-group">
+                <button onclick="encryptText()">Encrypt</button>
+                <button class="secondary" onclick="decryptText()">Decrypt Ciphertext</button>
+            </div>
+            
+            <div style="margin-top: 12px;">
+                <label style="display: block; font-size: 0.85rem; color: #999; margin-bottom: 5px;">Ciphertext (hex):</label>
+                <div class="result-box" id="ciphertextBox"></div>
+            </div>
+            
+            <div style="margin-top: 12px;">
+                <label style="display: block; font-size: 0.85rem; color: #999; margin-bottom: 5px;">Decrypted / Final Text:</label>
+                <div class="result-box" id="resultBox" style="color: #00d084;"></div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // RC4 Implementation
+        class RC4 {
+            constructor(key) {
+                this.key = typeof key === 'string' ? [...key].map(c => c.charCodeAt(0)) : key;
+                this.S = Array.from({length: 256}, (_, i) => i);
+                this.i = 0;
+                this.j = 0;
+                this.ksaStep = 0;
+                this.ksaPhase = 'init'; // init, ksa, prga
+            }
+            
+            ksa() {
+                // Run one step of KSA
+                if (this.ksaPhase === 'ksa' && this.ksaStep >= 256) {
+                    this.ksaPhase = 'done';
+                    return false; // done
+                }
+                
+                if (this.ksaPhase === 'init') {
+                    this.ksaPhase = 'ksa';
+                }
+                
+                let i = this.ksaStep;
+                let j = this.j;
+                j = (j + this.S[i] + this.key[i % this.key.length]) % 256;
+                
+                // swap
+                [this.S[i], this.S[j]] = [this.S[j], this.S[i]];
+                
+                this.i = i;
+                this.j = j;
+                this.ksaStep++;
+                
+                return this.ksaStep < 256; // more steps
+            }
+            
+            prga() {
+                // Generate one keystream byte
+                this.i = (this.i + 1) % 256;
+                this.j = (this.j + this.S[this.i]) % 256;
+                [this.S[this.i], this.S[this.j]] = [this.S[this.j], this.S[this.i]];
+                let K = this.S[(this.S[this.i] + this.S[this.j]) % 256];
+                return K;
+            }
+        }
+        
+        let rc4 = null;
+        let keystream = [];
+        let autoAnimating = false;
+        
+        function renderSBox() {
+            if (!rc4) return;
+            const grid = document.getElementById('sboxGrid');
+            grid.innerHTML = '';
+            for (let idx = 0; idx < 256; idx++) {
+                const cell = document.createElement('div');
+                cell.className = 's-box-cell';
+                cell.textContent = rc4.S[idx];
+                
+                if (idx === rc4.i) cell.classList.add('highlight-i');
+                if (idx === rc4.j) cell.classList.add('highlight-j');
+                
+                grid.appendChild(cell);
+            }
+            
+            document.getElementById('statI').textContent = rc4.i;
+            document.getElementById('statJ').textContent = rc4.j;
+            document.getElementById('statStep').textContent = rc4.ksaStep;
+        }
+        
+        function runKSA() {
+            const key = document.getElementById('keyInput').value || 'hello';
+            rc4 = new RC4(key);
+            keystream = [];
+            document.getElementById('keystreamDisplay').textContent = 'Keystream bytes will appear here...';
+            renderSBox();
+        }
+        
+        function stepKSA() {
+            if (!rc4) {
+                runKSA();
+                return;
+            }
+            if (rc4.ksaPhase === 'ksa') {
+                rc4.ksa();
+                renderSBox();
+            } else if (rc4.ksaPhase === 'init') {
+                runKSA();
+                stepKSA();
+            }
+        }
+        
+        function toggleAutoKSA() {
+            if (!rc4) runKSA();
+            autoAnimating = !autoAnimating;
+            document.querySelector('button[onclick="toggleAutoKSA()"]').textContent = 
+                autoAnimating ? 'Stop Auto' : 'Auto-Animate';
+            
+            if (autoAnimating) {
+                const interval = setInterval(() => {
+                    if (rc4.ksaPhase !== 'ksa') {
+                        autoAnimating = false;
+                        document.querySelector('button[onclick="toggleAutoKSA()"]').textContent = 'Auto-Animate';
+                        clearInterval(interval);
+                        return;
+                    }
+                    rc4.ksa();
+                    renderSBox();
+                }, 150);
+            }
+        }
+        
+        function runPRGA(count) {
+            if (!rc4 || rc4.ksaPhase === 'init') {
+                runKSA();
+            }
+            
+            // Finish KSA first
+            while (rc4.ksaPhase === 'ksa') {
+                rc4.ksa();
+            }
+            
+            // Generate keystream
+            keystream = [];
+            for (let i = 0; i < count; i++) {
+                keystream.push(rc4.prga());
+            }
+            
+            let display = keystream.map((b, i) => 
+                `${i}: 0x${b.toString(16).padStart(2, '0')} (${b})`
+            ).join('\n');
+            
+            document.getElementById('keystreamDisplay').textContent = display;
+        }
+        
+        function clearKeystream() {
+            keystream = [];
+            document.getElementById('keystreamDisplay').textContent = 'Keystream cleared.';
+        }
+        
+        function xorBytes(data, key) {
+            return data.map((b, i) => b ^ key[i % key.length]);
+        }
+        
+        function encryptText() {
+            if (keystream.length === 0) {
+                alert('Generate keystream first (PRGA).'); 
+                return;
+            }
+            const plaintext = document.getElementById('plaintextInput').value;
+            const data = [...plaintext].map(c => c.charCodeAt(0));
+            const ciphertext = xorBytes(data, keystream);
+            
+            const hexStr = ciphertext.map(b => b.toString(16).padStart(2, '0')).join(' ');
+            document.getElementById('ciphertextBox').textContent = hexStr;
+            document.getElementById('resultBox').textContent = 'Ciphertext generated (see above).';
+        }
+        
+        function decryptText() {
+            const hexStr = document.getElementById('ciphertextBox').textContent.trim();
+            if (!hexStr || hexStr === '(Encrypted text will appear here...)') {
+                alert('Encrypt something first.');
+                return;
+            }
+            
+            const ciphertext = hexStr.split(/\s+/).map(h => parseInt(h, 16));
+            const plaintext = xorBytes(ciphertext, keystream);
+            const text = plaintext.map(b => String.fromCharCode(b)).join('');
+            
+            document.getElementById('resultBox').textContent = text;
+        }
+        
+        // Initialize on load
+        window.addEventListener('load', runKSA);
+    </script>
+</body>
+</html>
