@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Connect-4 vs AI</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&family=Dosis:wght@700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Roboto Mono', monospace;
+      background: linear-gradient(135deg, #0a1d4a 0%, #1a2f5a 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      color: #00d4ff;
+    }
+
+    .container {
+      max-width: 600px;
+      width: 100%;
+      background: rgba(10, 29, 74, 0.95);
+      border: 2px solid #00d4ff;
+      border-radius: 12px;
+      padding: 30px;
+      box-shadow: 0 0 30px rgba(0, 212, 255, 0.3);
+    }
+
+    h1 {
+      font-family: 'Dosis', sans-serif;
+      font-size: 2.5em;
+      text-align: center;
+      margin-bottom: 10px;
+      color: #00ff88;
+      text-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+    }
+
+    .subtitle {
+      text-align: center;
+      font-size: 0.9em;
+      color: #4da8da;
+      margin-bottom: 25px;
+    }
+
+    .game-board {
+      background: #0a1d4a;
+      border: 2px solid #00d4ff;
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: center;
+    }
+
+    .board {
+      display: grid;
+      grid-template-columns: repeat(7, 50px);
+      grid-gap: 8px;
+      background: transparent;
+    }
+
+    .cell {
+      width: 50px;
+      height: 50px;
+      background: rgba(77, 168, 218, 0.2);
+      border: 2px solid #4da8da;
+      border-radius: 50%;
+      cursor: pointer;
+      position: relative;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .cell:hover {
+      background: rgba(0, 255, 136, 0.3);
+      border-color: #00ff88;
+    }
+
+    .cell.disabled {
+      cursor: not-allowed;
+      opacity: 0.5;
+    }
+
+    .cell.user {
+      background: #ffd700;
+      border-color: #ffed4e;
+    }
+
+    .cell.ai {
+      background: #ff4444;
+      border-color: #ff6666;
+    }
+
+    .columns {
+      display: grid;
+      grid-template-columns: repeat(7, 50px);
+      grid-gap: 8px;
+      margin-top: 10px;
+      gap: 8px;
+      justify-content: center;
+    }
+
+    .col-label {
+      width: 50px;
+      text-align: center;
+      font-size: 0.85em;
+      color: #00d4ff;
+      font-weight: 700;
+    }
+
+    .status-panel {
+      background: rgba(0, 212, 255, 0.1);
+      border: 2px solid #00d4ff;
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    .status-text {
+      font-size: 1.3em;
+      color: #00d4ff;
+      font-weight: 700;
+      letter-spacing: 2px;
+      margin-bottom: 8px;
+      min-height: 1.5em;
+    }
+
+    .status-text.win {
+      color: #00ff88;
+    }
+
+    .status-text.lose {
+      color: #ff4444;
+    }
+
+    .status-text.draw {
+      color: #ffed4e;
+    }
+
+    .move-history {
+      background: rgba(0, 212, 255, 0.05);
+      border-left: 3px solid #00d4ff;
+      padding: 10px 15px;
+      margin-top: 10px;
+      font-size: 0.8em;
+      max-height: 60px;
+      overflow-y: auto;
+      color: #4da8da;
+    }
+
+    .controls {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+
+    button {
+      background: linear-gradient(135deg, #00ff88, #00d4ff);
+      color: #0a1d4a;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 6px;
+      font-family: 'Dosis', sans-serif;
+      font-size: 1.1em;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.3s;
+      letter-spacing: 1px;
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(0, 255, 136, 0.4);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    .info {
+      font-size: 0.9em;
+      color: #4da8da;
+      text-align: center;
+      margin-top: 15px;
+      line-height: 1.6;
+    }
+
+    .pieces-legend {
+      display: flex;
+      justify-content: center;
+      gap: 30px;
+      margin-top: 15px;
+      font-size: 0.85em;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .legend-circle {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      border: 2px solid;
+    }
+
+    .legend-circle.user {
+      background: #ffd700;
+      border-color: #ffed4e;
+    }
+
+    .legend-circle.ai {
+      background: #ff4444;
+      border-color: #ff6666;
+    }
+
+    .fade-in {
+      animation: fadeIn 0.5s ease-in;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @media (max-width: 600px) {
+      .container {
+        padding: 20px;
+      }
+
+      h1 {
+        font-size: 2em;
+      }
+
+      .board {
+        grid-template-columns: repeat(7, 40px);
+      }
+
+      .cell {
+        width: 40px;
+        height: 40px;
+      }
+
+      .col-label {
+        width: 40px;
+        font-size: 0.75em;
+      }
+
+      .columns {
+        grid-template-columns: repeat(7, 40px);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Connect-4</h1>
+    <div class="subtitle">Play Yellow, AI is Red</div>
+
+    <div class="status-panel">
+      <div class="status-text" id="statusText">YOUR MOVE</div>
+      <div class="move-history" id="moveHistory"></div>
+    </div>
+
+    <div class="game-board">
+      <div style="width: 100%; text-align: center;">
+        <div class="board" id="gameBoard"></div>
+        <div class="columns" id="columnLabels"></div>
+      </div>
+    </div>
+
+    <div class="pieces-legend">
+      <div class="legend-item">
+        <div class="legend-circle user"></div>
+        <span>You (Yellow)</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-circle ai"></div>
+        <span>AI (Red)</span>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button onclick="resetGame()">Reset Game</button>
+    </div>
+
+    <div class="info">
+      <p>Click a column to drop your piece. AI will respond.</p>
+      <p>First to get 4 in a row (horizontal, vertical, or diagonal) wins!</p>
+    </div>
+  </div>
+
+  <script>
+    const ROWS = 6;
+    const COLS = 7;
+    const USER = 1;
+    const AI = 2;
+    const EMPTY = 0;
+
+    let board = [];
+    let gameOver = false;
+    let gameResult = null;
+    let moves = [];
+
+    function initBoard() {
+      board = Array(ROWS).fill(null).map(() => Array(COLS).fill(EMPTY));
+    }
+
+    function resetGame() {
+      initBoard();
+      gameOver = false;
+      gameResult = null;
+      moves = [];
+      renderBoard();
+      updateStatus('YOUR MOVE');
+    }
+
+    function renderBoard() {
+      const boardEl = document.getElementById('gameBoard');
+      boardEl.innerHTML = '';
+
+      for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+          const cell = document.createElement('div');
+          cell.className = 'cell';
+          const piece = board[r][c];
+
+          if (piece === USER) cell.classList.add('user');
+          else if (piece === AI) cell.classList.add('ai');
+
+          if (gameOver) cell.classList.add('disabled');
+          else if (piece === EMPTY) {
+            cell.style.cursor = 'pointer';
+            cell.addEventListener('click', () => userMove(c));
+          } else {
+            cell.classList.add('disabled');
+          }
+
+          boardEl.appendChild(cell);
+        }
+      }
+
+      // Render column labels
+      const labelsEl = document.getElementById('columnLabels');
+      labelsEl.innerHTML = '';
+      for (let c = 0; c < COLS; c++) {
+        const label = document.createElement('div');
+        label.className = 'col-label';
+        label.textContent = c + 1;
+        labelsEl.appendChild(label);
+      }
+    }
+
+    function dropPiece(col, player) {
+      for (let r = ROWS - 1; r >= 0; r--) {
+        if (board[r][col] === EMPTY) {
+          board[r][col] = player;
+          return r;
+        }
+      }
+      return -1; // Column full
+    }
+
+    function canDropInColumn(col) {
+      return board[0][col] === EMPTY;
+    }
+
+    function checkWinner(player) {
+      // Horizontal
+      for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS - 3; c++) {
+          if (board[r][c] === player &&
+              board[r][c+1] === player &&
+              board[r][c+2] === player &&
+              board[r][c+3] === player) {
+            return true;
+          }
+        }
+      }
+
+      // Vertical
+      for (let r = 0; r < ROWS - 3; r++) {
+        for (let c = 0; c < COLS; c++) {
+          if (board[r][c] === player &&
+              board[r+1][c] === player &&
+              board[r+2][c] === player &&
+              board[r+3][c] === player) {
+            return true;
+          }
+        }
+      }
+
+      // Diagonal /
+      for (let r = 3; r < ROWS; r++) {
+        for (let c = 0; c < COLS - 3; c++) {
+          if (board[r][c] === player &&
+              board[r-1][c+1] === player &&
+              board[r-2][c+2] === player &&
+              board[r-3][c+3] === player) {
+            return true;
+          }
+        }
+      }
+
+      // Diagonal \
+      for (let r = 0; r < ROWS - 3; r++) {
+        for (let c = 0; c < COLS - 3; c++) {
+          if (board[r][c] === player &&
+              board[r+1][c+1] === player &&
+              board[r+2][c+2] === player &&
+              board[r+3][c+3] === player) {
+            return true;
+          }
+        }
+      }
+
+      return false;
+    }
+
+    function isBoardFull() {
+      for (let c = 0; c < COLS; c++) {
+        if (board[0][c] === EMPTY) return false;
+      }
+      return true;
+    }
+
+    function scoreMove(col, depth, isAI) {
+      if (!canDropInColumn(col)) return -999;
+
+      // Simulate move
+      let row = -1;
+      for (let r = ROWS - 1; r >= 0; r--) {
+        if (board[r][col] === EMPTY) {
+          row = r;
+          board[r][col] = isAI ? AI : USER;
+          break;
+        }
+      }
+
+      let score = 0;
+
+      // Check if this move wins
+      if (checkWinner(isAI ? AI : USER)) {
+        score = isAI ? 10000 : 10000;
+      } else if (checkWinner(isAI ? USER : AI)) {
+        score = isAI ? -5000 : -5000;
+      } else {
+        // Positional scoring: center columns are better
+        score = Math.abs(col - 3) <= 1 ? 10 : 5;
+
+        // Count pieces in a row
+        score += countThreatOrWin(row, col, isAI ? AI : USER) * 50;
+      }
+
+      board[row][col] = EMPTY;
+      return score;
+    }
+
+    function countThreatOrWin(row, col, player) {
+      let count = 0;
+
+      // Horizontal
+      let h = 1;
+      for (let c = col - 1; c >= 0 && board[row][c] === player; c--) h++;
+      for (let c = col + 1; c < COLS && board[row][c] === player; c++) h++;
+      if (h >= 3) count += 1;
+
+      // Vertical
+      let v = 1;
+      for (let r = row - 1; r >= 0 && board[r][col] === player; r--) v++;
+      for (let r = row + 1; r < ROWS && board[r][col] === player; r++) v++;
+      if (v >= 3) count += 1;
+
+      // Diagonal /
+      let d1 = 1;
+      for (let i = 1; row + i < ROWS && col - i >= 0 && board[row+i][col-i] === player; i++) d1++;
+      for (let i = 1; row - i >= 0 && col + i < COLS && board[row-i][col+i] === player; i++) d1++;
+      if (d1 >= 3) count += 1;
+
+      // Diagonal \
+      let d2 = 1;
+      for (let i = 1; row + i < ROWS && col + i < COLS && board[row+i][col+i] === player; i++) d2++;
+      for (let i = 1; row - i >= 0 && col - i >= 0 && board[row-i][col-i] === player; i++) d2++;
+      if (d2 >= 3) count += 1;
+
+      return count;
+    }
+
+    function getAIMove() {
+      let bestScore = -Infinity;
+      let bestMoves = [];
+
+      for (let col = 0; col < COLS; col++) {
+        if (canDropInColumn(col)) {
+          let score = scoreMove(col, 0, true);
+
+          // Add tiny randomness to avoid always playing center
+          score += (Math.random() - 0.5) * 0.2;
+
+          if (score > bestScore) {
+            bestScore = score;
+            bestMoves = [col];
+          } else if (score === bestScore) {
+            bestMoves.push(col);
+          }
+        }
+      }
+
+      return bestMoves.length > 0 ? bestMoves[Math.floor(Math.random() * bestMoves.length)] : 0;
+    }
+
+    function userMove(col) {
+      if (gameOver || !canDropInColumn(col)) return;
+
+      dropPiece(col, USER);
+      moves.push(`Col ${col + 1}: You`);
+      updateMoveHistory();
+      renderBoard();
+
+      if (checkWinner(USER)) {
+        gameOver = true;
+        gameResult = 'win';
+        updateStatus('YOU WIN!', 'win');
+        return;
+      }
+
+      if (isBoardFull()) {
+        gameOver = true;
+        gameResult = 'draw';
+        updateStatus('DRAW', 'draw');
+        return;
+      }
+
+      updateStatus('AI THINKING');
+      renderBoard();
+
+      setTimeout(() => {
+        const aiCol = getAIMove();
+        dropPiece(aiCol, AI);
+        moves.push(`Col ${aiCol + 1}: AI`);
+        updateMoveHistory();
+        renderBoard();
+
+        if (checkWinner(AI)) {
+          gameOver = true;
+          gameResult = 'lose';
+          updateStatus('YOU LOSE', 'lose');
+          return;
+        }
+
+        if (isBoardFull()) {
+          gameOver = true;
+          gameResult = 'draw';
+          updateStatus('DRAW', 'draw');
+          return;
+        }
+
+        updateStatus('YOUR MOVE');
+      }, 100);
+    }
+
+    function updateStatus(text, className = '') {
+      const statusEl = document.getElementById('statusText');
+      statusEl.textContent = text;
+      statusEl.className = 'status-text';
+      if (className) statusEl.classList.add(className);
+    }
+
+    function updateMoveHistory() {
+      const histEl = document.getElementById('moveHistory');
+      const recentMoves = moves.slice(-5);
+      histEl.textContent = recentMoves.join(' • ');
+    }
+
+    // Init
+    initBoard();
+    renderBoard();
+  </script>
+</body>
+</html>
