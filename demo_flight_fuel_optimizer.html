@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flight Fuel Optimizer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Space Mono', monospace;
+            background: #0a1428;
+            color: #e0e7ff;
+            padding: 2rem;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+        
+        h1 {
+            grid-column: 1 / -1;
+            font-family: 'Playfair Display', serif;
+            font-size: 2.5rem;
+            margin-bottom: 2rem;
+            text-align: center;
+            color: #4da8da;
+        }
+        
+        .controls {
+            background: #0f1d3d;
+            padding: 1.5rem;
+            border-radius: 8px;
+            border-left: 4px solid #4da8da;
+        }
+        
+        .control-group {
+            margin-bottom: 1.5rem;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: bold;
+            color: #4da8da;
+            font-size: 0.9rem;
+        }
+        
+        select, input[type="range"] {
+            width: 100%;
+            padding: 0.5rem;
+            background: #1a2f5a;
+            color: #e0e7ff;
+            border: 1px solid #4da8da;
+            border-radius: 4px;
+            font-family: 'Space Mono', monospace;
+        }
+        
+        input[type="range"] {
+            padding: 0;
+            height: 6px;
+        }
+        
+        .value-display {
+            display: inline-block;
+            margin-left: 0.5rem;
+            padding: 0.25rem 0.75rem;
+            background: #4da8da;
+            color: #0a1428;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 0.85rem;
+        }
+        
+        .results {
+            background: #0f1d3d;
+            padding: 1.5rem;
+            border-radius: 8px;
+            border-left: 4px solid #fbbf24;
+        }
+        
+        .result-card {
+            margin-bottom: 1.5rem;
+            padding: 1rem;
+            background: #1a2f5a;
+            border-radius: 6px;
+            border-top: 3px solid #fbbf24;
+        }
+        
+        .result-card h3 {
+            color: #fbbf24;
+            margin-bottom: 0.5rem;
+            font-size: 1rem;
+        }
+        
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+        
+        .stat-label {
+            color: #9ca3af;
+        }
+        
+        .stat-value {
+            color: #4da8da;
+            font-weight: bold;
+        }
+        
+        .fuel-chart {
+            width: 100%;
+            height: 200px;
+            background: #0a1428;
+            border-radius: 6px;
+            margin-top: 1rem;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .fuel-bar-container {
+            display: flex;
+            width: 100%;
+            height: 100%;
+            border-left: 1px solid #4da8da;
+            border-bottom: 1px solid #4da8da;
+            padding: 1rem;
+            gap: 0.5rem;
+            align-items: flex-end;
+        }
+        
+        .fuel-bar {
+            flex: 1;
+            background: #4da8da;
+            border-radius: 4px 4px 0 0;
+            position: relative;
+            min-height: 20px;
+        }
+        
+        .fuel-bar.climb { background: linear-gradient(to top, #ff8c42, #fbbf24); }
+        .fuel-bar.cruise { background: linear-gradient(to top, #4da8da, #64b5f6); }
+        .fuel-bar.descent { background: linear-gradient(to top, #00ff88, #4da8da); }
+        .fuel-bar.reserve { background: linear-gradient(to top, #ff6b6b, #ff9999); }
+        .fuel-bar.alternate { background: linear-gradient(to top, #8b5cf6, #c4b5fd); }
+        
+        .fuel-label {
+            position: absolute;
+            bottom: -25px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            font-size: 0.75rem;
+            color: #9ca3af;
+            white-space: nowrap;
+        }
+        
+        .feasibility {
+            padding: 1rem;
+            border-radius: 6px;
+            margin-top: 1rem;
+            font-weight: bold;
+            text-align: center;
+        }
+        
+        .feasibility.safe {
+            background: rgba(0, 255, 136, 0.2);
+            color: #00ff88;
+            border: 2px solid #00ff88;
+        }
+        
+        .feasibility.marginal {
+            background: rgba(251, 191, 36, 0.2);
+            color: #fbbf24;
+            border: 2px solid #fbbf24;
+        }
+        
+        .feasibility.unsafe {
+            background: rgba(255, 107, 107, 0.2);
+            color: #ff6b6b;
+            border: 2px solid #ff6b6b;
+        }
+        
+        .stats-table {
+            width: 100%;
+            margin-top: 1.5rem;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+        
+        .stats-table th {
+            background: #1a2f5a;
+            color: #4da8da;
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 2px solid #4da8da;
+        }
+        
+        .stats-table td {
+            padding: 0.75rem;
+            border-bottom: 1px solid #1a2f5a;
+        }
+        
+        .stats-table tr:hover {
+            background: #0f1d3d;
+        }
+        
+        @media (max-width: 1024px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>✈️ Flight Fuel Optimizer</h1>
+        
+        <div class="controls">
+            <div class="control-group">
+                <label>Aircraft Type</label>
+                <select id="aircraftSelect">
+                    <option value="cessna">Cessna 172 (Single-Engine, 4-pax)</option>
+                    <option value="piper">Piper PA-28 (Single-Engine, 4-pax)</option>
+                    <option value="boeing737">Boeing 737-800 (Twin-Engine, 160 pax)</option>
+                    <option value="a320">Airbus A320 (Twin-Engine, 180 pax)</option>
+                    <option value="g650">Gulfstream G650 (Twin-Engine, 13 pax)</option>
+                    <option value="robinson">Robinson R66 (Helicopter, 4 pax)</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <label>Distance <span class="value-display" id="distValue">500 nm</span></label>
+                <input type="range" id="distance" min="50" max="6000" value="500" step="50">
+            </div>
+            
+            <div class="control-group">
+                <label>Wind Conditions <span class="value-display" id="windValue">0 kt (calm)</span></label>
+                <input type="range" id="wind" min="-50" max="50" value="0" step="5">
+                <small style="color: #9ca3af; margin-top: 0.5rem; display: block;">Negative = headwind, Positive = tailwind</small>
+            </div>
+            
+            <div class="control-group">
+                <label>Weather Reserve <span class="value-display" id="reserveValue">10%</span></label>
+                <input type="range" id="reserve" min="5" max="20" value="10" step="1">
+            </div>
+        </div>
+        
+        <div class="results">
+            <div class="result-card">
+                <h3>Fuel Breakdown</h3>
+                <div id="fuelBreakdown" style="display: none;">
+                    <div class="stat-row">
+                        <span class="stat-label">Cruise Fuel:</span>
+                        <span class="stat-value" id="cruiseFuel">0 gal</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Climb Fuel:</span>
+                        <span class="stat-value" id="climbFuel">0 gal</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Descent Fuel:</span>
+                        <span class="stat-value" id="descentFuel">0 gal</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Reserve Fuel:</span>
+                        <span class="stat-value" id="reserveFuel">0 gal</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Alternate Airport:</span>
+                        <span class="stat-value" id="alternateFuel">0 gal</span>
+                    </div>
+                </div>
+                <div class="fuel-chart">
+                    <div class="fuel-bar-container" id="fuelBars"></div>
+                </div>
+            </div>
+            
+            <div class="result-card">
+                <h3>Fuel Requirements</h3>
+                <div id="fuelReqs" style="display: none;">
+                    <div class="stat-row">
+                        <span class="stat-label">Minimum Fuel (no reserve):</span>
+                        <span class="stat-value" id="minFuel">0 gal</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Recommended Load:</span>
+                        <span class="stat-value" id="recFuel">0 gal</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Tank Capacity:</span>
+                        <span class="stat-value" id="tankCap">0 gal</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Time to Destination:</span>
+                        <span class="stat-value" id="flightTime">0 hr</span>
+                    </div>
+                </div>
+                <div id="feasibility" class="feasibility safe" style="display: none;">✓ Safe to Fly</div>
+            </div>
+            
+            <div class="result-card">
+                <h3>Aircraft Stats</h3>
+                <table class="stats-table" id="statsTable">
+                    <thead>
+                        <tr>
+                            <th>Parameter</th>
+                            <th>Value</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>True Airspeed</td><td id="statTAS">0 kt</td></tr>
+                        <tr><td>Ground Speed</td><td id="statGS">0 kt</td></tr>
+                        <tr><td>Cruise Burn Rate</td><td id="statBurn">0 gal/hr</td></tr>
+                        <tr><td>Max Cruise Altitude</td><td id="statAlt">0 ft</td></tr>
+                        <tr><td>Climb Rate</td><td id="statClimb">0 fpm</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Aircraft specifications from real FAA/OEM data
+        const aircraft = {
+            cessna: {
+                name: 'Cessna 172',
+                tankCap: 53,
+                burnRate: 5.0,  // gal/hr at cruise
+                tas: 120,       // true airspeed (kt)
+                maxAlt: 14000,  // feet
+                climbRate: 700, // feet per minute
+                units: 'gal'
+            },
+            piper: {
+                name: 'Piper PA-28',
+                tankCap: 72,
+                burnRate: 6.5,
+                tas: 140,
+                maxAlt: 16500,
+                climbRate: 750,
+                units: 'gal'
+            },
+            boeing737: {
+                name: 'Boeing 737-800',
+                tankCap: 6875,
+                burnRate: 750,
+                tas: 460,
+                maxAlt: 41000,
+                climbRate: 2200,
+                units: 'gal'
+            },
+            a320: {
+                name: 'Airbus A320',
+                tankCap: 27200 / 3.785, // Convert liters to gallons ~7,184 gal
+                burnRate: 770,
+                tas: 460,
+                maxAlt: 43000,
+                climbRate: 2000,
+                units: 'gal'
+            },
+            g650: {
+                name: 'Gulfstream G650',
+                tankCap: 13039,
+                burnRate: 200,
+                tas: 490,
+                maxAlt: 51000,
+                climbRate: 4200,
+                units: 'gal'
+            },
+            robinson: {
+                name: 'Robinson R66',
+                tankCap: 26.4, // 100 liters ~ 26.4 gal
+                burnRate: 6.6, // 25 L/hr ~ 6.6 gal/hr
+                tas: 100,
+                maxAlt: 14000,
+                climbRate: 600,
+                units: 'gal'
+            }
+        };
+        
+        // Elements
+        const aircraftSelect = document.getElementById('aircraftSelect');
+        const distanceInput = document.getElementById('distance');
+        const windInput = document.getElementById('wind');
+        const reserveInput = document.getElementById('reserve');
+        const fuelBreakdown = document.getElementById('fuelBreakdown');
+        const fuelReqs = document.getElementById('fuelReqs');
+        const feasibilityDiv = document.getElementById('feasibility');
+        
+        function updateValues() {
+            const aircraftKey = aircraftSelect.value;
+            const ac = aircraft[aircraftKey];
+            const distance = parseFloat(distanceInput.value);
+            const wind = parseFloat(windInput.value);
+            const reserve = parseFloat(reserveInput.value) / 100;
+            
+            // Update display values
+            document.getElementById('distValue').textContent = distance + ' nm';
+            const windText = wind > 0 ? `+${wind} kt (tailwind)` : wind < 0 ? `${wind} kt (headwind)` : '0 kt (calm)';
+            document.getElementById('windValue').textContent = windText;
+            document.getElementById('reserveValue').textContent = reserve * 100 + '%';
+            
+            // Calculate ground speed
+            const groundSpeed = ac.tas + wind;
+            
+            // Calculate cruise time (hours)
+            const cruiseTime = distance / groundSpeed;
+            
+            // Calculate cruise fuel
+            const cruiseFuel = cruiseTime * ac.burnRate;
+            
+            // Climb fuel: ~5% of cruise fuel
+            const climbFuel = cruiseFuel * 0.05;
+            
+            // Descent fuel: ~3% of cruise fuel
+            const descentFuel = cruiseFuel * 0.03;
+            
+            // Reserve fuel: user-specified %
+            const subtotal = cruiseFuel + climbFuel + descentFuel;
+            const reserveFuel = subtotal * reserve;
+            
+            // Alternate airport fuel (30 min additional to alternate): ~30% of cruise
+            const alternateFuel = cruiseFuel * 0.30;
+            
+            // Total with alternate
+            const totalWithAlternate = subtotal + reserveFuel + alternateFuel;
+            
+            // Feasibility check
+            let status = 'safe';
+            let message = '✓ Safe to Fly';
+            
+            if (totalWithAlternate > ac.tankCap) {
+                status = 'unsafe';
+                message = '❌ Not Feasible — fuel exceeds tank capacity';
+            } else if (totalWithAlternate > ac.tankCap * 0.9) {
+                status = 'marginal';
+                message = '⚠️ Marginal — fuel usage >90% of tank capacity';
+            }
+            
+            // Update display
+            document.getElementById('cruiseFuel').textContent = cruiseFuel.toFixed(1) + ' ' + ac.units;
+            document.getElementById('climbFuel').textContent = climbFuel.toFixed(1) + ' ' + ac.units;
+            document.getElementById('descentFuel').textContent = descentFuel.toFixed(1) + ' ' + ac.units;
+            document.getElementById('reserveFuel').textContent = reserveFuel.toFixed(1) + ' ' + ac.units;
+            document.getElementById('alternateFuel').textContent = alternateFuel.toFixed(1) + ' ' + ac.units;
+            
+            document.getElementById('minFuel').textContent = subtotal.toFixed(1) + ' ' + ac.units;
+            document.getElementById('recFuel').textContent = totalWithAlternate.toFixed(1) + ' ' + ac.units;
+            document.getElementById('tankCap').textContent = ac.tankCap.toFixed(0) + ' ' + ac.units;
+            
+            const flightHours = cruiseTime;
+            const hours = Math.floor(flightHours);
+            const mins = Math.round((flightHours - hours) * 60);
+            document.getElementById('flightTime').textContent = `${hours}h ${mins}m`;
+            
+            // Update stats table
+            document.getElementById('statTAS').textContent = ac.tas + ' kt';
+            document.getElementById('statGS').textContent = Math.round(groundSpeed) + ' kt';
+            document.getElementById('statBurn').textContent = ac.burnRate.toFixed(1) + ' gal/hr';
+            document.getElementById('statAlt').textContent = ac.maxAlt.toLocaleString() + ' ft';
+            document.getElementById('statClimb').textContent = ac.climbRate + ' fpm';
+            
+            // Update feasibility
+            feasibilityDiv.className = 'feasibility ' + status;
+            feasibilityDiv.textContent = message;
+            
+            // Render fuel chart
+            const barsContainer = document.getElementById('fuelBars');
+            barsContainer.innerHTML = '';
+            
+            const barData = [
+                { label: 'Climb', value: climbFuel, class: 'climb' },
+                { label: 'Cruise', value: cruiseFuel, class: 'cruise' },
+                { label: 'Descent', value: descentFuel, class: 'descent' },
+                { label: 'Reserve', value: reserveFuel, class: 'reserve' },
+                { label: 'Alternate', value: alternateFuel, class: 'alternate' }
+            ];
+            
+            const maxFuel = Math.max(...barData.map(b => b.value), ac.tankCap / 10);
+            
+            barData.forEach(bar => {
+                const barEl = document.createElement('div');
+                barEl.className = 'fuel-bar ' + bar.class;
+                const height = (bar.value / maxFuel) * 100;
+                barEl.style.height = Math.max(height, 10) + '%';
+                barEl.innerHTML = `<div class="fuel-label">${bar.label}<br>${bar.value.toFixed(1)}</div>`;
+                barsContainer.appendChild(barEl);
+            });
+            
+            // Show results
+            fuelBreakdown.style.display = 'block';
+            fuelReqs.style.display = 'block';
+            feasibilityDiv.style.display = 'block';
+        }
+        
+        // Event listeners
+        aircraftSelect.addEventListener('change', updateValues);
+        distanceInput.addEventListener('input', updateValues);
+        windInput.addEventListener('input', updateValues);
+        reserveInput.addEventListener('input', updateValues);
+        
+        // Initial render
+        updateValues();
+    </script>
+</body>
+</html>
