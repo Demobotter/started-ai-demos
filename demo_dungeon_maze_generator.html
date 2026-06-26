@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dungeon Maze Generator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: linear-gradient(135deg, #0a1d4a 0%, #1f3a5f 100%);
+            color: #e0f2fe;
+            font-family: 'Space Mono', monospace;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            width: 100%;
+            display: grid;
+            grid-template-columns: 200px 1fr 150px;
+            gap: 20px;
+            background: rgba(10, 29, 74, 0.6);
+            border-radius: 12px;
+            padding: 20px;
+            border: 2px solid #4da8da;
+        }
+        .title-bar {
+            grid-column: 1 / -1;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        .title-bar h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.5em;
+            color: #fbbf24;
+            margin-bottom: 5px;
+            text-shadow: 0 0 20px rgba(251, 191, 36, 0.3);
+        }
+        .title-bar p {
+            font-size: 0.9em;
+            color: #7dd3fc;
+        }
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .control-group {
+            background: rgba(31, 58, 95, 0.5);
+            padding: 12px;
+            border-radius: 8px;
+            border-left: 3px solid #4da8da;
+        }
+        .control-group label {
+            display: block;
+            font-size: 0.85em;
+            margin-bottom: 6px;
+            color: #fbbf24;
+            text-transform: uppercase;
+            font-weight: 700;
+        }
+        .control-group input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #1f3a5f;
+            outline: none;
+            -webkit-appearance: none;
+        }
+        .control-group input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #fbbf24;
+            cursor: pointer;
+            box-shadow: 0 0 8px rgba(251, 191, 36, 0.5);
+        }
+        .control-group input[type="range"]::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #fbbf24;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 0 8px rgba(251, 191, 36, 0.5);
+        }
+        .value-display {
+            font-size: 0.8em;
+            color: #7dd3fc;
+            text-align: right;
+            margin-top: 3px;
+        }
+        .canvas-container {
+            background: rgba(31, 58, 95, 0.3);
+            border-radius: 8px;
+            border: 2px solid #1f3a5f;
+            padding: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        canvas {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            border-radius: 4px;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 15px;
+            font-size: 0.8em;
+        }
+        .stat-item {
+            background: rgba(77, 168, 218, 0.1);
+            padding: 10px;
+            border-radius: 6px;
+            border-left: 2px solid #4da8da;
+            color: #e0f2fe;
+        }
+        .stat-item .label {
+            color: #7dd3fc;
+            font-size: 0.75em;
+            text-transform: uppercase;
+            margin-bottom: 2px;
+        }
+        .stat-item .value {
+            font-size: 1.1em;
+            font-weight: 700;
+            color: #fbbf24;
+        }
+        .buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        button {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 6px;
+            font-family: 'Space Mono', monospace;
+            font-weight: 700;
+            font-size: 0.85em;
+            cursor: pointer;
+            text-transform: uppercase;
+            transition: all 0.2s;
+        }
+        #generateBtn {
+            background: #fbbf24;
+            color: #0a1d4a;
+            box-shadow: 0 0 15px rgba(251, 191, 36, 0.3);
+        }
+        #generateBtn:hover {
+            background: #ffed4e;
+            box-shadow: 0 0 20px rgba(251, 191, 36, 0.6);
+        }
+        #exportPngBtn {
+            background: #ff6b6b;
+            color: #fff;
+        }
+        #exportPngBtn:hover {
+            background: #ff8888;
+        }
+        #exportJsonBtn {
+            background: #7dd3fc;
+            color: #0a1d4a;
+        }
+        #exportJsonBtn:hover {
+            background: #a3e4ff;
+        }
+        .legend {
+            margin-top: 15px;
+            font-size: 0.75em;
+            background: rgba(31, 58, 95, 0.5);
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px dashed #4da8da;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 4px;
+        }
+        .legend-item:last-child { margin-bottom: 0; }
+        .legend-symbol {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            margin-right: 6px;
+            border-radius: 2px;
+        }
+        @media (max-width: 900px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+            .title-bar { grid-column: 1; }
+            .controls { grid-column: 1; }
+            .canvas-area { grid-column: 1; }
+            .buttons { grid-column: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="title-bar">
+            <h1>🏰 Dungeon Maze</h1>
+            <p>Procedural roguelike dungeon generator</p>
+        </div>
+        
+        <div class="controls">
+            <div class="control-group">
+                <label for="mapSize">Map Size</label>
+                <input type="range" id="mapSize" min="80" max="200" value="120" step="5">
+                <div class="value-display"><span id="mapSizeVal">120</span> × <span id="mapSizeVal2">120</span></div>
+            </div>
+            
+            <div class="control-group">
+                <label for="minRoom">Min Room Size</label>
+                <input type="range" id="minRoom" min="6" max="15" value="10" step="1">
+                <div class="value-display"><span id="minRoomVal">10</span></div>
+            </div>
+            
+            <div class="control-group">
+                <label for="density">Room Density</label>
+                <input type="range" id="density" min="20" max="70" value="50" step="5">
+                <div class="value-display"><span id="densityVal">50</span>%</div>
+            </div>
+            
+            <div class="control-group">
+                <label for="features">Features</label>
+                <input type="range" id="features" min="0" max="100" value="50" step="10">
+                <div class="value-display"><span id="featuresVal">50</span>% chance</div>
+            </div>
+
+            <div class="legend">
+                <div class="legend-item"><div class="legend-symbol" style="background:#1f3a5f; border:1px solid #0a1d4a;"></div><span>#</span> Wall</div>
+                <div class="legend-item"><div class="legend-symbol" style="background:#4da8da;"></div><span>.</span> Floor</div>
+                <div class="legend-item"><div class="legend-symbol" style="background:#7dd3fc;"></div><span>-</span> Corridor</div>
+                <div class="legend-item"><div class="legend-symbol" style="background:#fbbf24;"></div><span>+</span> Door</div>
+                <div class="legend-item"><div class="legend-symbol" style="background:#ffed4e;"></div><span>*</span> Treasure</div>
+                <div class="legend-item"><div class="legend-symbol" style="background:#ff6b6b;"></div><span>E</span> Enemy</div>
+                <div class="legend-item"><div class="legend-symbol" style="background:#ffa500;"></div><span>^</span> Trap</div>
+            </div>
+        </div>
+
+        <div class="canvas-container">
+            <canvas id="dungeonCanvas" width="500" height="500"></canvas>
+        </div>
+
+        <div style="display: flex; flex-direction: column;">
+            <div class="stats">
+                <div class="stat-item">
+                    <div class="label">Rooms</div>
+                    <div class="value" id="roomCount">0</div>
+                </div>
+                <div class="stat-item">
+                    <div class="label">Corridors</div>
+                    <div class="value" id="corridorLen">0</div>
+                </div>
+                <div class="stat-item">
+                    <div class="label">Treasures</div>
+                    <div class="value" id="treasureCount">0</div>
+                </div>
+                <div class="stat-item">
+                    <div class="label">Enemies</div>
+                    <div class="value" id="enemyCount">0</div>
+                </div>
+                <div class="stat-item">
+                    <div class="label">Fill %</div>
+                    <div class="value" id="fillPercent">0%</div>
+                </div>
+                <div class="stat-item">
+                    <div class="label">Depth</div>
+                    <div class="value" id="maxDepth">0</div>
+                </div>
+            </div>
+
+            <div class="buttons">
+                <button id="generateBtn">⚡ Generate</button>
+                <button id="exportPngBtn">💾 PNG</button>
+                <button id="exportJsonBtn">📋 JSON</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('dungeonCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Constants
+        const CELL_SIZE = 4;
+        const WALL = 0, FLOOR = 1, CORRIDOR = 2, DOOR = 3, TREASURE = 4, ENEMY = 5, TRAP = 6;
+        
+        // Color palette
+        const colors = {
+            [WALL]: '#1f3a5f',
+            [FLOOR]: '#4da8da',
+            [CORRIDOR]: '#7dd3fc',
+            [DOOR]: '#fbbf24',
+            [TREASURE]: '#ffed4e',
+            [ENEMY]: '#ff6b6b',
+            [TRAP]: '#ffa500',
+            bg: '#0a1d4a'
+        };
+
+        let dungeon = null;
+        let dungeonStats = {};
+
+        // BSP Node class
+        class BSPNode {
+            constructor(x, y, width, height) {
+                this.x = x;
+                this.y = y;
+                this.width = width;
+                this.height = height;
+                this.left = null;
+                this.right = null;
+                this.room = null;
+            }
+        }
+
+        // Room class
+        class Room {
+            constructor(x, y, width, height) {
+                this.x = x;
+                this.y = y;
+                this.width = width;
+                this.height = height;
+                this.centerX = x + Math.floor(width / 2);
+                this.centerY = y + Math.floor(height / 2);
+            }
+        }
+
+        function createBSP(node, minRoomSize, maxDepth, depth = 0) {
+            if (node.width <= minRoomSize * 2 + 4 || node.height <= minRoomSize * 2 + 4) {
+                // Leaf node: create room
+                const roomWidth = Math.max(minRoomSize, Math.floor(Math.random() * (node.width - 4)) + 3);
+                const roomHeight = Math.max(minRoomSize, Math.floor(Math.random() * (node.height - 4)) + 3);
+                const offsetX = Math.floor(Math.random() * (node.width - roomWidth - 2)) + 1;
+                const offsetY = Math.floor(Math.random() * (node.height - roomHeight - 2)) + 1;
+                node.room = new Room(node.x + offsetX, node.y + offsetY, roomWidth, roomHeight);
+                return;
+            }
+
+            if (Math.random() > 0.5) {
+                // Split vertically
+                const splitX = node.x + Math.floor(node.width / 2);
+                node.left = new BSPNode(node.x, node.y, splitX - node.x, node.height);
+                node.right = new BSPNode(splitX, node.y, node.x + node.width - splitX, node.height);
+            } else {
+                // Split horizontally
+                const splitY = node.y + Math.floor(node.height / 2);
+                node.left = new BSPNode(node.x, node.y, node.width, splitY - node.y);
+                node.right = new BSPNode(node.x, splitY, node.width, node.y + node.height - splitY);
+            }
+
+            createBSP(node.left, minRoomSize, maxDepth, depth + 1);
+            createBSP(node.right, minRoomSize, maxDepth, depth + 1);
+        }
+
+        function getRooms(node, rooms = []) {
+            if (node.room) rooms.push(node.room);
+            if (node.left) getRooms(node.left, rooms);
+            if (node.right) getRooms(node.right, rooms);
+            return rooms;
+        }
+
+        function connectRooms(dungeon, rooms) {
+            for (let i = 0; i < rooms.length - 1; i++) {
+                const r1 = rooms[i];
+                const r2 = rooms[i + 1];
+                
+                // Horizontal corridor then vertical
+                if (Math.random() > 0.5) {
+                    drawCorridor(dungeon, r1.centerX, r1.centerY, r2.centerX, r1.centerY);
+                    drawCorridor(dungeon, r2.centerX, r1.centerY, r2.centerX, r2.centerY);
+                } else {
+                    drawCorridor(dungeon, r1.centerX, r1.centerY, r1.centerX, r2.centerY);
+                    drawCorridor(dungeon, r1.centerX, r2.centerY, r2.centerX, r2.centerY);
+                }
+            }
+        }
+
+        function drawCorridor(dungeon, x1, y1, x2, y2) {
+            const minX = Math.min(x1, x2);
+            const maxX = Math.max(x1, x2);
+            const minY = Math.min(y1, y2);
+            const maxY = Math.max(y1, y2);
+
+            for (let x = minX; x <= maxX; x++) {
+                for (let y = minY; y <= maxY; y++) {
+                    if (x >= 0 && x < dungeon.width && y >= 0 && y < dungeon.height) {
+                        if (dungeon.grid[y][x] === WALL) dungeon.grid[y][x] = CORRIDOR;
+                    }
+                }
+            }
+        }
+
+        function placeRoom(dungeon, room) {
+            for (let y = room.y; y < room.y + room.height; y++) {
+                for (let x = room.x; x < room.x + room.width; x++) {
+                    if (x >= 0 && x < dungeon.width && y >= 0 && y < dungeon.height) {
+                        dungeon.grid[y][x] = FLOOR;
+                    }
+                }
+            }
+            // Place doors at room edges
+            const edges = [
+                { x: room.centerX, y: room.y },
+                { x: room.centerX, y: room.y + room.height - 1 },
+                { x: room.x, y: room.centerY },
+                { x: room.x + room.width - 1, y: room.centerY }
+            ];
+            edges.forEach(edge => {
+                if (edge.x >= 0 && edge.x < dungeon.width && edge.y >= 0 && edge.y < dungeon.height) {
+                    if (dungeon.grid[edge.y][edge.x] === FLOOR) {
+                        dungeon.grid[edge.y][edge.x] = DOOR;
+                    }
+                }
+            });
+        }
+
+        function generateDungeon(mapSize, minRoom, density, featureChance) {
+            const width = mapSize;
+            const height = mapSize;
+            const grid = Array(height).fill(null).map(() => Array(width).fill(WALL));
+
+            const dungeon = { width, height, grid };
+
+            // BSP generation
+            const root = new BSPNode(0, 0, width, height);
+            const maxDepth = Math.floor(Math.log2(Math.max(width, height) / (minRoom * 2)));
+            createBSP(root, minRoom, maxDepth);
+
+            // Get rooms and place them
+            const rooms = getRooms(root);
+            rooms.forEach(room => placeRoom(dungeon, room));
+
+            // Connect rooms
+            connectRooms(dungeon, rooms);
+
+            // Place features
+            rooms.forEach(room => {
+                for (let y = room.y + 1; y < room.y + room.height - 1; y++) {
+                    for (let x = room.x + 1; x < room.x + room.width - 1; x++) {
+                        if (dungeon.grid[y][x] === FLOOR && Math.random() < featureChance / 100) {
+                            const r = Math.random();
+                            if (r < 0.4) dungeon.grid[y][x] = TREASURE;
+                            else if (r < 0.7) dungeon.grid[y][x] = ENEMY;
+                            else dungeon.grid[y][x] = TRAP;
+                        }
+                    }
+                }
+            });
+
+            // Calculate stats
+            let roomCount = 0, corridorLen = 0, treasureCount = 0, enemyCount = 0, floorCount = 0;
+            let maxDepthDist = 0;
+
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    const cell = dungeon.grid[y][x];
+                    if (cell === FLOOR) { floorCount++; roomCount++; }
+                    else if (cell === CORRIDOR) { corridorLen++; }
+                    else if (cell === TREASURE) { treasureCount++; }
+                    else if (cell === ENEMY) { enemyCount++; }
+                    maxDepthDist = Math.max(maxDepthDist, Math.abs(x - width/2) + Math.abs(y - height/2));
+                }
+            }
+
+            dungeonStats = {
+                rooms: rooms.length,
+                corridorLen,
+                treasures: treasureCount,
+                enemies: enemyCount,
+                fillPercent: Math.round((floorCount + corridorLen) * 100 / (width * height)),
+                maxDepth: maxDepthDist
+            };
+
+            return dungeon;
+        }
+
+        function drawDungeon(dungeon) {
+            ctx.fillStyle = colors.bg;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            const scaleX = canvas.width / dungeon.width;
+            const scaleY = canvas.height / dungeon.height;
+
+            for (let y = 0; y < dungeon.height; y++) {
+                for (let x = 0; x < dungeon.width; x++) {
+                    const cellType = dungeon.grid[y][x];
+                    ctx.fillStyle = colors[cellType];
+                    ctx.fillRect(x * scaleX, y * scaleY, scaleX, scaleY);
+                }
+            }
+        }
+
+        function updateStats() {
+            document.getElementById('roomCount').textContent = dungeonStats.rooms || 0;
+            document.getElementById('corridorLen').textContent = dungeonStats.corridorLen || 0;
+            document.getElementById('treasureCount').textContent = dungeonStats.treasures || 0;
+            document.getElementById('enemyCount').textContent = dungeonStats.enemies || 0;
+            document.getElementById('fillPercent').textContent = (dungeonStats.fillPercent || 0) + '%';
+            document.getElementById('maxDepth').textContent = dungeonStats.maxDepth || 0;
+        }
+
+        function generate() {
+            const mapSize = parseInt(document.getElementById('mapSize').value);
+            const minRoom = parseInt(document.getElementById('minRoom').value);
+            const density = parseInt(document.getElementById('density').value);
+            const features = parseInt(document.getElementById('features').value);
+
+            dungeon = generateDungeon(mapSize, minRoom, density * 0.01, features);
+            drawDungeon(dungeon);
+            updateStats();
+        }
+
+        // Event listeners
+        document.getElementById('generateBtn').addEventListener('click', generate);
+
+        document.getElementById('mapSize').addEventListener('input', (e) => {
+            document.getElementById('mapSizeVal').textContent = e.target.value;
+            document.getElementById('mapSizeVal2').textContent = e.target.value;
+        });
+
+        document.getElementById('minRoom').addEventListener('input', (e) => {
+            document.getElementById('minRoomVal').textContent = e.target.value;
+        });
+
+        document.getElementById('density').addEventListener('input', (e) => {
+            document.getElementById('densityVal').textContent = e.target.value;
+        });
+
+        document.getElementById('features').addEventListener('input', (e) => {
+            document.getElementById('featuresVal').textContent = e.target.value;
+        });
+
+        document.getElementById('exportPngBtn').addEventListener('click', () => {
+            if (!dungeon) return;
+            const link = document.createElement('a');
+            link.href = canvas.toDataURL('image/png');
+            link.download = 'dungeon_' + Date.now() + '.png';
+            link.click();
+        });
+
+        document.getElementById('exportJsonBtn').addEventListener('click', () => {
+            if (!dungeon) return;
+            const data = {
+                width: dungeon.width,
+                height: dungeon.height,
+                grid: dungeon.grid,
+                stats: dungeonStats
+            };
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'dungeon_' + Date.now() + '.json';
+            link.click();
+        });
+
+        // Initial generate
+        generate();
+    </script>
+</body>
+</html>
