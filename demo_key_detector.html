@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Musical Key Detector</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: linear-gradient(135deg, #0a1d4a 0%, #1a3a7a 100%);
+            color: #f5f5f5;
+            font-family: 'Space Mono', monospace;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: rgba(10, 29, 74, 0.8);
+            border: 2px solid #4ade80;
+            border-radius: 12px;
+            padding: 30px;
+            backdrop-filter: blur(10px);
+        }
+        h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            color: #4ade80;
+            text-align: center;
+        }
+        .subtitle {
+            text-align: center;
+            color: #a0aec0;
+            margin-bottom: 30px;
+            font-size: 0.9em;
+        }
+        
+        .input-section {
+            background: rgba(15, 41, 90, 0.6);
+            border: 1px solid #60a5fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .input-mode {
+            margin-bottom: 15px;
+        }
+        .input-mode label {
+            display: block;
+            margin-bottom: 8px;
+            color: #60a5fa;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+        
+        #noteInput {
+            width: 100%;
+            padding: 10px;
+            background: #0a1d4a;
+            border: 1px solid #4ade80;
+            border-radius: 6px;
+            color: #4ade80;
+            font-family: 'Space Mono', monospace;
+            font-size: 1em;
+            margin-bottom: 15px;
+        }
+        
+        .piano-keyboard {
+            display: flex;
+            gap: 2px;
+            margin-bottom: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .piano-key {
+            width: 35px;
+            height: 80px;
+            border: 1px solid #333;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            font-size: 0.7em;
+            font-weight: bold;
+            transition: all 0.1s;
+            user-select: none;
+        }
+        
+        .piano-key.white {
+            background: #f5f5f5;
+            color: #0a1d4a;
+        }
+        
+        .piano-key.black {
+            width: 24px;
+            height: 50px;
+            background: #0a1d4a;
+            color: #f5f5f5;
+            border-color: #1a1a1a;
+            margin-left: -18px;
+            z-index: 1;
+        }
+        
+        .piano-key:hover {
+            opacity: 0.8;
+        }
+        
+        .piano-key.active {
+            background: #4ade80;
+            color: #0a1d4a;
+            box-shadow: 0 0 10px rgba(74, 222, 128, 0.5);
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        button {
+            padding: 10px 20px;
+            background: #4ade80;
+            color: #0a1d4a;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            font-family: 'Space Mono', monospace;
+            font-size: 0.95em;
+            transition: all 0.2s;
+            flex: 1;
+        }
+        
+        button:hover {
+            background: #22c55e;
+            transform: scale(1.02);
+        }
+        
+        button:active {
+            transform: scale(0.98);
+        }
+        
+        .toggle-group {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .toggle-btn {
+            flex: 1;
+            padding: 8px 12px;
+            background: #1f4d7f;
+            color: #60a5fa;
+            border: 1px solid #60a5fa;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: 'Space Mono', monospace;
+            font-size: 0.85em;
+            transition: all 0.2s;
+        }
+        
+        .toggle-btn.active {
+            background: #60a5fa;
+            color: #0a1d4a;
+        }
+        
+        .toggle-btn:hover {
+            opacity: 0.8;
+        }
+        
+        .results-section {
+            background: rgba(15, 41, 90, 0.6);
+            border: 1px solid #fbbf24;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 30px;
+            min-height: 150px;
+        }
+        
+        .result-title {
+            color: #fbbf24;
+            font-weight: bold;
+            margin-bottom: 15px;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .key-result {
+            background: rgba(10, 29, 74, 0.8);
+            border-left: 3px solid #fbbf24;
+            padding: 12px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .key-name {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.2em;
+            color: #fbbf24;
+        }
+        
+        .confidence {
+            color: #a0aec0;
+            font-size: 0.85em;
+        }
+        
+        .relative-key {
+            font-size: 0.8em;
+            color: #60a5fa;
+            margin-top: 4px;
+        }
+        
+        .theory-panel {
+            background: rgba(96, 165, 250, 0.1);
+            border: 1px solid #60a5fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 30px;
+        }
+        
+        .theory-title {
+            color: #60a5fa;
+            font-weight: bold;
+            margin-bottom: 12px;
+            font-size: 0.9em;
+            text-transform: uppercase;
+        }
+        
+        .theory-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8em;
+        }
+        
+        .theory-table th,
+        .theory-table td {
+            padding: 8px;
+            text-align: left;
+            border-bottom: 1px solid #1f4d7f;
+            color: #a0aec0;
+        }
+        
+        .theory-table th {
+            color: #60a5fa;
+            font-weight: bold;
+        }
+        
+        .note-display {
+            background: rgba(10, 29, 74, 0.8);
+            border: 1px solid #60a5fa;
+            border-radius: 6px;
+            padding: 10px;
+            margin-bottom: 15px;
+            min-height: 30px;
+            color: #4ade80;
+            font-weight: bold;
+        }
+        
+        .empty-state {
+            color: #a0aec0;
+            text-align: center;
+            padding: 40px 20px;
+        }
+        
+        .learn-section {
+            background: rgba(74, 222, 128, 0.1);
+            border-left: 3px solid #4ade80;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 20px;
+            color: #a0aec0;
+            font-size: 0.9em;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎵 Key Detector</h1>
+        <p class="subtitle">Reveal the tonal center hidden in any chord</p>
+        
+        <div class="input-section">
+            <div class="input-mode">
+                <label for="noteInput">Enter notes (space-separated, e.g. "C E G" or "A C E")</label>
+                <input type="text" id="noteInput" placeholder="C E G" spellcheck="false">
+            </div>
+            
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; color: #60a5fa; margin-bottom: 8px; font-weight: bold; font-size: 0.9em;">Or click piano keys below</label>
+                <div class="piano-keyboard" id="pianoKeyboard"></div>
+            </div>
+            
+            <div class="note-display" id="noteDisplay">Waiting for input...</div>
+            
+            <div class="button-group">
+                <button onclick="analyzeKey()">Analyze Key</button>
+                <button onclick="clearInput()">Clear</button>
+            </div>
+        </div>
+        
+        <div class="results-section" id="resultsSection">
+            <div class="empty-state">Enter notes and click "Analyze Key" to reveal the key</div>
+        </div>
+        
+        <div>
+            <button class="toggle-btn" id="theoryToggle" onclick="toggleTheory()">Show Music Theory</button>
+        </div>
+        
+        <div class="theory-panel" id="theoryPanel" style="display: none;">
+            <div class="theory-title">Krumhansl-Schmuckler Key Profiles</div>
+            <p style="color: #a0aec0; font-size: 0.8em; margin-bottom: 12px;">How strongly each pitch class represents the tonal center:</p>
+            <table class="theory-table">
+                <thead>
+                    <tr>
+                        <th>Pitch Class</th>
+                        <th style="text-align: right;">C/Am</th>
+                        <th style="text-align: right;">C#/A#m</th>
+                        <th style="text-align: right;">D/Bm</th>
+                        <th style="text-align: right;">D#/Cm</th>
+                        <th style="text-align: right;">E/C#m</th>
+                        <th style="text-align: right;">F/Dm</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Tonic Weight</td>
+                        <td style="text-align: right;">9.0</td>
+                        <td style="text-align: right;">9.0</td>
+                        <td style="text-align: right;">9.0</td>
+                        <td style="text-align: right;">9.0</td>
+                        <td style="text-align: right;">9.0</td>
+                        <td style="text-align: right;">9.0</td>
+                    </tr>
+                    <tr>
+                        <td>Perfect 5th Weight</td>
+                        <td style="text-align: right;">5.6</td>
+                        <td style="text-align: right;">5.6</td>
+                        <td style="text-align: right;">5.6</td>
+                        <td style="text-align: right;">5.6</td>
+                        <td style="text-align: right;">5.6</td>
+                        <td style="text-align: right;">5.6</td>
+                    </tr>
+                    <tr>
+                        <td>Major 3rd Weight</td>
+                        <td style="text-align: right;">3.6</td>
+                        <td style="text-align: right;">3.6</td>
+                        <td style="text-align: right;">3.6</td>
+                        <td style="text-align: right;">3.6</td>
+                        <td style="text-align: right;">3.6</td>
+                        <td style="text-align: right;">3.6</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="learn-section">
+            <strong>💡 Did you know?</strong> C Major and A Minor share the same notes—just different tonal centers. The key-finding algorithm detects which pitch feels like "home" based on harmonic alignment.
+        </div>
+    </div>
+
+    <script>
+        // Initialize piano keyboard
+        const notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+        const octaves = [3, 4];
+        const isBlack = [false, true, false, true, false, false, true, false, true, false, true, false];
+        
+        let inputNotes = [];
+        
+        function initPiano() {
+            const keyboard = document.getElementById('pianoKeyboard');
+            keyboard.innerHTML = '';
+            
+            octaves.forEach(octave => {
+                notes.forEach((note, idx) => {
+                    const key = document.createElement('div');
+                    const fullNote = note + octave;
+                    const isBlackKey = isBlack[idx];
+                    
+                    key.className = `piano-key ${isBlackKey ? 'black' : 'white'}`;
+                    key.textContent = isBlackKey ? note.replace('#', '♯') : note;
+                    key.onclick = () => addNote(fullNote, key);
+                    key.dataset.note = fullNote;
+                    
+                    keyboard.appendChild(key);
+                });
+            });
+        }
+        
+        function addNote(note, keyElement) {
+            const baseName = note.replace(/\d+/, '');
+            if (!inputNotes.includes(baseName)) {
+                inputNotes.push(baseName);
+            }
+            
+            keyElement.classList.add('active');
+            updateNoteDisplay();
+        }
+        
+        function updateNoteDisplay() {
+            const display = document.getElementById('noteDisplay');
+            if (inputNotes.length === 0) {
+                display.textContent = 'Waiting for input...';
+            } else {
+                display.textContent = inputNotes.join(' ');
+            }
+        }
+        
+        function clearInput() {
+            inputNotes = [];
+            document.querySelectorAll('.piano-key.active').forEach(k => k.classList.remove('active'));
+            document.getElementById('noteInput').value = '';
+            updateNoteDisplay();
+            document.getElementById('resultsSection').innerHTML = '<div class="empty-state">Enter notes and click "Analyze Key" to reveal the key</div>';
+        }
+        
+        function parseNotes(input) {
+            const raw = input.toUpperCase().trim();
+            if (!raw) return [];
+            return raw.split(/\s+/).filter(n => notes.some(note => n === note || n === note.replace('#', 'b')));
+        }
+        
+        function normalizeNote(note) {
+            note = note.toUpperCase();
+            if (note.includes('B')) note = note.replace('B', '#');
+            const idx = notes.indexOf(note);
+            return idx >= 0 ? idx : -1;
+        }
+        
+        // Krumhansl-Schmuckler profiles for major and minor keys
+        const majorProfile = [9.0, 0.5, 8.0, 0.5, 8.0, 9.0, 0.5, 8.0, 0.5, 8.0, 0.5, 3.0];
+        const minorProfile = [9.0, 0.5, 8.0, 9.0, 0.5, 8.0, 0.5, 8.0, 9.0, 0.5, 3.0, 0.5];
+        
+        function analyzeKey() {
+            const input = document.getElementById('noteInput').value || inputNotes.join(' ');
+            const noteList = parseNotes(input);
+            
+            if (noteList.length === 0) {
+                alert('Please enter or select at least one note');
+                return;
+            }
+            
+            // Convert notes to pitch classes (0-11)
+            const pitchClasses = new Set();
+            noteList.forEach(note => {
+                const pc = normalizeNote(note);
+                if (pc >= 0) pitchClasses.add(pc);
+            });
+            
+            const pcs = Array.from(pitchClasses).sort((a, b) => a - b);
+            
+            // Score each key
+            const keyScores = [];
+            
+            for (let root = 0; root < 12; root++) {
+                // Major key
+                let majorScore = 0;
+                for (let pc of pcs) {
+                    const relativePC = (pc - root + 12) % 12;
+                    majorScore += majorProfile[relativePC];
+                }
+                keyScores.push({
+                    root: root,
+                    mode: 'major',
+                    score: majorScore,
+                    pitchCount: pcs.length
+                });
+                
+                // Minor key
+                let minorScore = 0;
+                for (let pc of pcs) {
+                    const relativePC = (pc - root + 12) % 12;
+                    minorScore += minorProfile[relativePC];
+                }
+                keyScores.push({
+                    root: root,
+                    mode: 'minor',
+                    score: minorScore,
+                    pitchCount: pcs.length
+                });
+            }
+            
+            // Sort by score (descending)
+            keyScores.sort((a, b) => b.score - a.score);
+            
+            // Normalize scores to 0-100 confidence
+            const maxScore = keyScores[0].score;
+            const minScore = keyScores[keyScores.length - 1].score;
+            const range = maxScore - minScore || 1;
+            
+            const displayResults = keyScores.slice(0, 3).map(k => ({
+                ...k,
+                confidence: Math.round(((k.score - minScore) / range) * 100)
+            }));
+            
+            renderResults(displayResults, pcs);
+        }
+        
+        function getKeyName(root, mode) {
+            return notes[root] + ' ' + (mode === 'major' ? 'Major' : 'Minor');
+        }
+        
+        function getRelativeKey(root, mode) {
+            if (mode === 'major') {
+                const relRoot = (root + 9) % 12; // relative minor is 9 semitones down
+                return notes[relRoot] + ' Minor';
+            } else {
+                const relRoot = (root + 3) % 12; // relative major is 3 semitones up
+                return notes[relRoot] + ' Major';
+            }
+        }
+        
+        function renderResults(results, pitchClasses) {
+            const section = document.getElementById('resultsSection');
+            section.innerHTML = '<div class="result-title">Top Detected Keys</div>';
+            
+            results.forEach((r, idx) => {
+                const relKey = getRelativeKey(r.root, r.mode);
+                const div = document.createElement('div');
+                div.className = 'key-result';
+                div.innerHTML = `
+                    <div>
+                        <div class="key-name">${getKeyName(r.root, r.mode)}</div>
+                        <div class="relative-key">Relative: ${relKey}</div>
+                    </div>
+                    <div class="confidence">${r.confidence}%</div>
+                `;
+                section.appendChild(div);
+            });
+        }
+        
+        function toggleTheory() {
+            const panel = document.getElementById('theoryPanel');
+            const btn = document.getElementById('theoryToggle');
+            panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+            btn.classList.toggle('active');
+        }
+        
+        // Handle text input
+        document.getElementById('noteInput').addEventListener('input', (e) => {
+            inputNotes = [];
+            document.querySelectorAll('.piano-key.active').forEach(k => k.classList.remove('active'));
+            const parsed = parseNotes(e.target.value);
+            inputNotes = parsed;
+            updateNoteDisplay();
+        });
+        
+        // Initialize
+        initPiano();
+        updateNoteDisplay();
+    </script>
+</body>
+</html>
