@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>20 Questions</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Space+Mono:wght@400&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: 'Space Mono', monospace;
+      background: #0a1d4a;
+      color: #e0e0e0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 1rem;
+    }
+    .container {
+      max-width: 1000px;
+      width: 100%;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+      background: #0f2847;
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    }
+    @media (max-width: 900px) {
+      .container {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+      }
+    }
+    h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: 2rem;
+      color: #4da8da;
+      margin-bottom: 1.5rem;
+      grid-column: 1 / -1;
+      text-align: center;
+    }
+    .game-board {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+    .question-box {
+      background: #162952;
+      padding: 1.5rem;
+      border-radius: 8px;
+      border-left: 4px solid #4da8da;
+      min-height: 80px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+    .question-box.waiting {
+      color: #fbbf24;
+      font-size: 0.9rem;
+    }
+    .question-box.active {
+      color: #ffffff;
+      font-size: 1.1rem;
+      font-weight: bold;
+    }
+    .question-box.guess {
+      border-left: 4px solid #ff6b6b;
+      color: #ffab91;
+    }
+    .counter {
+      text-align: center;
+      font-size: 0.9rem;
+      color: #fbbf24;
+      margin-bottom: 0.5rem;
+    }
+    .buttons {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+    button {
+      padding: 1rem;
+      font-size: 1rem;
+      font-weight: bold;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s;
+      font-family: 'Space Mono', monospace;
+    }
+    .yes-btn {
+      background: #4da8da;
+      color: #0a1d4a;
+    }
+    .yes-btn:hover:not(:disabled) {
+      background: #6ebde8;
+      transform: scale(1.05);
+    }
+    .no-btn {
+      background: #ff6b6b;
+      color: #fff;
+    }
+    .no-btn:hover:not(:disabled) {
+      background: #ff8a8a;
+      transform: scale(1.05);
+    }
+    .guess-btn {
+      background: #fbbf24;
+      color: #0a1d4a;
+    }
+    .guess-btn:hover:not(:disabled) {
+      background: #fcd34d;
+      transform: scale(1.05);
+    }
+    .reveal-btn {
+      background: #4ade80;
+      color: #0a1d4a;
+    }
+    .reveal-btn:hover:not(:disabled) {
+      background: #6ee7b7;
+      transform: scale(1.05);
+    }
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .message {
+      text-align: center;
+      font-size: 1.2rem;
+      margin-top: 1rem;
+    }
+    .message.win {
+      color: #4ade80;
+    }
+    .message.lose {
+      color: #ff6b6b;
+    }
+    .sidebar {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+    .candidates-box {
+      background: #162952;
+      padding: 1.5rem;
+      border-radius: 8px;
+      border-left: 4px solid #4da8da;
+    }
+    .candidates-label {
+      font-size: 0.9rem;
+      color: #fbbf24;
+      margin-bottom: 0.5rem;
+    }
+    .candidates-count {
+      font-size: 1.3rem;
+      font-weight: bold;
+      color: #ffffff;
+      margin-bottom: 1rem;
+    }
+    .candidates-list {
+      max-height: 300px;
+      overflow-y: auto;
+      font-size: 0.85rem;
+      color: #b0b0b0;
+      line-height: 1.6;
+    }
+    .candidates-list::-webkit-scrollbar {
+      width: 6px;
+    }
+    .candidates-list::-webkit-scrollbar-track {
+      background: #0a1d4a;
+      border-radius: 3px;
+    }
+    .candidates-list::-webkit-scrollbar-thumb {
+      background: #4da8da;
+      border-radius: 3px;
+    }
+    .reset-btn {
+      background: #7c3aed;
+      color: #fff;
+      padding: 0.75rem;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-family: 'Space Mono', monospace;
+      font-weight: bold;
+      transition: all 0.3s;
+    }
+    .reset-btn:hover {
+      background: #a78bfa;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🤔 20 Questions</h1>
+    
+    <div class="game-board">
+      <div class="counter" id="counter">Think of something. I'll ask up to 20 yes/no questions to guess it.</div>
+      <div class="question-box waiting" id="questionBox">Ready when you are.</div>
+      <div class="buttons" id="buttons">
+        <button class="yes-btn" onclick="answerQuestion(true)">YES</button>
+        <button class="no-btn" onclick="answerQuestion(false)">NO</button>
+      </div>
+      <div id="message" class="message"></div>
+    </div>
+
+    <div class="sidebar">
+      <div class="candidates-box">
+        <div class="candidates-label">Possibilities</div>
+        <div class="candidates-count" id="candidateCount">150 left</div>
+        <div class="candidates-list" id="candidatesList"></div>
+      </div>
+      <button class="reset-btn" onclick="resetGame()">Play Again</button>
+    </div>
+  </div>
+
+  <script>
+    const KNOWLEDGE_BASE = [
+      // Animals
+      'cat', 'dog', 'bird', 'fish', 'lion', 'elephant', 'whale', 'eagle', 'shark', 'butterfly',
+      'spider', 'snake', 'horse', 'rabbit', 'penguin', 'octopus', 'bee', 'ant', 'fox', 'bear',
+      'monkey', 'deer', 'wolf', 'tiger', 'giraffe', 'zebra', 'kangaroo', 'panda', 'owl', 'mouse',
+      // Objects
+      'pizza', 'bicycle', 'chair', 'piano', 'television', 'car', 'cup', 'table', 'laptop', 'phone',
+      'book', 'pen', 'watch', 'door', 'window', 'lamp', 'mirror', 'key', 'lock', 'bottle',
+      'umbrella', 'shoe', 'hat', 'camera', 'guitar', 'hammer', 'knife', 'fork', 'spoon', 'plate',
+      // Places
+      'library', 'mountain', 'ocean', 'volcano', 'lighthouse', 'castle', 'temple', 'bridge', 'island', 'desert',
+      'forest', 'cave', 'pyramid', 'park', 'city', 'village', 'beach', 'river', 'lake', 'canyon',
+      'sky', 'moon', 'sun', 'star', 'cloud', 'rainbow', 'waterfall', 'glacier', 'swamp', 'canyon',
+      // People (roles/concepts)
+      'doctor', 'teacher', 'astronaut', 'farmer', 'artist', 'musician', 'dancer', 'chef', 'sailor', 'pilot',
+      'builder', 'gardener', 'actor', 'writer', 'scientist', 'engineer', 'king', 'queen', 'soldier', 'judge',
+      // Concepts/Abstract
+      'fire', 'water', 'ice', 'wind', 'electricity', 'thunder', 'storm', 'snow', 'rain', 'shadow',
+      'echo', 'dream', 'music', 'dance', 'game', 'sport', 'art', 'science', 'math', 'language'
+    ];
+
+    const QUESTIONS = [
+      { q: 'Is it alive or was it ever alive?', alive: true, physical: true },
+      { q: 'Is it made primarily of metal?', metal: true },
+      { q: 'Can you eat it?', edible: true },
+      { q: 'Is it bigger than a car?', bigSize: true },
+      { q: 'Does it require electricity to function?', needsElectricity: true },
+      { q: 'Is it typically found indoors?', indoors: true },
+      { q: 'Can you hold it in your hand?', handheld: true },
+      { q: 'Is it made of glass or similar transparent material?', transparent: true },
+      { q: 'Is it a tool or instrument?', tool: true },
+      { q: 'Is it used for transportation?', transport: true },
+      { q: 'Is it associated with music or sound?', sound: true },
+      { q: 'Is it primarily a creature or organism?', organism: true },
+      { q: 'Is it found in nature without human intervention?', natural: true },
+      { q: 'Is it used primarily for leisure or entertainment?', leisure: true },
+      { q: 'Does it typically have moving parts?', movingParts: true },
+      { q: 'Is it a place or location?', place: true },
+      { q: 'Is it made primarily of wood?', wood: true },
+      { q: 'Is it a person or character?', person: true },
+      { q: 'Is it soft to the touch?', soft: true },
+      { q: 'Does it exist in multiple varieties or types?', varied: true }
+    ];
+
+    let gameState = {
+      candidates: [...KNOWLEDGE_BASE],
+      questions: [],
+      answered: [],
+      questionsAsked: 0,
+      gameOver: false,
+      userAnswer: null,
+      guessedItems: new Set(),
+    };
+
+    function initGame() {
+      gameState = {
+        candidates: [...KNOWLEDGE_BASE],
+        questions: [],
+        answered: [],
+        questionsAsked: 0,
+        gameOver: false,
+        userAnswer: null,
+        guessedItems: new Set(),
+      };
+      askNextQuestion();
+    }
+
+    function askNextQuestion() {
+      if (gameState.questionsAsked >= 20) {
+        endGame('lose', null);
+        return;
+      }
+
+      if (gameState.candidates.length === 0) {
+        endGame('lose', null);
+        return;
+      }
+
+      if (gameState.candidates.length === 1 && gameState.questionsAsked >= 5) {
+        const guess = gameState.candidates[0];
+        if (!gameState.guessedItems.has(guess)) {
+          makeGuess(guess);
+          return;
+        }
+      }
+
+      // Pick the best question that maximizes information gain
+      let bestQuestion = null;
+      let bestScore = -1;
+
+      for (const q of QUESTIONS) {
+        const matchingYes = gameState.candidates.filter(item => matchesQuestion(item, q, true)).length;
+        const matchingNo = gameState.candidates.filter(item => matchesQuestion(item, q, false)).length;
+        
+        if (matchingYes === 0 || matchingNo === 0) continue; // Skip questions that eliminate nothing
+        
+        // Information gain: closer to 50/50 split, better score
+        const ratio = Math.min(matchingYes, matchingNo) / Math.max(matchingYes, matchingNo);
+        if (ratio > bestScore) {
+          bestScore = ratio;
+          bestQuestion = q;
+        }
+      }
+
+      if (!bestQuestion) {
+        bestQuestion = QUESTIONS[Math.floor(Math.random() * QUESTIONS.length)];
+      }
+
+      gameState.questions.push(bestQuestion);
+      displayQuestion(bestQuestion);
+    }
+
+    function matchesQuestion(item, question, answer) {
+      // Simple heuristic matching for each attribute
+      const itemLower = item.toLowerCase();
+      
+      if (question.alive !== undefined) {
+        const itemAlive = ['cat', 'dog', 'bird', 'fish', 'lion', 'elephant', 'whale', 'eagle', 'shark', 'butterfly',
+          'spider', 'snake', 'horse', 'rabbit', 'penguin', 'octopus', 'bee', 'ant', 'fox', 'bear',
+          'monkey', 'deer', 'wolf', 'tiger', 'giraffe', 'zebra', 'kangaroo', 'panda', 'owl', 'mouse',
+          'doctor', 'teacher', 'astronaut', 'farmer', 'artist', 'musician', 'dancer', 'chef', 'sailor', 'pilot',
+          'builder', 'gardener', 'actor', 'writer', 'scientist', 'engineer', 'king', 'queen', 'soldier', 'judge'].includes(itemLower);
+        return itemAlive === answer;
+      }
+      
+      if (question.metal !== undefined) {
+        const itemMetal = ['car', 'bicycle', 'hammer', 'knife', 'fork', 'spoon', 'key', 'lock', 'watch', 'phone', 'laptop'].includes(itemLower);
+        return itemMetal === answer;
+      }
+      
+      if (question.edible !== undefined) {
+        const itemEdible = ['pizza', 'apple', 'bread', 'chicken', 'water', 'cake', 'fish', 'honey'].includes(itemLower);
+        return itemEdible === answer;
+      }
+      
+      if (question.bigSize !== undefined) {
+        const itemBig = ['elephant', 'whale', 'mountain', 'ocean', 'volcano', 'castle', 'bridge', 'car', 'airplane', 'ship'].includes(itemLower);
+        return itemBig === answer;
+      }
+      
+      if (question.needsElectricity !== undefined) {
+        const itemNeeds = ['television', 'laptop', 'phone', 'lamp', 'camera', 'guitar', 'piano'].includes(itemLower);
+        return itemNeeds === answer;
+      }
+      
+      if (question.indoors !== undefined) {
+        const itemIndoors = ['chair', 'table', 'television', 'lamp', 'bed', 'door', 'window', 'mirror', 'carpet', 'piano', 'guitar'].includes(itemLower);
+        return itemIndoors === answer;
+      }
+      
+      if (question.handheld !== undefined) {
+        const itemHeld = ['pen', 'phone', 'watch', 'cup', 'book', 'camera', 'key', 'knife', 'fork', 'spoon', 'apple'].includes(itemLower);
+        return itemHeld === answer;
+      }
+
+      if (question.organism !== undefined) {
+        const itemOrg = ['cat', 'dog', 'bird', 'fish', 'lion', 'elephant', 'whale', 'eagle', 'shark', 'butterfly', 'spider', 'snake', 'horse', 'rabbit', 'penguin', 'octopus', 'bee', 'ant', 'fox', 'bear', 'monkey', 'deer', 'wolf', 'tiger', 'giraffe', 'zebra', 'kangaroo', 'panda', 'owl', 'mouse'].includes(itemLower);
+        return itemOrg === answer;
+      }
+
+      if (question.place !== undefined) {
+        const itemPlace = ['library', 'mountain', 'ocean', 'volcano', 'lighthouse', 'castle', 'temple', 'bridge', 'island', 'desert', 'forest', 'cave', 'pyramid', 'park', 'city', 'village', 'beach', 'river', 'lake', 'canyon', 'sky', 'moon', 'sun', 'star'].includes(itemLower);
+        return itemPlace === answer;
+      }
+
+      if (question.person !== undefined) {
+        const itemPerson = ['doctor', 'teacher', 'astronaut', 'farmer', 'artist', 'musician', 'dancer', 'chef', 'sailor', 'pilot', 'builder', 'gardener', 'actor', 'writer', 'scientist', 'engineer', 'king', 'queen', 'soldier', 'judge'].includes(itemLower);
+        return itemPerson === answer;
+      }
+
+      // Default: random split for unknown questions
+      return Math.random() > 0.5 === answer;
+    }
+
+    function answerQuestion(answer) {
+      gameState.userAnswer = answer;
+      gameState.answered.push(answer);
+      gameState.questionsAsked++;
+
+      // Filter candidates based on answer
+      const currentQuestion = gameState.questions[gameState.questions.length - 1];
+      gameState.candidates = gameState.candidates.filter(item => matchesQuestion(item, currentQuestion, answer));
+
+      updateSidebar();
+
+      if (gameState.candidates.length === 0) {
+        endGame('lose', null);
+      } else {
+        setTimeout(askNextQuestion, 800);
+      }
+    }
+
+    function makeGuess(item) {
+      gameState.guessedItems.add(item);
+      const questionBox = document.getElementById('questionBox');
+      questionBox.className = 'question-box guess';
+      questionBox.textContent = `Are you thinking of a ${item}?`;
+      
+      const buttonsDiv = document.getElementById('buttons');
+      buttonsDiv.innerHTML = `
+        <button class="yes-btn" onclick="handleGuessResponse(true)">YES!</button>
+        <button class="no-btn" onclick="handleGuessResponse(false)">NO</button>
+      `;
+    }
+
+    function handleGuessResponse(correct) {
+      if (correct) {
+        const questionsAsked = gameState.questionsAsked;
+        endGame('win', questionsAsked);
+      } else {
+        gameState.questionsAsked++;
+        if (gameState.questionsAsked >= 20) {
+          endGame('lose', null);
+        } else {
+          askNextQuestion();
+        }
+      }
+    }
+
+    function endGame(result, questionsAsked) {
+      gameState.gameOver = true;
+      const questionBox = document.getElementById('questionBox');
+      const buttonsDiv = document.getElementById('buttons');
+      const messageDiv = document.getElementById('message');
+
+      if (result === 'win') {
+        questionBox.className = 'question-box';
+        questionBox.textContent = `🎉 I got it in ${questionsAsked} questions!`;
+        messageDiv.className = 'message win';
+        messageDiv.textContent = 'I think like a detective!';
+        buttonsDiv.innerHTML = '';
+      } else {
+        questionBox.className = 'question-box';
+        const remaining = gameState.candidates.slice(0, 5).join(', ');
+        questionBox.textContent = `I give up! 😅 Was it one of these? ${remaining}...`;
+        messageDiv.className = 'message lose';
+        messageDiv.textContent = 'Tell me what you were thinking.';
+        buttonsDiv.innerHTML = '<button class="reveal-btn" onclick="resetGame()" style="grid-column: 1 / -1;">Play Again</button>';
+      }
+    }
+
+    function updateSidebar() {
+      const candidateCount = document.getElementById('candidateCount');
+      const candidatesList = document.getElementById('candidatesList');
+      
+      candidateCount.textContent = `${gameState.candidates.length} left`;
+      
+      if (gameState.candidates.length <= 20) {
+        candidatesList.textContent = gameState.candidates.slice(0, 20).join(', ');
+      } else {
+        candidatesList.textContent = gameState.candidates.slice(0, 20).join(', ') + '...';
+      }
+    }
+
+    function displayQuestion(question) {
+      const questionBox = document.getElementById('questionBox');
+      const counter = document.getElementById('counter');
+      const buttonsDiv = document.getElementById('buttons');
+
+      questionBox.className = 'question-box active';
+      questionBox.textContent = question.q;
+      counter.textContent = `Question ${gameState.questionsAsked + 1}/20`;
+      
+      buttonsDiv.innerHTML = `
+        <button class="yes-btn" onclick="answerQuestion(true)">YES</button>
+        <button class="no-btn" onclick="answerQuestion(false)">NO</button>
+      `;
+
+      updateSidebar();
+    }
+
+    function resetGame() {
+      document.getElementById('message').textContent = '';
+      initGame();
+    }
+
+    // Start the game
+    initGame();
+  </script>
+</body>
+</html>
