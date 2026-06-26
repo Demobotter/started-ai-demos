@@ -4,542 +4,649 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Benford's Law Fraud Detector</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@400;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
+        
         body {
             font-family: 'Inter', sans-serif;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-            color: #fff;
+            background: linear-gradient(135deg, #0a1428 0%, #1a2332 100%);
+            color: #e0e0e0;
             min-height: 100vh;
             padding: 20px;
         }
+        
         .container {
-            max-width: 1000px;
+            max-width: 1200px;
             margin: 0 auto;
         }
+        
         h1 {
             font-family: 'Fraunces', serif;
             font-size: 2.5rem;
             margin-bottom: 10px;
+            color: #4ade80;
             text-align: center;
-            background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
         }
+        
         .subtitle {
             text-align: center;
-            color: #ccc;
+            color: #a0a0a0;
             margin-bottom: 30px;
             font-size: 0.95rem;
         }
-        .content {
+        
+        .main-content {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 30px;
             margin-bottom: 30px;
         }
-        @media (max-width: 768px) {
-            .content {
+        
+        @media (max-width: 900px) {
+            .main-content {
                 grid-template-columns: 1fr;
             }
         }
+        
         .panel {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
+            background: rgba(30, 40, 60, 0.7);
+            border: 1px solid #4da8da;
+            border-radius: 8px;
             padding: 20px;
             backdrop-filter: blur(10px);
         }
+        
         .panel h2 {
             font-family: 'Fraunces', serif;
-            font-size: 1.3rem;
+            font-size: 1.4rem;
+            color: #4ade80;
             margin-bottom: 15px;
-            color: #fbbf24;
+            border-bottom: 2px solid #4da8da;
+            padding-bottom: 10px;
         }
-        label {
-            display: block;
-            margin-bottom: 8px;
-            font-size: 0.9rem;
-            color: #ddd;
+        
+        .upload-area {
+            border: 2px dashed #4da8da;
+            border-radius: 6px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 15px;
         }
-        textarea, input[type="text"], select {
+        
+        .upload-area:hover {
+            border-color: #4ade80;
+            background: rgba(74, 222, 128, 0.05);
+        }
+        
+        input[type="file"] {
+            display: none;
+        }
+        
+        textarea {
             width: 100%;
-            padding: 12px;
+            height: 120px;
+            background: #0a1428;
+            border: 1px solid #4da8da;
+            border-radius: 6px;
+            padding: 10px;
+            color: #4ade80;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
             margin-bottom: 15px;
-            background: rgba(0, 0, 0, 0.3);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 8px;
-            color: #fff;
-            font-family: 'Inter', monospace;
-            font-size: 0.95rem;
             resize: vertical;
-            min-height: 100px;
         }
-        select {
-            cursor: pointer;
-            min-height: 40px;
-        }
-        option {
-            background: #1a1a2e;
-            color: #fff;
-        }
+        
         button {
-            background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);
-            color: #000;
+            background: linear-gradient(135deg, #4da8da 0%, #2a7a9e 100%);
+            color: white;
             border: none;
-            padding: 12px 30px;
-            border-radius: 8px;
-            font-weight: 600;
+            padding: 10px 20px;
+            border-radius: 6px;
             cursor: pointer;
-            font-size: 0.95rem;
+            font-family: 'Inter', sans-serif;
+            font-weight: 600;
             transition: all 0.3s ease;
             width: 100%;
             margin-bottom: 10px;
         }
+        
         button:hover {
+            background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
             transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(249, 115, 22, 0.4);
+            box-shadow: 0 4px 12px rgba(74, 222, 128, 0.3);
         }
+        
         button:active {
             transform: translateY(0);
         }
-        .button-secondary {
-            background: rgba(255, 255, 255, 0.1);
-            color: #fff;
-            border: 1px solid rgba(255, 255, 255, 0.2);
+        
+        .column-list {
+            max-height: 200px;
+            overflow-y: auto;
+            margin-bottom: 15px;
         }
-        .button-secondary:hover {
-            background: rgba(255, 255, 255, 0.15);
-            box-shadow: 0 4px 12px rgba(255, 255, 255, 0.1);
-        }
-        .chart-container {
-            margin: 20px 0;
-            text-align: center;
-        }
-        canvas {
-            max-width: 100%;
-            height: auto;
-            border-radius: 8px;
-        }
-        .stats {
-            background: rgba(0, 0, 0, 0.3);
-            border-left: 4px solid #fbbf24;
-            padding: 15px;
-            border-radius: 8px;
-            margin: 15px 0;
-            font-size: 0.9rem;
-        }
-        .stat-row {
+        
+        .column-item {
+            background: #0a1428;
+            border: 1px solid #2a4d6f;
+            border-radius: 4px;
+            padding: 10px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
             display: flex;
             justify-content: space-between;
-            margin-bottom: 8px;
+            align-items: center;
         }
-        .stat-row:last-child {
-            margin-bottom: 0;
+        
+        .column-item:hover {
+            background: rgba(77, 168, 218, 0.1);
+            border-color: #4da8da;
         }
-        .stat-label {
-            color: #aaa;
-        }
-        .stat-value {
-            font-weight: 600;
-            color: #fbbf24;
-            font-family: 'Inter', monospace;
-        }
-        .verdict {
-            padding: 15px;
-            border-radius: 8px;
-            margin: 15px 0;
-            font-weight: 600;
-            text-align: center;
-            font-size: 1rem;
-        }
-        .verdict.consistent {
+        
+        .column-item.selected {
             background: rgba(74, 222, 128, 0.15);
-            border: 1px solid rgba(74, 222, 128, 0.3);
+            border-color: #4ade80;
+        }
+        
+        .column-name {
+            font-weight: 600;
+            color: #e0e0e0;
+        }
+        
+        .fraud-score {
+            font-family: 'Courier New', monospace;
+            font-weight: 700;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+        
+        .fraud-score.high {
+            background: rgba(255, 107, 107, 0.2);
+            color: #ff6b6b;
+        }
+        
+        .fraud-score.medium {
+            background: rgba(251, 191, 36, 0.2);
+            color: #fbbf24;
+        }
+        
+        .fraud-score.low {
+            background: rgba(74, 222, 128, 0.2);
             color: #4ade80;
         }
-        .verdict.suspicious {
-            background: rgba(239, 68, 68, 0.15);
-            border: 1px solid rgba(239, 68, 68, 0.3);
-            color: #ef4444;
+        
+        .histogram-container {
+            background: #0a1428;
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 15px;
         }
-        .formula {
-            background: rgba(100, 181, 246, 0.1);
-            border: 1px solid rgba(100, 181, 246, 0.2);
+        
+        canvas {
+            width: 100%;
+            height: auto;
+            display: block;
+            border-radius: 4px;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .stat-box {
+            background: #0a1428;
+            border-left: 3px solid #4da8da;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        
+        .stat-label {
+            font-size: 0.8rem;
+            color: #a0a0a0;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .stat-value {
+            font-family: 'Courier New', monospace;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #4da8da;
+            margin-top: 4px;
+        }
+        
+        .interpretation {
+            background: rgba(77, 168, 218, 0.1);
+            border: 1px solid #4da8da;
+            border-radius: 6px;
             padding: 12px;
-            border-radius: 8px;
-            margin: 10px 0;
-            font-family: 'Inter', monospace;
-            font-size: 0.85rem;
+            font-size: 0.9rem;
             line-height: 1.5;
-            color: #64b5f6;
+            color: #d0d0d0;
         }
-        .toggle-math {
-            margin: 10px 0;
+        
+        .message {
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            font-size: 0.9rem;
         }
-        .toggle-math label {
+        
+        .message.error {
+            background: rgba(255, 107, 107, 0.15);
+            border-left: 3px solid #ff6b6b;
+            color: #ff6b6b;
+        }
+        
+        .message.success {
+            background: rgba(74, 222, 128, 0.15);
+            border-left: 3px solid #4ade80;
+            color: #4ade80;
+        }
+        
+        .message.info {
+            background: rgba(77, 168, 218, 0.15);
+            border-left: 3px solid #4da8da;
+            color: #4da8da;
+        }
+        
+        .legend {
+            display: flex;
+            gap: 20px;
+            font-size: 0.85rem;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .legend-item {
             display: flex;
             align-items: center;
-            gap: 8px;
-            cursor: pointer;
-            margin-bottom: 0;
+            gap: 6px;
         }
-        input[type="checkbox"] {
-            cursor: pointer;
-            width: 18px;
-            height: 18px;
-        }
-        .math-details {
-            display: none;
-            margin-top: 10px;
-        }
-        .math-details.show {
-            display: block;
-        }
-        .error-message {
-            background: rgba(239, 68, 68, 0.15);
-            border: 1px solid rgba(239, 68, 68, 0.3);
-            color: #ff6b6b;
-            padding: 12px;
-            border-radius: 8px;
-            margin: 10px 0;
-            display: none;
-        }
-        .error-message.show {
-            display: block;
+        
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 3px;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🔍 Liar's Digits</h1>
-        <p class="subtitle">Detect fabricated data using Benford's Law — the leading digit distribution that nature obeys</p>
-
-        <div class="content">
-            <!-- Input Panel -->
+        <h1>🔍 Benford's Detector</h1>
+        <p class="subtitle">Upload your data and find anomalies in first-digit patterns</p>
+        
+        <div class="main-content">
+            <!-- LEFT PANEL: Upload & Column Selection -->
             <div class="panel">
-                <h2>Input Data</h2>
+                <h2>📤 Load Data</h2>
                 
-                <label for="sampleSelect">Load a Sample Dataset:</label>
-                <select id="sampleSelect">
-                    <option value="">— Or paste your own numbers below —</option>
-                    <option value="city_populations">City Populations (Real)</option>
-                    <option value="fibonacci">Fibonacci Numbers (Real)</option>
-                    <option value="powers_of_2">Powers of 2 (Real)</option>
-                    <option value="enron">Enron Expense Reimbursements (Fraud)</option>
-                    <option value="venezuela">Venezuela Election Tallies (Suspicious)</option>
-                    <option value="uniform_fake">Uniform Random (Fabricated)</option>
-                </select>
-
-                <label for="dataInput">Or paste numbers (one per line, CSV, or space-separated):</label>
-                <textarea id="dataInput" placeholder="Example:&#10;10500&#10;23750&#10;8234&#10;..."></textarea>
-
-                <button onclick="analyzeData()">Analyze Data</button>
-
-                <div class="toggle-math">
-                    <label>
-                        <input type="checkbox" id="showMath" onchange="toggleMath()">
-                        Show the math
-                    </label>
+                <div class="upload-area" id="uploadArea">
+                    <p>📁 Click or drop CSV here</p>
+                    <input type="file" id="fileInput" accept=".csv">
                 </div>
-
-                <div class="math-details" id="mathDetails">
-                    <div class="formula">
-                        <strong>Benford's Law:</strong><br>
-                        P(d) = log₁₀(1 + 1/d)<br>
-                        where d ∈ {1,2,...,9}
-                    </div>
-                    <div class="formula">
-                        <strong>Chi-Squared Test:</strong><br>
-                        χ² = Σ((Observed - Expected)² / Expected)<br>
-                        If χ² > 15.5 (critical value) → Suspicious
-                    </div>
-                </div>
-
-                <div class="error-message" id="errorMsg"></div>
+                
+                <p style="font-size: 0.85rem; color: #a0a0a0; margin-bottom: 15px;">Or paste CSV rows:</p>
+                <textarea id="csvInput" placeholder="name,value1,value2&#10;Alice,1500,250&#10;Bob,890,120"></textarea>
+                
+                <button onclick="loadData()">📊 Analyze Data</button>
+                
+                <div id="message"></div>
+                
+                <p style="font-size: 0.85rem; color: #a0a0a0; margin-bottom: 10px; margin-top: 20px;">Numeric Columns:</p>
+                <div class="column-list" id="columnList"></div>
             </div>
-
-            <!-- Results Panel -->
+            
+            <!-- RIGHT PANEL: Results & Histogram -->
             <div class="panel">
-                <h2>Analysis Results</h2>
+                <h2>📈 Analysis Results</h2>
                 
-                <div class="chart-container">
-                    <canvas id="benfordChart" width="400" height="300"></canvas>
+                <div id="results" style="display: none;">
+                    <div class="stats">
+                        <div class="stat-box">
+                            <div class="stat-label">Column</div>
+                            <div class="stat-value" id="statColumn">—</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-label">Fraud Score</div>
+                            <div class="stat-value" id="statFraud">—</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-label">Chi-Squared</div>
+                            <div class="stat-value" id="statChiSquared">—</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-label">P-Value</div>
+                            <div class="stat-value" id="statPValue">—</div>
+                        </div>
+                    </div>
+                    
+                    <div class="legend">
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #4ade80;"></div>
+                            <span>Benford's Law (expected)</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #4da8da;"></div>
+                            <span>Your Data (observed)</span>
+                        </div>
+                    </div>
+                    
+                    <div class="histogram-container">
+                        <canvas id="histogram"></canvas>
+                    </div>
+                    
+                    <div class="interpretation" id="interpretation"></div>
                 </div>
-
-                <div class="stats">
-                    <div class="stat-row">
-                        <span class="stat-label">Sample Size:</span>
-                        <span class="stat-value" id="sampleSize">—</span>
-                    </div>
-                    <div class="stat-row">
-                        <span class="stat-label">Chi-Squared (χ²):</span>
-                        <span class="stat-value" id="chiSquared">—</span>
-                    </div>
-                    <div class="stat-row">
-                        <span class="stat-label">P-Value:</span>
-                        <span class="stat-value" id="pValue">—</span>
-                    </div>
-                    <div class="stat-row">
-                        <span class="stat-label">Most Common Leading Digit:</span>
-                        <span class="stat-value" id="mostCommon">—</span>
-                    </div>
+                
+                <div id="noResults" style="text-align: center; color: #a0a0a0; padding: 40px 20px;">
+                    <p>👈 Load data and pick a column to see analysis</p>
                 </div>
-
-                <div class="verdict" id="verdict"></div>
             </div>
         </div>
     </div>
-
+    
     <script>
-        const BENFORD = {
-            1: Math.log10(1 + 1/1),
-            2: Math.log10(1 + 1/2),
-            3: Math.log10(1 + 1/3),
-            4: Math.log10(1 + 1/4),
-            5: Math.log10(1 + 1/5),
-            6: Math.log10(1 + 1/6),
-            7: Math.log10(1 + 1/7),
-            8: Math.log10(1 + 1/8),
-            9: Math.log10(1 + 1/9),
+        // Benford's Law: probability of each first digit
+        const BENFORDS_LAW = {
+            1: 0.30103, 2: 0.17609, 3: 0.12494, 4: 0.09691, 5: 0.07918,
+            6: 0.06695, 7: 0.05799, 8: 0.05129, 9: 0.04576
         };
-
-        const CHI_SQUARED_CRITICAL = 15.507;
-
-        const SAMPLES = {
-            city_populations: [8335000, 3979000, 2693000, 2320000, 1949000, 1626000, 1537000, 1481000, 1437000, 1380000, 1375000, 1358000, 1314000, 1306000, 1257000, 1257000, 1225000, 1220000, 1215000, 1200000],
-            fibonacci: [1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144, 233, 377, 610, 987, 1597, 2584, 4181, 6765, 10946, 17711, 28657, 46368, 75025, 121393],
-            powers_of_2: [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536, 131072, 262144, 524288, 1048576],
-            enron: [8500, 12400, 5600, 23100, 7900, 15200, 34500, 6700, 9200, 18900, 4100, 25600, 7300, 16800, 21000, 8100, 13700, 27500, 5900, 14200, 19300, 31200, 6200, 11400],
-            venezuela: [125340, 234567, 456789, 187654, 298765, 345678, 234567, 298765, 128765, 567890, 389234, 478901, 267345, 456234, 389456, 234567, 567234, 345678, 289567, 456789],
-            uniform_fake: [1100, 2100, 3100, 4100, 5100, 6100, 7100, 8100, 9100, 1100, 2100, 3100, 4100, 5100, 6100, 7100, 8100, 9100, 1100, 2100, 3100, 4100, 5100, 6100, 7100, 8100, 9100, 1100, 2100, 3100, 4100, 5100, 6100, 7100, 8100, 9100, 1100, 2100, 3100, 4100, 5100, 6100, 7100, 8100, 9100, 1100, 2100, 3100, 4100, 5100, 6100, 7100, 8100, 9100, 1100, 2100, 3100, 4100, 5100, 6100, 7100, 8100, 9100, 1100, 2100, 3100, 4100, 5100, 6100, 7100, 8100, 9100, 1100, 2100, 3100, 4100, 5100, 6100, 7100, 8100, 9100, 1100, 2100, 3100, 4100, 5100, 6100, 7100, 8100, 9100],
-        };
-
-        const CHI_SQUARED_CRITICAL = 15.507;
-
-        const SAMPLES = {
-            city_populations: [8335000, 3979000, 2693000, 2320000, 1949000, 1626000, 1537000, 1481000, 1437000, 1380000, 1375000, 1358000, 1314000, 1306000, 1257000, 1257000, 1225000, 1220000, 1215000, 1200000],
-            fibonacci: [1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144, 233, 377, 610, 987, 1597, 2584, 4181, 6765, 10946, 17711, 28657, 46368, 75025, 121393],
-            powers_of_2: [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536, 131072, 262144, 524288, 1048576],
-            enron: [8500, 12400, 5600, 23100, 7900, 15200, 34500, 6700, 9200, 18900, 4100, 25600, 7300, 16800, 21000, 8100, 13700, 27500, 5900, 14200, 19300, 31200, 6200, 11400],
-            venezuela: [125340, 234567, 456789, 187654, 298765, 345678, 234567, 298765, 128765, 567890, 389234, 478901, 267345, 456234, 389456, 234567, 567234, 345678, 289567, 456789],
-            uniform_fake: Array.from({length:90}, (_, i) => (i % 9 + 1) * 1000 + 100),
-        };
-
-        document.getElementById('sampleSelect').addEventListener('change', (e) => {
-            if (e.target.value) {
-                const data = SAMPLES[e.target.value];
-                document.getElementById('dataInput').value = data.join('\n');
-            }
-        });
-
-        function toggleMath() {
-            const mathDiv = document.getElementById('mathDetails');
-            if (document.getElementById('showMath').checked) {
-                mathDiv.classList.add('show');
-            } else {
-                mathDiv.classList.remove('show');
-            }
+        
+        let data = {};
+        let selectedColumn = null;
+        
+        function showMessage(msg, type) {
+            const msgEl = document.getElementById('message');
+            msgEl.innerHTML = `<div class="message ${type}">${msg}</div>`;
         }
-
-        function extractLeadingDigits(data) {
-            const digits = [];
-            for (let num of data) {
-                const numStr = Math.abs(num).toString().replace(/[^0-9]/g, '');
-                if (numStr.length > 0) {
-                    const firstDigit = parseInt(numStr[0]);
-                    if (firstDigit >= 1 && firstDigit <= 9) {
-                        digits.push(firstDigit);
+        
+        function extractFirstDigit(num) {
+            const str = Math.abs(num).toString().replace(/[^0-9]/g, '');
+            return str.length > 0 ? parseInt(str[0]) : null;
+        }
+        
+        function parseCSV(text) {
+            const lines = text.trim().split('\n');
+            if (lines.length < 2) throw new Error('Need at least header + 1 row');
+            
+            const headers = lines[0].split(',').map(h => h.trim());
+            const result = {};
+            
+            for (let h of headers) {
+                result[h] = [];
+            }
+            
+            for (let i = 1; i < lines.length; i++) {
+                const parts = lines[i].split(',').map(p => p.trim());
+                for (let j = 0; j < headers.length; j++) {
+                    const val = parseFloat(parts[j]);
+                    if (!isNaN(val)) {
+                        result[headers[j]].push(val);
                     }
                 }
             }
-            return digits;
+            
+            return result;
         }
-
-        function chiSquaredTest(observed, expected, totalCount) {
-            let chi2 = 0;
-            for (let d = 1; d <= 9; d++) {
-                const exp = expected[d] * totalCount;
-                const obs = observed[d] || 0;
-                if (exp > 0) {
-                    chi2 += Math.pow(obs - exp, 2) / exp;
-                }
-            }
-            return chi2;
-        }
-
-        function approximatePValue(chi2, degreesOfFreedom = 8) {
-            if (chi2 < 1) return 0.99;
-            if (chi2 < 3.49) return 0.95;
-            if (chi2 < 5.39) return 0.85;
-            if (chi2 < 7.34) return 0.75;
-            if (chi2 < 10.22) return 0.50;
-            if (chi2 < 13.36) return 0.25;
-            if (chi2 < 15.51) return 0.10;
-            if (chi2 < 20.09) return 0.01;
-            return 0.001;
-        }
-
-        function analyzeData() {
-            const errorMsg = document.getElementById('errorMsg');
-            const input = document.getElementById('dataInput').value.trim();
-
-            errorMsg.classList.remove('show');
-
-            if (!input) {
-                errorMsg.textContent = 'Please enter or select data to analyze.';
-                errorMsg.classList.add('show');
-                return;
-            }
-
-            let numbers = [];
+        
+        function loadData() {
             try {
-                const parts = input.replace(/[,\n\s]+/g, ' ').trim().split(' ');
-                numbers = parts.map(p => {
-                    const n = parseFloat(p);
-                    if (isNaN(n)) throw new Error('Invalid number: ' + p);
-                    return n;
-                }).filter(n => n !== 0);
-
-                if (numbers.length < 5) {
-                    errorMsg.textContent = 'Please provide at least 5 numbers for meaningful analysis.';
-                    errorMsg.classList.add('show');
-                    return;
+                let csv = document.getElementById('csvInput').value.trim();
+                if (!csv) throw new Error('Paste CSV data first');
+                
+                data = parseCSV(csv);
+                showMessage('✓ Data loaded', 'success');
+                
+                // Update column list
+                const columnList = document.getElementById('columnList');
+                columnList.innerHTML = '';
+                
+                for (let [col, vals] of Object.entries(data)) {
+                    if (vals.length === 0) continue;
+                    
+                    // Calculate fraud score
+                    const fraudScore = calculateFraudScore(vals);
+                    const scoreClass = fraudScore > 70 ? 'high' : fraudScore > 40 ? 'medium' : 'low';
+                    
+                    const item = document.createElement('div');
+                    item.className = 'column-item';
+                    item.innerHTML = `
+                        <span class="column-name">${col}</span>
+                        <span class="fraud-score ${scoreClass}">${fraudScore}</span>
+                    `;
+                    item.onclick = () => selectColumn(col);
+                    columnList.appendChild(item);
                 }
             } catch (e) {
-                errorMsg.textContent = 'Error parsing numbers: ' + e.message;
-                errorMsg.classList.add('show');
-                return;
+                showMessage('❌ ' + e.message, 'error');
             }
-
-            const leadingDigits = extractLeadingDigits(numbers);
-
-            if (leadingDigits.length < 5) {
-                errorMsg.textContent = 'Could not extract enough leading digits from the data.';
-                errorMsg.classList.add('show');
-                return;
-            }
-
-            const observed = {};
-            for (let d = 1; d <= 9; d++) observed[d] = 0;
-            for (let d of leadingDigits) observed[d]++;
-
-            const chi2 = chiSquaredTest(observed, BENFORD, leadingDigits.length);
-            const pValue = approximatePValue(chi2);
-
-            let maxDigit = 1;
-            let maxCount = observed[1];
-            for (let d = 2; d <= 9; d++) {
-                if (observed[d] > maxCount) {
-                    maxDigit = d;
-                    maxCount = observed[d];
-                }
-            }
-
-            document.getElementById('sampleSize').textContent = leadingDigits.length;
-            document.getElementById('chiSquared').textContent = chi2.toFixed(2);
-            document.getElementById('pValue').textContent = pValue.toFixed(4);
-            document.getElementById('mostCommon').textContent = maxDigit + ` (${maxCount} times, ${(maxCount/leadingDigits.length*100).toFixed(1)}%)`;
-
-            const verdictDiv = document.getElementById('verdict');
-            const isConsistent = chi2 <= CHI_SQUARED_CRITICAL;
-            verdictDiv.className = 'verdict ' + (isConsistent ? 'consistent' : 'suspicious');
-            if (isConsistent) {
-                verdictDiv.innerHTML = `✓ CONSISTENT with Benford's Law<br><small>Data appears natural and unaltered.</small>`;
-            } else {
-                verdictDiv.innerHTML = `⚠ SUSPICIOUS — Violates Benford's Law<br><small>Leading digit distribution is unusual or possibly fabricated.</small>`;
-            }
-
-            drawChart(observed, leadingDigits.length, isConsistent);
         }
-
-        function drawChart(observed, total, isConsistent) {
-            const canvas = document.getElementById('benfordChart');
-            const ctx = canvas.getContext('2d');
-
-            const padding = 40;
-            const chartWidth = canvas.width - 2 * padding;
-            const chartHeight = canvas.height - 2 * padding;
-            const barWidth = chartWidth / 9;
-
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            let maxFreq = 0;
-            for (let d = 1; d <= 9; d++) {
-                const freq = observed[d] / total;
-                maxFreq = Math.max(maxFreq, freq, BENFORD[d]);
+        
+        function calculateFraudScore(values) {
+            // Count first digits
+            const observed = {};
+            for (let i = 1; i <= 9; i++) observed[i] = 0;
+            
+            for (let val of values) {
+                const fd = extractFirstDigit(val);
+                if (fd && fd >= 1 && fd <= 9) observed[fd]++;
             }
-            maxFreq = Math.ceil(maxFreq * 100) / 100;
-
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+            
+            const n = Object.values(observed).reduce((a, b) => a + b, 0);
+            if (n === 0) return 0;
+            
+            // Chi-squared test
+            let chiSquared = 0;
+            for (let i = 1; i <= 9; i++) {
+                const expected = BENFORDS_LAW[i] * n;
+                const diff = observed[i] - expected;
+                chiSquared += (diff * diff) / expected;
+            }
+            
+            // Convert chi-squared to fraud score (0-100, higher = more fraudulent)
+            // chi-squared ~22.5 at p=0.01 (critical), map to 100
+            const fraudScore = Math.min(100, Math.round((chiSquared / 22.5) * 100));
+            return fraudScore;
+        }
+        
+        function chiSquaredTest(observed) {
+            // observed = {1: count, 2: count, ...}
+            let n = 0;
+            for (let i = 1; i <= 9; i++) {
+                n += observed[i];
+            }
+            
+            let chiSquared = 0;
+            for (let i = 1; i <= 9; i++) {
+                const expected = BENFORDS_LAW[i] * n;
+                const diff = observed[i] - expected;
+                chiSquared += (diff * diff) / expected;
+            }
+            
+            // Approximate p-value using chi-squared CDF (8 degrees of freedom)
+            // Critical value at p=0.05 is ~15.51, p=0.01 is ~22.46
+            let pValue;
+            if (chiSquared > 22.46) pValue = 0.001;
+            else if (chiSquared > 15.51) pValue = 0.01;
+            else if (chiSquared > 13.36) pValue = 0.05;
+            else if (chiSquared > 11.07) pValue = 0.10;
+            else pValue = 0.20;
+            
+            return { chiSquared, pValue };
+        }
+        
+        function selectColumn(colName) {
+            selectedColumn = colName;
+            
+            // Update UI
+            document.querySelectorAll('.column-item').forEach((item, i) => {
+                const cols = Object.keys(data);
+                if (cols[i] === colName) {
+                    item.classList.add('selected');
+                } else {
+                    item.classList.remove('selected');
+                }
+            });
+            
+            renderAnalysis();
+        }
+        
+        function renderAnalysis() {
+            if (!selectedColumn || !data[selectedColumn]) return;
+            
+            const values = data[selectedColumn];
+            
+            // Count first digits
+            const observed = {};
+            for (let i = 1; i <= 9; i++) observed[i] = 0;
+            
+            for (let val of values) {
+                const fd = extractFirstDigit(val);
+                if (fd && fd >= 1 && fd <= 9) observed[fd]++;
+            }
+            
+            const n = Object.values(observed).reduce((a, b) => a + b, 0);
+            const fraudScore = calculateFraudScore(values);
+            const { chiSquared, pValue } = chiSquaredTest(observed);
+            
+            // Update stats
+            document.getElementById('statColumn').textContent = selectedColumn;
+            document.getElementById('statFraud').textContent = fraudScore;
+            document.getElementById('statChiSquared').textContent = chiSquared.toFixed(2);
+            document.getElementById('statPValue').textContent = pValue.toFixed(4);
+            
+            // Interpretation
+            let interp = '';
+            if (pValue < 0.01) {
+                interp = `<strong>🚨 HIGHLY SUSPICIOUS</strong> — The first-digit pattern differs significantly from Benford's Law (p=${pValue.toFixed(4)}). This column shows unusual distribution and may contain fabricated or manipulated data.`;
+            } else if (pValue < 0.05) {
+                interp = `<strong>⚠️ SUSPICIOUS</strong> — The pattern deviates from Benford's Law (p=${pValue.toFixed(4)}). This warrants further investigation.`;
+            } else {
+                interp = `<strong>✓ NATURAL</strong> — The first-digit distribution matches Benford's Law (p=${pValue.toFixed(4)}). This column appears authentic.`;
+            }
+            
+            document.getElementById('interpretation').innerHTML = interp;
+            
+            // Draw histogram
+            drawHistogram(observed, n);
+            
+            // Show results
+            document.getElementById('results').style.display = 'block';
+            document.getElementById('noResults').style.display = 'none';
+        }
+        
+        function drawHistogram(observed, n) {
+            const canvas = document.getElementById('histogram');
+            const ctx = canvas.getContext('2d');
+            
+            const width = canvas.offsetWidth;
+            const height = 200;
+            canvas.width = width;
+            canvas.height = height;
+            
+            const padding = 40;
+            const barWidth = (width - 2 * padding) / 9;
+            const maxHeight = height - 2 * padding;
+            const maxFreq = Math.max(...Object.values(observed)) / n;
+            
+            // Clear
+            ctx.fillStyle = '#0a1428';
+            ctx.fillRect(0, 0, width, height);
+            
+            // Grid & axes
+            ctx.strokeStyle = '#2a4d6f';
             ctx.lineWidth = 1;
             ctx.beginPath();
             ctx.moveTo(padding, padding);
-            ctx.lineTo(padding, canvas.height - padding);
-            ctx.lineTo(canvas.width - padding, canvas.height - padding);
+            ctx.lineTo(padding, height - padding);
+            ctx.lineTo(width - padding, height - padding);
             ctx.stroke();
-
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
-            ctx.font = '12px Inter';
-            ctx.textAlign = 'right';
-            for (let i = 0; i <= 5; i++) {
-                const val = (maxFreq * i / 5).toFixed(2);
-                const y = canvas.height - padding - (chartHeight / 5) * i;
-                ctx.fillText(val, padding - 8, y + 4);
+            
+            // Draw bars
+            for (let digit = 1; digit <= 9; digit++) {
+                const x = padding + (digit - 1) * barWidth;
+                const obsFreq = observed[digit] / n;
+                const benfordFreq = BENFORDS_LAW[digit];
                 
-                ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
-                ctx.beginPath();
-                ctx.moveTo(padding, y);
-                ctx.lineTo(canvas.width - padding, y);
-                ctx.stroke();
-            }
-
-            for (let d = 1; d <= 9; d++) {
-                const observedFreq = observed[d] / total;
-                const benfordFreq = BENFORD[d];
-
-                const x = padding + (d - 1) * barWidth;
-
-                const benfordHeight = (benfordFreq / maxFreq) * chartHeight;
-                ctx.fillStyle = 'rgba(100, 181, 246, 0.3)';
-                ctx.fillRect(x + barWidth * 0.15, canvas.height - padding - benfordHeight, barWidth * 0.7, benfordHeight);
-
-                const observedHeight = (observedFreq / maxFreq) * chartHeight;
-                const barColor = isConsistent ? 'rgba(74, 222, 128, 0.7)' : 'rgba(239, 68, 68, 0.7)';
-                ctx.fillStyle = barColor;
-                ctx.fillRect(x + barWidth * 0.15, canvas.height - padding - observedHeight, barWidth * 0.7, observedHeight);
-
-                ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-                ctx.font = '14px Inter';
+                const obsHeight = (obsFreq / maxFreq) * maxHeight;
+                const benfordHeight = (benfordFreq / maxFreq) * maxHeight;
+                
+                // Benford's bar (green)
+                ctx.fillStyle = '#4ade80';
+                ctx.globalAlpha = 0.4;
+                ctx.fillRect(x + 5, height - padding - benfordHeight, barWidth / 2 - 8, benfordHeight);
+                ctx.globalAlpha = 1;
+                
+                // Observed bar (cyan)
+                ctx.fillStyle = '#4da8da';
+                ctx.fillRect(x + barWidth / 2 + 3, height - padding - obsHeight, barWidth / 2 - 8, obsHeight);
+                
+                // Label
+                ctx.fillStyle = '#d0d0d0';
+                ctx.font = '12px Inter';
                 ctx.textAlign = 'center';
-                ctx.fillText(d, x + barWidth / 2, canvas.height - padding + 20);
+                ctx.fillText(digit, x + barWidth / 2, height - padding + 20);
             }
-
-            ctx.font = '12px Inter';
-            ctx.fillStyle = 'rgba(74, 222, 128, 0.7)';
-            ctx.fillRect(canvas.width - 180, 10, 12, 12);
-            ctx.fillStyle = '#fff';
-            ctx.textAlign = 'left';
-            ctx.fillText('Your Data', canvas.width - 160, 19);
-
-            ctx.fillStyle = 'rgba(100, 181, 246, 0.3)';
-            ctx.fillRect(canvas.width - 180, 30, 12, 12);
-            ctx.fillStyle = '#fff';
-            ctx.fillText("Benford's Law", canvas.width - 160, 39);
+            
+            // Y-axis label
+            ctx.fillStyle = '#a0a0a0';
+            ctx.font = '11px Inter';
+            ctx.textAlign = 'right';
+            ctx.fillText('Frequency', 20, padding);
         }
-
-        document.getElementById('sampleSelect').value = 'fibonacci';
-        document.getElementById('dataInput').value = SAMPLES.fibonacci.join('\n');
-        analyzeData();
+        
+        // File upload
+        document.getElementById('uploadArea').addEventListener('click', () => {
+            document.getElementById('fileInput').click();
+        });
+        
+        document.getElementById('fileInput').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (evt) => {
+                    document.getElementById('csvInput').value = evt.target.result;
+                    loadData();
+                };
+                reader.readAsText(file);
+            }
+        });
+        
+        // Drag & drop
+        document.getElementById('uploadArea').addEventListener('dragover', (e) => {
+            e.preventDefault();
+            document.getElementById('uploadArea').style.borderColor = '#4ade80';
+        });
+        
+        document.getElementById('uploadArea').addEventListener('dragleave', () => {
+            document.getElementById('uploadArea').style.borderColor = '#4da8da';
+        });
+        
+        document.getElementById('uploadArea').addEventListener('drop', (e) => {
+            e.preventDefault();
+            const file = e.dataTransfer.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (evt) => {
+                    document.getElementById('csvInput').value = evt.target.result;
+                    loadData();
+                };
+                reader.readAsText(file);
+            }
+        });
     </script>
 </body>
 </html>
