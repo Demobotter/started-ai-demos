@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Card Shuffle Reveal</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Space Mono', monospace;
+      background: linear-gradient(135deg, #0a1d4a 0%, #1a3a6a 100%);
+      color: #e8e8e8;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+    h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: 32px;
+      margin-bottom: 10px;
+      text-align: center;
+      color: #fbbf24;
+    }
+    .subtitle {
+      text-align: center;
+      color: #a8b8d8;
+      margin-bottom: 30px;
+      font-size: 14px;
+    }
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 30px;
+      margin-bottom: 30px;
+    }
+    @media (max-width: 1024px) {
+      .main-grid { grid-template-columns: 1fr; }
+    }
+    .deck-section {
+      background: rgba(15, 30, 60, 0.6);
+      border: 2px solid #4da8da;
+      border-radius: 8px;
+      padding: 20px;
+      backdrop-filter: blur(10px);
+    }
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 6px;
+      margin-top: 15px;
+    }
+    .card-tile {
+      aspect-ratio: 0.7;
+      background: linear-gradient(135deg, #1f3a5f 0%, #2a4a7f 100%);
+      border: 1px solid #4da8da;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.2s;
+      color: #e8e8e8;
+    }
+    .card-tile:hover {
+      background: linear-gradient(135deg, #2a4a7f 0%, #3a5a9f 100%);
+      border-color: #7dd3fc;
+    }
+    .card-tile.selected {
+      background: linear-gradient(135deg, #fbbf24 0%, #f8a01f 100%);
+      border-color: #fbbf24;
+      color: #0a1d4a;
+      font-weight: 700;
+      transform: scale(1.05);
+      box-shadow: 0 0 12px rgba(251, 191, 36, 0.5);
+    }
+    .controls-section {
+      background: rgba(15, 30, 60, 0.6);
+      border: 2px solid #4da8da;
+      border-radius: 8px;
+      padding: 20px;
+      backdrop-filter: blur(10px);
+    }
+    .control-group {
+      margin-bottom: 18px;
+    }
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: bold;
+      margin-bottom: 6px;
+      color: #4da8da;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    select, input[type="range"], button {
+      font-family: 'Space Mono', monospace;
+      background: rgba(30, 50, 90, 0.8);
+      color: #e8e8e8;
+      border: 1px solid #4da8da;
+      padding: 8px 12px;
+      border-radius: 4px;
+      font-size: 13px;
+      transition: all 0.2s;
+      cursor: pointer;
+    }
+    select:hover, input[type="range"]:hover {
+      border-color: #7dd3fc;
+      background: rgba(40, 60, 100, 0.8);
+    }
+    select:focus, input[type="range"]:focus {
+      outline: none;
+      border-color: #fbbf24;
+    }
+    select { width: 100%; }
+    .button-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    button {
+      padding: 10px;
+      background: rgba(77, 168, 218, 0.3);
+      border: 1.5px solid #4da8da;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    button:hover {
+      background: rgba(77, 168, 218, 0.5);
+      border-color: #7dd3fc;
+    }
+    button.primary {
+      grid-column: 1 / -1;
+      background: rgba(74, 222, 128, 0.3);
+      border-color: #4ade80;
+      color: #4ade80;
+    }
+    button.primary:hover {
+      background: rgba(74, 222, 128, 0.5);
+      border-color: #86efac;
+    }
+    .speed-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    input[type="range"] { width: 100%; }
+    .speed-label {
+      text-align: center;
+      color: #a8b8d8;
+      font-size: 12px;
+    }
+    .chart-section {
+      background: rgba(15, 30, 60, 0.6);
+      border: 2px solid #4da8da;
+      border-radius: 8px;
+      padding: 20px;
+      backdrop-filter: blur(10px);
+      grid-column: 1 / -1;
+    }
+    canvas {
+      max-width: 100%;
+      height: auto;
+    }
+    .stats-box {
+      background: rgba(30, 50, 90, 0.5);
+      border-left: 3px solid #4da8da;
+      padding: 12px;
+      border-radius: 4px;
+      font-size: 12px;
+      line-height: 1.6;
+      margin-top: 12px;
+    }
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      margin: 4px 0;
+    }
+    .stat-label { color: #a8b8d8; }
+    .stat-value { color: #fbbf24; font-weight: bold; }
+    .info-note {
+      background: rgba(77, 168, 218, 0.2);
+      border: 1px solid #4da8da;
+      border-radius: 4px;
+      padding: 10px;
+      margin-top: 12px;
+      font-size: 12px;
+      color: #a8d8ff;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Card Shuffle Reveal</h1>
+    <div class="subtitle">See the hidden mathematics in card shuffles</div>
+
+    <div class="main-grid">
+      <!-- Deck Section -->
+      <div class="deck-section">
+        <label>Select a Card from the Deck</label>
+        <div class="card-grid" id="deckGrid"></div>
+        <div class="stats-box">
+          <div class="stat-row">
+            <span class="stat-label">Selected Card:</span>
+            <span class="stat-value" id="selectedCardDisplay">None</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Position:</span>
+            <span class="stat-value" id="selectedPositionDisplay">—</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Controls Section -->
+      <div class="controls-section">
+        <div class="control-group">
+          <label>Shuffle Algorithm</label>
+          <select id="shuffleType">
+            <option value="faro_in">Perfect Faro (In-Shuffle)</option>
+            <option value="faro_out">Perfect Faro (Out-Shuffle)</option>
+            <option value="riffle">Riffle Shuffle (Random)</option>
+            <option value="overhand">Overhand Shuffle</option>
+            <option value="hindu">Hindu Shuffle</option>
+          </select>
+        </div>
+
+        <div class="control-group">
+          <label>Speed</label>
+          <div class="speed-row">
+            <input type="range" id="speedSlider" min="1" max="10" value="3">
+            <div class="speed-label" id="speedLabel">3x</div>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <label>Manual Controls</label>
+          <div class="button-row">
+            <button id="stepBtn">Step</button>
+            <button id="playBtn">Play</button>
+            <button id="pauseBtn">Pause</button>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <button class="primary" id="autoReturnBtn">Auto Until Card Returns</button>
+        </div>
+
+        <button onclick="resetAnimation()" style="width: 100%; margin-top: 10px;">Reset</button>
+
+        <div class="info-note">
+          <strong>Faro Shuffle Magic:</strong> Perfect Faro In-Shuffle returns a standard deck to its original order after exactly 8 shuffles. This is real combinatorics mathematics used by magicians!
+        </div>
+
+        <div class="stats-box">
+          <div class="stat-row">
+            <span class="stat-label">Shuffle Count:</span>
+            <span class="stat-value" id="shuffleCount">0</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Card Returned:</span>
+            <span class="stat-value" id="returnedIndicator">No</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Chart Section -->
+    <div class="chart-section">
+      <label style="display: block; margin-bottom: 12px;">Card Position Over Time</label>
+      <canvas id="positionChart"></canvas>
+    </div>
+  </div>
+
+  <script>
+    // Card setup
+    const suits = ['♠', '♥', '♦', '♣'];
+    const ranks = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+    let deck = [];
+    let selectedCardIndex = null;
+    let initialPosition = null;
+    let shuffleHistory = []; // Tracks position after each shuffle
+    let currentShuffleCount = 0;
+    let isAutoRunning = false;
+
+    // Initialize deck
+    function initDeck() {
+      deck = [];
+      for (let suit of suits) {
+        for (let rank of ranks) {
+          deck.push(suit + rank);
+        }
+      }
+    }
+
+    // Render deck grid
+    function renderDeckGrid() {
+      const grid = document.getElementById('deckGrid');
+      grid.innerHTML = '';
+      deck.forEach((card, idx) => {
+        const tile = document.createElement('div');
+        tile.className = 'card-tile';
+        if (idx === selectedCardIndex) tile.classList.add('selected');
+        tile.textContent = card;
+        tile.onclick = () => selectCard(idx);
+        grid.appendChild(tile);
+      });
+    }
+
+    function selectCard(idx) {
+      selectedCardIndex = idx;
+      initialPosition = idx;
+      updateDisplay();
+      renderDeckGrid();
+      resetShuffleHistory();
+      updateChart();
+    }
+
+    function updateDisplay() {
+      if (selectedCardIndex !== null) {
+        document.getElementById('selectedCardDisplay').textContent = deck[selectedCardIndex];
+        document.getElementById('selectedPositionDisplay').textContent = selectedCardIndex;
+      }
+    }
+
+    // Shuffle algorithms
+    function performShuffle() {
+      const type = document.getElementById('shuffleType').value;
+      const prevPos = selectedCardIndex;
+
+      if (type === 'faro_in') {
+        shuffleFaroIn();
+      } else if (type === 'faro_out') {
+        shuffleFaroOut();
+      } else if (type === 'riffle') {
+        shuffleRiffle();
+      } else if (type === 'overhand') {
+        shuffleOverhand();
+      } else if (type === 'hindu') {
+        shuffleHindu();
+      }
+
+      currentShuffleCount++;
+      shuffleHistory.push(selectedCardIndex);
+      checkCardReturn();
+      updateChart();
+      renderDeckGrid();
+      document.getElementById('shuffleCount').textContent = currentShuffleCount;
+    }
+
+    function shuffleFaroIn() {
+      // Perfect In-Shuffle: top card stays on top
+      const mid = Math.floor(deck.length / 2);
+      const top = deck.slice(0, mid);
+      const bottom = deck.slice(mid);
+      const newDeck = [];
+      for (let i = 0; i < bottom.length; i++) {
+        newDeck.push(bottom[i]);
+        if (i < top.length) newDeck.push(top[i]);
+      }
+      if (top.length > bottom.length) {
+        newDeck.push(top[top.length - 1]);
+      }
+      deck = newDeck;
+      // Track selected card
+      updateCardPosition('faro_in', mid);
+    }
+
+    function shuffleFaroOut() {
+      // Perfect Out-Shuffle: top card moves to position 1
+      const mid = Math.floor(deck.length / 2);
+      const top = deck.slice(0, mid);
+      const bottom = deck.slice(mid);
+      const newDeck = [];
+      for (let i = 0; i < top.length; i++) {
+        newDeck.push(top[i]);
+        if (i < bottom.length) newDeck.push(bottom[i]);
+      }
+      if (bottom.length > top.length) {
+        newDeck.push(bottom[bottom.length - 1]);
+      }
+      deck = newDeck;
+      updateCardPosition('faro_out', mid);
+    }
+
+    function shuffleRiffle() {
+      // Riffle: random interleave of two halves
+      const mid = Math.floor(deck.length / 2);
+      const top = deck.slice(0, mid);
+      const bottom = deck.slice(mid);
+      const newDeck = [];
+      let i = 0, j = 0;
+      while (i < top.length || j < bottom.length) {
+        if (Math.random() < 0.5 && i < top.length) {
+          newDeck.push(top[i++]);
+        } else if (j < bottom.length) {
+          newDeck.push(bottom[j++]);
+        } else if (i < top.length) {
+          newDeck.push(top[i++]);
+        }
+      }
+      // Find selected card in new deck
+      const cardToFind = deck[selectedCardIndex];
+      const oldPos = selectedCardIndex;
+      deck = newDeck;
+      selectedCardIndex = deck.indexOf(cardToFind);
+    }
+
+    function shuffleOverhand() {
+      // Overhand: simulate grabbing random chunks from bottom
+      const newDeck = [];
+      let remaining = [...deck];
+      while (remaining.length > 0) {
+        const grabSize = Math.min(remaining.length, Math.floor(Math.random() * 5) + 1);
+        const chunk = remaining.splice(remaining.length - grabSize);
+        newDeck.push(...chunk);
+      }
+      const cardToFind = deck[selectedCardIndex];
+      deck = newDeck;
+      selectedCardIndex = deck.indexOf(cardToFind);
+    }
+
+    function shuffleHindu() {
+      // Hindu: top card moves to bottom each cycle
+      const newDeck = deck.slice(1);
+      newDeck.push(deck[0]);
+      const cardToFind = deck[selectedCardIndex];
+      deck = newDeck;
+      selectedCardIndex = deck.indexOf(cardToFind);
+    }
+
+    function updateCardPosition(type, mid) {
+      // After a perfect shuffle, track card position mathematically
+      const cardToFind = deck[selectedCardIndex];
+      const oldIndex = selectedCardIndex;
+      selectedCardIndex = deck.indexOf(cardToFind);
+    }
+
+    function resetShuffleHistory() {
+      shuffleHistory = [initialPosition];
+      currentShuffleCount = 0;
+      document.getElementById('shuffleCount').textContent = '0';
+      document.getElementById('returnedIndicator').textContent = 'No';
+      isAutoRunning = false;
+    }
+
+    function checkCardReturn() {
+      if (currentShuffleCount > 0 && selectedCardIndex === initialPosition && currentShuffleCount >= 2) {
+        document.getElementById('returnedIndicator').textContent = `Yes (${currentShuffleCount} shuffles)`;
+        isAutoRunning = false;
+      }
+    }
+
+    // Chart setup
+    let positionChart = null;
+    function updateChart() {
+      const ctx = document.getElementById('positionChart').getContext('2d');
+      const shuffleType = document.getElementById('shuffleType').value;
+      
+      let chartColor = '#4da8da'; // default blue
+      if (shuffleType.includes('faro')) chartColor = '#4ade80'; // green
+      if (shuffleType === 'riffle') chartColor = '#4da8da'; // blue
+      if (shuffleType === 'overhand') chartColor = '#fbbf24'; // gold
+      if (shuffleType === 'hindu') chartColor = '#ff6b6b'; // red
+
+      if (positionChart) positionChart.destroy();
+      positionChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: shuffleHistory.map((_, i) => i.toString()),
+          datasets: [{
+            label: 'Card Position',
+            data: shuffleHistory,
+            borderColor: chartColor,
+            backgroundColor: chartColor + '22',
+            borderWidth: 2.5,
+            fill: true,
+            tension: 0.4,
+            pointRadius: 4,
+            pointBackgroundColor: chartColor,
+            pointBorderColor: '#fff',
+            pointBorderWidth: 2,
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          plugins: {
+            legend: {
+              display: false,
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              max: 51,
+              ticks: { color: '#a8b8d8' },
+              grid: { color: 'rgba(77, 168, 218, 0.1)' }
+            },
+            x: {
+              ticks: { color: '#a8b8d8' },
+              grid: { color: 'rgba(77, 168, 218, 0.1)' }
+            }
+          }
+        }
+      });
+    }
+
+    // UI Handlers
+    document.getElementById('stepBtn').onclick = () => {
+      if (selectedCardIndex === null) {
+        alert('Please select a card first');
+        return;
+      }
+      performShuffle();
+    };
+
+    document.getElementById('playBtn').onclick = () => {
+      if (selectedCardIndex === null) {
+        alert('Please select a card first');
+        return;
+      }
+      isAutoRunning = true;
+      const speed = 1000 / parseInt(document.getElementById('speedSlider').value);
+      const interval = setInterval(() => {
+        if (!isAutoRunning) {
+          clearInterval(interval);
+          return;
+        }
+        performShuffle();
+      }, speed);
+      document.getElementById('pauseBtn').onclick = () => {
+        isAutoRunning = false;
+        clearInterval(interval);
+      };
+    };
+
+    document.getElementById('autoReturnBtn').onclick = () => {
+      if (selectedCardIndex === null) {
+        alert('Please select a card first');
+        return;
+      }
+      resetShuffleHistory();
+      isAutoRunning = true;
+      const speed = 800 / parseInt(document.getElementById('speedSlider').value);
+      const interval = setInterval(() => {
+        if (!isAutoRunning) {
+          clearInterval(interval);
+          return;
+        }
+        performShuffle();
+        if (selectedCardIndex === initialPosition && currentShuffleCount > 0) {
+          isAutoRunning = false;
+          clearInterval(interval);
+        }
+      }, speed);
+    };
+
+    document.getElementById('speedSlider').onchange = (e) => {
+      document.getElementById('speedLabel').textContent = e.target.value + 'x';
+    };
+
+    document.getElementById('shuffleType').onchange = resetShuffleHistory;
+
+    function resetAnimation() {
+      initDeck();
+      selectedCardIndex = null;
+      initialPosition = null;
+      shuffleHistory = [];
+      currentShuffleCount = 0;
+      isAutoRunning = false;
+      renderDeckGrid();
+      document.getElementById('selectedCardDisplay').textContent = 'None';
+      document.getElementById('selectedPositionDisplay').textContent = '—';
+      document.getElementById('shuffleCount').textContent = '0';
+      document.getElementById('returnedIndicator').textContent = 'No';
+      updateChart();
+    }
+
+    // Initialize
+    initDeck();
+    renderDeckGrid();
+    updateChart();
+  </script>
+</body>
+</html>
