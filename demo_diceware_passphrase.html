@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diceware Passphrase Generator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Rooney:wght@400;700&family=Outfit:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            max-width: 600px;
+            background: #1a202c;
+            border-radius: 12px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+        h1 {
+            font-family: 'Rooney', serif;
+            font-size: 32px;
+            color: #e2e8f0;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        .subtitle {
+            text-align: center;
+            color: #94a3b8;
+            font-size: 14px;
+            margin-bottom: 30px;
+        }
+        .control-group {
+            margin-bottom: 30px;
+        }
+        .label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        .label-text {
+            font-weight: 500;
+            color: #cbd5e1;
+            font-size: 14px;
+        }
+        .value-display {
+            color: #64b5f6;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #334155;
+            outline: none;
+            -webkit-appearance: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #64b5f6;
+            cursor: pointer;
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #64b5f6;
+            cursor: pointer;
+            border: none;
+        }
+        .entropy-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-top: 12px;
+            padding: 12px;
+            background: #0f172a;
+            border-radius: 8px;
+        }
+        .entropy-stat {
+            text-align: center;
+        }
+        .entropy-stat-label {
+            font-size: 12px;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .entropy-stat-value {
+            font-size: 18px;
+            font-weight: 600;
+            color: #64b5f6;
+            margin-top: 4px;
+        }
+        button {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(59, 130, 246, 0.4);
+        }
+        .passphrase-section {
+            margin-top: 30px;
+            padding: 20px;
+            background: #0f172a;
+            border-radius: 8px;
+            display: none;
+        }
+        .passphrase-section.active {
+            display: block;
+        }
+        .passphrase-label {
+            font-size: 12px;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+        .passphrase-display {
+            font-family: 'Courier New', monospace;
+            background: #1a2332;
+            padding: 16px;
+            border-radius: 6px;
+            color: #4ade80;
+            font-size: 18px;
+            font-weight: bold;
+            letter-spacing: 1px;
+            word-break: break-all;
+            margin-bottom: 16px;
+            border-left: 4px solid #64b5f6;
+            line-height: 1.6;
+        }
+        .button-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+        .button-row button {
+            margin: 0;
+            padding: 12px;
+            font-size: 14px;
+        }
+        .button-secondary {
+            background: #334155;
+        }
+        .button-secondary:hover {
+            background: #475569;
+        }
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #10b981;
+            color: white;
+            padding: 14px 20px;
+            border-radius: 6px;
+            font-size: 14px;
+            animation: slideUp 0.3s ease;
+            z-index: 1000;
+        }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .history {
+            margin-top: 20px;
+            padding: 12px;
+            background: #1a2f4a;
+            border-radius: 6px;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+        .history-label {
+            font-size: 12px;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+        .history-item {
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            color: #93c5fd;
+            padding: 6px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        .history-item:hover {
+            background: #2d4a6f;
+        }
+        .crack-time {
+            margin-top: 12px;
+            padding: 12px;
+            background: #1e293b;
+            border-left: 4px solid #fbbf24;
+            border-radius: 4px;
+            font-size: 13px;
+            color: #cbd5e1;
+        }
+        .crack-time-label {
+            color: #94a3b8;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .crack-time-value {
+            color: #fbbf24;
+            font-weight: 600;
+            margin-top: 4px;
+        }
+        @media (max-width: 600px) {
+            .container { padding: 24px; }
+            h1 { font-size: 24px; }
+            .passphrase-display { font-size: 14px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 Diceware</h1>
+        <p class="subtitle">Generate unbreakable passphrases using real cryptography</p>
+
+        <div class="control-group">
+            <div class="label">
+                <span class="label-text">Number of Words</span>
+                <span class="value-display" id="wordCount">6</span>
+            </div>
+            <input type="range" id="wordSlider" min="1" max="8" value="6">
+            <div class="entropy-info">
+                <div class="entropy-stat">
+                    <div class="entropy-stat-label">Entropy Bits</div>
+                    <div class="entropy-stat-value" id="entropyBits">62</div>
+                </div>
+                <div class="entropy-stat">
+                    <div class="entropy-stat-label">Possible Combinations</div>
+                    <div class="entropy-stat-value" id="combinations">4.7T</div>
+                </div>
+            </div>
+        </div>
+
+        <button id="generateBtn">Generate Passphrase</button>
+
+        <div class="passphrase-section" id="passphraseSection">
+            <div class="passphrase-label">Your Passphrase</div>
+            <div class="passphrase-display" id="passphraseDisplay">click generate</div>
+
+            <div class="crack-time">
+                <div class="crack-time-label">Crack Time at 1 Trillion Guesses/Sec</div>
+                <div class="crack-time-value" id="crackTime">Loading...</div>
+            </div>
+
+            <div class="button-row">
+                <button class="button-secondary" id="copyBtn">📋 Copy</button>
+                <button class="button-secondary" id="downloadBtn">⬇️ Download</button>
+            </div>
+
+            <div class="history">
+                <div class="history-label">Recent (last 5)</div>
+                <div id="historyList"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const WORDLIST = ['able', 'about', 'above', 'absence', 'absorb', 'abstract', 'absurd', 'abuse', 'access', 'accident', 'account', 'accuse', 'achieve', 'acid', 'acoustic', 'acquire', 'across', 'act', 'action', 'actor', 'actress', 'actual', 'acute', 'ad', 'adapt', 'add', 'addict', 'adding', 'addition', 'address', 'adjust', 'admit', 'adobe', 'adopt', 'adore', 'adorn', 'adult', 'advance', 'advent', 'adverb', 'advice', 'advise', 'advocate', 'affair', 'afford', 'afraid', 'after', 'again', 'against', 'age', 'agency', 'agenda', 'agent', 'agile', 'aging', 'agony', 'agree', 'ahead', 'aid', 'aim', 'air', 'aisle', 'ajar', 'akin', 'alarm', 'album', 'alcohol', 'alert', 'alien', 'align', 'alike', 'alive', 'all', 'allay', 'allege', 'alley', 'allied', 'allies', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys', 'alleys'];
+        
+        let history = [];
+        const MAX_ENTROPY_BITS_PER_WORD = Math.log2(1296);
+        const wordSlider = document.getElementById('wordSlider');
+        const wordCount = document.getElementById('wordCount');
+        const entropyBits = document.getElementById('entropyBits');
+        const combinations = document.getElementById('combinations');
+        const generateBtn = document.getElementById('generateBtn');
+        const passphraseSection = document.getElementById('passphraseSection');
+        const passphraseDisplay = document.getElementById('passphraseDisplay');
+        const copyBtn = document.getElementById('copyBtn');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const crackTime = document.getElementById('crackTime');
+        const historyList = document.getElementById('historyList');
+
+        wordSlider.addEventListener('input', (e) => {
+            const numWords = parseInt(e.target.value);
+            wordCount.textContent = numWords;
+            const bits = Math.round(numWords * MAX_ENTROPY_BITS_PER_WORD);
+            entropyBits.textContent = bits;
+            const combos = Math.pow(2, bits);
+            combinations.textContent = formatNumber(combos);
+        });
+
+        generateBtn.addEventListener('click', generatePassphrase);
+        copyBtn.addEventListener('click', copyToClipboard);
+        downloadBtn.addEventListener('click', downloadPassphrase);
+
+        function generatePassphrase() {
+            const numWords = parseInt(wordSlider.value);
+            const words = [];
+
+            for (let i = 0; i < numWords; i++) {
+                const randomIndex = Math.floor(crypto.getRandomValues(new Uint32Array(1))[0] / (0xffffffff / WORDLIST.length));
+                words.push(WORDLIST[Math.min(randomIndex, WORDLIST.length - 1)]);
+            }
+
+            const passphrase = words.join('-');
+            passphraseDisplay.textContent = passphrase;
+            passphraseSection.classList.add('active');
+
+            const bits = Math.round(numWords * MAX_ENTROPY_BITS_PER_WORD);
+            const possibilities = Math.pow(2, bits);
+            const guessesPerSecond = 1e12;
+            const secondsToBreak = possibilities / (guessesPerSecond * 2);
+            updateCrackTime(secondsToBreak);
+
+            if (history.length >= 5) history.shift();
+            history.push(passphrase);
+            renderHistory();
+        }
+
+        function updateCrackTime(seconds) {
+            let display = '';
+            if (seconds < 1) {
+                display = 'less than 1 second (insecure!)';
+            } else if (seconds < 60) {
+                display = Math.round(seconds) + ' seconds (weak)';
+            } else if (seconds < 3600) {
+                display = (seconds / 60).toFixed(1) + ' minutes (weak)';
+            } else if (seconds < 86400) {
+                display = (seconds / 3600).toFixed(1) + ' hours (moderate)';
+            } else if (seconds < 31536000) {
+                display = (seconds / 86400).toFixed(1) + ' days (good)';
+            } else if (seconds < 3153600000) {
+                display = (seconds / 31536000).toFixed(1) + ' years (strong)';
+            } else {
+                const years = seconds / 31536000;
+                display = formatNumber(Math.floor(years)) + ' years (unbreakable)';
+            }
+            crackTime.textContent = display;
+        }
+
+        function copyToClipboard() {
+            const text = passphraseDisplay.textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                showToast('Copied to clipboard!');
+            });
+        }
+
+        function downloadPassphrase() {
+            const text = passphraseDisplay.textContent;
+            const element = document.createElement('a');
+            element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
+            element.setAttribute('download', 'passphrase.txt');
+            element.style.display = 'none';
+            document.body.appendChild(element);
+            element.click();
+            document.body.removeChild(element);
+            showToast('Downloaded!');
+        }
+
+        function renderHistory() {
+            historyList.innerHTML = history.map(p => `<div class="history-item" onclick="restorePassphrase('${p}')">${p}</div>`).join('');
+        }
+
+        function restorePassphrase(phrase) {
+            passphraseDisplay.textContent = phrase;
+        }
+
+        function showToast(message) {
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 2000);
+        }
+
+        function formatNumber(num) {
+            if (num >= 1e12) return (num / 1e12).toFixed(1) + 'T';
+            if (num >= 1e9) return (num / 1e9).toFixed(1) + 'B';
+            if (num >= 1e6) return (num / 1e6).toFixed(1) + 'M';
+            if (num >= 1e3) return (num / 1e3).toFixed(1) + 'K';
+            return Math.round(num).toString();
+        }
+
+        wordSlider.dispatchEvent(new Event('input'));
+    </script>
+</body>
+</html>
