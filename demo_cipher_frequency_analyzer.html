@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cipher Frequency Analyzer</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Space Mono', monospace;
+      background: linear-gradient(135deg, #0a1428 0%, #1f4d7f 100%);
+      color: #e0e0e0;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    h1 {
+      font-family: 'Playfair Display', serif;
+      text-align: center;
+      margin-bottom: 10px;
+      color: #7dd3fc;
+      font-size: 2.5em;
+    }
+    
+    .subtitle {
+      text-align: center;
+      color: #64b5f6;
+      margin-bottom: 30px;
+      font-size: 0.95em;
+    }
+    
+    .layout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 30px;
+      margin-bottom: 30px;
+    }
+    
+    .panel {
+      background: rgba(10, 20, 40, 0.8);
+      border: 1px solid #1f4d7f;
+      border-radius: 8px;
+      padding: 20px;
+      backdrop-filter: blur(10px);
+    }
+    
+    .panel h2 {
+      font-family: 'Playfair Display', serif;
+      color: #4da8da;
+      margin-bottom: 15px;
+      font-size: 1.3em;
+    }
+    
+    textarea {
+      width: 100%;
+      height: 120px;
+      background: #0a0f1a;
+      color: #7dd3fc;
+      border: 1px solid #1f4d7f;
+      border-radius: 6px;
+      padding: 12px;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.9em;
+      resize: vertical;
+    }
+    
+    button {
+      background: #4da8da;
+      color: #0a1428;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-family: 'Space Mono', monospace;
+      font-weight: bold;
+      margin-top: 10px;
+      transition: all 0.2s;
+    }
+    
+    button:hover {
+      background: #7dd3fc;
+      transform: translateY(-1px);
+    }
+    
+    .stats-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 15px;
+    }
+    
+    .stat-box {
+      background: rgba(77, 168, 218, 0.1);
+      border-left: 3px solid #4da8da;
+      padding: 12px;
+      border-radius: 4px;
+    }
+    
+    .stat-label {
+      font-size: 0.75em;
+      color: #64b5f6;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    
+    .stat-value {
+      font-size: 1.3em;
+      color: #7dd3fc;
+      font-weight: bold;
+      margin-top: 5px;
+      font-family: 'Space Mono', monospace;
+    }
+    
+    .histogram {
+      margin-top: 20px;
+    }
+    
+    .histogram-row {
+      display: flex;
+      align-items: center;
+      margin: 4px 0;
+      font-size: 0.85em;
+    }
+    
+    .letter {
+      width: 30px;
+      text-align: center;
+      color: #4da8da;
+      font-weight: bold;
+    }
+    
+    .bar-container {
+      flex: 1;
+      height: 20px;
+      background: #1f4d7f;
+      border-radius: 3px;
+      overflow: hidden;
+      margin: 0 10px;
+    }
+    
+    .bar {
+      height: 100%;
+      background: linear-gradient(90deg, #4da8da, #7dd3fc);
+      transition: width 0.2s;
+    }
+    
+    .bar-label {
+      width: 50px;
+      text-align: right;
+      color: #64b5f6;
+      font-size: 0.8em;
+    }
+    
+    .caesar-shifts {
+      margin-top: 20px;
+    }
+    
+    .shift-item {
+      background: #1f4d7f;
+      padding: 10px;
+      margin: 8px 0;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.2s;
+      border-left: 3px solid transparent;
+    }
+    
+    .shift-item:hover {
+      background: #2a5fa3;
+      border-left-color: #7dd3fc;
+    }
+    
+    .shift-item.best {
+      background: #2a5f4a;
+      border-left-color: #00ff88;
+    }
+    
+    .shift-label {
+      display: flex;
+      justify-content: space-between;
+      font-weight: bold;
+      color: #7dd3fc;
+    }
+    
+    .shift-text {
+      margin-top: 6px;
+      color: #b0b0b0;
+      font-size: 0.85em;
+      word-break: break-all;
+      font-family: 'Space Mono', monospace;
+    }
+    
+    .chi-squared {
+      color: #4da8da;
+      font-weight: bold;
+    }
+    
+    .manual-key {
+      margin-top: 20px;
+    }
+    
+    input[type="number"], input[type="text"] {
+      width: 100%;
+      padding: 8px;
+      background: #0a0f1a;
+      color: #7dd3fc;
+      border: 1px solid #1f4d7f;
+      border-radius: 4px;
+      font-family: 'Space Mono', monospace;
+      margin: 5px 0;
+    }
+    
+    .entropy-meter {
+      margin-top: 15px;
+      padding: 12px;
+      background: rgba(77, 168, 218, 0.1);
+      border-radius: 4px;
+    }
+    
+    .entropy-bar {
+      width: 100%;
+      height: 15px;
+      background: #1f4d7f;
+      border-radius: 3px;
+      overflow: hidden;
+      margin: 8px 0;
+    }
+    
+    .entropy-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #4da8da, #ff00ff, #7dd3fc);
+      width: 0%;
+      transition: width 0.2s;
+    }
+    
+    .ngram-list {
+      margin-top: 15px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    
+    .ngram-item {
+      padding: 6px;
+      margin: 3px 0;
+      background: #1f4d7f;
+      border-radius: 3px;
+      font-size: 0.9em;
+      display: flex;
+      justify-content: space-between;
+    }
+    
+    .ngram-text {
+      color: #7dd3fc;
+      font-weight: bold;
+    }
+    
+    .ngram-count {
+      color: #64b5f6;
+    }
+    
+    @media (max-width: 900px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+      
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔐 Cipher Analyzer</h1>
+    <p class="subtitle">Paste ciphertext, watch frequency analysis reveal the plaintext</p>
+    
+    <div class="layout">
+      <!-- Input & Caesar Panel -->
+      <div class="panel">
+        <h2>Ciphertext</h2>
+        <textarea id="cipherInput" placeholder="Paste your ciphertext here...">KHOOR ZRUOG</textarea>
+        <button onclick="analyzeCipher()">Analyze</button>
+        
+        <div class="stats-row">
+          <div class="stat-box">
+            <div class="stat-label">Length</div>
+            <div class="stat-value" id="statLength">0</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Unique Letters</div>
+            <div class="stat-value" id="statUnique">0</div>
+          </div>
+        </div>
+        
+        <div class="entropy-meter">
+          <div class="stat-label">Shannon Entropy (vs English avg ~4.7)</div>
+          <div class="entropy-bar">
+            <div class="entropy-fill" id="entropyFill"></div>
+          </div>
+          <div style="text-align: center; color: #7dd3fc; font-weight: bold; margin-top: 5px;">
+            <span id="entropyValue">0.0</span> bits
+          </div>
+        </div>
+        
+        <h2 style="margin-top: 20px;">Caesar Shift Tests</h2>
+        <div class="caesar-shifts" id="caesarShifts"></div>
+      </div>
+      
+      <!-- Analysis Panel -->
+      <div class="panel">
+        <h2>Frequency Analysis</h2>
+        <div class="histogram" id="histogram"></div>
+        
+        <h2 style="margin-top: 25px;">Bigrams (Most Common)</h2>
+        <div class="ngram-list" id="bigramList"></div>
+        
+        <h2 style="margin-top: 25px;">Trigrams (Most Common)</h2>
+        <div class="ngram-list" id="trigramList"></div>
+        
+        <div class="manual-key">
+          <h2>Manual Substitution</h2>
+          <label>Caesar Shift (0-25):</label>
+          <input type="number" id="manualShift" min="0" max="25" value="0" onchange="updateManualDecrypt()">
+          <label>Or Enter Substitution Map (e.g., EARIOTNHSUCLDPFUGMWYBVKXJZ):</label>
+          <input type="text" id="manualKey" onchange="updateManualDecrypt()" placeholder="26 unique letters (A-Z)">
+          <div style="margin-top: 10px; padding: 10px; background: #1f4d7f; border-radius: 4px;">
+            <div style="color: #64b5f6; font-size: 0.85em; margin-bottom: 5px;">DECRYPTED:</div>
+            <div id="manualOutput" style="color: #7dd3fc; word-break: break-all; font-size: 0.9em;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // English letter frequency (A-Z), real corpus averages
+    const ENGLISH_FREQ = {
+      'A': 8.17, 'B': 1.29, 'C': 2.78, 'D': 4.25, 'E': 12.70, 'F': 2.23,
+      'G': 2.02, 'H': 6.09, 'I': 7.00, 'J': 0.15, 'K': 0.77, 'L': 4.03,
+      'M': 2.41, 'N': 6.75, 'O': 7.51, 'P': 1.93, 'Q': 0.10, 'R': 5.99,
+      'S': 6.33, 'T': 9.06, 'U': 2.76, 'V': 0.98, 'W': 2.36, 'X': 0.15,
+      'Y': 1.97, 'Z': 0.07
+    };
+    
+    // English common bigrams
+    const ENGLISH_BIGRAMS = ['TH', 'HE', 'IN', 'ER', 'AN', 'ED', 'ND', 'TO', 'EN', 'TI', 'ES', 'OR', 'TE', 'AR', 'OU', 'IT', 'HA', 'ET', 'NG', 'ON'];
+    const ENGLISH_TRIGRAMS = ['THE', 'AND', 'FOR', 'ARE', 'BUT', 'NOT', 'YOU', 'ALL', 'CAN', 'HER', 'WAS', 'ONE', 'OUR', 'OUT', 'HAD', 'HAS', 'HIS', 'HOW', 'ITS', 'MAY'];
+    
+    let currentCiphertext = '';
+    let currentFreq = {};
+    
+    function analyzeCipher() {
+      currentCiphertext = document.getElementById('cipherInput').value.toUpperCase().replace(/[^A-Z]/g, '');
+      if (currentCiphertext.length === 0) return;
+      
+      // Calculate frequency
+      currentFreq = {};
+      for (let letter of 'ABCDEFGHIJKLMNOPQRSTUVWXYZ') {
+        const count = (currentCiphertext.match(new RegExp(letter, 'g')) || []).length;
+        currentFreq[letter] = count;
+      }
+      
+      // Update stats
+      const unique = Object.values(currentFreq).filter(v => v > 0).length;
+      document.getElementById('statLength').textContent = currentCiphertext.length;
+      document.getElementById('statUnique').textContent = unique;
+      
+      // Calculate entropy
+      const entropy = calculateEntropy(currentFreq, currentCiphertext.length);
+      document.getElementById('entropyValue').textContent = entropy.toFixed(2);
+      document.getElementById('entropyFill').style.width = Math.min(entropy / 5.5 * 100, 100) + '%';
+      
+      // Render histogram
+      renderHistogram();
+      
+      // Analyze n-grams
+      analyzeNgrams();
+      
+      // Test Caesar shifts
+      testCaesarShifts();
+      
+      updateManualDecrypt();
+    }
+    
+    function calculateEntropy(freq, total) {
+      let entropy = 0;
+      for (let count of Object.values(freq)) {
+        if (count > 0) {
+          const p = count / total;
+          entropy -= p * Math.log2(p);
+        }
+      }
+      return entropy;
+    }
+    
+    function renderHistogram() {
+      const maxFreq = Math.max(...Object.values(currentFreq));
+      let html = '';
+      
+      for (let letter of 'ABCDEFGHIJKLMNOPQRSTUVWXYZ') {
+        const cipherCount = currentFreq[letter] || 0;
+        const cipherPercent = (cipherCount / currentCiphertext.length) * 100;
+        const englishPercent = ENGLISH_FREQ[letter];
+        const barWidth = (cipherPercent / Math.max(cipherPercent, englishPercent)) * 100;
+        
+        html += `
+          <div class="histogram-row">
+            <div class="letter">${letter}</div>
+            <div class="bar-container">
+              <div class="bar" style="width: ${barWidth}%"></div>
+            </div>
+            <div class="bar-label">${cipherPercent.toFixed(1)}% / ${englishPercent.toFixed(1)}%</div>
+          </div>
+        `;
+      }
+      
+      document.getElementById('histogram').innerHTML = html;
+    }
+    
+    function analyzeNgrams() {
+      // Bigrams
+      const bigrams = {};
+      for (let i = 0; i < currentCiphertext.length - 1; i++) {
+        const bigram = currentCiphertext.substr(i, 2);
+        bigrams[bigram] = (bigrams[bigram] || 0) + 1;
+      }
+      
+      const topBigrams = Object.entries(bigrams)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10);
+      
+      let bigramHtml = '';
+      for (let [bigram, count] of topBigrams) {
+        bigramHtml += `
+          <div class="ngram-item">
+            <span class="ngram-text">${bigram}</span>
+            <span class="ngram-count">${count}</span>
+          </div>
+        `;
+      }
+      document.getElementById('bigramList').innerHTML = bigramHtml || '<div style="color: #64b5f6;">None found</div>';
+      
+      // Trigrams
+      const trigrams = {};
+      for (let i = 0; i < currentCiphertext.length - 2; i++) {
+        const trigram = currentCiphertext.substr(i, 3);
+        trigrams[trigram] = (trigrams[trigram] || 0) + 1;
+      }
+      
+      const topTrigrams = Object.entries(trigrams)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10);
+      
+      let trigramHtml = '';
+      for (let [trigram, count] of topTrigrams) {
+        trigramHtml += `
+          <div class="ngram-item">
+            <span class="ngram-text">${trigram}</span>
+            <span class="ngram-count">${count}</span>
+          </div>
+        `;
+      }
+      document.getElementById('trigramList').innerHTML = trigramHtml || '<div style="color: #64b5f6;">None found</div>';
+    }
+    
+    function testCaesarShifts() {
+      const results = [];
+      
+      for (let shift = 0; shift < 26; shift++) {
+        const decrypted = caesarDecrypt(currentCiphertext, shift);
+        const chiSquared = calculateChiSquared(decrypted);
+        results.push({ shift, decrypted, chiSquared });
+      }
+      
+      // Sort by chi-squared (lower is better)
+      results.sort((a, b) => a.chiSquared - b.chiSquared);
+      
+      let html = '';
+      for (let i = 0; i < results.length; i++) {
+        const { shift, decrypted, chiSquared } = results[i];
+        const isBest = i === 0;
+        const preview = decrypted.substring(0, 40) + (decrypted.length > 40 ? '...' : '');
+        
+        html += `
+          <div class="shift-item ${isBest ? 'best' : ''}">
+            <div class="shift-label">
+              <span>Shift ${shift}</span>
+              <span class="chi-squared">χ² = ${chiSquared.toFixed(1)}</span>
+            </div>
+            <div class="shift-text">${preview}</div>
+          </div>
+        `;
+      }
+      
+      document.getElementById('caesarShifts').innerHTML = html;
+    }
+    
+    function caesarDecrypt(text, shift) {
+      return text.split('').map(char => {
+        if (!/[A-Z]/.test(char)) return char;
+        const code = char.charCodeAt(0) - 65;
+        return String.fromCharCode(((code - shift + 26) % 26) + 65);
+      }).join('');
+    }
+    
+    function calculateChiSquared(plaintext) {
+      const freq = {};
+      for (let letter of 'ABCDEFGHIJKLMNOPQRSTUVWXYZ') {
+        freq[letter] = 0;
+      }
+      
+      for (let char of plaintext) {
+        if (/[A-Z]/.test(char)) {
+          freq[char]++;
+        }
+      }
+      
+      let chiSquared = 0;
+      const n = plaintext.replace(/[^A-Z]/g, '').length;
+      
+      for (let letter of 'ABCDEFGHIJKLMNOPQRSTUVWXYZ') {
+        const observed = freq[letter];
+        const expected = (ENGLISH_FREQ[letter] / 100) * n;
+        if (expected > 0) {
+          chiSquared += Math.pow(observed - expected, 2) / expected;
+        }
+      }
+      
+      return chiSquared;
+    }
+    
+    function updateManualDecrypt() {
+      const shiftVal = parseInt(document.getElementById('manualShift').value) || 0;
+      const keyVal = document.getElementById('manualKey').value.toUpperCase();
+      
+      let decrypted = currentCiphertext;
+      
+      if (keyVal.length === 26) {
+        // Use custom key
+        const keyMap = {};
+        const cipher = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        for (let i = 0; i < 26; i++) {
+          keyMap[cipher[i]] = keyVal[i];
+        }
+        decrypted = currentCiphertext.split('').map(c => keyMap[c] || c).join('');
+      } else {
+        // Use Caesar shift
+        decrypted = caesarDecrypt(currentCiphertext, shiftVal);
+      }
+      
+      document.getElementById('manualOutput').textContent = decrypted || '(empty)';
+    }
+    
+    // Initialize
+    analyzeCipher();
+  </script>
+</body>
+</html>
