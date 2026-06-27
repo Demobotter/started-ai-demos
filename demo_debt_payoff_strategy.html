@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Debt Payoff Strategy</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Space Mono', monospace;
+      background: linear-gradient(135deg, #0a1428 0%, #1f3a5f 100%);
+      color: #e0e7ff;
+      padding: 2rem;
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: rgba(15, 23, 42, 0.8);
+      border: 2px solid #4da8da;
+      border-radius: 12px;
+      padding: 2rem;
+      backdrop-filter: blur(10px);
+    }
+    h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: 2.5rem;
+      margin-bottom: 0.5rem;
+      color: #4da8da;
+      text-align: center;
+    }
+    .subtitle {
+      text-align: center;
+      color: #94a3b8;
+      margin-bottom: 2rem;
+      font-size: 0.95rem;
+    }
+    .layout {
+      display: grid;
+      grid-template-columns: 350px 1fr;
+      gap: 2rem;
+      margin-bottom: 2rem;
+    }
+    .controls {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+      background: rgba(30, 41, 59, 0.6);
+      padding: 1.5rem;
+      border-radius: 8px;
+      border-left: 4px solid #4da8da;
+    }
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    label {
+      font-size: 0.9rem;
+      color: #cbd5e1;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    input[type="number"],
+    input[type="range"] {
+      padding: 0.75rem;
+      background: rgba(45, 55, 80, 0.8);
+      border: 1px solid #4da8da;
+      border-radius: 6px;
+      color: #e0e7ff;
+      font-family: 'Space Mono', monospace;
+    }
+    input[type="range"] {
+      padding: 0.5rem 0;
+      cursor: pointer;
+    }
+    input[type="number"]:focus,
+    input[type="range"]:focus {
+      outline: none;
+      border-color: #7dd3fc;
+      box-shadow: 0 0 8px rgba(125, 211, 252, 0.3);
+    }
+    .value-display {
+      display: flex;
+      justify-content: space-between;
+      padding: 0.5rem 0.75rem;
+      background: rgba(15, 23, 42, 0.5);
+      border-radius: 4px;
+      font-size: 0.85rem;
+    }
+    .value-display .label { color: #94a3b8; }
+    .value-display .value { color: #4da8da; font-weight: 600; }
+    #chartCanvas {
+      width: 100%;
+      height: 350px;
+      background: rgba(30, 41, 59, 0.4);
+      border: 1px solid #4da8da;
+      border-radius: 8px;
+      margin-bottom: 1rem;
+    }
+    .strategy-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+    .strategy-card {
+      padding: 1.25rem;
+      border-radius: 8px;
+      border-left: 4px solid;
+      background: rgba(30, 41, 59, 0.6);
+    }
+    .strategy-card.minimum {
+      border-left-color: #94a3b8;
+    }
+    .strategy-card.aggressive {
+      border-left-color: #ff6b6b;
+    }
+    .strategy-card.custom {
+      border-left-color: #fbbf24;
+    }
+    .strategy-card h3 {
+      font-size: 1rem;
+      margin-bottom: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .strategy-card .stat-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 0.5rem 0;
+      border-bottom: 1px solid rgba(75, 168, 218, 0.2);
+      font-size: 0.9rem;
+    }
+    .strategy-card .stat-row:last-child {
+      border-bottom: none;
+    }
+    .strategy-card .label {
+      color: #94a3b8;
+    }
+    .strategy-card .value {
+      font-weight: 600;
+      color: #4da8da;
+    }
+    .savings-badge {
+      margin-top: 0.75rem;
+      padding: 0.75rem;
+      background: rgba(125, 211, 252, 0.1);
+      border: 1px dashed #4da8da;
+      border-radius: 4px;
+      text-align: center;
+      font-size: 0.85rem;
+      color: #7dd3fc;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>💰 Debt Payoff Strategy</h1>
+    <p class="subtitle">Compare payoff timelines and interest costs across three strategies</p>
+    
+    <div class="layout">
+      <div class="controls">
+        <div class="control-group">
+          <label for="loanAmount">Loan Amount ($)</label>
+          <input type="number" id="loanAmount" value="25000" min="1000" max="500000" step="1000">
+          <div class="value-display">
+            <span class="label">Current:</span>
+            <span class="value" id="displayLoanAmount">$25,000</span>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <label for="apr">Annual Interest Rate (%)</label>
+          <input type="number" id="apr" value="6.5" min="0.5" max="25" step="0.1">
+          <div class="value-display">
+            <span class="label">Current:</span>
+            <span class="value" id="displayAPR">6.5%</span>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <label for="loanTerm">Loan Term (months)</label>
+          <input type="number" id="loanTerm" value="60" min="12" max="360" step="6">
+          <div class="value-display">
+            <span class="label">Current:</span>
+            <span class="value" id="displayTerm">60 months (5 years)</span>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <label for="extraPayment">Extra Monthly Payment ($)</label>
+          <input type="range" id="extraPayment" value="0" min="0" max="1000" step="50">
+          <div class="value-display">
+            <span class="label">Extra:</span>
+            <span class="value" id="displayExtra">$0</span>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <canvas id="chartCanvas"></canvas>
+        <div class="strategy-cards" id="strategiesContainer"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const inputs = document.querySelectorAll('input');
+    const chartCanvas = document.getElementById('chartCanvas');
+    const ctx = chartCanvas.getContext('2d');
+    
+    // Chart sizing
+    function resizeCanvas() {
+      chartCanvas.width = chartCanvas.offsetWidth;
+      chartCanvas.height = chartCanvas.offsetHeight;
+      render();
+    }
+    window.addEventListener('resize', resizeCanvas);
+    
+    // Real amortization calculation
+    function calculateAmortization(principal, annualRate, months, extraPayment = 0) {
+      const monthlyRate = annualRate / 100 / 12;
+      const minPayment = (principal * monthlyRate * Math.pow(1 + monthlyRate, months)) /
+                        (Math.pow(1 + monthlyRate, months) - 1);
+      
+      const schedule = [];
+      let balance = principal;
+      let totalInterest = 0;
+      let monthCount = 0;
+      
+      while (balance > 0 && monthCount < 600) {
+        const interestPayment = balance * monthlyRate;
+        const principalPayment = Math.max(minPayment + extraPayment - interestPayment, balance);
+        const actualPayment = Math.min(minPayment + extraPayment, principalPayment + interestPayment);
+        
+        balance -= (actualPayment - interestPayment);
+        totalInterest += interestPayment;
+        monthCount++;
+        
+        schedule.push({
+          month: monthCount,
+          balance: Math.max(0, balance),
+          totalInterest,
+          payment: actualPayment
+        });
+      }
+      
+      return {
+        monthlyPayment: minPayment,
+        totalPayments: monthCount,
+        totalInterest,
+        totalCost: principal + totalInterest,
+        schedule
+      };
+    }
+    
+    function formatCurrency(n) {
+      return '$' + Math.round(n).toLocaleString();
+    }
+    
+    function formatMonths(m) {
+      const years = Math.floor(m / 12);
+      const months = m % 12;
+      return years > 0 ? `${years}y ${months}m` : `${months}m`;
+    }
+    
+    function render() {
+      const principal = parseFloat(document.getElementById('loanAmount').value);
+      const rate = parseFloat(document.getElementById('apr').value);
+      const term = parseFloat(document.getElementById('loanTerm').value);
+      const extra = parseFloat(document.getElementById('extraPayment').value);
+      
+      // Update displays
+      document.getElementById('displayLoanAmount').textContent = formatCurrency(principal);
+      document.getElementById('displayAPR').textContent = rate.toFixed(1) + '%';
+      document.getElementById('displayTerm').textContent = term + ' months (' + formatMonths(term) + ')';
+      document.getElementById('displayExtra').textContent = formatCurrency(extra);
+      
+      // Calculate all three strategies
+      const minimum = calculateAmortization(principal, rate, term, 0);
+      const aggressive = calculateAmortization(principal, rate, term, 200);
+      const custom = calculateAmortization(principal, rate, term, extra);
+      
+      // Draw chart
+      drawChart(minimum, aggressive, custom);
+      
+      // Render strategy cards
+      renderStrategies(minimum, aggressive, custom);
+    }
+    
+    function drawChart(min, agg, cust) {
+      const w = chartCanvas.width;
+      const h = chartCanvas.height;
+      const padding = 40;
+      const graphW = w - 2 * padding;
+      const graphH = h - 2 * padding;
+      
+      ctx.clearRect(0, 0, w, h);
+      
+      // Axes
+      ctx.strokeStyle = '#4da8da';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(padding, padding);
+      ctx.lineTo(padding, h - padding);
+      ctx.lineTo(w - padding, h - padding);
+      ctx.stroke();
+      
+      // Axis labels
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = '11px "Space Mono"';
+      ctx.textAlign = 'right';
+      ctx.fillText('Balance Owed ($)', padding - 10, padding - 10);
+      ctx.textAlign = 'center';
+      ctx.fillText('Months', w - padding, h - 20);
+      
+      // Get max months and balance
+      const maxMonths = Math.max(min.totalPayments, agg.totalPayments, cust.totalPayments);
+      const maxBalance = Math.ceil(parseFloat(document.getElementById('loanAmount').value) / 5000) * 5000;
+      
+      // Draw strategies
+      const strategies = [
+        { data: min.schedule, color: '#94a3b8', label: 'Minimum' },
+        { data: agg.schedule, color: '#ff6b6b', label: 'Aggressive' },
+        { data: cust.schedule, color: '#fbbf24', label: 'Custom' }
+      ];
+      
+      strategies.forEach(strat => {
+        ctx.strokeStyle = strat.color;
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        
+        strat.data.forEach((point, idx) => {
+          const x = padding + (point.month / maxMonths) * graphW;
+          const y = h - padding - (point.balance / maxBalance) * graphH;
+          idx === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+      });
+      
+      // Legend
+      ctx.font = '12px "Space Mono"';
+      ctx.textAlign = 'left';
+      strategies.forEach((strat, idx) => {
+        ctx.fillStyle = strat.color;
+        ctx.fillRect(w - 180, padding + idx * 25, 12, 12);
+        ctx.fillStyle = '#e0e7ff';
+        ctx.fillText(strat.label, w - 160, padding + idx * 25 + 10);
+      });
+    }
+    
+    function renderStrategies(min, agg, cust) {
+      const container = document.getElementById('strategiesContainer');
+      container.innerHTML = '';
+      
+      const strategies = [
+        { name: 'Minimum Payment', data: min, class: 'minimum' },
+        { name: 'Aggressive (+$200)', data: agg, class: 'aggressive' },
+        { name: 'Custom Strategy', data: cust, class: 'custom' }
+      ];
+      
+      strategies.forEach(strat => {
+        const card = document.createElement('div');
+        card.className = `strategy-card ${strat.class}`;
+        card.innerHTML = `
+          <h3>${strat.name}</h3>
+          <div class="stat-row">
+            <span class="label">Monthly Payment:</span>
+            <span class="value">${formatCurrency(strat.data.monthlyPayment)}</span>
+          </div>
+          <div class="stat-row">
+            <span class="label">Payoff Time:</span>
+            <span class="value">${formatMonths(strat.data.totalPayments)}</span>
+          </div>
+          <div class="stat-row">
+            <span class="label">Total Interest:</span>
+            <span class="value">${formatCurrency(strat.data.totalInterest)}</span>
+          </div>
+          <div class="stat-row">
+            <span class="label">Total Cost:</span>
+            <span class="value">${formatCurrency(strat.data.totalCost)}</span>
+          </div>
+          ${strat.data.totalInterest < min.totalInterest ? `
+            <div class="savings-badge">
+              💾 Save ${formatCurrency(min.totalInterest - strat.data.totalInterest)} in interest
+            </div>
+          ` : ''}
+        `;
+        container.appendChild(card);
+      });
+    }
+    
+    inputs.forEach(input => {
+      input.addEventListener('input', render);
+      input.addEventListener('change', render);
+    });
+    
+    resizeCanvas();
+  </script>
+</body>
+</html>
