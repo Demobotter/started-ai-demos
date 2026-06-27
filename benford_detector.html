@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Benford Detector</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      background: linear-gradient(135deg, #0a1428 0%, #1a2a3f 100%);
+      color: #e0e0e0;
+      font-family: 'Space Mono', monospace;
+      padding: 20px;
+      min-height: 100vh;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    header {
+      text-align: center;
+      margin-bottom: 30px;
+      border-bottom: 2px solid #4da8da;
+      padding-bottom: 20px;
+    }
+    
+    h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: 2.5em;
+      color: #4da8da;
+      margin-bottom: 10px;
+    }
+    
+    .tagline {
+      color: #888;
+      font-size: 0.9em;
+      font-style: italic;
+    }
+    
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 30px;
+      margin-bottom: 30px;
+    }
+    
+    .panel {
+      background: rgba(26, 42, 63, 0.8);
+      border: 1px solid #4da8da;
+      border-radius: 8px;
+      padding: 20px;
+      backdrop-filter: blur(10px);
+    }
+    
+    .input-section h3 {
+      color: #4da8da;
+      margin-bottom: 15px;
+      font-size: 1.1em;
+    }
+    
+    textarea {
+      width: 100%;
+      height: 200px;
+      background: rgba(10, 20, 40, 0.6);
+      border: 1px solid #4da8da;
+      color: #4da8da;
+      padding: 12px;
+      border-radius: 5px;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.9em;
+      resize: vertical;
+      margin-bottom: 15px;
+    }
+    
+    button {
+      width: 100%;
+      padding: 12px;
+      background: linear-gradient(135deg, #4da8da, #00ccff);
+      border: none;
+      color: #000;
+      font-weight: bold;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 1em;
+      transition: all 0.3s;
+    }
+    
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 16px rgba(77, 168, 218, 0.4);
+    }
+    
+    button:active {
+      transform: translateY(0);
+    }
+    
+    .examples {
+      margin-top: 20px;
+      padding-top: 15px;
+      border-top: 1px solid #4da8da;
+    }
+    
+    .example-btn {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 8px;
+      background: rgba(77, 168, 218, 0.2);
+      border: 1px solid #4da8da;
+      color: #4da8da;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 0.85em;
+      transition: all 0.2s;
+    }
+    
+    .example-btn:hover {
+      background: rgba(77, 168, 218, 0.4);
+    }
+    
+    .results-section {
+      display: none;
+    }
+    
+    .results-section.active {
+      display: block;
+    }
+    
+    .risk-meter {
+      margin: 20px 0;
+      padding: 15px;
+      border-radius: 5px;
+      text-align: center;
+      font-weight: bold;
+      font-size: 1.1em;
+    }
+    
+    .risk-low {
+      background: rgba(16, 185, 129, 0.2);
+      border: 2px solid #10b981;
+      color: #10b981;
+    }
+    
+    .risk-medium {
+      background: rgba(245, 158, 11, 0.2);
+      border: 2px solid #f59e0b;
+      color: #f59e0b;
+    }
+    
+    .risk-high {
+      background: rgba(239, 68, 68, 0.2);
+      border: 2px solid #ef4444;
+      color: #ef4444;
+    }
+    
+    .histogram {
+      margin: 20px 0;
+    }
+    
+    .histogram-title {
+      color: #4da8da;
+      margin-bottom: 15px;
+      font-weight: bold;
+    }
+    
+    .digit-row {
+      display: flex;
+      align-items: center;
+      margin-bottom: 12px;
+      gap: 10px;
+    }
+    
+    .digit-label {
+      width: 25px;
+      text-align: right;
+      color: #888;
+      font-weight: bold;
+    }
+    
+    .digit-bar {
+      height: 30px;
+      border-radius: 3px;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      padding-right: 8px;
+      font-weight: bold;
+      font-size: 0.85em;
+      min-width: 50px;
+      transition: all 0.3s;
+    }
+    
+    .digit-bar-actual {
+      color: #fff;
+    }
+    
+    .benford-value {
+      color: #888;
+      font-size: 0.8em;
+      margin-left: 10px;
+      min-width: 80px;
+    }
+    
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+      margin: 20px 0;
+    }
+    
+    .stat-box {
+      background: rgba(77, 168, 218, 0.1);
+      border-left: 3px solid #4da8da;
+      padding: 12px;
+      border-radius: 3px;
+    }
+    
+    .stat-label {
+      color: #888;
+      font-size: 0.85em;
+      margin-bottom: 5px;
+    }
+    
+    .stat-value {
+      color: #4da8da;
+      font-size: 1.3em;
+      font-weight: bold;
+    }
+    
+    .explanation {
+      background: rgba(77, 168, 218, 0.05);
+      border: 1px solid #4da8da;
+      padding: 15px;
+      border-radius: 5px;
+      margin-top: 20px;
+      font-size: 0.9em;
+      line-height: 1.6;
+    }
+    
+    .error {
+      color: #ef4444;
+      margin: 10px 0;
+      padding: 10px;
+      background: rgba(239, 68, 68, 0.1);
+      border-left: 3px solid #ef4444;
+      border-radius: 3px;
+    }
+    
+    @media (max-width: 900px) {
+      .main-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      h1 {
+        font-size: 1.8em;
+      }
+      
+      .stats-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🔍 Benford Detector</h1>
+      <p class="tagline">Reveal hidden fraud patterns in your data using Benford's Law</p>
+    </header>
+    
+    <div class="main-grid">
+      <div class="panel input-section">
+        <h3>Your Data</h3>
+        <p style="color: #888; margin-bottom: 10px; font-size: 0.9em;">Paste numbers (one per line, no commas)</p>
+        <textarea id="dataInput" placeholder="Example:
+1250
+3420
+5100
+2340
+8900"></textarea>
+        
+        <button onclick="analyzeData()">Analyze for Fraud Patterns</button>
+        
+        <div class="examples">
+          <div style="color: #888; margin-bottom: 10px; font-size: 0.9em;">Try examples:</div>
+          <button class="example-btn" onclick="loadExample('real-census')">✓ Real Census (Benford-like)</button>
+          <button class="example-btn" onclick="loadExample('fake-random')">✗ Fake Random Data</button>
+          <button class="example-btn" onclick="loadExample('fake-even')">✗ All Even Numbers</button>
+          <button class="example-btn" onclick="loadExample('election')">✓ Real Election Totals</button>
+        </div>
+      </div>
+      
+      <div class="panel">
+        <div id="resultsSection" class="results-section">
+          <div id="riskMeter"></div>
+          
+          <div class="stats-grid">
+            <div class="stat-box">
+              <div class="stat-label">Chi-Squared Score</div>
+              <div class="stat-value" id="chiSquared">—</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-label">P-Value (fit probability)</div>
+              <div class="stat-value" id="pValue">—</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-label">Numbers Analyzed</div>
+              <div class="stat-value" id="count">0</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-label">Data Type</div>
+              <div class="stat-value" id="dataType">—</div>
+            </div>
+          </div>
+          
+          <div class="histogram">
+            <div class="histogram-title">Leading Digit Distribution</div>
+            <div id="histogramContainer"></div>
+          </div>
+          
+          <div class="explanation" id="explanation"></div>
+        </div>
+        
+        <div id="noResults" style="color: #888; text-align: center; padding: 40px 20px;">
+          Paste numbers and click "Analyze" to begin
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    // Benford's Law expected percentages
+    const BENFORD_LAW = {
+      1: 30.1, 2: 17.6, 3: 12.5, 4: 9.7, 5: 7.9, 6: 6.7, 7: 5.8, 8: 5.1, 9: 4.6
+    };
+    
+    // Example datasets
+    const EXAMPLES = {
+      'real-census': [
+        1234567, 456789, 234567, 567890, 1234, 567, 1234567, 234567, 890123, 567,
+        12345, 234567, 456789, 789, 123, 234567, 567890, 234, 123456, 678,
+        234567, 456789, 1234, 567, 234567, 789012, 123456, 234567, 567890, 1234567
+      ],
+      'fake-random': () => {
+        let data = [];
+        for (let i = 0; i < 30; i++) {
+          data.push(Math.floor(Math.random() * 999999) + 1);
+        }
+        return data;
+      },
+      'fake-even': Array.from({length: 30}, (_, i) => (i + 1) * 2000),
+      'election': [
+        125432, 234567, 189234, 145678, 267890, 198765, 156234, 213456, 189432, 201234,
+        178965, 245678, 134567, 223456, 167890, 256789, 145234, 198765, 234567, 156789,
+        213456, 189234, 267890, 145678, 223456, 178965, 201234, 256789, 134567, 198432
+      ]
+    };
+    
+    function loadExample(name) {
+      let data = EXAMPLES[name];
+      if (typeof data === 'function') {
+        data = data();
+      }
+      document.getElementById('dataInput').value = data.join('\n');
+      analyzeData();
+    }
+    
+    function extractLeadingDigit(num) {
+      const str = Math.abs(num).toString().replace(/\D/g, '');
+      return str.length > 0 ? parseInt(str[0]) : null;
+    }
+    
+    function analyzeData() {
+      const input = document.getElementById('dataInput').value.trim();
+      const lines = input.split('\n').filter(l => l.trim());
+      
+      const numbers = [];
+      for (let line of lines) {
+        const num = parseFloat(line.trim());
+        if (!isNaN(num) && num !== 0) {
+          numbers.push(num);
+        }
+      }
+      
+      if (numbers.length < 5) {
+        showError('At least 5 valid numbers required');
+        return;
+      }
+      
+      // Count leading digits
+      const digitCounts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0 };
+      for (let num of numbers) {
+        const digit = extractLeadingDigit(num);
+        if (digit && digit >= 1 && digit <= 9) {
+          digitCounts[digit]++;
+        }
+      }
+      
+      // Calculate chi-squared statistic
+      let chiSquared = 0;
+      for (let digit = 1; digit <= 9; digit++) {
+        const observed = digitCounts[digit];
+        const expected = (BENFORD_LAW[digit] / 100) * numbers.length;
+        if (expected > 0) {
+          chiSquared += Math.pow(observed - expected, 2) / expected;
+        }
+      }
+      
+      // Chi-squared CDF approximation (8 degrees of freedom: 9 digits - 1)
+      // For reference: p=0.05 at χ²≈15.51, p=0.01 at χ²≈20.09
+      let pValue = 1 - chiSquaredCDF(chiSquared, 8);
+      
+      // Determine fraud risk
+      let riskLevel, riskClass;
+      if (chiSquared < 10) {
+        riskLevel = 'LOW RISK';
+        riskClass = 'risk-low';
+      } else if (chiSquared < 20) {
+        riskLevel = 'MEDIUM RISK';
+        riskClass = 'risk-medium';
+      } else {
+        riskLevel = 'HIGH RISK (Possible Fraud)';
+        riskClass = 'risk-high';
+      }
+      
+      // Render results
+      renderResults(digitCounts, numbers.length, chiSquared, pValue, riskLevel, riskClass);
+    }
+    
+    function chiSquaredCDF(x, k) {
+      // Approximation using regularized gamma function
+      if (x <= 0) return 0;
+      if (x > 100) return 1;
+      
+      // Simplified approximation for χ² CDF
+      const t = x / 2;
+      if (k === 8) {
+        // Hard-coded approximation for 8 degrees of freedom
+        const vals = [0, 0.003, 0.016, 0.046, 0.100, 0.189, 0.314, 0.470, 0.630, 0.756, 0.842, 0.903, 0.939, 0.963, 0.978, 0.987, 0.993, 0.996, 0.998, 0.999];
+        const xs = [0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 35, 40, 50, 100];
+        for (let i = 0; i < xs.length - 1; i++) {
+          if (x >= xs[i] && x < xs[i+1]) {
+            return vals[i] + (vals[i+1] - vals[i]) * (x - xs[i]) / (xs[i+1] - xs[i]);
+          }
+        }
+        return x >= xs[xs.length-1] ? 1 : vals[0];
+      }
+      return 0.5; // fallback
+    }
+    
+    function renderResults(digitCounts, totalCount, chiSquared, pValue, riskLevel, riskClass) {
+      // Risk meter
+      const riskMeter = document.getElementById('riskMeter');
+      riskMeter.innerHTML = `<div class="risk-meter ${riskClass}">${riskLevel}</div>`;
+      
+      // Stats
+      document.getElementById('chiSquared').textContent = chiSquared.toFixed(2);
+      document.getElementById('pValue').textContent = (pValue * 100).toFixed(1) + '%';
+      document.getElementById('count').textContent = totalCount;
+      
+      // Determine data type hint
+      let typeHint = 'Unknown';
+      const digit1Pct = (digitCounts[1] / totalCount) * 100;
+      if (chiSquared < 10) {
+        typeHint = 'Natural/Real';
+      } else if (chiSquared > 20) {
+        typeHint = 'Artificial/Suspicious';
+      } else {
+        typeHint = 'Mixed/Uncertain';
+      }
+      document.getElementById('dataType').textContent = typeHint;
+      
+      // Histogram
+      const container = document.getElementById('histogramContainer');
+      container.innerHTML = '';
+      
+      const maxCount = Math.max(...Object.values(digitCounts));
+      const maxBarWidth = 400;
+      
+      for (let digit = 1; digit <= 9; digit++) {
+        const actual = digitCounts[digit];
+        const expected = (BENFORD_LAW[digit] / 100) * totalCount;
+        const deviation = Math.abs(actual - expected);
+        const maxExpected = Math.max(...[1,2,3,4,5,6,7,8,9].map(d => (BENFORD_LAW[d]/100)*totalCount));
+        
+        // Color based on deviation
+        let color;
+        const relDeviation = deviation / expected;
+        if (relDeviation < 0.15) {
+          color = '#10b981'; // Green - good match
+        } else if (relDeviation < 0.35) {
+          color = '#f59e0b'; // Yellow - moderate
+        } else {
+          color = '#ef4444'; // Red - bad match
+        }
+        
+        const barWidth = (actual / maxCount) * maxBarWidth;
+        
+        const row = document.createElement('div');
+        row.className = 'digit-row';
+        row.innerHTML = `
+          <div class="digit-label">${digit}</div>
+          <div class="digit-bar digit-bar-actual" style="width: ${barWidth}px; background: ${color};">
+            ${actual}
+          </div>
+          <div class="benford-value">Benford: ${BENFORD_LAW[digit].toFixed(1)}%</div>
+        `;
+        container.appendChild(row);
+      }
+      
+      // Explanation
+      const explanation = document.getElementById('explanation');
+      let explainText = `<strong>What is Benford's Law?</strong><br>
+      Natural datasets (populations, financial records, election votes) tend to start with smaller digits (1, 2, 3) much more often than larger ones (7, 8, 9). This happens because the world operates on exponential scales—prices double, populations grow by percentages, not fixed amounts.<br><br>
+      <strong>What does your data tell us?</strong><br>`;
+      
+      if (chiSquared < 10) {
+        explainText += `Your chi-squared score of <strong>${chiSquared.toFixed(2)}</strong> indicates your data follows Benford's Law very well. This is expected for real-world measurements (census data, financial transactions, scientific measurements). No red flags.`;
+      } else if (chiSquared < 20) {
+        explainText += `Your chi-squared score of <strong>${chiSquared.toFixed(2)}</strong> shows moderate deviation from Benford's Law. This can happen with naturally-skewed data (e.g., stock prices in a bull market), but warrants investigation if expecting Benford-like patterns.`;
+      } else {
+        explainText += `Your chi-squared score of <strong>${chiSquared.toFixed(2)}</strong> shows significant deviation from Benford's Law. This is a red flag for fabricated data, biased sampling, or data that doesn't follow natural exponential growth. Fake data typically spreads digits evenly (11% each), failing Benford's test dramatically.`;
+      }
+      
+      explanation.innerHTML = explainText;
+      
+      // Show results, hide placeholder
+      document.getElementById('resultsSection').classList.add('active');
+      document.getElementById('noResults').style.display = 'none';
+    }
+    
+    function showError(msg) {
+      const container = document.getElementById('resultsSection');
+      container.innerHTML = `<div class="error">${msg}</div>`;
+      container.classList.add('active');
+      document.getElementById('noResults').style.display = 'none';
+    }
+  </script>
+</body>
+</html>
