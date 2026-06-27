@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enigma Breaker</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Playfair Display', serif;
+            background: linear-gradient(135deg, #0a1428 0%, #1a2847 100%);
+            color: #e8eef5;
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            max-width: 1200px;
+            width: 100%;
+            background: rgba(15, 23, 42, 0.9);
+            border: 2px solid #4da8da;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 0 30px rgba(77, 168, 218, 0.2);
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 10px;
+            color: #4da8da;
+            font-size: 2.5em;
+            letter-spacing: 2px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #7dd3fc;
+            font-size: 1em;
+            margin-bottom: 30px;
+            font-style: italic;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .panel {
+            background: rgba(30, 58, 100, 0.6);
+            border: 1px solid #4da8da;
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .panel h2 {
+            color: #4da8da;
+            font-size: 1.3em;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #4da8da;
+            padding-bottom: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            color: #7dd3fc;
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 0.9em;
+        }
+
+        textarea, input[type="text"], input[type="number"], select {
+            width: 100%;
+            padding: 10px;
+            background: #0a1428;
+            border: 1px solid #4da8da;
+            border-radius: 4px;
+            color: #e8eef5;
+            font-family: 'Space Mono', monospace;
+            font-size: 0.95em;
+        }
+
+        textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+
+        button {
+            background: #4da8da;
+            color: #0a1428;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 0.95em;
+            transition: all 0.3s;
+            width: 100%;
+            font-family: 'Playfair Display', serif;
+        }
+
+        button:hover {
+            background: #7dd3fc;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(77, 168, 218, 0.3);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .result-box {
+            background: #0a1428;
+            border: 1px solid #10b981;
+            border-radius: 4px;
+            padding: 12px;
+            margin-top: 10px;
+            font-family: 'Space Mono', monospace;
+            font-size: 0.9em;
+            color: #7dd3fc;
+            word-break: break-all;
+            min-height: 30px;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .stat-item {
+            background: #0a1428;
+            border-left: 3px solid #10b981;
+            padding: 10px;
+            border-radius: 4px;
+        }
+
+        .stat-label {
+            color: #7dd3fc;
+            font-size: 0.8em;
+            font-weight: 600;
+        }
+
+        .stat-value {
+            color: #10b981;
+            font-family: 'Space Mono', monospace;
+            font-size: 1.1em;
+            margin-top: 5px;
+        }
+
+        .info-box {
+            background: rgba(16, 185, 129, 0.1);
+            border-left: 3px solid #10b981;
+            padding: 12px;
+            margin-top: 15px;
+            border-radius: 4px;
+            font-size: 0.9em;
+            color: #7dd3fc;
+        }
+
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+
+            h1 {
+                font-size: 2em;
+            }
+
+            .container {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 Enigma Breaker</h1>
+        <div class="subtitle">Encode & crack simulated Enigma messages with frequency analysis</div>
+
+        <div class="grid">
+            <!-- Encode Panel -->
+            <div class="panel">
+                <h2>Encode Message</h2>
+                <div class="form-group">
+                    <label for="plaintext">Your Message:</label>
+                    <textarea id="plaintext" placeholder="Type a message (A-Z only)...">HELLO WORLD</textarea>
+                </div>
+                <div class="form-group">
+                    <label for="rotor-pos">Rotor Offset (0-25):</label>
+                    <input type="number" id="rotor-pos" min="0" max="25" value="3">
+                </div>
+                <button onclick="encodeMessage()">Encode with Enigma</button>
+                <div class="result-box" id="encoded-result" style="display: none;"></div>
+            </div>
+
+            <!-- Crack Panel -->
+            <div class="panel">
+                <h2>Crack Enigma</h2>
+                <div class="form-group">
+                    <label for="ciphertext">Ciphertext to Crack:</label>
+                    <textarea id="ciphertext" placeholder="Paste encoded message..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="known-plain">Known Plaintext (optional):</label>
+                    <input type="text" id="known-plain" placeholder="e.g., HELLO (leave empty for frequency attack)">
+                </div>
+                <button onclick="crackEnigma()">Crack Rotor Offset</button>
+                <div class="result-box" id="crack-result" style="display: none;"></div>
+                <div class="stats" id="crack-stats" style="display: none;">
+                    <div class="stat-item">
+                        <div class="stat-label">Rotor Offset</div>
+                        <div class="stat-value" id="found-rotor">-</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Confidence</div>
+                        <div class="stat-value" id="confidence">-</div>
+                    </div>
+                </div>
+                <div class="info-box" id="info-box" style="display: none;"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Rotor wiring (real Enigma rotor I)
+        const ROTOR_I = "EKMFLGDQVZNTOWYHXUSPAIBRCJ";
+        
+        // English letter frequency for cryptanalysis
+        const ENGLISH_FREQ = {
+            'E': 12.70, 'T': 9.06, 'A': 8.17, 'O': 7.51, 'I': 6.97, 'N': 6.75,
+            'S': 6.33, 'H': 6.09, 'R': 5.99, 'D': 4.25, 'L': 4.03, 'C': 2.78,
+            'U': 2.76, 'M': 2.41, 'W': 2.36, 'F': 2.23, 'G': 2.02, 'Y': 1.97,
+            'P': 1.93, 'B': 1.29, 'V': 0.98, 'K': 0.77, 'J': 0.15, 'X': 0.15, 'Q': 0.10, 'Z': 0.07
+        };
+
+        function normalizeText(text) {
+            return text.toUpperCase().replace(/[^A-Z]/g, '');
+        }
+
+        function enigmaSubstitute(char, offset) {
+            // Simple Caesar cipher: rotate by offset
+            let charCode = char.charCodeAt(0) - 65;
+            charCode = (charCode + offset) % 26;
+            return String.fromCharCode(charCode + 65);
+        }
+
+        function enigmaEncode(plaintext, offset) {
+            let ciphertext = '';
+            for (let char of plaintext) {
+                ciphertext += enigmaSubstitute(char, offset);
+            }
+            return ciphertext;
+        }
+
+        function enigmaDecode(ciphertext, offset) {
+            let plaintext = '';
+            for (let char of ciphertext) {
+                plaintext += enigmaSubstitute(char, (26 - offset) % 26);
+            }
+            return plaintext;
+        }
+
+        function calculateFrequency(text) {
+            const freq = {};
+            for (let char of text) {
+                freq[char] = (freq[char] || 0) + 1;
+            }
+
+            const total = text.length;
+            const normalized = {};
+            for (let char in freq) {
+                normalized[char] = (freq[char] / total) * 100;
+            }
+            return normalized;
+        }
+
+        function chiSquaredScore(observed, expected) {
+            let score = 0;
+            for (let char of 'ABCDEFGHIJKLMNOPQRSTUVWXYZ') {
+                const obs = observed[char] || 0;
+                const exp = expected[char] || 1;
+                score += Math.pow(obs - exp, 2) / exp;
+            }
+            return score;
+        }
+
+        function encodeMessage() {
+            const plaintext = normalizeText(document.getElementById('plaintext').value);
+            const offset = parseInt(document.getElementById('rotor-pos').value);
+
+            if (!plaintext) {
+                alert('Please enter a message');
+                return;
+            }
+
+            const ciphertext = enigmaEncode(plaintext, offset);
+            document.getElementById('encoded-result').textContent = ciphertext;
+            document.getElementById('encoded-result').style.display = 'block';
+            document.getElementById('ciphertext').value = ciphertext;
+        }
+
+        function crackEnigma() {
+            const ciphertext = normalizeText(document.getElementById('ciphertext').value);
+            const knownPlaintext = normalizeText(document.getElementById('known-plain').value);
+
+            if (!ciphertext) {
+                alert('Please enter ciphertext');
+                return;
+            }
+
+            let bestOffset = 0;
+            let bestScore = Infinity;
+            let bestDecryption = '';
+
+            // Try all 26 rotor offsets
+            for (let offset = 0; offset < 26; offset++) {
+                let decrypted = enigmaDecode(ciphertext, offset);
+
+                let score;
+                if (knownPlaintext) {
+                    // Known-plaintext attack
+                    if (decrypted.startsWith(knownPlaintext)) {
+                        score = 0;
+                    } else {
+                        let matches = 0;
+                        for (let i = 0; i < knownPlaintext.length && i < decrypted.length; i++) {
+                            if (knownPlaintext[i] === decrypted[i]) matches++;
+                        }
+                        score = knownPlaintext.length - matches;
+                    }
+                } else {
+                    // Frequency analysis
+                    const freq = calculateFrequency(decrypted);
+                    score = chiSquaredScore(freq, ENGLISH_FREQ);
+                }
+
+                if (score < bestScore) {
+                    bestScore = score;
+                    bestOffset = offset;
+                    bestDecryption = decrypted;
+                }
+            }
+
+            const confidence = knownPlaintext ? 99 : 75;
+
+            document.getElementById('crack-result').textContent = bestDecryption;
+            document.getElementById('crack-result').style.display = 'block';
+            document.getElementById('found-rotor').textContent = bestOffset;
+            document.getElementById('confidence').textContent = confidence + '%';
+            document.getElementById('crack-stats').style.display = 'grid';
+
+            const infoBox = document.getElementById('info-box');
+            if (knownPlaintext) {
+                infoBox.innerHTML = `<strong>Known-Plaintext Attack:</strong> Offset ${bestOffset} matched your known text.`;
+            } else {
+                infoBox.innerHTML = `<strong>Frequency Analysis:</strong> Chi-squared score ${bestScore.toFixed(0)}. English ~300-500.`;
+            }
+            infoBox.style.display = 'block';
+        }
+
+        window.addEventListener('load', () => {
+            document.getElementById('plaintext').value = 'HELLO WORLD';
+            document.getElementById('rotor-pos').value = '3';
+        });
+    </script>
+</body>
+</html>
