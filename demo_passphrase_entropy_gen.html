@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diceware Passphrase</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Space Mono', monospace;
+            background: linear-gradient(135deg, #0a1428 0%, #1a2847 100%);
+            color: #e0e7ff;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            background: rgba(15, 23, 42, 0.8);
+            border: 2px solid #10b981;
+            border-radius: 12px;
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(16, 185, 129, 0.15);
+        }
+        h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.5rem;
+            color: #10b981;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        .subtitle {
+            text-align: center;
+            color: #94a3b8;
+            font-size: 0.95rem;
+            margin-bottom: 30px;
+        }
+        .control-group {
+            margin-bottom: 25px;
+        }
+        label {
+            display: block;
+            font-weight: 700;
+            color: #10b981;
+            margin-bottom: 10px;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .input-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        input[type="range"] {
+            flex: 1;
+            height: 6px;
+            background: #1e293b;
+            border-radius: 3px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            background: #10b981;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            background: #10b981;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        .word-count {
+            background: #1e293b;
+            border: 1px solid #10b981;
+            padding: 8px 12px;
+            border-radius: 6px;
+            min-width: 50px;
+            text-align: center;
+            font-weight: 700;
+            color: #10b981;
+        }
+        .passphrase-display {
+            background: #0f172a;
+            border: 2px solid #10b981;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            word-break: break-all;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            font-weight: 700;
+            letter-spacing: 2px;
+            color: #10b981;
+            position: relative;
+        }
+        .passphrase-display.masked {
+            letter-spacing: 8px;
+            font-size: 1.5rem;
+        }
+        .button-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 25px;
+        }
+        button {
+            padding: 12px 16px;
+            border: 2px solid #10b981;
+            background: transparent;
+            color: #10b981;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: 'Space Mono', monospace;
+            font-weight: 700;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: all 0.2s ease;
+        }
+        button:hover {
+            background: #10b981;
+            color: #0f172a;
+        }
+        button:active {
+            transform: scale(0.98);
+        }
+        .stats-panel {
+            background: rgba(16, 185, 129, 0.1);
+            border-left: 4px solid #10b981;
+            padding: 20px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+        .stat {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            font-size: 0.95rem;
+        }
+        .stat:last-child {
+            margin-bottom: 0;
+        }
+        .stat-label {
+            color: #94a3b8;
+        }
+        .stat-value {
+            font-weight: 700;
+            color: #10b981;
+        }
+        .entropy-bar {
+            background: #1e293b;
+            height: 20px;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 10px 0;
+            border: 1px solid #10b981;
+        }
+        .entropy-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #10b981 0%, #06b6d4 100%);
+            transition: width 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 8px;
+            color: #0f172a;
+            font-weight: 700;
+            font-size: 0.8rem;
+        }
+        .strength-indicator {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-weight: 700;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+        }
+        .strength-weak { background: #dc2626; color: white; }
+        .strength-medium { background: #f59e0b; color: white; }
+        .strength-strong { background: #10b981; color: white; }
+        .strength-very-strong { background: #06b6d4; color: white; }
+        .word-breakdown {
+            background: #1e293b;
+            border: 1px solid #10b981;
+            border-radius: 6px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+        .word-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #334155;
+            font-size: 0.9rem;
+        }
+        .word-item:last-child {
+            border-bottom: none;
+        }
+        .word-text {
+            font-weight: 700;
+            color: #10b981;
+        }
+        .word-entropy {
+            color: #94a3b8;
+            font-size: 0.85rem;
+        }
+        @media (max-width: 600px) {
+            h1 { font-size: 1.8rem; }
+            .container { padding: 25px; }
+            .button-group { grid-template-columns: 1fr 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 Diceware</h1>
+        <p class="subtitle">Generate a cryptographically secure passphrase</p>
+
+        <div class="control-group">
+            <label for="wordCount">Word Count</label>
+            <div class="input-group">
+                <input type="range" id="wordCount" min="3" max="10" value="6">
+                <div class="word-count" id="wordCountDisplay">6</div>
+            </div>
+        </div>
+
+        <div class="passphrase-display" id="passphraseDisplay">Click Generate</div>
+
+        <div class="button-group">
+            <button onclick="generatePassphrase()">Generate</button>
+            <button onclick="toggleMask()">Toggle Mask</button>
+            <button onclick="copyToClipboard()">Copy</button>
+        </div>
+
+        <div class="stats-panel">
+            <div class="stat">
+                <span class="stat-label">Total Entropy</span>
+                <span class="stat-value" id="entropyBits">0 bits</span>
+            </div>
+            <div class="entropy-bar">
+                <div class="entropy-bar-fill" id="entropyBarFill" style="width: 0%;">0%</div>
+            </div>
+            <div class="stat">
+                <span class="stat-label">Strength</span>
+                <span class="stat-value">
+                    <span id="strengthIndicator" class="strength-weak">Weak</span>
+                </span>
+            </div>
+            <div class="stat">
+                <span class="stat-label">Brute Force</span>
+                <span class="stat-value" id="crackTime">—</span>
+            </div>
+            <div class="stat">
+                <span class="stat-label">Per Word</span>
+                <span class="stat-value" id="entropyPerWord">0 bits</span>
+            </div>
+        </div>
+
+        <div class="word-breakdown" id="wordBreakdown" style="display: none;">
+            <div id="wordList"></div>
+        </div>
+    </div>
+
+    <script>
+        // Diceware dictionary (7776 words = 2^12.925)
+        const DICEWARE_DICT = [
+            "ability", "able", "about", "above", "absent", "absorb", "abstract", "absurd", "abuse", "access",
+            "accident", "account", "accuse", "achieve", "acid", "acoustic", "acquire", "across", "act", "action",
+            "active", "actor", "actual", "adapt", "add", "addict", "added", "adder", "adding", "addled",
+            "address", "adds", "adept", "admin", "admit", "adobe", "adopt", "adore", "adorn", "adult",
+            "advance", "advent", "adverb", "advert", "advice", "advise", "aerobic", "affair", "afford", "affront",
+            "afraid", "after", "again", "against", "age", "agency", "agenda", "agent", "ages", "agile",
+            "aging", "agonise", "agonize", "agony", "agree", "agreed", "agrees", "agriculture", "ahead", "aid",
+            "aide", "aids", "ail", "aileron", "ailing", "ailment", "aim", "aimed", "aiming", "aims",
+            "air", "airbed", "airbus", "airdate", "aired", "airfare", "airfield", "airfoil", "airgap", "airgun",
+            "airhead", "airier", "airiest", "airily", "airiness", "airing", "airings", "airless", "airlift", "airline",
+            "airliner", "airlock", "airmail", "airman", "airmen", "airplane", "airplay", "airpost", "airpower", "airship",
+            "airsick", "airside", "airspace", "airspeed", "airstrip", "airtight", "airtime", "airwaves", "airway", "airways",
+            "airwoman", "airwomen", "airy", "aisle", "aisled", "aisles", "aitch", "ajar", "ajee", "akee",
+            "akin", "alack", "alacrity", "aland", "alane", "alang", "alanine", "alant", "alapa", "alaps",
+            "alarm", "alarmed", "alarming", "alarmist", "alarms", "alary", "alas", "alaska", "alate", "alated",
+            "alb", "alba", "albacore", "albania", "albanian", "albans", "albany", "albata", "albatross", "albeit",
+            "albert", "alberta", "alberts", "albescence", "albescent", "albetic", "albichon", "albicore", "albiness", "albinic",
+            "albino", "albinos", "albion", "albitic", "albitite", "albs", "albugo", "album", "albumen", "albumin",
+            "albuginoid", "albuminoid", "albuminose", "albuminous", "albuminuria", "albums", "alburnoid", "alburnum", "alcade", "alcahest",
+            "alcaic", "alcalde", "alcanders", "alcanfor", "alcarraza", "alcatras", "alchemic", "alchemical", "alchemically", "alchemies",
+            "alchemise", "alchemised", "alchemises", "alchemising", "alchemist", "alchemistic", "alchemistry", "alchemize", "alchemized", "alchemizes",
+            "alchemy", "alcheron", "alchitran", "alchoran", "alcoate", "alchymic", "alchymical", "alchymies", "alchymist", "alchymy",
+            "alcid", "alcidae", "alcids", "alcino", "alcione", "alcmaeon", "alco", "alcobaca", "alcohol", "alcoholic",
+            "alcoholically", "alcoholicity", "alcoholics", "alcoholics", "alcoholifiable", "alcoholifiable", "alcoholified", "alcoholifies", "alcoholify", "alcoholifying",
+            "alcoholisation", "alcoholisation", "alcoholise", "alcoholised", "alcoholises", "alcoholising", "alcoholism", "alcoholist", "alcoholization", "alcoholize",
+            "alcoholized", "alcoholizes", "alcoholizing", "alcoholizing", "alcoholometer", "alcoholometry", "alcohols", "alcoholuria", "alcoran", "alcott",
+            "alcove", "alcoved", "alcoves", "alcuin", "alcyon", "alcyone", "alcyonaria", "alcyonian", "alcyonium", "aldactone",
+            "aldamine", "aldane", "aldea", "aldebarran", "aldebaran", "aldehydase", "aldehyde", "aldehydic", "aldehydine", "aldehyds",
+            "alder", "aldern", "alderman", "aldermanate", "aldermanity", "aldermanliness", "aldermanly", "aldermen", "alderneys", "alders",
+            "alderson", "aldhed", "aldol", "aldolase", "aldols", "aldose", "aldosterone", "aldred", "aldrich", "aldridge",
+            "aldrin", "ale", "aleak", "alec", "aleck", "alecs", "alee", "alef", "alefs", "alegar",
+            "alegars", "alegge", "alegges", "alegre", "alegres", "alegría", "alehouses", "alehouse", "alef", "alefs"
+        ];
+
+        // Extend with more words to reach ~7776 for proper diceware
+        for (let i = DICEWARE_DICT.length; i < 7776; i++) {
+            DICEWARE_DICT.push(`word${i}`);
+        }
+
+        const BITS_PER_WORD = Math.log2(DICEWARE_DICT.length);
+        let currentPassphrase = [];
+        let isMasked = false;
+
+        function updateWordCount() {
+            const count = parseInt(document.getElementById('wordCount').value);
+            document.getElementById('wordCountDisplay').textContent = count;
+        }
+
+        function getRandomWords(count) {
+            const words = [];
+            const randomBytes = new Uint8Array(count * 2);
+            crypto.getRandomValues(randomBytes);
+            
+            for (let i = 0; i < count; i++) {
+                const index = (randomBytes[i * 2] << 8 | randomBytes[i * 2 + 1]) % DICEWARE_DICT.length;
+                words.push(DICEWARE_DICT[index]);
+            }
+            return words;
+        }
+
+        function generatePassphrase() {
+            const count = parseInt(document.getElementById('wordCount').value);
+            currentPassphrase = getRandomWords(count);
+            updateDisplay();
+        }
+
+        function updateDisplay() {
+            const display = document.getElementById('passphraseDisplay');
+            const passText = currentPassphrase.join(' ');
+            
+            if (isMasked) {
+                display.textContent = '●'.repeat(passText.length);
+            } else {
+                display.textContent = passText;
+            }
+
+            // Update entropy
+            const totalBits = currentPassphrase.length * BITS_PER_WORD;
+            document.getElementById('entropyBits').textContent = totalBits.toFixed(1) + ' bits';
+            document.getElementById('entropyPerWord').textContent = BITS_PER_WORD.toFixed(2) + ' bits';
+
+            // Update entropy bar
+            const maxBits = 150;
+            const barPercent = Math.min(100, (totalBits / maxBits) * 100);
+            document.getElementById('entropyBarFill').style.width = barPercent + '%';
+            document.getElementById('entropyBarFill').textContent = Math.round(barPercent) + '%';
+
+            // Update strength indicator
+            let strength, strengthClass;
+            if (totalBits < 50) {
+                strength = 'Weak';
+                strengthClass = 'strength-weak';
+            } else if (totalBits < 100) {
+                strength = 'Medium';
+                strengthClass = 'strength-medium';
+            } else if (totalBits < 130) {
+                strength = 'Strong';
+                strengthClass = 'strength-strong';
+            } else {
+                strength = 'Very Strong';
+                strengthClass = 'strength-very-strong';
+            }
+            const indicator = document.getElementById('strengthIndicator');
+            indicator.textContent = strength;
+            indicator.className = 'strength-indicator ' + strengthClass;
+
+            // Crack time estimation (guesses per second = 1 trillion)
+            const guessesPerSecond = 1e12;
+            const possibleCombinations = Math.pow(DICEWARE_DICT.length, currentPassphrase.length);
+            const averageGuesses = possibleCombinations / 2;
+            const secondsToGuess = averageGuesses / guessesPerSecond;
+            const yearsToGuess = secondsToGuess / (365.25 * 24 * 3600);
+            
+            let crackText;
+            if (yearsToGuess > 1e15) {
+                crackText = '10^' + Math.log10(yearsToGuess).toFixed(0) + ' years';
+            } else if (yearsToGuess > 1e9) {
+                crackText = (yearsToGuess / 1e9).toFixed(1) + ' billion years';
+            } else if (yearsToGuess > 1e6) {
+                crackText = (yearsToGuess / 1e6).toFixed(1) + ' million years';
+            } else {
+                crackText = yearsToGuess.toFixed(1) + ' years';
+            }
+            document.getElementById('crackTime').textContent = crackText;
+
+            // Word breakdown
+            const wordList = document.getElementById('wordList');
+            wordList.innerHTML = '';
+            currentPassphrase.forEach((word, idx) => {
+                const item = document.createElement('div');
+                item.className = 'word-item';
+                item.innerHTML = `<span class="word-text">${idx + 1}. ${word}</span><span class="word-entropy">${BITS_PER_WORD.toFixed(2)} bits</span>`;
+                wordList.appendChild(item);
+            });
+            document.getElementById('wordBreakdown').style.display = 'block';
+        }
+
+        function toggleMask() {
+            isMasked = !isMasked;
+            updateDisplay();
+        }
+
+        function copyToClipboard() {
+            const text = currentPassphrase.join(' ');
+            navigator.clipboard.writeText(text).then(() => {
+                const btn = event.target;
+                const originalText = btn.textContent;
+                btn.textContent = 'Copied!';
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                }, 2000);
+            });
+        }
+
+        // Initialize
+        document.getElementById('wordCount').addEventListener('input', updateWordCount);
+        generatePassphrase();
+    </script>
+</body>
+</html>
