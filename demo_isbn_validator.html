@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ISBN Validator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Space Mono', monospace;
+            background: linear-gradient(135deg, #0a1428 0%, #1a2a4a 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            color: #e0e0e0;
+        }
+        .container {
+            background: #0f1b2e;
+            border-radius: 12px;
+            border: 1px solid #2a4a6f;
+            max-width: 600px;
+            width: 100%;
+            padding: 40px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        }
+        h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 32px;
+            margin-bottom: 8px;
+            color: #fff;
+        }
+        .subtitle {
+            font-size: 14px;
+            color: #888;
+            margin-bottom: 32px;
+        }
+        .section {
+            margin-bottom: 32px;
+        }
+        .section-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 16px;
+            font-weight: 700;
+            color: #4da8da;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #2a4a6f;
+            background: #1a2a4a;
+            color: #e0e0e0;
+            border-radius: 6px;
+            font-family: 'Space Mono', monospace;
+            font-size: 14px;
+            margin-bottom: 12px;
+            transition: border-color 0.2s;
+        }
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: #4da8da;
+            box-shadow: 0 0 8px rgba(77, 168, 218, 0.3);
+        }
+        .input-hint {
+            font-size: 12px;
+            color: #666;
+            margin-top: -10px;
+            margin-bottom: 12px;
+        }
+        button {
+            background: #4da8da;
+            color: #0a1428;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-family: 'Space Mono', monospace;
+            font-weight: 700;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+        }
+        button:hover {
+            background: #6db8e8;
+        }
+        button:active {
+            transform: scale(0.98);
+        }
+        .result-box {
+            background: #1a2a4a;
+            border-left: 4px solid #4da8da;
+            padding: 16px;
+            border-radius: 6px;
+            margin-bottom: 16px;
+            display: none;
+        }
+        .result-box.visible {
+            display: block;
+        }
+        .result-box.valid {
+            border-left-color: #00d66a;
+        }
+        .result-box.invalid {
+            border-left-color: #ff4444;
+        }
+        .result-label {
+            font-size: 12px;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 4px;
+        }
+        .result-value {
+            font-size: 18px;
+            font-weight: 700;
+            color: #fff;
+            font-family: 'Playfair Display', serif;
+            margin-bottom: 12px;
+        }
+        .result-detail {
+            font-size: 13px;
+            color: #aaa;
+            line-height: 1.6;
+        }
+        .math-box {
+            background: #0a1a2a;
+            border: 1px solid #1f4d7f;
+            padding: 16px;
+            border-radius: 6px;
+            font-size: 12px;
+            color: #888;
+            line-height: 1.8;
+            font-family: 'Space Mono', monospace;
+            margin-top: 12px;
+        }
+        .math-label {
+            color: #4da8da;
+            font-weight: 700;
+        }
+        .tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 24px;
+        }
+        .tab-button {
+            flex: 1;
+            padding: 10px;
+            background: #1a2a4a;
+            border: 1px solid #2a4a6f;
+            color: #888;
+            border-radius: 6px;
+            font-family: 'Space Mono', monospace;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .tab-button.active {
+            background: #4da8da;
+            color: #0a1428;
+            border-color: #4da8da;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .list-input {
+            min-height: 120px;
+            resize: vertical;
+        }
+        .batch-result {
+            background: #1a2a4a;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            font-size: 13px;
+            border-left: 4px solid #4da8da;
+        }
+        .batch-result.pass {
+            border-left-color: #00d66a;
+        }
+        .batch-result.fail {
+            border-left-color: #ff4444;
+        }
+        .batch-result-code {
+            color: #4da8da;
+            font-weight: 700;
+        }
+        .batch-result-status {
+            float: right;
+            font-weight: 700;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📖 ISBN Validator</h1>
+        <p class="subtitle">Reveal how check digits catch errors</p>
+
+        <div class="tabs">
+            <button class="tab-button active" onclick="switchTab('calculate')">Calculate Check Digit</button>
+            <button class="tab-button" onclick="switchTab('validate')">Validate ISBN</button>
+            <button class="tab-button" onclick="switchTab('batch')">Batch Check</button>
+        </div>
+
+        <!-- CALCULATE TAB -->
+        <div id="calculate" class="tab-content active">
+            <div class="section">
+                <div class="section-title">Enter 12 Digits</div>
+                <input type="text" id="partialIsbn" placeholder="e.g., 978014118173" maxlength="12" inputmode="numeric">
+                <div class="input-hint">Paste or type the first 12 digits of an ISBN-13</div>
+                <button onclick="calculateCheckDigit()">Calculate Check Digit</button>
+            </div>
+
+            <div id="calculateResult" class="result-box">
+                <div class="result-label">Complete ISBN-13</div>
+                <div class="result-value" id="calculateResultValue"></div>
+                <div class="result-detail" id="calculateResultDetail"></div>
+                <div class="math-box" id="calculateMath"></div>
+            </div>
+        </div>
+
+        <!-- VALIDATE TAB -->
+        <div id="validate" class="tab-content">
+            <div class="section">
+                <div class="section-title">Enter 13 Digits</div>
+                <input type="text" id="fullIsbn" placeholder="e.g., 9780141181738" maxlength="13" inputmode="numeric">
+                <div class="input-hint">Paste or type a complete ISBN-13</div>
+                <button onclick="validateIsbn()">Validate</button>
+            </div>
+
+            <div id="validateResult" class="result-box">
+                <div class="result-label">Validation Result</div>
+                <div class="result-value" id="validateResultValue"></div>
+                <div class="result-detail" id="validateResultDetail"></div>
+                <div class="math-box" id="validateMath"></div>
+            </div>
+        </div>
+
+        <!-- BATCH TAB -->
+        <div id="batch" class="tab-content">
+            <div class="section">
+                <div class="section-title">Paste ISBN List</div>
+                <textarea id="batchInput" class="list-input" placeholder="One ISBN-13 per line&#10;9780141181738&#10;9780451524935&#10;9781234567890"></textarea>
+                <button onclick="validateBatch()">Check All</button>
+            </div>
+
+            <div id="batchResult" class="result-box">
+                <div class="result-label">Batch Results</div>
+                <div id="batchResultContent"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-button').forEach(el => el.classList.remove('active'));
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        function calculateCheckDigit13() {
+            const digits = document.getElementById('partialIsbn').value.trim().replace(/[^0-9]/g, '');
+            
+            if (digits.length !== 12) {
+                alert('Please enter exactly 12 digits');
+                return null;
+            }
+
+            let sum = 0;
+            for (let i = 0; i < 12; i++) {
+                const digit = parseInt(digits[i]);
+                const weight = (i % 2 === 0) ? 1 : 3;
+                sum += digit * weight;
+            }
+
+            const checkDigit = (10 - (sum % 10)) % 10;
+            return {
+                partial: digits,
+                checkDigit: checkDigit,
+                complete: digits + checkDigit,
+                sum: sum,
+                calculation: `Weights: 1,3,1,3,1,3,1,3,1,3,1,3 applied left-to-right`
+            };
+        }
+
+        function calculateCheckDigit() {
+            const result = calculateCheckDigit13();
+            if (!result) return;
+
+            const resultBox = document.getElementById('calculateResult');
+            resultBox.classList.add('visible');
+
+            document.getElementById('calculateResultValue').textContent = result.complete;
+            
+            let detail = `Check digit: <span style="color: #4da8da; font-weight: 700;">${result.checkDigit}</span><br>`;
+            detail += `Weighted sum: ${result.sum}<br>`;
+            detail += `${result.sum} mod 10 = ${result.sum % 10}<br>`;
+            detail += `10 − ${result.sum % 10} = ${result.checkDigit}`;
+            document.getElementById('calculateResultDetail').innerHTML = detail;
+
+            const mathCalc = buildMathSteps(result.partial, result.checkDigit);
+            document.getElementById('calculateMath').innerHTML = `<span class="math-label">Step-by-step calculation:</span><br>${mathCalc}`;
+        }
+
+        function buildMathSteps(partial, checkDigit) {
+            let html = '';
+            let sum = 0;
+            const weights = [1,3,1,3,1,3,1,3,1,3,1,3];
+            
+            for (let i = 0; i < 12; i++) {
+                const digit = parseInt(partial[i]);
+                const weight = weights[i];
+                const product = digit * weight;
+                sum += product;
+                html += `Position ${i+1}: ${digit} × ${weight} = ${product}<br>`;
+            }
+            
+            html += `<br>Total: ${sum}<br>`;
+            html += `${sum} mod 10 = ${sum % 10}<br>`;
+            html += `Check digit = 10 − ${sum % 10} = ${checkDigit}`;
+            return html;
+        }
+
+        function validate13(isbn13) {
+            const digits = isbn13.trim().replace(/[^0-9]/g, '');
+            
+            if (digits.length !== 13) {
+                return { valid: false, reason: 'Must be exactly 13 digits', digits: digits };
+            }
+
+            let sum = 0;
+            for (let i = 0; i < 12; i++) {
+                const digit = parseInt(digits[i]);
+                const weight = (i % 2 === 0) ? 1 : 3;
+                sum += digit * weight;
+            }
+
+            const expectedCheckDigit = (10 - (sum % 10)) % 10;
+            const actualCheckDigit = parseInt(digits[12]);
+
+            return {
+                valid: expectedCheckDigit === actualCheckDigit,
+                digits: digits,
+                sum: sum,
+                expected: expectedCheckDigit,
+                actual: actualCheckDigit,
+                reason: expectedCheckDigit === actualCheckDigit ? 'Valid ISBN-13' : `Check digit mismatch: expected ${expectedCheckDigit}, got ${actualCheckDigit}`
+            };
+        }
+
+        function validateIsbn() {
+            const result = validate13(document.getElementById('fullIsbn').value);
+            const resultBox = document.getElementById('validateResult');
+            resultBox.classList.add('visible', result.valid ? 'valid' : 'invalid');
+
+            document.getElementById('validateResultValue').textContent = result.valid ? '✓ VALID' : '✗ INVALID';
+            document.getElementById('validateResultDetail').textContent = result.reason;
+
+            if (result.digits.length === 13) {
+                let math = `<span class="math-label">Verification:</span><br>`;
+                math += `ISBN: ${result.digits}<br>`;
+                math += `Weighted sum (first 12): ${result.sum}<br>`;
+                math += `Expected check digit: ${result.expected}<br>`;
+                math += `Actual check digit: ${result.actual}<br>`;
+                math += result.valid ? `<span style="color: #00d66a;">✓ Match</span>` : `<span style="color: #ff4444;">✗ Mismatch</span>`;
+                document.getElementById('validateMath').innerHTML = math;
+            }
+        }
+
+        function validateBatch() {
+            const input = document.getElementById('batchInput').value;
+            const isbns = input.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+
+            if (isbns.length === 0) {
+                alert('Please paste at least one ISBN');
+                return;
+            }
+
+            const results = isbns.map(isbn => validate13(isbn));
+            const resultBox = document.getElementById('batchResult');
+            resultBox.classList.add('visible');
+
+            let html = '';
+            let passCount = 0;
+
+            results.forEach((result, index) => {
+                const isPass = result.valid;
+                if (isPass) passCount++;
+
+                html += `<div class="batch-result ${isPass ? 'pass' : 'fail'}">`;
+                html += `<span class="batch-result-code">${result.digits}</span>`;
+                html += `<span class="batch-result-status">${isPass ? '✓ PASS' : '✗ FAIL'}</span>`;
+                html += `<div style="clear: both; font-size: 12px; margin-top: 4px; color: #aaa;">`;
+                html += result.reason;
+                html += `</div></div>`;
+            });
+
+            html = `<div style="margin-bottom: 12px; color: #4da8da; font-weight: 700;">Passed: ${passCount} / ${results.length}</div>` + html;
+            document.getElementById('batchResultContent').innerHTML = html;
+        }
+
+        // Allow Enter key to submit
+        document.getElementById('partialIsbn').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') calculateCheckDigit();
+        });
+        document.getElementById('fullIsbn').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') validateIsbn();
+        });
+    </script>
+</body>
+</html>
