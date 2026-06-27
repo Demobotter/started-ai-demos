@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hex Chess Tactics</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Playfair Display', serif;
+      background: linear-gradient(135deg, #0a1428 0%, #1a2d4d 100%);
+      color: #e0e0e0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .container {
+      max-width: 1200px;
+      width: 100%;
+      background: rgba(10, 20, 40, 0.9);
+      border: 2px solid #4da8da;
+      border-radius: 12px;
+      padding: 30px;
+      box-shadow: 0 8px 32px rgba(77, 168, 218, 0.2);
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+      font-size: 2.5em;
+      color: #4da8da;
+    }
+    .layout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 30px;
+      align-items: start;
+    }
+    .board-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 15px;
+    }
+    #chessboard {
+      border: 3px solid #4da8da;
+      background: #0a1428;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+    }
+    .puzzle-controls {
+      background: rgba(20, 40, 70, 0.8);
+      border-left: 4px solid #ff6b35;
+      padding: 20px;
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    label {
+      font-size: 0.95em;
+      color: #4da8da;
+      font-weight: bold;
+    }
+    select, button {
+      background: #1a3a5a;
+      color: #e0e0e0;
+      border: 1px solid #4da8da;
+      padding: 10px 15px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.9em;
+      transition: all 0.3s ease;
+    }
+    select:hover, button:hover {
+      background: #2a4a7a;
+      border-color: #7dd3fc;
+      box-shadow: 0 0 10px rgba(77, 168, 218, 0.3);
+    }
+    button {
+      background: #ff6b35;
+      border-color: #ff6b35;
+      color: #0a1428;
+      font-weight: bold;
+      margin-top: 5px;
+    }
+    button:hover {
+      background: #ff8c5a;
+      border-color: #ff8c5a;
+    }
+    .stats-box {
+      background: rgba(30, 60, 100, 0.6);
+      border: 1px solid #4da8da;
+      padding: 12px;
+      border-radius: 6px;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.85em;
+      line-height: 1.6;
+    }
+    .stat-label {
+      color: #7dd3fc;
+      font-weight: bold;
+    }
+    .message {
+      text-align: center;
+      padding: 15px;
+      border-radius: 8px;
+      margin-top: 10px;
+      font-weight: bold;
+      min-height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .message.victory {
+      background: rgba(76, 175, 80, 0.3);
+      border: 2px solid #4caf50;
+      color: #90ee90;
+    }
+    .message.defeat {
+      background: rgba(244, 67, 54, 0.3);
+      border: 2px solid #f44336;
+      color: #ff8a8a;
+    }
+    .message.info {
+      background: rgba(77, 168, 218, 0.2);
+      border: 2px solid #4da8da;
+      color: #7dd3fc;
+    }
+    @media (max-width: 900px) {
+      .layout { grid-template-columns: 1fr; }
+      h1 { font-size: 1.8em; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>♟️ Hex Chess Tactics</h1>
+    <div class="layout">
+      <div class="board-section">
+        <canvas id="chessboard" width="500" height="500"></canvas>
+        <div class="message" id="message"></div>
+      </div>
+      <div class="puzzle-controls">
+        <h2 style="color: #ff6b35; margin-bottom: 10px;">Puzzle Control</h2>
+        <div class="control-group">
+          <label>Puzzle:</label>
+          <select id="puzzleSelect">
+            <option value="lucena">Lucena Position (Rook Endgame)</option>
+            <option value="philidor">Philidor Position (Rook vs Rook+Pawn)</option>
+            <option value="tworooks">Two Rooks vs King (Mate)</option>
+            <option value="queen">Queen + King vs King (Mate)</option>
+            <option value="kling">Kling & Horwitz (Knight Endgame)</option>
+            <option value="zugzwang">Zugzwang Trap (Force Loss)</option>
+            <option value="fortress">Fortress (Hold Impossible)</option>
+            <option value="smothered">Smothered Mate (Knight Sacrifice)</option>
+          </select>
+        </div>
+        <div class="control-group">
+          <label>Difficulty:</label>
+          <select id="difficultySelect">
+            <option value="beginner">Beginner (Mate in 2-3)</option>
+            <option value="intermediate" selected>Intermediate (Mate in 4-5)</option>
+            <option value="expert">Expert (Mate in 6-8)</option>
+          </select>
+        </div>
+        <button onclick="resetPuzzle()">New Puzzle</button>
+        <div class="stats-box">
+          <div><span class="stat-label">Move Counter:</span> <span id="moveCount">0</span> / <span id="targetMoves">4</span></div>
+          <div><span class="stat-label">Status:</span> <span id="statusText">Thinking…</span></div>
+          <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #4da8da;">
+            <div><span class="stat-label">To Move:</span> <span id="toMove">White</span></div>
+            <div><span class="stat-label">Selected:</span> <span id="selected">None</span></div>
+          </div>
+        </div>
+        <div class="stats-box" style="margin-top: 15px; background: rgba(50, 30, 20, 0.6); border-color: #ff6b35;">
+          <div style="color: #ff6b35; margin-bottom: 10px; font-weight: bold;">📖 Hint</div>
+          <div id="hint" style="font-size: 0.85em; line-height: 1.5; color: #ffa8a8;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('chessboard');
+    const ctx = canvas.getContext('2d');
+    const SQUARE_SIZE = canvas.width / 8;
+
+    // Piece constants
+    const PIECES = {
+      wK: 'K', wQ: 'Q', wR: 'R', wB: 'B', wN: 'N', wP: 'P',
+      bK: 'k', bQ: 'q', bR: 'r', bB: 'b', bN: 'n', bP: 'p'
+    };
+
+    let board = Array(64).fill(null);
+    let selectedSquare = null;
+    let gameState = 'playing'; // playing, victory, defeat
+    let moveCount = 0;
+    let targetMoves = 4;
+    let whiteToMove = true;
+    let puzzleName = 'lucena';
+    let currentHint = '';
+
+    // Puzzle definitions with hints
+    const puzzles = {
+      lucena: {
+        board: () => {
+          const b = Array(64).fill(null);
+          b[0] = 'bK'; b[1] = 'wR'; b[2] = 'wK'; 
+          b[56] = 'bR'; b[60] = 'bP';
+          return b;
+        },
+        targetMoves: { beginner: 2, intermediate: 4, expert: 6 },
+        hint: 'Build a shelter on the 4th rank to protect your rook from perpetual checks.',
+        description: 'Rook vs Rook + Pawn. White to move.'
+      },
+      philidor: {
+        board: () => {
+          const b = Array(64).fill(null);
+          b[4] = 'bK'; b[7] = 'bR'; b[8] = 'wR'; b[12] = 'bP'; b[48] = 'wK';
+          return b;
+        },
+        targetMoves: { beginner: 2, intermediate: 4, expert: 7 },
+        hint: 'Keep your rook on the 6th rank. Never push the pawn further — that loses.',
+        description: 'Defend against a dangerous passed pawn.'
+      },
+      tworooks: {
+        board: () => {
+          const b = Array(64).fill(null);
+          b[3] = 'bK'; b[0] = 'wR'; b[8] = 'wR'; b[59] = 'wK';
+          return b;
+        },
+        targetMoves: { beginner: 3, intermediate: 5, expert: 8 },
+        hint: 'Rooks work best on different ranks/files. Cut off the king, then deliver mate.',
+        description: 'Two Rooks should force checkmate. Squeeze the king.'
+      },
+      queen: {
+        board: () => {
+          const b = Array(64).fill(null);
+          b[27] = 'bK'; b[19] = 'wQ'; b[60] = 'wK';
+          return b;
+        },
+        targetMoves: { beginner: 2, intermediate: 4, expert: 6 },
+        hint: 'Restrict the black king to the edge of the board, then close in.',
+        description: 'Queen + King vs King. Force mate on the edge.'
+      },
+      kling: {
+        board: () => {
+          const b = Array(64).fill(null);
+          b[18] = 'bK'; b[11] = 'wN'; b[30] = 'wN'; b[62] = 'wK';
+          return b;
+        },
+        targetMoves: { beginner: 3, intermediate: 6, expert: 8 },
+        hint: 'Knights deliver mate slowly. Use both knights to control escape squares.',
+        description: 'Two Knights vs King. Coordinate your pieces.'
+      },
+      zugzwang: {
+        board: () => {
+          const b = Array(64).fill(null);
+          b[4] = 'bK'; b[11] = 'bR'; b[15] = 'wR'; b[19] = 'wK';
+          return b;
+        },
+        targetMoves: { beginner: 2, intermediate: 3, expert: 5 },
+        hint: 'Move your rook to give Black no legal moves it wants to play.',
+        description: 'Force your opponent into a losing position.'
+      },
+      fortress: {
+        board: () => {
+          const b = Array(64).fill(null);
+          b[2] = 'bK'; b[6] = 'bQ'; b[10] = 'wK'; b[18] = 'wB'; b[26] = 'wP';
+          return b;
+        },
+        targetMoves: { beginner: 2, intermediate: 4, expert: 6 },
+        hint: 'Defend your pieces. Never move them unless forced.',
+        description: 'Hold an impossible-looking position.'
+      },
+      smothered: {
+        board: () => {
+          const b = Array(64).fill(null);
+          b[61] = 'bK'; b[63] = 'bR'; b[46] = 'wN'; b[48] = 'wK'; b[51] = 'wQ';
+          return b;
+        },
+        targetMoves: { beginner: 1, intermediate: 2, expert: 3 },
+        hint: 'A knight can deliver mate if the king is trapped by its own pieces.',
+        description: 'Classic knight sacrifice leading to mate.'
+      }
+    };
+
+    function indexToSquare(idx) {
+      return String.fromCharCode(97 + (idx % 8)) + (8 - Math.floor(idx / 8));
+    }
+
+    function squareToIndex(sq) {
+      const col = sq.charCodeAt(0) - 97;
+      const row = 8 - parseInt(sq[1]);
+      return row * 8 + col;
+    }
+
+    function isValidMove(from, to, board, isWhite) {
+      const piece = board[from];
+      if (!piece) return false;
+      const isWhitePiece = piece === piece.toUpperCase();
+      if (isWhitePiece !== isWhite) return false;
+
+      const target = board[to];
+      if (target && (target === target.toUpperCase()) === isWhite) return false;
+
+      const fromRow = Math.floor(from / 8), fromCol = from % 8;
+      const toRow = Math.floor(to / 8), toCol = to % 8;
+      const piece_type = piece.toUpperCase();
+
+      if (piece_type === 'P') {
+        const dir = isWhite ? -1 : 1;
+        const startRow = isWhite ? 6 : 1;
+        if (toCol === fromCol && !target) {
+          if (toRow === fromRow + dir) return true;
+          if (fromRow === startRow && toRow === fromRow + 2 * dir && !board[from + dir * 8]) return true;
+        }
+        if (Math.abs(toCol - fromCol) === 1 && toRow === fromRow + dir && target) return true;
+        return false;
+      }
+
+      if (piece_type === 'N') {
+        const dr = Math.abs(toRow - fromRow);
+        const dc = Math.abs(toCol - fromCol);
+        return (dr === 2 && dc === 1) || (dr === 1 && dc === 2);
+      }
+
+      if (piece_type === 'B' || piece_type === 'Q') {
+        if (piece_type === 'B' || (fromRow === toRow || fromCol === toCol)) {
+          const dr = toRow > fromRow ? 1 : (toRow < fromRow ? -1 : 0);
+          const dc = toCol > fromCol ? 1 : (toCol < fromCol ? -1 : 0);
+          let r = fromRow + dr, c = fromCol + dc;
+          while (r !== toRow || c !== toCol) {
+            if (board[r * 8 + c]) return false;
+            r += dr; c += dc;
+          }
+          return true;
+        }
+      }
+
+      if (piece_type === 'R' || piece_type === 'Q') {
+        if (fromRow === toRow || fromCol === toCol) {
+          const dr = toRow > fromRow ? 1 : (toRow < fromRow ? -1 : 0);
+          const dc = toCol > fromCol ? 1 : (toCol < fromCol ? -1 : 0);
+          let r = fromRow + dr, c = fromCol + dc;
+          while (r !== toRow || c !== toCol) {
+            if (board[r * 8 + c]) return false;
+            r += dr; c += dc;
+          }
+          return true;
+        }
+      }
+
+      if (piece_type === 'K') {
+        return Math.abs(toRow - fromRow) <= 1 && Math.abs(toCol - fromCol) <= 1;
+      }
+
+      return false;
+    }
+
+    function isKingInCheck(board, isWhite) {
+      const king = isWhite ? 'K' : 'k';
+      const kingIdx = board.indexOf(king);
+      if (kingIdx === -1) return false;
+
+      for (let i = 0; i < 64; i++) {
+        const piece = board[i];
+        if (!piece) continue;
+        const isWhitePiece = piece === piece.toUpperCase();
+        if (isWhitePiece === isWhite) continue;
+        if (isValidMove(i, kingIdx, board, !isWhite)) return true;
+      }
+      return false;
+    }
+
+    function isCheckmate(board, isWhite) {
+      if (!isKingInCheck(board, isWhite)) return false;
+      for (let from = 0; from < 64; from++) {
+        const piece = board[from];
+        if (!piece || (piece === piece.toUpperCase()) !== isWhite) continue;
+        for (let to = 0; to < 64; to++) {
+          if (isValidMove(from, to, board, isWhite)) {
+            const testBoard = board.slice();
+            testBoard[to] = testBoard[from];
+            testBoard[from] = null;
+            if (!isKingInCheck(testBoard, isWhite)) return false;
+          }
+        }
+      }
+      return true;
+    }
+
+    function minimax(board, isWhite, depth, maxDepth) {
+      if (depth === 0) {
+        if (isCheckmate(board, true)) return -1000;
+        if (isCheckmate(board, false)) return 1000;
+        return 0;
+      }
+
+      let bestScore = isWhite ? 1000 : -1000;
+      let bestMoves = [];
+
+      for (let from = 0; from < 64; from++) {
+        const piece = board[from];
+        if (!piece || (piece === piece.toUpperCase()) !== isWhite) continue;
+
+        for (let to = 0; to < 64; to++) {
+          if (!isValidMove(from, to, board, isWhite)) continue;
+
+          const newBoard = board.slice();
+          newBoard[to] = newBoard[from];
+          newBoard[from] = null;
+
+          const score = minimax(newBoard, !isWhite, depth - 1, maxDepth);
+
+          if (isWhite) {
+            if (score > bestScore) {
+              bestScore = score;
+              bestMoves = [[from, to]];
+            } else if (score === bestScore) {
+              bestMoves.push([from, to]);
+            }
+          } else {
+            if (score < bestScore) {
+              bestScore = score;
+              bestMoves = [[from, to]];
+            } else if (score === bestScore) {
+              bestMoves.push([from, to]);
+            }
+          }
+        }
+      }
+
+      return { score: bestScore, moves: bestMoves };
+    }
+
+    function getBlackMove(board) {
+      const result = minimax(board, false, 3, 3);
+      if (!result.moves || result.moves.length === 0) return null;
+      return result.moves[Math.floor(Math.random() * result.moves.length)];
+    }
+
+    function makeMove(from, to) {
+      if (!isValidMove(from, to, board, whiteToMove)) return false;
+
+      board[to] = board[from];
+      board[from] = null;
+      moveCount++;
+      whiteToMove = false;
+
+      setTimeout(() => {
+        if (isCheckmate(board, false)) {
+          gameState = 'victory';
+          document.getElementById('message').innerHTML = `✨ <strong>Mate in ${moveCount} moves!</strong><br>Target was ${targetMoves}. Well done!`;
+          document.getElementById('message').className = 'message victory';
+        } else {
+          const blackMove = getBlackMove(board);
+          if (blackMove) {
+            const [bf, bt] = blackMove;
+            board[bt] = board[bf];
+            board[bf] = null;
+            moveCount++;
+
+            if (isCheckmate(board, true)) {
+              gameState = 'defeat';
+              document.getElementById('message').innerHTML = `⚠️ <strong>Black escaped!</strong><br>Try another puzzle.`;
+              document.getElementById('message').className = 'message defeat';
+            }
+          }
+          whiteToMove = true;
+        }
+        drawBoard();
+        updateStats();
+      }, 500);
+
+      drawBoard();
+      updateStats();
+      return true;
+    }
+
+    function drawBoard() {
+      ctx.fillStyle = '#1a1a1a';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      for (let row = 0; row < 8; row++) {
+        for (let col = 0; col < 8; col++) {
+          const isLight = (row + col) % 2 === 0;
+          ctx.fillStyle = isLight ? '#4a4a4a' : '#1a1a1a';
+          ctx.fillRect(col * SQUARE_SIZE, row * SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE);
+
+          const idx = row * 8 + col;
+          if (selectedSquare === idx) {
+            ctx.fillStyle = 'rgba(77, 168, 218, 0.4)';
+            ctx.fillRect(col * SQUARE_SIZE, row * SQUARE_SIZE, SQUARE_SIZE, SQUARE_SIZE);
+          }
+        }
+      }
+
+      // Draw pieces
+      const pieceSymbols = {
+        'K': '♔', 'Q': '♕', 'R': '♖', 'B': '♗', 'N': '♘', 'P': '♙',
+        'k': '♚', 'q': '♛', 'r': '♜', 'b': '♝', 'n': '♞', 'p': '♟'
+      };
+
+      ctx.font = `${SQUARE_SIZE * 0.7}px Arial`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+
+      for (let idx = 0; idx < 64; idx++) {
+        const piece = board[idx];
+        if (!piece) continue;
+        const row = Math.floor(idx / 8);
+        const col = idx % 8;
+        const x = col * SQUARE_SIZE + SQUARE_SIZE / 2;
+        const y = row * SQUARE_SIZE + SQUARE_SIZE / 2;
+        ctx.fillStyle = piece === piece.toUpperCase() ? '#e0e0e0' : '#333333';
+        ctx.fillText(pieceSymbols[piece], x, y);
+      }
+    }
+
+    function updateStats() {
+      document.getElementById('moveCount').textContent = moveCount;
+      document.getElementById('targetMoves').textContent = targetMoves;
+      document.getElementById('toMove').textContent = whiteToMove ? 'White' : 'Black';
+      document.getElementById('statusText').textContent = gameState === 'playing' ? 'In progress' : gameState === 'victory' ? 'Victory!' : 'Defeat';
+      if (selectedSquare !== null) {
+        document.getElementById('selected').textContent = indexToSquare(selectedSquare);
+      }
+    }
+
+    function resetPuzzle() {
+      puzzleName = document.getElementById('puzzleSelect').value;
+      const difficulty = document.getElementById('difficultySelect').value;
+      const puzzle = puzzles[puzzleName];
+
+      board = puzzle.board();
+      moveCount = 0;
+      targetMoves = puzzle.targetMoves[difficulty];
+      selectedSquare = null;
+      whiteToMove = true;
+      gameState = 'playing';
+      currentHint = puzzle.hint;
+
+      document.getElementById('hint').textContent = currentHint;
+      document.getElementById('message').innerHTML = '';
+      document.getElementById('message').className = 'message info';
+
+      drawBoard();
+      updateStats();
+    }
+
+    canvas.addEventListener('click', (e) => {
+      if (gameState !== 'playing') return;
+      if (!whiteToMove) return;
+
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+
+      const col = Math.floor(x / SQUARE_SIZE);
+      const row = Math.floor(y / SQUARE_SIZE);
+      const idx = row * 8 + col;
+
+      if (selectedSquare === null) {
+        const piece = board[idx];
+        if (piece && piece === piece.toUpperCase()) {
+          selectedSquare = idx;
+          drawBoard();
+          updateStats();
+        }
+      } else {
+        if (idx === selectedSquare) {
+          selectedSquare = null;
+          drawBoard();
+          updateStats();
+        } else if (makeMove(selectedSquare, idx)) {
+          selectedSquare = null;
+        } else {
+          const piece = board[idx];
+          if (piece && piece === piece.toUpperCase()) {
+            selectedSquare = idx;
+            drawBoard();
+            updateStats();
+          } else {
+            selectedSquare = null;
+            drawBoard();
+            updateStats();
+          }
+        }
+      }
+    });
+
+    // Initialize
+    resetPuzzle();
+  </script>
+</body>
+</html>
