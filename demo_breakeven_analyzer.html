@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Breakeven Analyzer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: linear-gradient(135deg, #0a1428 0%, #1a2647 100%);
+            color: #fff;
+            font-family: 'Space Mono', monospace;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1000px;
+            width: 100%;
+            background: rgba(15, 25, 50, 0.95);
+            border: 2px solid #4da8da;
+            border-radius: 12px;
+            padding: 40px;
+            box-shadow: 0 0 30px rgba(77, 168, 218, 0.2);
+        }
+        h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            color: #4da8da;
+            text-align: center;
+        }
+        .subtitle {
+            text-align: center;
+            color: #88ccee;
+            margin-bottom: 40px;
+            font-size: 0.95em;
+        }
+        .content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        @media (max-width: 768px) {
+            .content { grid-template-columns: 1fr; }
+            h1 { font-size: 2em; }
+        }
+        .panel {
+            background: rgba(77, 168, 218, 0.05);
+            border: 1px solid #4da8da;
+            border-radius: 8px;
+            padding: 25px;
+        }
+        .input-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            font-size: 0.9em;
+            color: #00ff88;
+            margin-bottom: 6px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid #4da8da;
+            border-radius: 6px;
+            color: #fff;
+            font-family: 'Space Mono', monospace;
+            font-size: 0.95em;
+        }
+        .input-with-unit {
+            display: flex;
+            gap: 10px;
+        }
+        .input-with-unit input {
+            flex: 1;
+        }
+        .unit-label {
+            display: flex;
+            align-items: center;
+            color: #4da8da;
+            font-weight: 700;
+            font-size: 0.9em;
+            padding: 0 10px;
+        }
+        .result-box {
+            background: rgba(0, 255, 136, 0.1);
+            border-left: 3px solid #00ff88;
+            padding: 20px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+        .result-label {
+            font-size: 0.75em;
+            color: #88ccee;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+        .result-value {
+            font-size: 2em;
+            color: #00ff88;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        .result-detail {
+            font-size: 0.85em;
+            color: #aaddff;
+            line-height: 1.5;
+        }
+        button {
+            width: 100%;
+            padding: 14px;
+            background: #4da8da;
+            color: #0a1428;
+            border: none;
+            border-radius: 6px;
+            font-family: 'Space Mono', monospace;
+            font-weight: 700;
+            cursor: pointer;
+            font-size: 0.95em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.2s;
+            margin-bottom: 20px;
+        }
+        button:hover {
+            background: #6bc3f0;
+            transform: translateY(-2px);
+        }
+        .chart-container {
+            width: 100%;
+            height: 250px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            border: 1px solid #4da8da;
+            position: relative;
+            overflow: hidden;
+        }
+        canvas {
+            width: 100% !important;
+            height: 100% !important;
+        }
+        .info-box {
+            background: rgba(77, 168, 218, 0.1);
+            border-left: 3px solid #4da8da;
+            padding: 15px;
+            border-radius: 6px;
+            font-size: 0.85em;
+            line-height: 1.6;
+            color: #aaddff;
+        }
+        .info-box strong {
+            color: #4da8da;
+        }
+        .example-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .example-btn {
+            padding: 10px;
+            background: rgba(77, 168, 218, 0.2);
+            border: 1px solid #4da8da;
+            color: #4da8da;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.8em;
+            text-align: left;
+            transition: all 0.2s;
+        }
+        .example-btn:hover {
+            background: rgba(77, 168, 218, 0.4);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📊 Breakeven Point</h1>
+        <div class="subtitle">Calculate how many units you need to sell to cover all costs</div>
+
+        <div class="content">
+            <!-- Left: Inputs -->
+            <div class="panel">
+                <div class="input-group">
+                    <label for="fixedCosts">Fixed Costs (overhead, rent, salaries)</label>
+                    <div class="input-with-unit">
+                        <input type="number" id="fixedCosts" value="5000" min="0" step="100">
+                        <div class="unit-label">$</div>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label for="variableCost">Variable Cost Per Unit (material, labor)</label>
+                    <div class="input-with-unit">
+                        <input type="number" id="variableCost" value="15" min="0" step="0.50">
+                        <div class="unit-label">$</div>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label for="sellingPrice">Selling Price Per Unit</label>
+                    <div class="input-with-unit">
+                        <input type="number" id="sellingPrice" value="45" min="0" step="0.50">
+                        <div class="unit-label">$</div>
+                    </div>
+                </div>
+
+                <button onclick="calculate()">⚡ Calculate Breakeven</button>
+
+                <div class="example-buttons">
+                    <button class="example-btn" onclick="loadExample('lemonade')">🍋 Lemonade Stand</button>
+                    <button class="example-btn" onclick="loadExample('saas')">💻 SaaS Startup</button>
+                    <button class="example-btn" onclick="loadExample('ecommerce')">📦 E-Commerce</button>
+                    <button class="example-btn" onclick="loadExample('cafe')">☕ Coffee Shop</button>
+                </div>
+
+                <div class="result-box">
+                    <div class="result-label">Breakeven Units</div>
+                    <div class="result-value" id="breakeven">334</div>
+                    <div class="result-detail" id="breakeven-detail">Sell 334 units to break even. Profit = 0 at this point.</div>
+                </div>
+
+                <div class="result-box">
+                    <div class="result-label">Breakeven Revenue</div>
+                    <div class="result-value" id="breakeven-revenue">$15,030</div>
+                </div>
+
+                <div class="result-box">
+                    <div class="result-label">Profit at 500 units</div>
+                    <div class="result-value" id="profit-500">$10,000</div>
+                </div>
+            </div>
+
+            <!-- Right: Chart & Info -->
+            <div class="panel">
+                <div class="chart-container">
+                    <canvas id="profitChart"></canvas>
+                </div>
+
+                <div style="margin-top: 30px;">
+                    <div class="info-box">
+                        <strong>How It Works</strong><br><br>
+                        Breakeven = Fixed Costs ÷ (Selling Price − Variable Cost)<br><br>
+                        At breakeven, total revenue equals total costs. Below breakeven, you lose money. Above, you profit.<br><br>
+                        <strong>Example:</strong> $5,000 fixed costs ÷ ($45 − $15) = 5,000 ÷ 30 = <strong>167 units</strong><br><br>
+                        <strong>Key Insight:</strong> Every additional unit sold above breakeven = (Price − Var Cost) in profit. The gap between them is your "contribution margin."
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const examples = {
+            lemonade: { fixed: 50, variable: 0.25, price: 0.75 },
+            saas: { fixed: 15000, variable: 200, price: 1000 },
+            ecommerce: { fixed: 8000, variable: 8, price: 25 },
+            cafe: { fixed: 3500, variable: 3, price: 5 }
+        };
+
+        function loadExample(type) {
+            const ex = examples[type];
+            document.getElementById('fixedCosts').value = ex.fixed;
+            document.getElementById('variableCost').value = ex.variable;
+            document.getElementById('sellingPrice').value = ex.price;
+            calculate();
+        }
+
+        function calculate() {
+            const fixed = parseFloat(document.getElementById('fixedCosts').value) || 0;
+            const variable = parseFloat(document.getElementById('variableCost').value) || 0;
+            const price = parseFloat(document.getElementById('sellingPrice').value) || 1;
+
+            const contribution = price - variable;
+            const breakeven = contribution > 0 ? Math.ceil(fixed / contribution) : Infinity;
+            const breakevenRevenue = breakeven * price;
+            const profit500 = (500 * price) - (500 * variable) - fixed;
+
+            document.getElementById('breakeven').textContent = breakeven === Infinity ? '∞ (unprofitable)' : breakeven.toLocaleString();
+            document.getElementById('breakeven-detail').textContent = 
+                breakeven === Infinity ? 
+                'Price is too close to or below variable cost. Increase price or reduce costs.' :
+                `Sell ${breakeven} units to break even. Profit = $0 at this point.`;
+            document.getElementById('breakeven-revenue').textContent = 
+                breakeven === Infinity ? '—' : '$' + breakevenRevenue.toLocaleString(undefined, {maximumFractionDigits: 0});
+            document.getElementById('profit-500').textContent = 
+                '$' + profit500.toLocaleString(undefined, {maximumFractionDigits: 0});
+
+            drawChart(fixed, variable, price, breakeven);
+        }
+
+        function drawChart(fixed, variable, price, breakeven) {
+            const canvas = document.getElementById('profitChart');
+            const ctx = canvas.getContext('2d');
+            const w = canvas.width;
+            const h = canvas.height;
+
+            // Clear
+            ctx.fillStyle = 'rgba(10, 20, 40, 0.3)';
+            ctx.fillRect(0, 0, w, h);
+
+            const maxUnits = Math.max(breakeven * 1.5, 500);
+            const maxProfit = (maxUnits * price) - (maxUnits * variable) - fixed;
+            const minProfit = -fixed;
+
+            const scaleX = (w * 0.9) / maxUnits;
+            const scaleY = (h * 0.8) / (maxProfit - minProfit);
+            const offsetX = 40;
+            const offsetY = h * 0.9;
+
+            // Grid
+            ctx.strokeStyle = 'rgba(77, 168, 218, 0.2)';
+            ctx.lineWidth = 1;
+            for (let i = 0; i <= 5; i++) {
+                const x = offsetX + (maxUnits / 5) * i * scaleX;
+                ctx.beginPath();
+                ctx.moveTo(x, h * 0.1);
+                ctx.lineTo(x, offsetY);
+                ctx.stroke();
+            }
+
+            // Axes
+            ctx.strokeStyle = '#4da8da';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(offsetX, h * 0.1);
+            ctx.lineTo(offsetX, offsetY);
+            ctx.lineTo(w * 0.95, offsetY);
+            ctx.stroke();
+
+            // Total Cost line (red)
+            ctx.strokeStyle = '#ff6b6b';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            for (let u = 0; u <= maxUnits; u += maxUnits / 100) {
+                const cost = fixed + (u * variable);
+                const y = offsetY - ((cost - minProfit) * scaleY);
+                if (u === 0) ctx.moveTo(offsetX + u * scaleX, y);
+                else ctx.lineTo(offsetX + u * scaleX, y);
+            }
+            ctx.stroke();
+
+            // Total Revenue line (green)
+            ctx.strokeStyle = '#00ff88';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            for (let u = 0; u <= maxUnits; u += maxUnits / 100) {
+                const revenue = u * price;
+                const y = offsetY - ((revenue - minProfit) * scaleY);
+                if (u === 0) ctx.moveTo(offsetX + u * scaleX, y);
+                else ctx.lineTo(offsetX + u * scaleX, y);
+            }
+            ctx.stroke();
+
+            // Breakeven point
+            if (breakeven !== Infinity) {
+                const bx = offsetX + breakeven * scaleX;
+                const by = offsetY - ((breakeven * price - minProfit) * scaleY);
+                ctx.fillStyle = '#ffaa00';
+                ctx.beginPath();
+                ctx.arc(bx, by, 6, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.strokeStyle = '#ffaa00';
+                ctx.lineWidth = 1;
+                ctx.setLineDash([5, 5]);
+                ctx.beginPath();
+                ctx.moveTo(bx, offsetY);
+                ctx.lineTo(bx, by);
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+
+            // Labels
+            ctx.fillStyle = '#aaddff';
+            ctx.font = '12px Space Mono';
+            ctx.textAlign = 'center';
+            ctx.fillText('Units', w / 2, h - 5);
+            ctx.save();
+            ctx.translate(15, h / 2);
+            ctx.rotate(-Math.PI / 2);
+            ctx.fillText('Profit/Loss ($)', 0, 0);
+            ctx.restore();
+
+            // Legend
+            ctx.font = 'bold 12px Space Mono';
+            ctx.textAlign = 'left';
+            ctx.fillStyle = '#ff6b6b';
+            ctx.fillText('Cost', offsetX + 10, 30);
+            ctx.fillStyle = '#00ff88';
+            ctx.fillText('Revenue', offsetX + 10, 50);
+            ctx.fillStyle = '#ffaa00';
+            ctx.fillText('Breakeven', offsetX + 10, 70);
+        }
+
+        // Initial calculation
+        calculate();
+    </script>
+</body>
+</html>
