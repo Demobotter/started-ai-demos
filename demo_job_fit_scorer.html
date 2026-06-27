@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Job Fit Scorer</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: "Space Mono", monospace;
+      background: linear-gradient(135deg, #0a1d4a 0%, #1a3d6a 100%);
+      color: #e0e7ff;
+      min-height: 100vh;
+      padding: 2rem;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      font-family: "Playfair Display", serif;
+      font-size: 2.5rem;
+      margin-bottom: 0.5rem;
+      color: #fff;
+      text-align: center;
+    }
+
+    .subtitle {
+      text-align: center;
+      color: #a0aec0;
+      margin-bottom: 2rem;
+      font-size: 0.95rem;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+      margin-bottom: 2rem;
+    }
+
+    .panel {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(77, 168, 218, 0.3);
+      border-radius: 12px;
+      padding: 1.5rem;
+      backdrop-filter: blur(10px);
+    }
+
+    .panel h2 {
+      font-family: "Playfair Display", serif;
+      font-size: 1.3rem;
+      margin-bottom: 1rem;
+      color: #4da8da;
+    }
+
+    .slider-group {
+      margin-bottom: 1.2rem;
+    }
+
+    .slider-label {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.85rem;
+      margin-bottom: 0.5rem;
+      color: #cbd5e1;
+    }
+
+    .slider-label strong {
+      color: #fff;
+    }
+
+    .value {
+      color: #4da8da;
+      font-family: "Space Mono", monospace;
+      font-weight: 700;
+      min-width: 50px;
+      text-align: right;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      height: 8px;
+      border-radius: 4px;
+      background: linear-gradient(to right, #ff6b6b, #4da8da);
+      outline: none;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #4da8da;
+      cursor: pointer;
+      box-shadow: 0 0 8px rgba(77, 168, 218, 0.6);
+      transition: all 0.2s;
+    }
+
+    input[type="range"]::-webkit-slider-thumb:hover {
+      background: #7dd3fc;
+      box-shadow: 0 0 12px rgba(77, 168, 218, 0.9);
+    }
+
+    input[type="range"]::-moz-range-thumb {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #4da8da;
+      cursor: pointer;
+      border: none;
+      box-shadow: 0 0 8px rgba(77, 168, 218, 0.6);
+      transition: all 0.2s;
+    }
+
+    input[type="range"]::-moz-range-thumb:hover {
+      background: #7dd3fc;
+      box-shadow: 0 0 12px rgba(77, 168, 218, 0.9);
+    }
+
+    .score-display {
+      background: rgba(77, 168, 218, 0.1);
+      border: 2px solid #4da8da;
+      border-radius: 12px;
+      padding: 2rem;
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .score-number {
+      font-family: "Playfair Display", serif;
+      font-size: 4rem;
+      color: #4da8da;
+      margin-bottom: 0.5rem;
+    }
+
+    .score-label {
+      color: #a0aec0;
+      font-size: 0.95rem;
+      margin-bottom: 1rem;
+    }
+
+    .score-bar {
+      height: 20px;
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid rgba(77, 168, 218, 0.3);
+    }
+
+    .score-fill {
+      height: 100%;
+      background: linear-gradient(to right, #ff6b6b, #fbbf24, #4da8da);
+      transition: width 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      padding-right: 0.5rem;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .factors {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      margin-top: 1.5rem;
+    }
+
+    .factor-card {
+      background: rgba(0, 0, 0, 0.2);
+      border-left: 3px solid #4da8da;
+      border-radius: 6px;
+      padding: 0.8rem;
+      font-size: 0.8rem;
+    }
+
+    .factor-name {
+      color: #4da8da;
+      font-weight: 700;
+      margin-bottom: 0.3rem;
+    }
+
+    .factor-value {
+      color: #cbd5e1;
+    }
+
+    .button {
+      background: linear-gradient(135deg, #4da8da, #7dd3fc);
+      border: none;
+      border-radius: 8px;
+      padding: 0.8rem 1.5rem;
+      font-family: "Space Mono", monospace;
+      font-weight: 700;
+      color: #0a1d4a;
+      cursor: pointer;
+      transition: all 0.2s;
+      width: 100%;
+      margin-top: 1rem;
+    }
+
+    .button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(77, 168, 218, 0.4);
+    }
+
+    @media (max-width: 768px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      h1 {
+        font-size: 1.8rem;
+      }
+
+      .score-number {
+        font-size: 3rem;
+      }
+
+      .factors {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>💼 Job Fit Scorer</h1>
+    <p class="subtitle">Enter job details and priorities to get a real decision score</p>
+
+    <div class="score-display">
+      <div class="score-label">YOUR JOB FIT SCORE</div>
+      <div class="score-number" id="scoreNumber">0</div>
+      <div class="score-bar">
+        <div class="score-fill" id="scoreFill" style="width: 0%">0%</div>
+      </div>
+      <div style="margin-top: 1rem; color: #a0aec0; font-size: 0.85rem;" id="scoreText">Adjust sliders to calculate</div>
+    </div>
+
+    <div class="layout">
+      <div class="panel">
+        <h2>Job Details</h2>
+
+        <div class="slider-group">
+          <div class="slider-label">
+            <strong>Annual Salary</strong>
+            <span class="value">$<span id="salaryVal">60000</span></span>
+          </div>
+          <input type="range" id="salary" min="25000" max="250000" value="60000" step="5000">
+        </div>
+
+        <div class="slider-group">
+          <div class="slider-label">
+            <strong>Remote %</strong>
+            <span class="value"><span id="remoteVal">50</span>%</span>
+          </div>
+          <input type="range" id="remote" min="0" max="100" value="50" step="10">
+        </div>
+
+        <div class="slider-group">
+          <div class="slider-label">
+            <strong>Commute Time (mins)</strong>
+            <span class="value"><span id="commuteVal">30</span>m</span>
+          </div>
+          <input type="range" id="commute" min="0" max="120" value="30" step="5">
+        </div>
+
+        <div class="slider-group">
+          <div class="slider-label">
+            <strong>Learning Opportunity</strong>
+            <span class="value"><span id="learningVal">7</span>/10</span>
+          </div>
+          <input type="range" id="learning" min="1" max="10" value="7" step="1">
+        </div>
+
+        <div class="slider-group">
+          <div class="slider-label">
+            <strong>Growth Potential</strong>
+            <span class="value"><span id="growthVal">6</span>/10</span>
+          </div>
+          <input type="range" id="growth" min="1" max="10" value="6" step="1">
+        </div>
+
+        <div class="slider-group">
+          <div class="slider-label">
+            <strong>Work-Life Balance</strong>
+            <span class="value"><span id="wlbVal">7</span>/10</span>
+          </div>
+          <input type="range" id="wlb" min="1" max="10" value="7" step="1">
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Your Priorities</h2>
+
+        <div class="slider-group">
+          <div class="slider-label">
+            <strong>Salary Importance</strong>
+            <span class="value"><span id="salaryPriorityVal">5</span>/10</span>
+          </div>
+          <input type="range" id="salaryPriority" min="1" max="10" value="5" step="1">
+        </div>
+
+        <div class="slider-group">
+          <div class="slider-label">
+            <strong>Flexibility Importance</strong>
+            <span class="value"><span id="flexPriorityVal">6</span>/10</span>
+          </div>
+          <input type="range" id="flexPriority" min="1" max="10" value="6" step="1">
+        </div>
+
+        <div class="slider-group">
+          <div class="slider-label">
+            <strong>Learning Importance</strong>
+            <span class="value"><span id="learningPriorityVal">7</span>/10</span>
+          </div>
+          <input type="range" id="learningPriority" min="1" max="10" value="7" step="1">
+        </div>
+
+        <div class="slider-group">
+          <div class="slider-label">
+            <strong>Growth Importance</strong>
+            <span class="value"><span id="growthPriorityVal">7</span>/10</span>
+          </div>
+          <input type="range" id="growthPriority" min="1" max="10" value="7" step="1">
+        </div>
+
+        <div class="slider-group">
+          <div class="slider-label">
+            <strong>Balance Importance</strong>
+            <span class="value"><span id="balancePriorityVal">8</span>/10</span>
+          </div>
+          <input type="range" id="balancePriority" min="1" max="10" value="8" step="1">
+        </div>
+
+        <button class="button" onclick="reset()">Reset to Defaults</button>
+      </div>
+    </div>
+
+    <div class="score-display" style="margin-bottom: 0;">
+      <h2 style="font-family: 'Playfair Display', serif; color: #4da8da; margin-bottom: 1rem;">Factor Breakdown</h2>
+      <div class="factors" id="factorsContainer"></div>
+    </div>
+  </div>
+
+  <script>
+    // Get all inputs
+    const inputs = document.querySelectorAll('input[type="range"]');
+
+    // Reference salary for cost-of-living baseline (USD)
+    const REF_SALARY = 60000;
+    const COL_MULTIPLIER = {
+      'low': 0.9,      // rural/lower COL areas
+      'medium': 1.0,   // typical US avg
+      'high': 1.15     // high COL cities
+    };
+
+    function calculateFitScore() {
+      // Get job details
+      const salary = parseInt(document.getElementById('salary').value);
+      const remote = parseInt(document.getElementById('remote').value);
+      const commute = parseInt(document.getElementById('commute').value);
+      const learning = parseInt(document.getElementById('learning').value);
+      const growth = parseInt(document.getElementById('growth').value);
+      const wlb = parseInt(document.getElementById('wlb').value);
+
+      // Get priorities
+      const salaryPriority = parseInt(document.getElementById('salaryPriority').value);
+      const flexPriority = parseInt(document.getElementById('flexPriority').value);
+      const learningPriority = parseInt(document.getElementById('learningPriority').value);
+      const growthPriority = parseInt(document.getElementById('growthPriority').value);
+      const balancePriority = parseInt(document.getElementById('balancePriority').value);
+
+      // CALCULATE COMPONENT SCORES (0-100)
+
+      // 1. Salary adequacy (vs. living wage + priority weight)
+      // Assumes $60k is "good" baseline; scale from $25k-$250k
+      let salaryScore = Math.min(100, (salary / 75000) * 100);
+      salaryScore = Math.max(0, salaryScore);
+
+      // 2. Flexibility score (combination of remote % and commute time)
+      // Remote 100% + commute 0m = 100
+      // Remote 0% + commute 120m = 0
+      let flexScore = (remote / 100) * 100;
+      flexScore -= (commute / 120) * 50; // Commute penalty
+      flexScore = Math.max(0, Math.min(100, flexScore));
+
+      // 3. Learning opportunity (direct 1-10 scale)
+      let learningScore = (learning / 10) * 100;
+
+      // 4. Growth potential (direct 1-10 scale)
+      let growthScore = (growth / 10) * 100;
+
+      // 5. Work-life balance (direct 1-10 scale)
+      let balanceScore = (wlb / 10) * 100;
+
+      // WEIGHTED AVERAGE based on priorities
+      const totalPriority = salaryPriority + flexPriority + learningPriority + growthPriority + balancePriority;
+      
+      const weightedScore = (
+        (salaryScore * salaryPriority) +
+        (flexScore * flexPriority) +
+        (learningScore * learningPriority) +
+        (growthScore * growthPriority) +
+        (balanceScore * balancePriority)
+      ) / totalPriority;
+
+      // Apply bonus/penalty for extreme misalignment
+      // If balance priority is high but WLB score is low, penalty
+      let alignment = 0;
+      if (balancePriority >= 7 && wlb <= 3) alignment -= 10;
+      if (learningPriority >= 7 && learning <= 2) alignment -= 10;
+      if (salaryPriority >= 8 && salary < 50000) alignment -= 8;
+      if (flexPriority >= 8 && (remote < 30 && commute > 45)) alignment -= 8;
+
+      // If everything aligns well, small bonus
+      if (Math.abs(salaryScore - salaryPriority * 10) < 20 &&
+          Math.abs(flexScore - flexPriority * 10) < 20 &&
+          Math.abs(learningScore - learningPriority * 10) < 20) {
+        alignment += 5;
+      }
+
+      const finalScore = Math.max(0, Math.min(100, weightedScore + alignment));
+
+      // Update display
+      document.getElementById('scoreNumber').textContent = Math.round(finalScore);
+      document.getElementById('scoreFill').style.width = Math.round(finalScore) + '%';
+      document.getElementById('scoreFill').textContent = Math.round(finalScore) + '%';
+
+      // Determine interpretation
+      let interpretation = '';
+      if (finalScore >= 85) {
+        interpretation = '🎯 Excellent fit — strong alignment with priorities';
+      } else if (finalScore >= 70) {
+        interpretation = '✅ Good fit — solid match, minor compromises';
+      } else if (finalScore >= 55) {
+        interpretation = '⚠️  Moderate fit — trade-offs present';
+      } else if (finalScore >= 40) {
+        interpretation = '❌ Weak fit — significant misalignment';
+      } else {
+        interpretation = '🚫 Poor fit — major conflicts with priorities';
+      }
+      document.getElementById('scoreText').textContent = interpretation;
+
+      // Update factor cards
+      updateFactors(salaryScore, flexScore, learningScore, growthScore, balanceScore);
+    }
+
+    function updateFactors(sal, flex, learn, grow, bal) {
+      const factors = [
+        { name: 'Salary', score: sal, priority: parseInt(document.getElementById('salaryPriority').value) },
+        { name: 'Flexibility', score: flex, priority: parseInt(document.getElementById('flexPriority').value) },
+        { name: 'Learning', score: learn, priority: parseInt(document.getElementById('learningPriority').value) },
+        { name: 'Growth', score: grow, priority: parseInt(document.getElementById('growthPriority').value) },
+        { name: 'Balance', score: bal, priority: parseInt(document.getElementById('balancePriority').value) }
+      ];
+
+      let html = '';
+      factors.forEach(f => {
+        const match = Math.round(f.score);
+        const mismatch = f.score < f.priority * 10 ? '⚠️ ' : '✓ ';
+        html += `<div class="factor-card">
+          <div class="factor-name">${mismatch}${f.name}</div>
+          <div class="factor-value">Score: ${match}/100 | Priority: ${f.priority}/10</div>
+        </div>`;
+      });
+      document.getElementById('factorsContainer').innerHTML = html;
+    }
+
+    function reset() {
+      document.getElementById('salary').value = '60000';
+      document.getElementById('remote').value = '50';
+      document.getElementById('commute').value = '30';
+      document.getElementById('learning').value = '7';
+      document.getElementById('growth').value = '6';
+      document.getElementById('wlb').value = '7';
+      document.getElementById('salaryPriority').value = '5';
+      document.getElementById('flexPriority').value = '6';
+      document.getElementById('learningPriority').value = '7';
+      document.getElementById('growthPriority').value = '7';
+      document.getElementById('balancePriority').value = '8';
+
+      // Update all display values and recalculate
+      updateAllDisplayValues();
+      calculateFitScore();
+    }
+
+    function updateAllDisplayValues() {
+      document.getElementById('salaryVal').textContent = parseInt(document.getElementById('salary').value).toLocaleString();
+      document.getElementById('remoteVal').textContent = document.getElementById('remote').value;
+      document.getElementById('commuteVal').textContent = document.getElementById('commute').value;
+      document.getElementById('learningVal').textContent = document.getElementById('learning').value;
+      document.getElementById('growthVal').textContent = document.getElementById('growth').value;
+      document.getElementById('wlbVal').textContent = document.getElementById('wlb').value;
+      document.getElementById('salaryPriorityVal').textContent = document.getElementById('salaryPriority').value;
+      document.getElementById('flexPriorityVal').textContent = document.getElementById('flexPriority').value;
+      document.getElementById('learningPriorityVal').textContent = document.getElementById('learningPriority').value;
+      document.getElementById('growthPriorityVal').textContent = document.getElementById('growthPriority').value;
+      document.getElementById('balancePriorityVal').textContent = document.getElementById('balancePriority').value;
+    }
+
+    // Event listeners
+    inputs.forEach(input => {
+      input.addEventListener('input', () => {
+        updateAllDisplayValues();
+        calculateFitScore();
+      });
+    });
+
+    // Initial calculation
+    updateAllDisplayValues();
+    calculateFitScore();
+  </script>
+</body>
+</html>
