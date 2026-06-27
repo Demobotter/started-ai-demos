@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prime Factor Scout</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Playfair Display', 'Space Mono', monospace;
+            background: linear-gradient(135deg, #0a1428 0%, #1a2a4a 100%);
+            color: #e0e0e0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            max-width: 1200px;
+            width: 100%;
+        }
+        @media (max-width: 1024px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+        .panel {
+            background: rgba(26, 42, 74, 0.8);
+            border: 2px solid #10b981;
+            border-radius: 12px;
+            padding: 25px;
+            backdrop-filter: blur(10px);
+        }
+        h1 {
+            font-size: 2.2em;
+            margin-bottom: 10px;
+            color: #ff6b6b;
+            font-weight: bold;
+        }
+        .subtitle {
+            font-size: 0.95em;
+            color: #10b981;
+            margin-bottom: 20px;
+        }
+        .input-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            font-size: 0.95em;
+            color: #10b981;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+        input[type="number"] {
+            width: 100%;
+            padding: 12px;
+            background: rgba(10, 20, 40, 0.6);
+            border: 2px solid #4da8da;
+            border-radius: 8px;
+            color: #fff;
+            font-size: 1.1em;
+            font-family: 'Space Mono', monospace;
+        }
+        input[type="number"]:focus {
+            outline: none;
+            border-color: #10b981;
+            box-shadow: 0 0 10px rgba(16, 185, 129, 0.3);
+        }
+        .buttons {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+            flex-wrap: wrap;
+        }
+        button {
+            padding: 8px 14px;
+            background: #4da8da;
+            color: #0a1428;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85em;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            font-family: 'Space Mono', monospace;
+        }
+        button:hover {
+            background: #10b981;
+            transform: translateY(-2px);
+        }
+        button:active {
+            transform: translateY(0);
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .stat-box {
+            background: rgba(16, 185, 129, 0.1);
+            border-left: 4px solid #10b981;
+            padding: 15px;
+            border-radius: 6px;
+        }
+        .stat-label {
+            font-size: 0.85em;
+            color: #10b981;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 6px;
+        }
+        .stat-value {
+            font-size: 1.4em;
+            color: #fff;
+            font-family: 'Space Mono', monospace;
+            font-weight: bold;
+        }
+        .factorization-display {
+            background: rgba(16, 185, 129, 0.08);
+            border: 1px solid #10b981;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            font-family: 'Space Mono', monospace;
+            font-size: 1em;
+            word-break: break-word;
+        }
+        svg {
+            width: 100%;
+            height: auto;
+            background: rgba(10, 20, 40, 0.6);
+            border: 2px solid #4da8da;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+        .chart-title {
+            font-size: 0.95em;
+            color: #10b981;
+            margin-top: 20px;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+        canvas {
+            width: 100%;
+            height: 250px;
+            background: rgba(10, 20, 40, 0.6);
+            border: 2px solid #4da8da;
+            border-radius: 8px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Left: Input & Stats -->
+        <div class="panel">
+            <h1>Prime Factor Scout</h1>
+            <p class="subtitle">Decode the prime structure hidden inside any number</p>
+            
+            <div class="input-group">
+                <label for="inputNum">Enter a number (up to 10 digits)</label>
+                <input type="number" id="inputNum" value="91" min="2" max="9999999999">
+                <div class="buttons">
+                    <button onclick="factorize()">Factorize</button>
+                    <button onclick="setExample(143)">143 (11×13)</button>
+                    <button onclick="setExample(221)">221 (13×17)</button>
+                    <button onclick="setExample(561)">Carmichael</button>
+                    <button onclick="setExample(6469693230)">RSA-34</button>
+                </div>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <div class="stat-label">Type</div>
+                    <div class="stat-value" id="typeValue">Prime</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Totient φ(n)</div>
+                    <div class="stat-value" id="totientValue">—</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Prime Factors</div>
+                    <div class="stat-value" id="countValue">1</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Time (ms)</div>
+                    <div class="stat-value" id="timeValue">0</div>
+                </div>
+            </div>
+
+            <div class="factorization-display" id="factDisplay">91 = 7¹ × 13¹</div>
+        </div>
+
+        <!-- Right: Visualizations -->
+        <div class="panel">
+            <div class="chart-title">Factor Tree</div>
+            <svg id="factorTree" viewBox="0 0 500 300" style="min-height: 280px;"></svg>
+
+            <div class="chart-title">Prime Distribution</div>
+            <canvas id="primeChart"></canvas>
+        </div>
+    </div>
+
+    <script>
+        // Pollard's Rho for large factors
+        function gcd(a, b) {
+            while (b) {
+                [a, b] = [b, a % b];
+            }
+            return a;
+        }
+
+        function pollardRho(n) {
+            if (n % 2 === 0) return 2;
+            let x = Math.floor(Math.random() * (n - 2)) + 2;
+            let y = x;
+            let c = Math.floor(Math.random() * (n - 1)) + 1;
+            let d = 1;
+            while (d === 1) {
+                x = (x * x + c) % n;
+                y = (y * y + c) % n;
+                y = (y * y + c) % n;
+                d = gcd(Math.abs(x - y), n);
+                if (d === n) return pollardRho(n);
+            }
+            return d;
+        }
+
+        function isPrime(n) {
+            if (n < 2) return false;
+            if (n === 2) return true;
+            if (n % 2 === 0) return false;
+            for (let i = 3; i * i <= n; i += 2) {
+                if (n % i === 0) return false;
+            }
+            return true;
+        }
+
+        function factorize() {
+            let n = parseInt(document.getElementById('inputNum').value);
+            if (isNaN(n) || n < 2) {
+                alert('Please enter a number ≥ 2');
+                return;
+            }
+
+            const start = performance.now();
+            const factors = {};
+            let original = n;
+            
+            // Trial division
+            for (let i = 2; i * i <= n; i++) {
+                while (n % i === 0) {
+                    factors[i] = (factors[i] || 0) + 1;
+                    n /= i;
+                }
+            }
+            
+            // Pollard's rho for remaining large factor
+            if (n > 1) {
+                if (isPrime(n)) {
+                    factors[n] = (factors[n] || 0) + 1;
+                } else {
+                    let factor = pollardRho(n);
+                    while (n > 1) {
+                        if (isPrime(factor)) {
+                            factors[factor] = (factors[factor] || 0) + 1;
+                            n /= factor;
+                        }
+                        if (n > 1 && !isPrime(n)) {
+                            factor = pollardRho(n);
+                        } else if (n > 1) {
+                            factors[n] = (factors[n] || 0) + 1;
+                            n = 1;
+                        }
+                    }
+                }
+            }
+
+            const end = performance.now();
+            const elapsed = (end - start).toFixed(2);
+
+            // Calculate totient
+            let totient = 1;
+            const primes = Object.keys(factors).map(Number).sort((a, b) => a - b);
+            primes.forEach(p => {
+                totient *= Math.pow(p, factors[p] - 1) * (p - 1);
+            });
+
+            // Determine type
+            let type = 'Prime';
+            if (primes.length === 1 && factors[primes[0]] === 1) {
+                type = 'Prime';
+            } else if (primes.length === 2 && factors[primes[0]] === 1 && factors[primes[1]] === 1) {
+                type = 'Semiprime';
+            } else if (primes.reduce((sum, p) => sum + factors[p], 0) > 3) {
+                type = 'Highly Composite';
+            } else {
+                type = 'Composite';
+            }
+
+            // Build factorization string
+            let factStr = primes.map(p => {
+                const exp = factors[p];
+                return exp === 1 ? p : `${p}^${exp}`;
+            }).join(' × ');
+
+            // Update UI
+            document.getElementById('typeValue').textContent = type;
+            document.getElementById('totientValue').textContent = totient.toLocaleString();
+            document.getElementById('countValue').textContent = primes.length;
+            document.getElementById('timeValue').textContent = elapsed;
+            document.getElementById('factDisplay').textContent = `${original} = ${factStr}`;
+
+            // Draw factor tree
+            drawFactorTree(original, factors, primes);
+
+            // Draw prime chart
+            drawPrimeChart(factors, primes);
+        }
+
+        function drawFactorTree(n, factors, primes) {
+            const svg = document.getElementById('factorTree');
+            svg.innerHTML = '';
+            
+            if (primes.length === 1) {
+                // Single prime
+                const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                circle.setAttribute('cx', '250');
+                circle.setAttribute('cy', '150');
+                circle.setAttribute('r', '30');
+                circle.setAttribute('fill', '#ff6b6b');
+                circle.setAttribute('stroke', '#fff');
+                circle.setAttribute('stroke-width', '2');
+                svg.appendChild(circle);
+                
+                const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                text.setAttribute('x', '250');
+                text.setAttribute('y', '155');
+                text.setAttribute('text-anchor', 'middle');
+                text.setAttribute('font-size', '18');
+                text.setAttribute('fill', '#fff');
+                text.setAttribute('font-weight', 'bold');
+                text.textContent = n;
+                svg.appendChild(text);
+                return;
+            }
+
+            // Build tree
+            const step = 450 / (primes.length + 1);
+            const yRoot = 40;
+            const yLeaves = 240;
+
+            // Root
+            const rootCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            rootCircle.setAttribute('cx', '250');
+            rootCircle.setAttribute('cy', yRoot);
+            rootCircle.setAttribute('r', '25');
+            rootCircle.setAttribute('fill', '#4da8da');
+            rootCircle.setAttribute('stroke', '#fff');
+            rootCircle.setAttribute('stroke-width', '2');
+            svg.appendChild(rootCircle);
+
+            const rootText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            rootText.setAttribute('x', '250');
+            rootText.setAttribute('y', yRoot + 5);
+            rootText.setAttribute('text-anchor', 'middle');
+            rootText.setAttribute('font-size', '14');
+            rootText.setAttribute('fill', '#0a1428');
+            rootText.setAttribute('font-weight', 'bold');
+            rootText.textContent = n;
+            svg.appendChild(rootText);
+
+            // Leaves
+            primes.forEach((p, i) => {
+                const x = 50 + step * (i + 1);
+                
+                // Line
+                const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                line.setAttribute('x1', '250');
+                line.setAttribute('y1', yRoot + 25);
+                line.setAttribute('x2', x);
+                line.setAttribute('y2', yLeaves - 35);
+                line.setAttribute('stroke', '#10b981');
+                line.setAttribute('stroke-width', '2');
+                svg.appendChild(line);
+
+                // Leaf circle
+                const leaf = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                leaf.setAttribute('cx', x);
+                leaf.setAttribute('cy', yLeaves);
+                leaf.setAttribute('r', '22');
+                leaf.setAttribute('fill', '#ff6b6b');
+                leaf.setAttribute('stroke', '#fff');
+                leaf.setAttribute('stroke-width', '2');
+                svg.appendChild(leaf);
+
+                // Leaf text
+                const leafText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                leafText.setAttribute('x', x);
+                leafText.setAttribute('y', yLeaves + 5);
+                leafText.setAttribute('text-anchor', 'middle');
+                leafText.setAttribute('font-size', '13');
+                leafText.setAttribute('fill', '#0a1428');
+                leafText.setAttribute('font-weight', 'bold');
+                leafText.textContent = p;
+                svg.appendChild(leafText);
+
+                // Power label
+                if (factors[p] > 1) {
+                    const powerText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                    powerText.setAttribute('x', x + 20);
+                    powerText.setAttribute('y', yLeaves - 30);
+                    powerText.setAttribute('font-size', '12');
+                    powerText.setAttribute('fill', '#10b981');
+                    powerText.setAttribute('font-weight', 'bold');
+                    powerText.textContent = `^${factors[p]}`;
+                    svg.appendChild(powerText);
+                }
+            });
+        }
+
+        function drawPrimeChart(factors, primes) {
+            const canvas = document.getElementById('primeChart');
+            const ctx = canvas.getContext('2d');
+
+            const padding = 50;
+            const width = canvas.width - padding * 2;
+            const height = canvas.height - padding * 2;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const maxExponent = Math.max(...primes.map(p => factors[p]));
+            const barWidth = width / primes.length * 0.7;
+            const spacing = width / primes.length;
+
+            // Grid
+            ctx.strokeStyle = 'rgba(77, 168, 218, 0.1)';
+            ctx.lineWidth = 1;
+            for (let i = 0; i <= maxExponent; i++) {
+                const y = padding + height - (height / maxExponent) * i;
+                ctx.beginPath();
+                ctx.moveTo(padding - 5, y);
+                ctx.lineTo(canvas.width - padding, y);
+                ctx.stroke();
+            }
+
+            // Bars
+            primes.forEach((p, idx) => {
+                const barHeight = (factors[p] / maxExponent) * height;
+                const x = padding + spacing * idx + spacing / 2 - barWidth / 2;
+                const y = padding + height - barHeight;
+
+                // Bar
+                ctx.fillStyle = '#ff6b6b';
+                ctx.fillRect(x, y, barWidth, barHeight);
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(x, y, barWidth, barHeight);
+
+                // Label
+                ctx.fillStyle = '#10b981';
+                ctx.font = '12px Space Mono';
+                ctx.textAlign = 'center';
+                ctx.fillText(p, x + barWidth / 2, padding + height + 20);
+
+                // Value
+                ctx.fillStyle = '#e0e0e0';
+                ctx.font = 'bold 12px Space Mono';
+                ctx.fillText(factors[p], x + barWidth / 2, y - 5);
+            });
+
+            // Axes
+            ctx.strokeStyle = '#10b981';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(padding, padding);
+            ctx.lineTo(padding, padding + height);
+            ctx.lineTo(canvas.width - padding, padding + height);
+            ctx.stroke();
+        }
+
+        function setExample(n) {
+            document.getElementById('inputNum').value = n;
+            factorize();
+        }
+
+        // Initial factorization
+        factorize();
+    </script>
+</body>
+</html>
