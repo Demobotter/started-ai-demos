@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tic-Tac-Toe Unbeaten — Minimax AI</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: "Playfair Display", "Segment7", serif;
+            background: linear-gradient(135deg, #0a1428 0%, #1a2a4a 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            color: #e0e0e0;
+        }
+        .container {
+            text-align: center;
+            background: rgba(20, 40, 70, 0.9);
+            padding: 40px;
+            border-radius: 12px;
+            border: 2px solid #4da8da;
+            max-width: 500px;
+            width: 100%;
+            box-shadow: 0 8px 32px rgba(77, 168, 218, 0.2);
+        }
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            color: #4da8da;
+            letter-spacing: 2px;
+        }
+        .subtitle {
+            font-size: 1em;
+            color: #7dd3fc;
+            margin-bottom: 30px;
+            font-family: "Space Mono", monospace;
+            font-weight: 300;
+        }
+        .game-status {
+            font-size: 1.2em;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: rgba(77, 168, 218, 0.1);
+            border-left: 4px solid #4da8da;
+            border-radius: 4px;
+            font-family: "Space Mono", monospace;
+            min-height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .board {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-bottom: 30px;
+            background: #0a1428;
+            padding: 8px;
+            border-radius: 8px;
+            border: 2px solid #4da8da;
+        }
+        .cell {
+            width: 100%;
+            aspect-ratio: 1;
+            background: #1a3a5a;
+            border: 2px solid #4da8da;
+            border-radius: 4px;
+            font-size: 2.5em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: "Playfair Display", serif;
+            color: #4da8da;
+            user-select: none;
+        }
+        .cell:hover:not(:disabled) {
+            background: #2a4a7a;
+            transform: scale(1.05);
+            box-shadow: 0 0 12px rgba(77, 168, 218, 0.4);
+        }
+        .cell:disabled {
+            cursor: not-allowed;
+            opacity: 0.9;
+        }
+        .cell.x {
+            color: #4da8da;
+        }
+        .cell.o {
+            color: #ff6b6b;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 30px;
+            font-family: "Space Mono", monospace;
+            font-size: 0.95em;
+        }
+        .stat-box {
+            background: rgba(77, 168, 218, 0.1);
+            padding: 15px;
+            border-radius: 6px;
+            border-left: 3px solid #4da8da;
+        }
+        .stat-label {
+            color: #7dd3fc;
+            font-size: 0.85em;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .stat-value {
+            color: #4da8da;
+            font-size: 1.5em;
+            font-weight: bold;
+        }
+        .buttons {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        button {
+            padding: 12px 24px;
+            background: #4da8da;
+            color: #0a1428;
+            border: none;
+            border-radius: 6px;
+            font-family: "Space Mono", monospace;
+            font-weight: bold;
+            font-size: 1em;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        button:hover {
+            background: #7dd3fc;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(77, 168, 218, 0.4);
+        }
+        button:active {
+            transform: translateY(0);
+        }
+        .insight {
+            background: rgba(125, 211, 252, 0.05);
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid #4da8da;
+            font-size: 0.95em;
+            line-height: 1.6;
+            color: #b0d4e3;
+            font-family: "Space Mono", monospace;
+            text-align: left;
+        }
+        .insight-title {
+            color: #4da8da;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎮 Tic-Tac-Toe Unbeaten</h1>
+        <div class="subtitle">You (X) vs Minimax AI (O)</div>
+        
+        <div class="game-status" id="status">Your Turn</div>
+        
+        <div class="board" id="board"></div>
+        
+        <div class="stats">
+            <div class="stat-box">
+                <div class="stat-label">Moves</div>
+                <div class="stat-value" id="moveCount">0</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Games</div>
+                <div class="stat-value" id="gameCount">0</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Your Wins</div>
+                <div class="stat-value" id="winCount">0</div>
+            </div>
+        </div>
+        
+        <div class="buttons">
+            <button onclick="game.reset()">New Game</button>
+            <button onclick="game.resetStats()">Reset Stats</button>
+        </div>
+        
+        <div class="insight">
+            <div class="insight-title">💡 Why Unbeaten?</div>
+            <p>Minimax evaluates every possible future move (362,880 game trees) and picks the move that guarantees the best outcome if both players play perfectly. Against perfect play, tic-tac-toe always ends in a draw. Try to win!</p>
+        </div>
+    </div>
+
+    <script>
+        const game = {
+            board: ['', '', '', '', '', '', '', '', ''],
+            human: 'X',
+            ai: 'O',
+            gameOver: false,
+            moveCount: 0,
+            gameCount: 0,
+            wins: 0,
+            draws: 0,
+            losses: 0,
+
+            init() {
+                this.renderBoard();
+                this.loadStats();
+            },
+
+            renderBoard() {
+                const boardEl = document.getElementById('board');
+                boardEl.innerHTML = '';
+                this.board.forEach((cell, idx) => {
+                    const btn = document.createElement('button');
+                    btn.className = 'cell';
+                    if (cell === 'X') btn.classList.add('x');
+                    if (cell === 'O') btn.classList.add('o');
+                    btn.textContent = cell;
+                    btn.onclick = () => this.humanMove(idx);
+                    btn.disabled = cell !== '' || this.gameOver;
+                    boardEl.appendChild(btn);
+                });
+                document.getElementById('moveCount').textContent = this.moveCount;
+                document.getElementById('gameCount').textContent = this.gameCount;
+                document.getElementById('winCount').textContent = this.wins;
+            },
+
+            humanMove(idx) {
+                if (this.board[idx] !== '' || this.gameOver) return;
+                this.board[idx] = this.human;
+                this.moveCount++;
+                const result = this.checkWinner();
+                if (result) {
+                    this.gameOver = true;
+                    this.gameCount++;
+                    if (result === 'X') {
+                        this.wins++;
+                        document.getElementById('status').textContent = '🎉 You Won!';
+                    } else {
+                        this.losses++;
+                        document.getElementById('status').textContent = '😢 You Lost';
+                    }
+                } else if (this.isBoardFull()) {
+                    this.gameOver = true;
+                    this.gameCount++;
+                    this.draws++;
+                    document.getElementById('status').textContent = '🤝 Draw Game';
+                } else {
+                    document.getElementById('status').textContent = 'AI Thinking...';
+                    this.renderBoard();
+                    setTimeout(() => this.aiMove(), 300);
+                    return;
+                }
+                this.renderBoard();
+                this.saveStats();
+            },
+
+            aiMove() {
+                const best = this.minimax(this.board, this.ai);
+                this.board[best.index] = this.ai;
+                this.moveCount++;
+                const result = this.checkWinner();
+                if (result) {
+                    this.gameOver = true;
+                    this.gameCount++;
+                    if (result === 'O') {
+                        this.losses++;
+                        document.getElementById('status').textContent = '😢 AI Wins';
+                    }
+                } else if (this.isBoardFull()) {
+                    this.gameOver = true;
+                    this.gameCount++;
+                    this.draws++;
+                    document.getElementById('status').textContent = '🤝 Draw Game';
+                } else {
+                    document.getElementById('status').textContent = 'Your Turn';
+                }
+                this.renderBoard();
+                this.saveStats();
+            },
+
+            minimax(board, player) {
+                const emptySpaces = board.reduce((acc, cell, idx) => cell === '' ? [...acc, idx] : acc, []);
+                const winner = this.getWinner(board);
+                
+                if (winner === 'O') return { score: 10 };
+                if (winner === 'X') return { score: -10 };
+                if (emptySpaces.length === 0) return { score: 0 };
+
+                let best = player === 'O' ? { score: -Infinity } : { score: Infinity };
+
+                emptySpaces.forEach(idx => {
+                    const newBoard = [...board];
+                    newBoard[idx] = player;
+                    const next = player === 'O' ? 'X' : 'O';
+                    const result = this.minimax(newBoard, next);
+                    result.index = idx;
+
+                    if (player === 'O' && result.score > best.score) {
+                        best = result;
+                    } else if (player === 'X' && result.score < best.score) {
+                        best = result;
+                    }
+                });
+
+                return best;
+            },
+
+            checkWinner() {
+                return this.getWinner(this.board);
+            },
+
+            getWinner(board) {
+                const lines = [
+                    [0, 1, 2], [3, 4, 5], [6, 7, 8],
+                    [0, 3, 6], [1, 4, 7], [2, 5, 8],
+                    [0, 4, 8], [2, 4, 6]
+                ];
+                for (let [a, b, c] of lines) {
+                    if (board[a] !== '' && board[a] === board[b] && board[b] === board[c]) {
+                        return board[a];
+                    }
+                }
+                return null;
+            },
+
+            isBoardFull() {
+                return this.board.every(cell => cell !== '');
+            },
+
+            reset() {
+                this.board = ['', '', '', '', '', '', '', '', ''];
+                this.gameOver = false;
+                this.moveCount = 0;
+                document.getElementById('status').textContent = 'Your Turn';
+                this.renderBoard();
+            },
+
+            resetStats() {
+                this.gameCount = 0;
+                this.wins = 0;
+                this.draws = 0;
+                this.losses = 0;
+                this.saveStats();
+                this.reset();
+            },
+
+            saveStats() {
+                localStorage.setItem('ttt_games', this.gameCount);
+                localStorage.setItem('ttt_wins', this.wins);
+            },
+
+            loadStats() {
+                this.gameCount = parseInt(localStorage.getItem('ttt_games')) || 0;
+                this.wins = parseInt(localStorage.getItem('ttt_wins')) || 0;
+                this.renderBoard();
+            }
+        };
+
+        game.init();
+    </script>
+</body>
+</html>
