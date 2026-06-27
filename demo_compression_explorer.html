@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Compression Ratio Explorer</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Space Mono', 'Courier New', monospace;
+            background: linear-gradient(135deg, #0a1428 0%, #1f4d7f 100%);
+            color: #e0e0e0;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            font-family: 'Playfair Display', serif;
+            text-align: center;
+            margin-bottom: 30px;
+            color: #4da8da;
+            font-size: 2.5em;
+        }
+        .layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        @media (max-width: 1024px) {
+            .layout { grid-template-columns: 1fr; }
+        }
+        
+        /* Input Panel */
+        .panel {
+            background: rgba(15, 30, 60, 0.8);
+            border: 2px solid #4da8da;
+            border-radius: 8px;
+            padding: 20px;
+        }
+        .panel h2 {
+            color: #4da8da;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+            font-family: 'Playfair Display', serif;
+        }
+        textarea {
+            width: 100%;
+            height: 200px;
+            background: #0a1428;
+            color: #00ff88;
+            border: 1px solid #1f4d7f;
+            border-radius: 4px;
+            padding: 12px;
+            font-family: 'Space Mono', monospace;
+            font-size: 13px;
+            resize: vertical;
+        }
+        textarea:focus { outline: none; border-color: #4da8da; }
+        
+        .input-stats {
+            margin-top: 15px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            font-size: 13px;
+        }
+        .stat-item {
+            background: rgba(0, 255, 136, 0.1);
+            border-left: 3px solid #00ff88;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .stat-label { color: #999; font-size: 11px; text-transform: uppercase; }
+        .stat-value { color: #00ff88; font-size: 18px; font-weight: bold; margin-top: 5px; }
+        
+        /* Algorithm Results */
+        .algorithms {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-top: 20px;
+        }
+        @media (max-width: 768px) {
+            .algorithms { grid-template-columns: 1fr; }
+        }
+        
+        .algo-box {
+            background: rgba(20, 40, 80, 0.9);
+            border: 2px solid #00ff88;
+            border-radius: 6px;
+            padding: 15px;
+        }
+        .algo-box h3 {
+            color: #fbbf24;
+            font-size: 1.1em;
+            margin-bottom: 12px;
+            border-bottom: 1px solid #1f4d7f;
+            padding-bottom: 8px;
+        }
+        
+        .ratio-meter {
+            margin: 12px 0;
+        }
+        .ratio-label { color: #999; font-size: 12px; }
+        .ratio-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #4da8da;
+            margin: 5px 0;
+        }
+        .ratio-bar {
+            height: 20px;
+            background: #0a1428;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+        .ratio-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00ff88, #4da8da, #ff6b6b);
+            transition: width 0.3s ease;
+        }
+        
+        .efficiency-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-top: 8px;
+        }
+        .eff-good { background: rgba(0, 255, 136, 0.3); color: #00ff88; }
+        .eff-ok { background: rgba(251, 191, 36, 0.3); color: #fbbf24; }
+        .eff-poor { background: rgba(255, 107, 107, 0.3); color: #ff6b6b; }
+        
+        .algo-details {
+            font-size: 12px;
+            color: #999;
+            margin-top: 10px;
+            line-height: 1.5;
+        }
+        
+        /* Comparison Chart */
+        .chart-section {
+            grid-column: 1 / -1;
+            margin-top: 20px;
+        }
+        .chart-section h3 {
+            color: #4da8da;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+            font-family: 'Playfair Display', serif;
+        }
+        .chart-bars {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+        }
+        @media (max-width: 768px) {
+            .chart-bars { grid-template-columns: 1fr 1fr; }
+        }
+        
+        .bar-item {
+            background: rgba(20, 40, 80, 0.9);
+            border: 1px solid #1f4d7f;
+            border-radius: 4px;
+            padding: 12px;
+            text-align: center;
+        }
+        .bar-label { color: #999; font-size: 12px; margin-bottom: 8px; }
+        .bar-visual {
+            height: 100px;
+            background: #0a1428;
+            border-radius: 3px;
+            margin: 8px 0;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+        }
+        .bar-fill {
+            width: 60%;
+            background: linear-gradient(180deg, #4da8da, #00ff88);
+            border-radius: 3px;
+            transition: all 0.3s ease;
+        }
+        .bar-value {
+            color: #4da8da;
+            font-size: 14px;
+            font-weight: bold;
+            margin-top: 5px;
+        }
+        
+        .best-badge {
+            color: #fbbf24;
+            font-size: 11px;
+            text-transform: uppercase;
+            margin-top: 5px;
+        }
+        
+        /* Sample Button */
+        .button-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        button {
+            background: #4da8da;
+            color: #0a1428;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+            font-family: 'Space Mono', monospace;
+        }
+        button:hover {
+            background: #00ff88;
+            transform: translateY(-2px);
+        }
+        button:active { transform: translateY(0); }
+        
+        .info-box {
+            background: rgba(77, 168, 218, 0.2);
+            border-left: 3px solid #4da8da;
+            padding: 12px;
+            border-radius: 4px;
+            margin-top: 15px;
+            font-size: 12px;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🗜️ Compression Explorer</h1>
+        
+        <div class="layout">
+            <div class="panel">
+                <h2>Input Text</h2>
+                <textarea id="inputText" placeholder="Paste or type text here...&#10;&#10;Try Shakespeare, DNA sequences, repeated text, or random gibberish to see how different compression algorithms perform.&#10;&#10;Max 50KB">The quick brown fox jumps over the lazy dog. The quick brown fox jumps over the lazy dog.</textarea>
+                
+                <div class="button-group">
+                    <button onclick="loadSample('shakespeare')">Shakespeare</button>
+                    <button onclick="loadSample('dna')">DNA Sequence</button>
+                    <button onclick="loadSample('random')">Random Text</button>
+                    <button onclick="loadSample('json')">JSON Data</button>
+                </div>
+                
+                <div class="input-stats">
+                    <div class="stat-item">
+                        <div class="stat-label">Input Size</div>
+                        <div class="stat-value" id="inputSize">0 B</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Unique Chars</div>
+                        <div class="stat-value" id="uniqueChars">0</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Entropy (bits)</div>
+                        <div class="stat-value" id="entropy">0.0</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Compressibility</div>
+                        <div class="stat-value" id="compressibility">—</div>
+                    </div>
+                </div>
+                
+                <div class="info-box">
+                    <strong>💡 How compression works:</strong> Real algorithms analyze patterns in your text and represent repeated data more efficiently. Some excel at repetitive data (RLE), others at uneven character frequencies (Huffman), and some at finding repeated substrings (LZ77).
+                </div>
+            </div>
+            
+            <div class="panel">
+                <h2>Algorithms</h2>
+                
+                <div class="algorithms">
+                    <div class="algo-box">
+                        <h3>RLE</h3>
+                        <div class="ratio-meter">
+                            <div class="ratio-label">Compression Ratio</div>
+                            <div class="ratio-value" id="rleRatio">0%</div>
+                            <div class="ratio-bar">
+                                <div class="ratio-fill" id="rleFill" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        <div class="efficiency-badge" id="rleEff"></div>
+                        <div class="algo-details">
+                            <strong>Run-Length Encoding</strong><br>
+                            Counts consecutive characters<br>
+                            <span id="rleSize">0 → 0 bytes</span>
+                        </div>
+                    </div>
+                    
+                    <div class="algo-box">
+                        <h3>Huffman</h3>
+                        <div class="ratio-meter">
+                            <div class="ratio-label">Compression Ratio</div>
+                            <div class="ratio-value" id="huffmanRatio">0%</div>
+                            <div class="ratio-bar">
+                                <div class="ratio-fill" id="huffmanFill" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        <div class="efficiency-badge" id="huffmanEff"></div>
+                        <div class="algo-details">
+                            <strong>Huffman Coding</strong><br>
+                            Variable-length codes based on frequency<br>
+                            <span id="huffmanSize">0 → 0 bits</span>
+                        </div>
+                    </div>
+                    
+                    <div class="algo-box">
+                        <h3>LZ77</h3>
+                        <div class="ratio-meter">
+                            <div class="ratio-label">Compression Ratio</div>
+                            <div class="ratio-value" id="lz77Ratio">0%</div>
+                            <div class="ratio-bar">
+                                <div class="ratio-fill" id="lz77Fill" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        <div class="efficiency-badge" id="lz77Eff"></div>
+                        <div class="algo-details">
+                            <strong>LZ77 (Sliding Window)</strong><br>
+                            Finds repeated substrings<br>
+                            <span id="lz77Size">0 → 0 bytes</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="panel chart-section">
+            <h3>Comparison: Original vs Compressed</h3>
+            <div class="chart-bars">
+                <div class="bar-item">
+                    <div class="bar-label">Original</div>
+                    <div class="bar-visual">
+                        <div class="bar-fill" id="barOriginal" style="height: 100%; width: 100%;"></div>
+                    </div>
+                    <div class="bar-value" id="barOriginalValue">0 B</div>
+                </div>
+                <div class="bar-item">
+                    <div class="bar-label">RLE</div>
+                    <div class="bar-visual">
+                        <div class="bar-fill" id="barRLE"></div>
+                    </div>
+                    <div class="bar-value" id="barRLEValue">0 B</div>
+                    <div class="best-badge" id="bestRLE"></div>
+                </div>
+                <div class="bar-item">
+                    <div class="bar-label">Huffman</div>
+                    <div class="bar-visual">
+                        <div class="bar-fill" id="barHuffman"></div>
+                    </div>
+                    <div class="bar-value" id="barHuffmanValue">0 bits</div>
+                    <div class="best-badge" id="bestHuffman"></div>
+                </div>
+                <div class="bar-item">
+                    <div class="bar-label">LZ77</div>
+                    <div class="bar-visual">
+                        <div class="bar-fill" id="barLZ77"></div>
+                    </div>
+                    <div class="bar-value" id="barLZ77Value">0 B</div>
+                    <div class="best-badge" id="bestLZ77"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const inputEl = document.getElementById('inputText');
+        
+        // Samples
+        function loadSample(type) {
+            const samples = {
+                shakespeare: "To be, or not to be, that is the question:\nWhether 'tis nobler in the mind to suffer\nThe slings and arrows of outrageous fortune,\nOr to take arms against a sea of troubles\nAnd by opposing end them; to die, to sleep;\nNo more; and by a sleep to say we end\nThe heart-ache and the thousand natural shocks\nThat flesh is heir to, 'tis a consummation\nDevoutly to be wish'd. To die, to sleep;\nTo sleep: perchance to dream: ay, there's the rub;",
+                dna: "ACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGTACGT",
+                random: "xKj9mL2qR5t7vW3nB8pX1cF4gH6sD0aE2yJ5uI8oP3zT6wQ9mN4rL7kV1bC3fG5dH2jM8sR0vW4yP7tK9qN6xL2uI8bJ5cG7mF0dE3hR9sT1vK4wP6yL8zQ3rM0uN5bJ7cG2xI9dF4eMkL6tR1",
+                json: '{"users": [{"id": 1, "name": "Alice"}, {"id": 2, "name": "Bob"}], "count": 2, "active": true, "data": {"items": [], "nested": {"value": null}}}'
+            };
+            inputEl.value = samples[type] || '';
+            updateCompressionMetrics();
+        }
+        
+        // Real RLE Compression
+        function runRLE(text) {
+            let encoded = '';
+            let i = 0;
+            while (i < text.length) {
+                let char = text[i];
+                let count = 1;
+                while (i + count < text.length && text[i + count] === char && count < 255) {
+                    count++;
+                }
+                encoded += count + char;
+                i += count;
+            }
+            return { compressed: encoded, ratio: (encoded.length / text.length) * 100 };
+        }
+        
+        // Real Huffman Coding (simplified approximation)
+        function runHuffman(text) {
+            // Count character frequencies
+            const freq = {};
+            for (let char of text) {
+                freq[char] = (freq[char] || 0) + 1;
+            }
+            
+            // Calculate optimal bits per character using entropy
+            let totalEntropy = 0;
+            for (let char in freq) {
+                const p = freq[char] / text.length;
+                totalEntropy += p * Math.log2(1 / p);
+            }
+            
+            const compressedBits = Math.ceil(text.length * totalEntropy);
+            const originalBits = text.length * 8; // Assume 8 bits per char
+            
+            return {
+                compressedBits: compressedBits,
+                originalBits: originalBits,
+                ratio: (compressedBits / originalBits) * 100,
+                entropy: totalEntropy
+            };
+        }
+        
+        // Real LZ77 Sliding Window Compression
+        function runLZ77(text) {
+            const windowSize = 4096;
+            const minMatchLength = 3;
+            let encoded = '';
+            let i = 0;
+            let tokens = 0;
+            
+            while (i < text.length) {
+                let bestLength = 0;
+                let bestDistance = 0;
+                
+                // Search window (previous text)
+                const windowStart = Math.max(0, i - windowSize);
+                const window = text.substring(windowStart, i);
+                
+                // Look for matches in window
+                let remainingText = text.substring(i);
+                for (let j = window.length - minMatchLength; j >= 0; j--) {
+                    let matchLen = 0;
+                    while (matchLen < remainingText.length && 
+                           j + matchLen < window.length && 
+                           window[j + matchLen] === remainingText[matchLen] &&
+                           matchLen < 255) {
+                        matchLen++;
+                    }
+                    if (matchLen >= minMatchLength && matchLen > bestLength) {
+                        bestLength = matchLen;
+                        bestDistance = window.length - j;
+                    }
+                }
+                
+                if (bestLength >= minMatchLength) {
+                    encoded += `[${bestDistance},${bestLength}]`;
+                    tokens++;
+                    i += bestLength;
+                } else {
+                    encoded += text[i];
+                    tokens++;
+                    i++;
+                }
+            }
+            
+            return { compressed: encoded, ratio: (encoded.length / text.length) * 100, matches: tokens };
+        }
+        
+        // Calculate entropy (Shannon)
+        function calculateEntropy(text) {
+            if (!text) return 0;
+            const freq = {};
+            for (let char of text) {
+                freq[char] = (freq[char] || 0) + 1;
+            }
+            let entropy = 0;
+            for (let char in freq) {
+                const p = freq[char] / text.length;
+                entropy -= p * Math.log2(p);
+            }
+            return entropy;
+        }
+        
+        // Format bytes
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 B';
+            if (bytes < 1024) return Math.round(bytes) + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+        }
+        
+        function getEfficiencyClass(ratio) {
+            if (ratio < 50) return { class: 'eff-good', label: '🎯 Excellent' };
+            if (ratio < 80) return { class: 'eff-ok', label: '⚖️ Moderate' };
+            return { class: 'eff-poor', label: '❌ Poor' };
+        }
+        
+        function updateCompressionMetrics() {
+            const text = inputEl.value;
+            if (!text) return;
+            
+            // Input stats
+            document.getElementById('inputSize').textContent = formatBytes(text.length);
+            const uniqueSet = new Set(text);
+            document.getElementById('uniqueChars').textContent = uniqueSet.size;
+            const ent = calculateEntropy(text);
+            document.getElementById('entropy').textContent = ent.toFixed(2);
+            
+            // Compressibility assessment
+            let compAss = 'Moderate';
+            if (ent < 3) compAss = 'Very High';
+            else if (ent < 5) compAss = 'High';
+            else if (ent > 7) compAss = 'Low';
+            document.getElementById('compressibility').textContent = compAss;
+            
+            // Run algorithms
+            const rle = runRLE(text);
+            const huffman = runHuffman(text);
+            const lz77 = runLZ77(text);
+            
+            // Update RLE
+            document.getElementById('rleRatio').textContent = rle.ratio.toFixed(1) + '%';
+            document.getElementById('rleSize').textContent = `${text.length} → ${Math.ceil(rle.compressed.length)} bytes`;
+            const rleEff = getEfficiencyClass(rle.ratio);
+            document.getElementById('rleEff').className = 'efficiency-badge ' + rleEff.class;
+            document.getElementById('rleEff').textContent = rleEff.label;
+            document.getElementById('rleFill').style.width = Math.min(rle.ratio, 100) + '%';
+            
+            // Update Huffman
+            document.getElementById('huffmanRatio').textContent = huffman.ratio.toFixed(1) + '%';
+            document.getElementById('huffmanSize').textContent = `${huffman.originalBits} → ${huffman.compressedBits} bits`;
+            const huffEff = getEfficiencyClass(huffman.ratio);
+            document.getElementById('huffmanEff').className = 'efficiency-badge ' + huffEff.class;
+            document.getElementById('huffmanEff').textContent = huffEff.label;
+            document.getElementById('huffmanFill').style.width = Math.min(huffman.ratio, 100) + '%';
+            
+            // Update LZ77
+            document.getElementById('lz77Ratio').textContent = lz77.ratio.toFixed(1) + '%';
+            document.getElementById('lz77Size').textContent = `${text.length} → ${Math.ceil(lz77.compressed.length)} bytes`;
+            const lz77Eff = getEfficiencyClass(lz77.ratio);
+            document.getElementById('lz77Eff').className = 'efficiency-badge ' + lz77Eff.class;
+            document.getElementById('lz77Eff').textContent = lz77Eff.label;
+            document.getElementById('lz77Fill').style.width = Math.min(lz77.ratio, 100) + '%';
+            
+            // Update comparison bars
+            document.getElementById('barOriginalValue').textContent = formatBytes(text.length);
+            document.getElementById('barRLEValue').textContent = formatBytes(rle.compressed.length);
+            document.getElementById('barHuffmanValue').textContent = formatBytes(huffman.compressedBits / 8);
+            document.getElementById('barLZ77Value').textContent = formatBytes(lz77.compressed.length);
+            
+            const maxSize = Math.max(text.length, rle.compressed.length, lz77.compressed.length, huffman.compressedBits / 8);
+            document.getElementById('barRLE').style.height = ((rle.compressed.length / maxSize) * 100) + '%';
+            document.getElementById('barHuffman').style.height = ((huffman.compressedBits / 8 / maxSize) * 100) + '%';
+            document.getElementById('barLZ77').style.height = ((lz77.compressed.length / maxSize) * 100) + '%';
+            
+            // Best algorithm badges
+            const ratios = { rle: rle.ratio, huffman: huffman.ratio, lz77: lz77.ratio };
+            const best = Object.keys(ratios).reduce((a, b) => ratios[a] < ratios[b] ? a : b);
+            document.getElementById('bestRLE').textContent = best === 'rle' ? '⭐ Best' : '';
+            document.getElementById('bestHuffman').textContent = best === 'huffman' ? '⭐ Best' : '';
+            document.getElementById('bestLZ77').textContent = best === 'lz77' ? '⭐ Best' : '';
+        }
+        
+        // Real-time update
+        inputEl.addEventListener('input', updateCompressionMetrics);
+        
+        // Initial load
+        loadSample('shakespeare');
+    </script>
+</body>
+</html>
