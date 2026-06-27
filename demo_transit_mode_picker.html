@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transit Mode Picker</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Playfair Display', 'Georgia', serif;
+            background: linear-gradient(135deg, #0a1428 0%, #15213d 100%);
+            color: #e0e0e0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            font-size: 2.5rem;
+            margin-bottom: 30px;
+            color: #4da8da;
+            text-shadow: 0 2px 10px rgba(77, 168, 218, 0.3);
+        }
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        .panel {
+            background: rgba(15, 30, 50, 0.8);
+            border: 1px solid rgba(77, 168, 218, 0.3);
+            border-radius: 12px;
+            padding: 24px;
+            backdrop-filter: blur(10px);
+        }
+        .control-section {
+            margin-bottom: 24px;
+        }
+        .control-section label {
+            display: block;
+            font-size: 0.95rem;
+            color: #7dd3fc;
+            margin-bottom: 8px;
+            font-weight: 600;
+            font-family: 'Space Mono', monospace;
+        }
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            background: rgba(77, 168, 218, 0.2);
+            border-radius: 3px;
+            outline: none;
+            -webkit-appearance: none;
+            accent-color: #4da8da;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            background: #4da8da;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(77, 168, 218, 0.6);
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            background: #4da8da;
+            border-radius: 50%;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 0 10px rgba(77, 168, 218, 0.6);
+        }
+        select {
+            width: 100%;
+            padding: 10px;
+            background: rgba(77, 168, 218, 0.15);
+            border: 1px solid rgba(77, 168, 218, 0.4);
+            border-radius: 6px;
+            color: #e0e0e0;
+            font-family: 'Space Mono', monospace;
+            cursor: pointer;
+        }
+        select option {
+            background: #0a1428;
+            color: #e0e0e0;
+        }
+        .value-display {
+            display: inline-block;
+            background: rgba(77, 168, 218, 0.2);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            color: #4da8da;
+            font-family: 'Space Mono', monospace;
+            margin-left: 8px;
+        }
+        .results {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        .mode-card {
+            background: rgba(20, 40, 70, 0.6);
+            border-left: 4px solid #4da8da;
+            border-radius: 8px;
+            padding: 16px;
+            position: relative;
+            overflow: hidden;
+        }
+        .mode-card.winner {
+            border-left-color: #00ff88;
+            box-shadow: 0 0 20px rgba(0, 255, 136, 0.3);
+        }
+        .mode-card.winner::before {
+            content: "🏆";
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            font-size: 24px;
+        }
+        .mode-name {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #7dd3fc;
+            margin-bottom: 8px;
+            font-family: 'Space Mono', monospace;
+        }
+        .mode-score {
+            font-size: 2rem;
+            color: #4da8da;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        .mode-details {
+            font-size: 0.85rem;
+            color: #a8d8ff;
+            line-height: 1.6;
+            font-family: 'Space Mono', monospace;
+        }
+        .mode-details div {
+            margin-bottom: 4px;
+        }
+        .facts-panel {
+            grid-column: 1 / -1;
+            background: rgba(0, 255, 136, 0.1);
+            border: 1px solid rgba(0, 255, 136, 0.3);
+            border-radius: 8px;
+            padding: 20px;
+        }
+        .facts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 16px;
+        }
+        .fact {
+            background: rgba(0, 255, 136, 0.05);
+            padding: 12px;
+            border-radius: 6px;
+            border-left: 3px solid #00ff88;
+        }
+        .fact-label {
+            font-size: 0.8rem;
+            color: #7dd3fc;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-family: 'Space Mono', monospace;
+            margin-bottom: 4px;
+        }
+        .fact-value {
+            font-size: 1.3rem;
+            color: #00ff88;
+            font-weight: 700;
+            font-family: 'Space Mono', monospace;
+        }
+        .winner-box {
+            grid-column: 1 / -1;
+            background: linear-gradient(135deg, rgba(0, 255, 136, 0.15), rgba(77, 168, 218, 0.15));
+            border: 1px solid rgba(0, 255, 136, 0.4);
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+        }
+        .winner-title {
+            font-size: 1.3rem;
+            color: #00ff88;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        .winner-reasoning {
+            font-size: 0.95rem;
+            color: #a8d8ff;
+            font-family: 'Space Mono', monospace;
+        }
+        .notes-section {
+            grid-column: 1 / -1;
+            margin-top: 20px;
+        }
+        .note {
+            background: rgba(77, 168, 218, 0.08);
+            border-left: 3px solid #4da8da;
+            padding: 12px;
+            margin-bottom: 8px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            color: #a8d8ff;
+        }
+        @media (max-width: 768px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+            .results {
+                grid-template-columns: 1fr;
+            }
+            h1 {
+                font-size: 1.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚗 Transit Mode Picker</h1>
+        
+        <div class="main-grid">
+            <div class="panel">
+                <h2 style="color: #4da8da; margin-bottom: 20px; font-size: 1.3rem;">Your Journey</h2>
+                
+                <div class="control-section">
+                    <label>Distance <span class="value-display"><span id="distVal">5</span> km</span></label>
+                    <input type="range" id="distance" min="0.1" max="50" step="0.1" value="5">
+                </div>
+                
+                <div class="control-section">
+                    <label>Weather</label>
+                    <select id="weather">
+                        <option value="clear">Clear</option>
+                        <option value="rainy">Rainy</option>
+                        <option value="snowy">Snowy</option>
+                        <option value="hot">Hot</option>
+                    </select>
+                </div>
+                
+                <div class="control-section">
+                    <label>Time Available <span class="value-display"><span id="timeVal">30</span> min</span></label>
+                    <input type="range" id="time" min="5" max="120" step="5" value="30">
+                </div>
+                
+                <div class="control-section">
+                    <label>Budget <span class="value-display">$<span id="budgetVal">10</span></span></label>
+                    <input type="range" id="budget" min="0" max="50" step="1" value="10">
+                </div>
+                
+                <div class="control-section">
+                    <label>Physical Ability</label>
+                    <select id="ability">
+                        <option value="low">Low</option>
+                        <option value="medium">Medium</option>
+                        <option value="high">High</option>
+                    </select>
+                </div>
+                
+                <div class="control-section">
+                    <label>Luggage</label>
+                    <select id="luggage">
+                        <option value="none">None</option>
+                        <option value="light">Light</option>
+                        <option value="heavy">Heavy</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="panel">
+                <h2 style="color: #4da8da; margin-bottom: 20px; font-size: 1.3rem;">Recommendations</h2>
+                <div class="results" id="results"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Scoring algorithm
+        function calculateScores() {
+            const distance = parseFloat(document.getElementById('distance').value);
+            const weather = document.getElementById('weather').value;
+            const time = parseFloat(document.getElementById('time').value);
+            const budget = parseFloat(document.getElementById('budget').value);
+            const ability = document.getElementById('ability').value;
+            const luggage = document.getElementById('luggage').value;
+
+            // Define modes with base speeds (km/h), costs ($/km), CO2 (g/km), cal/km
+            const modes = {
+                'Walk': { speed: 5, costPer: 0, co2: 0, cal: 80, icon: '🚶' },
+                'Bike': { speed: 20, costPer: 0, co2: 0, cal: 40, icon: '🚴' },
+                'Bus': { speed: 25, costPer: 0.4, co2: 89, cal: 0, icon: '🚌' },
+                'Train': { speed: 60, costPer: 0.25, co2: 41, cal: 0, icon: '🚆' },
+                'Car': { speed: 40, costPer: 1.2, co2: 220, cal: 0, icon: '🚗' },
+                'Scooter': { speed: 25, costPer: 0.5, co2: 50, cal: 10, icon: '🛴' }
+            };
+
+            const scores = {};
+
+            Object.entries(modes).forEach(([mode, specs]) => {
+                let score = 0;
+                let feasible = true;
+                let reason = [];
+
+                // Speed score (0-100, higher is better)
+                const travelTime = (distance / specs.speed) * 60; // in minutes
+                const speedScore = Math.max(0, 100 - Math.abs(travelTime - time) * 1.5);
+
+                // Cost score (0-100, lower cost is better)
+                const totalCost = distance * specs.costPer;
+                const costScore = Math.max(0, 100 - (totalCost / budget * 100));
+
+                // Comfort score (0-100)
+                let comfortScore = 50;
+                if (mode === 'Train') comfortScore = 90;
+                else if (mode === 'Car') comfortScore = 85;
+                else if (mode === 'Bus') comfortScore = 60;
+                else if (mode === 'Scooter') comfortScore = 50;
+                else if (mode === 'Bike') comfortScore = 40;
+                else if (mode === 'Walk') comfortScore = 30;
+
+                // Fitness score (0-100, higher is better if ability allows)
+                let fitnessScore = 0;
+                if (mode === 'Walk') fitnessScore = ability === 'high' ? 100 : ability === 'medium' ? 70 : 40;
+                else if (mode === 'Bike') fitnessScore = ability === 'high' ? 90 : ability === 'medium' ? 60 : 30;
+
+                // Environmental score (0-100, lower CO2 is better)
+                const maxCO2 = 220; // car
+                const ecoScore = Math.max(0, 100 - (specs.co2 / maxCO2 * 100));
+
+                // Constraints
+                if (distance > 30 && (mode === 'Walk' || mode === 'Bike')) {
+                    feasible = false;
+                    reason.push('Too far');
+                }
+                if (distance < 0.5 && mode === 'Train') {
+                    feasible = false;
+                    reason.push('Too close for transit');
+                }
+                if (luggage === 'heavy' && (mode === 'Bike' || mode === 'Scooter')) {
+                    feasible = false;
+                    reason.push('Luggage incompatible');
+                }
+                if ((weather === 'rainy' || weather === 'snowy') && (mode === 'Bike' || mode === 'Scooter')) {
+                    comfortScore *= 0.4;
+                    reason.push('Weather risk');
+                }
+                if (weather === 'hot' && mode === 'Walk') {
+                    comfortScore *= 0.6;
+                    reason.push('Heat risk');
+                }
+                if (travelTime > time && feasible) {
+                    feasible = false;
+                    reason.push('Too slow');
+                }
+
+                if (feasible) {
+                    score = (speedScore * 0.3) + (costScore * 0.25) + (comfortScore * 0.2) + 
+                           (fitnessScore * 0.15) + (ecoScore * 0.1);
+                } else {
+                    score = 0;
+                }
+
+                scores[mode] = {
+                    score: Math.round(score),
+                    travelTime: Math.round(travelTime),
+                    cost: Math.round(totalCost * 100) / 100,
+                    co2: Math.round(specs.co2 * distance),
+                    cal: Math.round(specs.cal * distance),
+                    speedScore: Math.round(speedScore),
+                    costScore: Math.round(costScore),
+                    comfortScore: Math.round(comfortScore),
+                    fitnessScore: Math.round(fitnessScore),
+                    ecoScore: Math.round(ecoScore),
+                    feasible,
+                    reason: reason.length > 0 ? reason[0] : 'Available',
+                    icon: specs.icon
+                };
+            });
+
+            return scores;
+        }
+
+        function renderResults() {
+            const scores = calculateScores();
+            const sorted = Object.entries(scores).sort((a, b) => b[1].score - a[1].score);
+            const winner = sorted[0];
+
+            const distance = parseFloat(document.getElementById('distance').value);
+
+            let html = '';
+
+            // Winner box
+            if (winner[1].feasible && winner[1].score > 0) {
+                html += `
+                    <div class="winner-box">
+                        <div style="font-size: 2rem; margin-bottom: 8px;">${winner[1].icon}</div>
+                        <div class="winner-title">${winner[0]} is your best option</div>
+                        <div class="winner-reasoning">${winner[1].score}% score — ${
+                            winner[0] === 'Walk' ? 'Free & healthy' :
+                            winner[0] === 'Bike' ? 'Fast & eco-friendly' :
+                            winner[0] === 'Bus' ? 'Cheap & reliable' :
+                            winner[0] === 'Train' ? 'Smooth & efficient' :
+                            winner[0] === 'Car' ? 'Fastest option' :
+                            'Trendy & quick'
+                        }</div>
+                    </div>
+                `;
+            }
+
+            // Mode cards
+            sorted.slice(0, 6).forEach(([mode, data]) => {
+                const winnerClass = mode === winner[0] && data.feasible ? ' winner' : '';
+                html += `
+                    <div class="mode-card${winnerClass}">
+                        <div class="mode-name">${data.icon} ${mode}</div>
+                        <div class="mode-score">${data.score}</div>
+                        <div class="mode-details">
+                            <div>⏱ ${data.travelTime} min</div>
+                            <div>💰 $${data.cost.toFixed(2)}</div>
+                            ${data.co2 > 0 ? `<div>🌍 ${data.co2} g CO₂</div>` : ''}
+                            ${data.cal > 0 ? `<div>🔥 ${data.cal} cal</div>` : ''}
+                            <div style="margin-top: 6px; opacity: 0.7;">${data.reason}</div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            // Facts panel
+            html += `
+                <div class="facts-panel">
+                    <div class="facts-grid">
+                        <div class="fact">
+                            <div class="fact-label">Journey Distance</div>
+                            <div class="fact-value">${distance.toFixed(1)} km</div>
+                        </div>
+                        <div class="fact">
+                            <div class="fact-label">Best Time</div>
+                            <div class="fact-value">${winner[1].travelTime} min</div>
+                        </div>
+                        <div class="fact">
+                            <div class="fact-label">Best Cost</div>
+                            <div class="fact-value">$${winner[1].cost.toFixed(2)}</div>
+                        </div>
+                        ${winner[1].co2 > 0 ? `
+                        <div class="fact">
+                            <div class="fact-label">Best CO₂</div>
+                            <div class="fact-value">${winner[1].co2} g</div>
+                        </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+
+            // Notes
+            html += `
+                <div class="notes-section">
+                    ${Object.entries(scores)
+                        .filter(([_, d]) => !d.feasible)
+                        .map(([mode, data]) => `
+                            <div class="note">${mode}: ${data.reason}</div>
+                        `)
+                        .join('')
+                    }
+                </div>
+            `;
+
+            document.getElementById('results').innerHTML = html;
+        }
+
+        // Event listeners
+        document.getElementById('distance').addEventListener('input', (e) => {
+            document.getElementById('distVal').textContent = parseFloat(e.target.value).toFixed(1);
+            renderResults();
+        });
+        document.getElementById('time').addEventListener('input', (e) => {
+            document.getElementById('timeVal').textContent = e.target.value;
+            renderResults();
+        });
+        document.getElementById('budget').addEventListener('input', (e) => {
+            document.getElementById('budgetVal').textContent = e.target.value;
+            renderResults();
+        });
+        document.getElementById('weather').addEventListener('change', renderResults);
+        document.getElementById('ability').addEventListener('change', renderResults);
+        document.getElementById('luggage').addEventListener('change', renderResults);
+
+        // Initial render
+        renderResults();
+    </script>
+</body>
+</html>
