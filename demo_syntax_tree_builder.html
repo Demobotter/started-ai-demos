@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Syntax Tree Builder</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Space+Mono:wght@400&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%);
+            color: #e2e8f0;
+            font-family: 'Space Mono', monospace;
+            min-height: 100vh;
+            padding: 2rem;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 3rem;
+            margin-bottom: 0.5rem;
+            color: #60a5fa;
+        }
+        .subtitle {
+            font-size: 1rem;
+            color: #94a3b8;
+            margin-bottom: 2rem;
+        }
+        .input-section {
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid #475569;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .input-section label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+            color: #cbd5e1;
+        }
+        .input-section textarea {
+            width: 100%;
+            padding: 0.75rem;
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 4px;
+            color: #e2e8f0;
+            font-family: 'Space Mono', monospace;
+            font-size: 1rem;
+            resize: vertical;
+            min-height: 60px;
+        }
+        .input-section textarea:focus {
+            outline: none;
+            border-color: #60a5fa;
+            box-shadow: 0 0 8px rgba(96, 165, 250, 0.3);
+        }
+        .button-group {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+        }
+        button {
+            padding: 0.75rem 1.5rem;
+            background: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-family: 'Space Mono', monospace;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        button:hover {
+            background: #2563eb;
+        }
+        button:disabled {
+            background: #64748b;
+            cursor: not-allowed;
+        }
+        .example-button {
+            background: #10b981;
+            padding: 0.5rem 1rem;
+            font-size: 0.85rem;
+        }
+        .example-button:hover {
+            background: #059669;
+        }
+        .results-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+        .result-panel {
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid #475569;
+            border-radius: 8px;
+            padding: 1.5rem;
+            min-height: 300px;
+        }
+        .result-panel h3 {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.3rem;
+            color: #60a5fa;
+            margin-bottom: 1rem;
+        }
+        #tree-svg {
+            width: 100%;
+            height: 400px;
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 4px;
+        }
+        #pos-list {
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 4px;
+            padding: 1rem;
+            font-size: 0.9rem;
+            line-height: 1.6;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .word-tag {
+            display: inline-block;
+            background: rgba(96, 165, 250, 0.2);
+            border: 1px solid #3b82f6;
+            padding: 0.3rem 0.6rem;
+            border-radius: 3px;
+            margin-right: 0.5rem;
+            margin-bottom: 0.5rem;
+            font-size: 0.85rem;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+        .stat-box {
+            background: #0f172a;
+            border-left: 3px solid #60a5fa;
+            padding: 1rem;
+            border-radius: 4px;
+        }
+        .stat-label {
+            color: #94a3b8;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+        }
+        .stat-value {
+            color: #60a5fa;
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-top: 0.25rem;
+        }
+        .error {
+            background: rgba(239, 68, 68, 0.2);
+            border: 1px solid #ef4444;
+            color: #fca5a5;
+            padding: 1rem;
+            border-radius: 4px;
+            margin-top: 1rem;
+        }
+        @media (max-width: 768px) {
+            .results-section {
+                grid-template-columns: 1fr;
+            }
+            h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌳 Parse Tree</h1>
+        <p class="subtitle">Type English sentences and watch them transform into syntax trees showing grammatical structure.</p>
+        
+        <div class="input-section">
+            <label for="sentence-input">Enter a sentence:</label>
+            <textarea id="sentence-input" placeholder="e.g., The cat sat on the mat">The cat sat on the mat</textarea>
+            <div class="button-group">
+                <button onclick="parseAndRender()">Parse Sentence</button>
+                <button class="example-button" onclick="loadExample('The quick brown fox jumps.')">Example 1</button>
+                <button class="example-button" onclick="loadExample('I ate pizza with my friends yesterday.')">Example 2</button>
+                <button class="example-button" onclick="loadExample('Books on the shelf are interesting.')">Example 3</button>
+            </div>
+        </div>
+
+        <div class="results-section">
+            <div class="result-panel">
+                <h3>Parse Tree</h3>
+                <svg id="tree-svg"></svg>
+            </div>
+            <div class="result-panel">
+                <h3>Part-of-Speech Tags</h3>
+                <div id="pos-list"></div>
+                <div class="stats-grid">
+                    <div class="stat-box">
+                        <div class="stat-label">Tree Depth</div>
+                        <div class="stat-value" id="tree-depth">—</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">Word Count</div>
+                        <div class="stat-value" id="word-count">—</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Simple POS tagger using rule-based approach
+        const posRules = {
+            // Articles/Determiners
+            'the': 'DET', 'a': 'DET', 'an': 'DET', 'this': 'DET', 'that': 'DET', 'these': 'DET', 'those': 'DET',
+            // Pronouns
+            'i': 'PRON', 'me': 'PRON', 'he': 'PRON', 'she': 'PRON', 'it': 'PRON', 'we': 'PRON', 'they': 'PRON', 'you': 'PRON', 'him': 'PRON', 'her': 'PRON', 'us': 'PRON', 'them': 'PRON',
+            // Common verbs
+            'is': 'VERB', 'are': 'VERB', 'was': 'VERB', 'were': 'VERB', 'been': 'VERB', 'be': 'VERB', 'have': 'VERB', 'has': 'VERB', 'had': 'VERB', 'do': 'VERB', 'does': 'VERB', 'did': 'VERB', 'will': 'VERB', 'would': 'VERB', 'could': 'VERB', 'should': 'VERB', 'can': 'VERB', 'may': 'VERB', 'might': 'VERB', 'must': 'VERB',
+            'sat': 'VERB', 'jump': 'VERB', 'jumps': 'VERB', 'jumped': 'VERB', 'run': 'VERB', 'runs': 'VERB', 'ran': 'VERB', 'eat': 'VERB', 'eats': 'VERB', 'ate': 'VERB', 'go': 'VERB', 'goes': 'VERB', 'went': 'VERB', 'come': 'VERB', 'comes': 'VERB', 'came': 'VERB', 'see': 'VERB', 'sees': 'VERB', 'saw': 'VERB', 'like': 'VERB', 'likes': 'VERB', 'loved': 'VERB', 'love': 'VERB', 'make': 'VERB', 'makes': 'VERB', 'made': 'VERB', 'give': 'VERB', 'gives': 'VERB', 'gave': 'VERB', 'take': 'VERB', 'takes': 'VERB', 'took': 'VERB', 'put': 'VERB', 'puts': 'VERB',
+            // Prepositions
+            'in': 'PREP', 'on': 'PREP', 'at': 'PREP', 'to': 'PREP', 'from': 'PREP', 'with': 'PREP', 'by': 'PREP', 'about': 'PREP', 'for': 'PREP', 'of': 'PREP', 'into': 'PREP', 'through': 'PREP', 'during': 'PREP', 'before': 'PREP', 'after': 'PREP', 'above': 'PREP', 'below': 'PREP',
+            // Adjectives (sample)
+            'quick': 'ADJ', 'brown': 'ADJ', 'big': 'ADJ', 'small': 'ADJ', 'red': 'ADJ', 'blue': 'ADJ', 'good': 'ADJ', 'bad': 'ADJ', 'new': 'ADJ', 'old': 'ADJ', 'tall': 'ADJ', 'short': 'ADJ', 'happy': 'ADJ', 'sad': 'ADJ', 'fast': 'ADJ', 'slow': 'ADJ', 'beautiful': 'ADJ', 'interesting': 'ADJ', 'boring': 'ADJ',
+            // Conjunctions
+            'and': 'CONJ', 'or': 'CONJ', 'but': 'CONJ', 'because': 'CONJ', 'although': 'CONJ', 'if': 'CONJ',
+            // Adverbs
+            'very': 'ADV', 'quickly': 'ADV', 'slowly': 'ADV', 'yesterday': 'ADV', 'today': 'ADV', 'tomorrow': 'ADV', 'now': 'ADV', 'then': 'ADV', 'here': 'ADV', 'there': 'ADV', 'never': 'ADV', 'always': 'ADV', 'often': 'ADV', 'sometimes': 'ADV'
+        };
+
+        function tokenize(sentence) {
+            return sentence.toLowerCase().replace(/[.,!?;:]/g, '').split(/\s+/).filter(w => w.length > 0);
+        }
+
+        function tagPos(tokens) {
+            return tokens.map(token => {
+                let tag = posRules[token];
+                if (!tag) {
+                    if (token.endsWith('ly')) tag = 'ADV';
+                    else if (token.endsWith('ing')) tag = 'VERB';
+                    else if (token.endsWith('ed')) tag = 'VERB';
+                    else if (token.endsWith('s') && token.length > 2) tag = 'NOUN';
+                    else tag = 'NOUN';
+                }
+                return { word: token, pos: tag };
+            });
+        }
+
+        class ParseNode {
+            constructor(label, children = []) {
+                this.label = label;
+                this.children = children;
+            }
+            depth() {
+                if (this.children.length === 0) return 1;
+                return 1 + Math.max(...this.children.map(c => c.depth()));
+            }
+        }
+
+        function buildSimpleParseTree(tagged) {
+            // Very simple rule-based tree building for demonstration
+            let nodes = tagged.map(t => new ParseNode(`${t.word}/${t.pos}`));
+            
+            // Group into noun phrases and verb phrases (simplified)
+            let result = [];
+            for (let i = 0; i < nodes.length; i++) {
+                let node = nodes[i];
+                if (tagged[i].pos === 'DET' && i + 1 < nodes.length) {
+                    // Start of NP
+                    let npChildren = [node, nodes[i + 1]];
+                    i++;
+                    // Grab adjectives too
+                    while (i + 1 < nodes.length && (tagged[i + 1].pos === 'ADJ' || tagged[i + 1].pos === 'NOUN')) {
+                        npChildren.push(nodes[++i]);
+                    }
+                    result.push(new ParseNode('NP', npChildren));
+                } else if (tagged[i].pos === 'VERB') {
+                    result.push(new ParseNode('VP', [node]));
+                } else if (tagged[i].pos === 'PREP' && i + 1 < nodes.length) {
+                    // Prepositional phrase
+                    let ppChildren = [node];
+                    i++;
+                    // Grab following noun phrase
+                    if (i < nodes.length) ppChildren.push(nodes[i]);
+                    result.push(new ParseNode('PP', ppChildren));
+                } else {
+                    result.push(node);
+                }
+            }
+            
+            // Create sentence node
+            return new ParseNode('S', result);
+        }
+
+        function renderTree(node, svg, x, y, xOffset, yOffset) {
+            if (!node.children || node.children.length === 0) {
+                // Leaf node
+                let text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                text.setAttribute('x', x);
+                text.setAttribute('y', y + 20);
+                text.setAttribute('text-anchor', 'middle');
+                text.setAttribute('font-size', '12');
+                text.setAttribute('fill', '#e2e8f0');
+                text.setAttribute('font-family', 'Space Mono');
+                text.textContent = node.label;
+                svg.appendChild(text);
+                
+                let circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                circle.setAttribute('cx', x);
+                circle.setAttribute('cy', y);
+                circle.setAttribute('r', '8');
+                circle.setAttribute('fill', '#3b82f6');
+                svg.appendChild(circle);
+                
+                return { x, y };
+            }
+
+            // Non-leaf node
+            let circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            circle.setAttribute('cx', x);
+            circle.setAttribute('cy', y);
+            circle.setAttribute('r', '12');
+            circle.setAttribute('fill', '#60a5fa');
+            svg.appendChild(circle);
+            
+            let text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            text.setAttribute('x', x);
+            text.setAttribute('y', y + 4);
+            text.setAttribute('text-anchor', 'middle');
+            text.setAttribute('font-size', '11');
+            text.setAttribute('font-weight', 'bold');
+            text.setAttribute('fill', '#0f172a');
+            text.setAttribute('font-family', 'Space Mono');
+            text.textContent = node.label;
+            svg.appendChild(text);
+
+            // Recursively render children
+            let childWidth = xOffset / Math.pow(2, 1);
+            let childY = y + yOffset;
+            let startX = x - (node.children.length - 1) * childWidth / 2;
+            
+            node.children.forEach((child, idx) => {
+                let childX = startX + idx * childWidth;
+                let childPos = renderTree(child, svg, childX, childY, xOffset / 2, yOffset);
+                
+                // Draw line from parent to child
+                let line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                line.setAttribute('x1', x);
+                line.setAttribute('y1', y + 12);
+                line.setAttribute('x2', childPos.x);
+                line.setAttribute('y2', childPos.y - 12);
+                line.setAttribute('stroke', '#475569');
+                line.setAttribute('stroke-width', '1');
+                svg.insertBefore(line, svg.firstChild);
+            });
+
+            return { x, y };
+        }
+
+        function parseAndRender() {
+            const input = document.getElementById('sentence-input').value.trim();
+            if (!input) {
+                document.getElementById('pos-list').innerHTML = '<div class="error">Please enter a sentence.</div>';
+                return;
+            }
+
+            try {
+                const tokens = tokenize(input);
+                const tagged = tagPos(tokens);
+                const tree = buildSimpleParseTree(tagged);
+
+                // Render tree
+                const svg = document.getElementById('tree-svg');
+                svg.innerHTML = '';
+                svg.setAttribute('viewBox', '0 0 800 500');
+                renderTree(tree, svg, 400, 30, 150, 70);
+
+                // Render POS tags
+                const posList = document.getElementById('pos-list');
+                posList.innerHTML = tagged.map(t => `<span class="word-tag"><strong>${t.word}</strong> / ${t.pos}</span>`).join('');
+
+                // Update stats
+                document.getElementById('tree-depth').textContent = tree.depth();
+                document.getElementById('word-count').textContent = tokens.length;
+            } catch (e) {
+                document.getElementById('pos-list').innerHTML = `<div class="error">Error: ${e.message}</div>`;
+            }
+        }
+
+        function loadExample(text) {
+            document.getElementById('sentence-input').value = text;
+            parseAndRender();
+        }
+
+        // Parse initial example on load
+        window.addEventListener('load', () => {
+            parseAndRender();
+        });
+    </script>
+</body>
+</html>
