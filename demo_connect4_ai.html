@@ -1,593 +1,474 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Connect-4 vs AI</title>
-  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&family=Dosis:wght@700&display=swap" rel="stylesheet">
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
-    body {
-      font-family: 'Roboto Mono', monospace;
-      background: linear-gradient(135deg, #0a1d4a 0%, #1a2f5a 100%);
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-      color: #00d4ff;
-    }
-
-    .container {
-      max-width: 600px;
-      width: 100%;
-      background: rgba(10, 29, 74, 0.95);
-      border: 2px solid #00d4ff;
-      border-radius: 12px;
-      padding: 30px;
-      box-shadow: 0 0 30px rgba(0, 212, 255, 0.3);
-    }
-
-    h1 {
-      font-family: 'Dosis', sans-serif;
-      font-size: 2.5em;
-      text-align: center;
-      margin-bottom: 10px;
-      color: #00ff88;
-      text-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
-    }
-
-    .subtitle {
-      text-align: center;
-      font-size: 0.9em;
-      color: #4da8da;
-      margin-bottom: 25px;
-    }
-
-    .game-board {
-      background: #0a1d4a;
-      border: 2px solid #00d4ff;
-      border-radius: 8px;
-      padding: 15px;
-      margin-bottom: 20px;
-      display: flex;
-      justify-content: center;
-    }
-
-    .board {
-      display: grid;
-      grid-template-columns: repeat(7, 50px);
-      grid-gap: 8px;
-      background: transparent;
-    }
-
-    .cell {
-      width: 50px;
-      height: 50px;
-      background: rgba(77, 168, 218, 0.2);
-      border: 2px solid #4da8da;
-      border-radius: 50%;
-      cursor: pointer;
-      position: relative;
-      transition: all 0.2s;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .cell:hover {
-      background: rgba(0, 255, 136, 0.3);
-      border-color: #00ff88;
-    }
-
-    .cell.disabled {
-      cursor: not-allowed;
-      opacity: 0.5;
-    }
-
-    .cell.user {
-      background: #ffd700;
-      border-color: #ffed4e;
-    }
-
-    .cell.ai {
-      background: #ff4444;
-      border-color: #ff6666;
-    }
-
-    .columns {
-      display: grid;
-      grid-template-columns: repeat(7, 50px);
-      grid-gap: 8px;
-      margin-top: 10px;
-      gap: 8px;
-      justify-content: center;
-    }
-
-    .col-label {
-      width: 50px;
-      text-align: center;
-      font-size: 0.85em;
-      color: #00d4ff;
-      font-weight: 700;
-    }
-
-    .status-panel {
-      background: rgba(0, 212, 255, 0.1);
-      border: 2px solid #00d4ff;
-      border-radius: 8px;
-      padding: 15px;
-      margin-bottom: 20px;
-      text-align: center;
-    }
-
-    .status-text {
-      font-size: 1.3em;
-      color: #00d4ff;
-      font-weight: 700;
-      letter-spacing: 2px;
-      margin-bottom: 8px;
-      min-height: 1.5em;
-    }
-
-    .status-text.win {
-      color: #00ff88;
-    }
-
-    .status-text.lose {
-      color: #ff4444;
-    }
-
-    .status-text.draw {
-      color: #ffed4e;
-    }
-
-    .move-history {
-      background: rgba(0, 212, 255, 0.05);
-      border-left: 3px solid #00d4ff;
-      padding: 10px 15px;
-      margin-top: 10px;
-      font-size: 0.8em;
-      max-height: 60px;
-      overflow-y: auto;
-      color: #4da8da;
-    }
-
-    .controls {
-      display: flex;
-      gap: 10px;
-      justify-content: center;
-      margin-bottom: 20px;
-    }
-
-    button {
-      background: linear-gradient(135deg, #00ff88, #00d4ff);
-      color: #0a1d4a;
-      border: none;
-      padding: 12px 24px;
-      border-radius: 6px;
-      font-family: 'Dosis', sans-serif;
-      font-size: 1.1em;
-      font-weight: 700;
-      cursor: pointer;
-      transition: all 0.3s;
-      letter-spacing: 1px;
-    }
-
-    button:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 5px 15px rgba(0, 255, 136, 0.4);
-    }
-
-    button:active {
-      transform: translateY(0);
-    }
-
-    .info {
-      font-size: 0.9em;
-      color: #4da8da;
-      text-align: center;
-      margin-top: 15px;
-      line-height: 1.6;
-    }
-
-    .pieces-legend {
-      display: flex;
-      justify-content: center;
-      gap: 30px;
-      margin-top: 15px;
-      font-size: 0.85em;
-    }
-
-    .legend-item {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .legend-circle {
-      width: 30px;
-      height: 30px;
-      border-radius: 50%;
-      border: 2px solid;
-    }
-
-    .legend-circle.user {
-      background: #ffd700;
-      border-color: #ffed4e;
-    }
-
-    .legend-circle.ai {
-      background: #ff4444;
-      border-color: #ff6666;
-    }
-
-    .fade-in {
-      animation: fadeIn 0.5s ease-in;
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; }
-      to { opacity: 1; }
-    }
-
-    @media (max-width: 600px) {
-      .container {
-        padding: 20px;
-      }
-
-      h1 {
-        font-size: 2em;
-      }
-
-      .board {
-        grid-template-columns: repeat(7, 40px);
-      }
-
-      .cell {
-        width: 40px;
-        height: 40px;
-      }
-
-      .col-label {
-        width: 40px;
-        font-size: 0.75em;
-      }
-
-      .columns {
-        grid-template-columns: repeat(7, 40px);
-      }
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connect Four AI</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Playfair Display', serif;
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1f35 100%);
+            color: #e0e6ff;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            max-width: 900px;
+            width: 100%;
+            background: rgba(15, 20, 45, 0.95);
+            border: 2px solid #ff6b35;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(255, 107, 53, 0.2);
+        }
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-align: center;
+            color: #ff6b35;
+        }
+        .subtitle {
+            text-align: center;
+            color: #ffa85c;
+            margin-bottom: 25px;
+            font-size: 0.95em;
+        }
+        .layout {
+            display: grid;
+            grid-template-columns: 1fr 280px;
+            gap: 25px;
+            margin-top: 20px;
+        }
+        .board-area {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+        }
+        .board {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 8px;
+            background: rgba(20, 25, 50, 0.8);
+            padding: 15px;
+            border-radius: 8px;
+            border: 2px solid #ff6b35;
+        }
+        .cell {
+            aspect-ratio: 1;
+            background: rgba(77, 168, 218, 0.1);
+            border: 1px solid #4da8da;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 2em;
+            font-weight: bold;
+        }
+        .cell:hover {
+            background: rgba(255, 107, 53, 0.2);
+            border-color: #ff6b35;
+        }
+        .cell.player {
+            color: #4da8da;
+            text-shadow: 0 0 10px #4da8da;
+        }
+        .cell.ai {
+            color: #ff6b35;
+            text-shadow: 0 0 10px #ff6b35;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .stat {
+            background: rgba(77, 168, 218, 0.05);
+            border-left: 3px solid #ff6b35;
+            padding: 10px;
+            border-radius: 4px;
+            text-align: center;
+        }
+        .stat-label {
+            font-size: 0.75em;
+            color: #ffa85c;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .stat-value {
+            font-size: 1.8em;
+            color: #ff6b35;
+            font-weight: bold;
+        }
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        button {
+            background: linear-gradient(135deg, #ff6b35, #ff8555);
+            border: none;
+            color: white;
+            padding: 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            text-transform: uppercase;
+            font-family: 'Playfair Display', serif;
+            transition: all 0.2s;
+        }
+        button:hover {
+            box-shadow: 0 4px 12px rgba(255, 107, 53, 0.4);
+            transform: translateY(-2px);
+        }
+        button:active {
+            transform: translateY(0);
+        }
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .right-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .info-box {
+            background: rgba(255, 107, 53, 0.1);
+            border: 1px solid rgba(255, 107, 53, 0.3);
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 0.85em;
+            line-height: 1.5;
+        }
+        .status {
+            background: rgba(255, 107, 53, 0.15);
+            border: 2px solid #ff6b35;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 1.1em;
+            font-weight: bold;
+            color: #ffa85c;
+            min-height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .status.win {
+            background: rgba(0, 255, 136, 0.15);
+            border-color: #00ff88;
+            color: #00ff88;
+        }
+        .status.loss {
+            background: rgba(255, 107, 53, 0.2);
+            border-color: #ff6b35;
+            color: #ffa85c;
+        }
+        @media (max-width: 800px) {
+            .layout { grid-template-columns: 1fr; }
+            .board { max-width: 450px; }
+        }
+    </style>
 </head>
 <body>
-  <div class="container">
-    <h1>Connect-4</h1>
-    <div class="subtitle">Play Yellow, AI is Red</div>
+    <div class="container">
+        <h1>🔴 Connect Four AI</h1>
+        <p class="subtitle">Can you beat the computer? Click a column to drop your piece.</p>
 
-    <div class="status-panel">
-      <div class="status-text" id="statusText">YOUR MOVE</div>
-      <div class="move-history" id="moveHistory"></div>
+        <div class="layout">
+            <div class="board-area">
+                <div class="stats">
+                    <div class="stat">
+                        <div class="stat-label">Player</div>
+                        <div class="stat-value">🔵</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-label">AI</div>
+                        <div class="stat-value">🔴</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-label">Moves</div>
+                        <div class="stat-value" id="moveCount">0</div>
+                    </div>
+                </div>
+
+                <div id="board" class="board"></div>
+
+                <div class="controls">
+                    <button id="newGameBtn" onclick="initGame()">New Game</button>
+                </div>
+            </div>
+
+            <div class="right-panel">
+                <div class="status" id="status">Your turn!</div>
+                
+                <div class="info-box">
+                    <strong>How it works:</strong>
+                    You're blue. The AI (red) uses a minimax algorithm to think several moves ahead. Can you beat it?
+                </div>
+
+                <div class="info-box">
+                    <strong>Rules:</strong>
+                    Drop a piece in any column. Get 4 in a row (horizontal, vertical, or diagonal) to win!
+                </div>
+
+                <div class="info-box">
+                    <strong>Difficulty:</strong>
+                    The AI looks 5 moves ahead. Most games are draws with perfect play.
+                </div>
+            </div>
+        </div>
     </div>
 
-    <div class="game-board">
-      <div style="width: 100%; text-align: center;">
-        <div class="board" id="gameBoard"></div>
-        <div class="columns" id="columnLabels"></div>
-      </div>
-    </div>
+    <script>
+        const ROWS = 6;
+        const COLS = 7;
+        const PLAYER = 1;
+        const AI = 2;
+        
+        let board = [];
+        let gameOver = false;
+        let moveCount = 0;
 
-    <div class="pieces-legend">
-      <div class="legend-item">
-        <div class="legend-circle user"></div>
-        <span>You (Yellow)</span>
-      </div>
-      <div class="legend-item">
-        <div class="legend-circle ai"></div>
-        <span>AI (Red)</span>
-      </div>
-    </div>
-
-    <div class="controls">
-      <button onclick="resetGame()">Reset Game</button>
-    </div>
-
-    <div class="info">
-      <p>Click a column to drop your piece. AI will respond.</p>
-      <p>First to get 4 in a row (horizontal, vertical, or diagonal) wins!</p>
-    </div>
-  </div>
-
-  <script>
-    const ROWS = 6;
-    const COLS = 7;
-    const USER = 1;
-    const AI = 2;
-    const EMPTY = 0;
-
-    let board = [];
-    let gameOver = false;
-    let gameResult = null;
-    let moves = [];
-
-    function initBoard() {
-      board = Array(ROWS).fill(null).map(() => Array(COLS).fill(EMPTY));
-    }
-
-    function resetGame() {
-      initBoard();
-      gameOver = false;
-      gameResult = null;
-      moves = [];
-      renderBoard();
-      updateStatus('YOUR MOVE');
-    }
-
-    function renderBoard() {
-      const boardEl = document.getElementById('gameBoard');
-      boardEl.innerHTML = '';
-
-      for (let r = 0; r < ROWS; r++) {
-        for (let c = 0; c < COLS; c++) {
-          const cell = document.createElement('div');
-          cell.className = 'cell';
-          const piece = board[r][c];
-
-          if (piece === USER) cell.classList.add('user');
-          else if (piece === AI) cell.classList.add('ai');
-
-          if (gameOver) cell.classList.add('disabled');
-          else if (piece === EMPTY) {
-            cell.style.cursor = 'pointer';
-            cell.addEventListener('click', () => userMove(c));
-          } else {
-            cell.classList.add('disabled');
-          }
-
-          boardEl.appendChild(cell);
-        }
-      }
-
-      // Render column labels
-      const labelsEl = document.getElementById('columnLabels');
-      labelsEl.innerHTML = '';
-      for (let c = 0; c < COLS; c++) {
-        const label = document.createElement('div');
-        label.className = 'col-label';
-        label.textContent = c + 1;
-        labelsEl.appendChild(label);
-      }
-    }
-
-    function dropPiece(col, player) {
-      for (let r = ROWS - 1; r >= 0; r--) {
-        if (board[r][col] === EMPTY) {
-          board[r][col] = player;
-          return r;
-        }
-      }
-      return -1; // Column full
-    }
-
-    function canDropInColumn(col) {
-      return board[0][col] === EMPTY;
-    }
-
-    function checkWinner(player) {
-      // Horizontal
-      for (let r = 0; r < ROWS; r++) {
-        for (let c = 0; c < COLS - 3; c++) {
-          if (board[r][c] === player &&
-              board[r][c+1] === player &&
-              board[r][c+2] === player &&
-              board[r][c+3] === player) {
-            return true;
-          }
-        }
-      }
-
-      // Vertical
-      for (let r = 0; r < ROWS - 3; r++) {
-        for (let c = 0; c < COLS; c++) {
-          if (board[r][c] === player &&
-              board[r+1][c] === player &&
-              board[r+2][c] === player &&
-              board[r+3][c] === player) {
-            return true;
-          }
-        }
-      }
-
-      // Diagonal /
-      for (let r = 3; r < ROWS; r++) {
-        for (let c = 0; c < COLS - 3; c++) {
-          if (board[r][c] === player &&
-              board[r-1][c+1] === player &&
-              board[r-2][c+2] === player &&
-              board[r-3][c+3] === player) {
-            return true;
-          }
-        }
-      }
-
-      // Diagonal \
-      for (let r = 0; r < ROWS - 3; r++) {
-        for (let c = 0; c < COLS - 3; c++) {
-          if (board[r][c] === player &&
-              board[r+1][c+1] === player &&
-              board[r+2][c+2] === player &&
-              board[r+3][c+3] === player) {
-            return true;
-          }
-        }
-      }
-
-      return false;
-    }
-
-    function isBoardFull() {
-      for (let c = 0; c < COLS; c++) {
-        if (board[0][c] === EMPTY) return false;
-      }
-      return true;
-    }
-
-    function scoreMove(col, depth, isAI) {
-      if (!canDropInColumn(col)) return -999;
-
-      // Simulate move
-      let row = -1;
-      for (let r = ROWS - 1; r >= 0; r--) {
-        if (board[r][col] === EMPTY) {
-          row = r;
-          board[r][col] = isAI ? AI : USER;
-          break;
-        }
-      }
-
-      let score = 0;
-
-      // Check if this move wins
-      if (checkWinner(isAI ? AI : USER)) {
-        score = isAI ? 10000 : 10000;
-      } else if (checkWinner(isAI ? USER : AI)) {
-        score = isAI ? -5000 : -5000;
-      } else {
-        // Positional scoring: center columns are better
-        score = Math.abs(col - 3) <= 1 ? 10 : 5;
-
-        // Count pieces in a row
-        score += countThreatOrWin(row, col, isAI ? AI : USER) * 50;
-      }
-
-      board[row][col] = EMPTY;
-      return score;
-    }
-
-    function countThreatOrWin(row, col, player) {
-      let count = 0;
-
-      // Horizontal
-      let h = 1;
-      for (let c = col - 1; c >= 0 && board[row][c] === player; c--) h++;
-      for (let c = col + 1; c < COLS && board[row][c] === player; c++) h++;
-      if (h >= 3) count += 1;
-
-      // Vertical
-      let v = 1;
-      for (let r = row - 1; r >= 0 && board[r][col] === player; r--) v++;
-      for (let r = row + 1; r < ROWS && board[r][col] === player; r++) v++;
-      if (v >= 3) count += 1;
-
-      // Diagonal /
-      let d1 = 1;
-      for (let i = 1; row + i < ROWS && col - i >= 0 && board[row+i][col-i] === player; i++) d1++;
-      for (let i = 1; row - i >= 0 && col + i < COLS && board[row-i][col+i] === player; i++) d1++;
-      if (d1 >= 3) count += 1;
-
-      // Diagonal \
-      let d2 = 1;
-      for (let i = 1; row + i < ROWS && col + i < COLS && board[row+i][col+i] === player; i++) d2++;
-      for (let i = 1; row - i >= 0 && col - i >= 0 && board[row-i][col-i] === player; i++) d2++;
-      if (d2 >= 3) count += 1;
-
-      return count;
-    }
-
-    function getAIMove() {
-      let bestScore = -Infinity;
-      let bestMoves = [];
-
-      for (let col = 0; col < COLS; col++) {
-        if (canDropInColumn(col)) {
-          let score = scoreMove(col, 0, true);
-
-          // Add tiny randomness to avoid always playing center
-          score += (Math.random() - 0.5) * 0.2;
-
-          if (score > bestScore) {
-            bestScore = score;
-            bestMoves = [col];
-          } else if (score === bestScore) {
-            bestMoves.push(col);
-          }
-        }
-      }
-
-      return bestMoves.length > 0 ? bestMoves[Math.floor(Math.random() * bestMoves.length)] : 0;
-    }
-
-    function userMove(col) {
-      if (gameOver || !canDropInColumn(col)) return;
-
-      dropPiece(col, USER);
-      moves.push(`Col ${col + 1}: You`);
-      updateMoveHistory();
-      renderBoard();
-
-      if (checkWinner(USER)) {
-        gameOver = true;
-        gameResult = 'win';
-        updateStatus('YOU WIN!', 'win');
-        return;
-      }
-
-      if (isBoardFull()) {
-        gameOver = true;
-        gameResult = 'draw';
-        updateStatus('DRAW', 'draw');
-        return;
-      }
-
-      updateStatus('AI THINKING');
-      renderBoard();
-
-      setTimeout(() => {
-        const aiCol = getAIMove();
-        dropPiece(aiCol, AI);
-        moves.push(`Col ${aiCol + 1}: AI`);
-        updateMoveHistory();
-        renderBoard();
-
-        if (checkWinner(AI)) {
-          gameOver = true;
-          gameResult = 'lose';
-          updateStatus('YOU LOSE', 'lose');
-          return;
+        function initGame() {
+            board = Array(ROWS * COLS).fill(0);
+            gameOver = false;
+            moveCount = 0;
+            renderBoard();
+            updateStatus('Your turn!', '');
         }
 
-        if (isBoardFull()) {
-          gameOver = true;
-          gameResult = 'draw';
-          updateStatus('DRAW', 'draw');
-          return;
+        function renderBoard() {
+            const boardDiv = document.getElementById('board');
+            boardDiv.innerHTML = '';
+            for (let col = 0; col < COLS; col++) {
+                const cell = document.createElement('div');
+                cell.className = 'cell';
+                cell.style.cursor = gameOver ? 'default' : 'pointer';
+                
+                // Show top piece of column
+                for (let row = 0; row < ROWS; row++) {
+                    const idx = row * COLS + col;
+                    if (board[idx] !== 0) {
+                        cell.textContent = board[idx] === PLAYER ? '🔵' : '🔴';
+                        cell.className += board[idx] === PLAYER ? ' player' : ' ai';
+                        break;
+                    }
+                }
+                
+                if (!gameOver) {
+                    cell.onclick = () => playerMove(col);
+                }
+                boardDiv.appendChild(cell);
+            }
+            document.getElementById('moveCount').textContent = moveCount;
         }
 
-        updateStatus('YOUR MOVE');
-      }, 100);
-    }
+        function playerMove(col) {
+            if (gameOver) return;
+            
+            const row = getDropRow(col);
+            if (row === -1) return; // Column full
+            
+            const idx = row * COLS + col;
+            board[idx] = PLAYER;
+            moveCount++;
+            
+            if (checkWin(PLAYER)) {
+                updateStatus('🎉 You win!', 'win');
+                gameOver = true;
+                renderBoard();
+                return;
+            }
+            
+            if (isBoardFull()) {
+                updateStatus("It's a draw!", '');
+                gameOver = true;
+                renderBoard();
+                return;
+            }
+            
+            updateStatus('AI thinking...', '');
+            renderBoard();
+            
+            setTimeout(() => {
+                const aiCol = findBestMove();
+                const aiRow = getDropRow(aiCol);
+                if (aiRow !== -1) {
+                    board[aiRow * COLS + aiCol] = AI;
+                    moveCount++;
+                    
+                    if (checkWin(AI)) {
+                        updateStatus('AI wins!', 'loss');
+                        gameOver = true;
+                    } else if (isBoardFull()) {
+                        updateStatus("It's a draw!", '');
+                        gameOver = true;
+                    } else {
+                        updateStatus('Your turn!', '');
+                    }
+                }
+                renderBoard();
+            }, 600);
+        }
 
-    function updateStatus(text, className = '') {
-      const statusEl = document.getElementById('statusText');
-      statusEl.textContent = text;
-      statusEl.className = 'status-text';
-      if (className) statusEl.classList.add(className);
-    }
+        function getDropRow(col) {
+            for (let row = ROWS - 1; row >= 0; row--) {
+                if (board[row * COLS + col] === 0) return row;
+            }
+            return -1;
+        }
 
-    function updateMoveHistory() {
-      const histEl = document.getElementById('moveHistory');
-      const recentMoves = moves.slice(-5);
-      histEl.textContent = recentMoves.join(' • ');
-    }
+        function checkWin(player) {
+            // Check horizontal
+            for (let row = 0; row < ROWS; row++) {
+                for (let col = 0; col < COLS - 3; col++) {
+                    const idx = row * COLS + col;
+                    if (board[idx] === player && 
+                        board[idx + 1] === player && 
+                        board[idx + 2] === player && 
+                        board[idx + 3] === player) return true;
+                }
+            }
+            
+            // Check vertical
+            for (let col = 0; col < COLS; col++) {
+                for (let row = 0; row < ROWS - 3; row++) {
+                    const idx = row * COLS + col;
+                    if (board[idx] === player && 
+                        board[idx + COLS] === player && 
+                        board[idx + COLS * 2] === player && 
+                        board[idx + COLS * 3] === player) return true;
+                }
+            }
+            
+            // Check diagonal \
+            for (let row = 0; row < ROWS - 3; row++) {
+                for (let col = 0; col < COLS - 3; col++) {
+                    const idx = row * COLS + col;
+                    if (board[idx] === player && 
+                        board[idx + COLS + 1] === player && 
+                        board[idx + (COLS + 1) * 2] === player && 
+                        board[idx + (COLS + 1) * 3] === player) return true;
+                }
+            }
+            
+            // Check diagonal /
+            for (let row = 3; row < ROWS; row++) {
+                for (let col = 0; col < COLS - 3; col++) {
+                    const idx = row * COLS + col;
+                    if (board[idx] === player && 
+                        board[idx - COLS + 1] === player && 
+                        board[idx - (COLS - 1) * 2] === player && 
+                        board[idx - (COLS - 1) * 3] === player) return true;
+                }
+            }
+            
+            return false;
+        }
 
-    // Init
-    initBoard();
-    renderBoard();
-  </script>
+        function isBoardFull() {
+            return board.every(cell => cell !== 0);
+        }
+
+        function findBestMove() {
+            let bestScore = -Infinity;
+            let bestCol = 0;
+            
+            for (let col = 0; col < COLS; col++) {
+                const row = getDropRow(col);
+                if (row === -1) continue;
+                
+                board[row * COLS + col] = AI;
+                const score = minimax(4, false);
+                board[row * COLS + col] = 0;
+                
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestCol = col;
+                }
+            }
+            
+            return bestCol;
+        }
+
+        function minimax(depth, isMaximizing) {
+            if (checkWin(AI)) return 10 + depth;
+            if (checkWin(PLAYER)) return -10 - depth;
+            if (isBoardFull()) return 0;
+            if (depth === 0) return evaluateBoard();
+            
+            if (isMaximizing) {
+                let best = -Infinity;
+                for (let col = 0; col < COLS; col++) {
+                    const row = getDropRow(col);
+                    if (row === -1) continue;
+                    board[row * COLS + col] = AI;
+                    best = Math.max(best, minimax(depth - 1, false));
+                    board[row * COLS + col] = 0;
+                }
+                return best;
+            } else {
+                let best = Infinity;
+                for (let col = 0; col < COLS; col++) {
+                    const row = getDropRow(col);
+                    if (row === -1) continue;
+                    board[row * COLS + col] = PLAYER;
+                    best = Math.min(best, minimax(depth - 1, true));
+                    board[row * COLS + col] = 0;
+                }
+                return best;
+            }
+        }
+
+        function evaluateBoard() {
+            let score = 0;
+            
+            // Count potential 3-in-a-rows
+            for (let i = 0; i < board.length; i++) {
+                if (board[i] === 0) {
+                    board[i] = AI;
+                    if (nearWin(AI)) score += 5;
+                    board[i] = PLAYER;
+                    if (nearWin(PLAYER)) score -= 5;
+                    board[i] = 0;
+                }
+            }
+            
+            return score;
+        }
+
+        function nearWin(player) {
+            // Check for 3-in-a-row
+            for (let row = 0; row < ROWS; row++) {
+                for (let col = 0; col < COLS - 2; col++) {
+                    const idx = row * COLS + col;
+                    let count = 0;
+                    for (let i = 0; i < 3; i++) {
+                        if (board[idx + i] === player) count++;
+                    }
+                    if (count === 3) return true;
+                }
+            }
+            return false;
+        }
+
+        function updateStatus(text, className) {
+            const status = document.getElementById('status');
+            status.textContent = text;
+            status.className = 'status ' + className;
+        }
+
+        initGame();
+    </script>
 </body>
 </html>
