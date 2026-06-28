@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Frequency Cipher Cracker</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #0a1428 0%, #1a2d52 100%);
+            color: #e8f1ff;
+            font-family: 'Space Mono', monospace;
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .container {
+            background: #0d1a2f;
+            border: 2px solid #4da8da;
+            border-radius: 12px;
+            padding: 30px;
+            max-width: 1200px;
+            width: 100%;
+            box-shadow: 0 8px 32px rgba(77, 168, 218, 0.1);
+        }
+        
+        h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            color: #4da8da;
+            text-align: center;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #8ab5d6;
+            margin-bottom: 30px;
+            font-size: 0.95em;
+        }
+        
+        .two-column {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        
+        .panel {
+            background: rgba(20, 40, 70, 0.7);
+            border: 1px solid #4da8da;
+            border-radius: 8px;
+            padding: 20px;
+        }
+        
+        .panel h2 {
+            color: #4da8da;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+            font-family: 'Playfair Display', serif;
+        }
+        
+        textarea {
+            width: 100%;
+            height: 100px;
+            background: #0a1428;
+            color: #4da8da;
+            border: 1px solid #4da8da;
+            border-radius: 6px;
+            padding: 10px;
+            font-family: 'Space Mono', monospace;
+            font-size: 0.9em;
+            resize: vertical;
+            margin-bottom: 10px;
+        }
+        
+        input[type="text"], input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            background: #0a1428;
+            color: #4da8da;
+            border: 1px solid #4da8da;
+            border-radius: 6px;
+            font-family: 'Space Mono', monospace;
+            margin-bottom: 10px;
+        }
+        
+        label {
+            display: block;
+            color: #8ab5d6;
+            margin-bottom: 5px;
+            font-size: 0.9em;
+        }
+        
+        button {
+            background: #4da8da;
+            color: #0a1428;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-family: 'Space Mono', monospace;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 1em;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+        
+        button:hover {
+            background: #7dd3fc;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(77, 168, 218, 0.3);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        .candidates {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .candidate {
+            background: rgba(10, 20, 40, 0.9);
+            border-left: 3px solid #4da8da;
+            padding: 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .candidate:hover {
+            background: rgba(77, 168, 218, 0.1);
+            border-left-color: #7dd3fc;
+        }
+        
+        .candidate.best {
+            border-left-color: #00ff88;
+            background: rgba(0, 255, 136, 0.05);
+        }
+        
+        .candidate-offset {
+            color: #7dd3fc;
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+        
+        .candidate-text {
+            color: #e8f1ff;
+            word-break: break-all;
+            margin-bottom: 4px;
+        }
+        
+        .candidate-score {
+            color: #8ab5d6;
+            font-size: 0.85em;
+        }
+        
+        .frequency-chart {
+            display: grid;
+            grid-template-columns: repeat(13, 1fr);
+            gap: 4px;
+            margin-bottom: 15px;
+        }
+        
+        .freq-letter {
+            text-align: center;
+            color: #8ab5d6;
+            font-size: 0.75em;
+            margin-bottom: 4px;
+            font-weight: bold;
+        }
+        
+        .freq-bar {
+            background: linear-gradient(180deg, #4da8da 0%, #0a1428 100%);
+            border: 1px solid #4da8da;
+            border-radius: 3px;
+            position: relative;
+            min-height: 80px;
+            transition: all 0.3s ease;
+        }
+        
+        .freq-bar.match {
+            background: linear-gradient(180deg, #00ff88 0%, #0a1428 100%);
+            border-color: #00ff88;
+        }
+        
+        .freq-label {
+            position: absolute;
+            bottom: 2px;
+            width: 100%;
+            text-align: center;
+            font-size: 0.7em;
+            color: #7dd3fc;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .stat-box {
+            background: rgba(77, 168, 218, 0.1);
+            border-left: 3px solid #4da8da;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        
+        .stat-label {
+            color: #8ab5d6;
+            font-size: 0.8em;
+            margin-bottom: 4px;
+        }
+        
+        .stat-value {
+            color: #4da8da;
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+        
+        .learning {
+            background: rgba(77, 168, 218, 0.05);
+            border: 1px solid #4da8da;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 30px;
+            color: #8ab5d6;
+            line-height: 1.6;
+            font-size: 0.9em;
+        }
+        
+        .learning h3 {
+            color: #4da8da;
+            margin-bottom: 10px;
+            font-family: 'Playfair Display', serif;
+        }
+        
+        .learning p {
+            margin-bottom: 8px;
+        }
+        
+        .code-snippet {
+            background: #0a1428;
+            border: 1px solid #4da8da;
+            padding: 8px;
+            border-radius: 4px;
+            margin: 8px 0;
+            color: #7dd3fc;
+            font-size: 0.8em;
+            overflow-x: auto;
+        }
+        
+        .hint-result {
+            background: rgba(0, 255, 136, 0.1);
+            border: 1px solid #00ff88;
+            color: #00ff88;
+            padding: 8px;
+            border-radius: 4px;
+            margin-top: 8px;
+            font-size: 0.85em;
+        }
+        
+        @media (max-width: 900px) {
+            .two-column {
+                grid-template-columns: 1fr;
+            }
+            
+            h1 {
+                font-size: 1.8em;
+            }
+            
+            .frequency-chart {
+                grid-template-columns: repeat(13, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 Cipher Cracker</h1>
+        <p class="subtitle">Paste encrypted text and crack it using frequency analysis</p>
+        
+        <div class="two-column">
+            <div class="panel">
+                <h2>Input</h2>
+                <label for="ciphertext">Ciphertext (A-Z only):</label>
+                <textarea id="ciphertext" placeholder="Paste your encrypted message here. Example: KHOOR ZRUOG"></textarea>
+                
+                <label for="hint">Known word (optional):</label>
+                <input type="text" id="hint" placeholder="e.g., HELLO (will boost matching candidates)">
+                
+                <button onclick="crackCipher()">Analyze</button>
+            </div>
+            
+            <div class="panel">
+                <h2>Top Candidates</h2>
+                <div class="candidates" id="candidates">
+                    <div style="color: #8ab5d6; text-align: center; padding: 20px;">
+                        Paste ciphertext and click Analyze
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="panel">
+            <h2>Frequency Analysis</h2>
+            <p style="color: #8ab5d6; margin-bottom: 15px; font-size: 0.9em;">
+                Top candidate letter frequency vs English baseline. Bars show how well each letter matches expected English frequency.
+            </p>
+            <div class="frequency-chart" id="freqChart"></div>
+            
+            <div class="stats">
+                <div class="stat-box">
+                    <div class="stat-label">Chi-Squared Score</div>
+                    <div class="stat-value" id="chiScore">—</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Confidence</div>
+                    <div class="stat-value" id="confidence">—</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Best Offset</div>
+                    <div class="stat-value" id="bestOffset">—</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Text Length</div>
+                    <div class="stat-value" id="textLength">—</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="learning">
+            <h3>How Frequency Analysis Works</h3>
+            <p>
+                Substitution ciphers like Caesar shifts preserve the statistical distribution of letters. The most common letter in English is 'E' (~12.7%), followed by 'T' (~9.1%), 'A' (~8.2%), and so on. Even when encrypted, these frequency patterns remain constant.
+            </p>
+            <p>
+                <strong>The algorithm:</strong>
+            </p>
+            <p>1. Count letter frequencies in the ciphertext.</p>
+            <p>2. Try all 26 possible offsets (Caesar cipher shifts).</p>
+            <p>3. For each candidate plaintext, compute a χ² (chi-squared) score comparing observed frequencies to known English frequencies:</p>
+            <div class="code-snippet">χ² = Σ [(observed - expected)² / expected]</div>
+            <p>4. Lower χ² = better match. The candidate with the lowest score is most likely the correct plaintext.</p>
+            <p>
+                <strong>Why this works:</strong> Letter distribution is robust under substitution. Your message's pattern of common/rare letters doesn't change when you encrypt it—only which letters are used. Frequency analysis exploits this immutable statistical signature.
+            </p>
+            <p>
+                <strong>Hint power:</strong> If you know one word in the plaintext, the algorithm can use that to boost the correct candidate's score, making the answer obvious even if statistics alone were ambiguous.
+            </p>
+        </div>
+    </div>
+    
+    <script>
+        // English letter frequencies (%)
+        const englishFreq = {
+            'E': 12.70, 'T': 9.06, 'A': 8.17, 'O': 7.51, 'I': 6.97,
+            'N': 6.75, 'S': 6.33, 'H': 6.09, 'R': 5.99, 'D': 4.25,
+            'L': 4.03, 'C': 2.78, 'U': 2.76, 'M': 2.41, 'W': 2.36,
+            'F': 2.23, 'G': 2.02, 'Y': 1.97, 'P': 1.93, 'B': 1.29,
+            'V': 0.98, 'K': 0.77, 'J': 0.15, 'X': 0.15, 'Q': 0.10,
+            'Z': 0.07
+        };
+        
+        function getFrequencies(text) {
+            const freq = {};
+            const cleaned = text.toUpperCase().replace(/[^A-Z]/g, '');
+            const length = cleaned.length;
+            
+            for (const char of 'ABCDEFGHIJKLMNOPQRSTUVWXYZ') {
+                freq[char] = ((cleaned.split(char).length - 1) / length) * 100 || 0;
+            }
+            return freq;
+        }
+        
+        function computeChiSquared(observedFreq) {
+            let chi2 = 0;
+            for (const letter in englishFreq) {
+                const observed = observedFreq[letter];
+                const expected = englishFreq[letter];
+                chi2 += Math.pow(observed - expected, 2) / expected;
+            }
+            return chi2;
+        }
+        
+        function caesarDecrypt(text, offset) {
+            return text.toUpperCase().replace(/[A-Z]/g, char => {
+                const code = char.charCodeAt(0) - 65;
+                return String.fromCharCode((code - offset + 26) % 26 + 65);
+            });
+        }
+        
+        function crackCipher() {
+            const ciphertext = document.getElementById('ciphertext').value;
+            const hint = document.getElementById('hint').value.toUpperCase();
+            
+            if (!ciphertext.trim()) {
+                alert('Please enter ciphertext');
+                return;
+            }
+            
+            const candidates = [];
+            
+            for (let offset = 0; offset < 26; offset++) {
+                const plaintext = caesarDecrypt(ciphertext, offset);
+                const freq = getFrequencies(plaintext);
+                let chi2 = computeChiSquared(freq);
+                
+                // Hint boost
+                let hintFound = false;
+                if (hint && plaintext.includes(hint)) {
+                    chi2 *= 0.5; // 50% boost if hint found
+                    hintFound = true;
+                }
+                
+                candidates.push({
+                    offset,
+                    plaintext,
+                    chi2,
+                    freq,
+                    hintFound
+                });
+            }
+            
+            // Sort by chi-squared (lowest = best)
+            candidates.sort((a, b) => a.chi2 - b.chi2);
+            
+            // Display top 3
+            displayCandidates(candidates.slice(0, 3));
+            displayFrequencyChart(candidates[0]);
+            
+            // Update stats
+            document.getElementById('chiScore').textContent = candidates[0].chi2.toFixed(1);
+            document.getElementById('bestOffset').textContent = candidates[0].offset;
+            document.getElementById('textLength').textContent = ciphertext.replace(/[^A-Z]/g, '').length;
+            
+            // Confidence
+            const chi2 = candidates[0].chi2;
+            let confidence;
+            if (chi2 < 500) confidence = '99%';
+            else if (chi2 < 1500) confidence = '75%';
+            else if (chi2 < 3000) confidence = '50%';
+            else confidence = '20%';
+            document.getElementById('confidence').textContent = confidence;
+        }
+        
+        function displayCandidates(candidates) {
+            const container = document.getElementById('candidates');
+            container.innerHTML = '';
+            
+            candidates.forEach((c, idx) => {
+                const div = document.createElement('div');
+                div.className = 'candidate' + (idx === 0 ? ' best' : '');
+                
+                let hintNote = '';
+                if (c.hintFound) {
+                    hintNote = ' ✓ (hint found!)';
+                }
+                
+                div.innerHTML = `
+                    <div class="candidate-offset">Offset: +${c.offset}${hintNote}</div>
+                    <div class="candidate-text">${c.plaintext}</div>
+                    <div class="candidate-score">χ² = ${c.chi2.toFixed(1)}</div>
+                `;
+                container.appendChild(div);
+            });
+        }
+        
+        function displayFrequencyChart(candidate) {
+            const chart = document.getElementById('freqChart');
+            chart.innerHTML = '';
+            
+            // Group letters into pairs
+            const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+            const grouped = [];
+            for (let i = 0; i < letters.length; i += 2) {
+                grouped.push(letters.slice(i, i + 2));
+            }
+            
+            grouped.forEach(pair => {
+                // Header
+                const header = document.createElement('div');
+                header.style.gridColumn = '1 / span ' + pair.length;
+                header.style.display = 'flex';
+                header.style.gap = '4px';
+                header.style.justifyContent = 'center';
+                header.style.marginBottom = '4px';
+                
+                pair.forEach(letter => {
+                    const lbl = document.createElement('div');
+                    lbl.className = 'freq-letter';
+                    lbl.style.flex = '1';
+                    lbl.textContent = letter;
+                    header.appendChild(lbl);
+                });
+                chart.appendChild(header);
+                
+                // Bars
+                pair.forEach(letter => {
+                    const observed = candidate.freq[letter];
+                    const expected = englishFreq[letter];
+                    const match = Math.abs(observed - expected) < 3;
+                    
+                    const bar = document.createElement('div');
+                    bar.className = 'freq-bar' + (match ? ' match' : '');
+                    bar.style.height = (observed * 4 + 20) + 'px';
+                    bar.title = `${letter}: ${observed.toFixed(1)}% (expected ${expected.toFixed(1)}%)`;
+                    
+                    const label = document.createElement('div');
+                    label.className = 'freq-label';
+                    label.textContent = observed.toFixed(1) + '%';
+                    bar.appendChild(label);
+                    
+                    chart.appendChild(bar);
+                });
+            });
+        }
+        
+        // Example ciphertext for testing
+        window.loadExample = function() {
+            document.getElementById('ciphertext').value = 'KHOOR ZRUOG';
+            document.getElementById('hint').value = 'HELLO';
+        };
+    </script>
+</body>
+</html>
