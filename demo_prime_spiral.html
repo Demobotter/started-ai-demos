@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prime Spiral</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Space+Mono:wght@400&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0a1428 0%, #1a2d4a 100%);
+            color: #e8f0f8;
+            font-family: 'Space Mono', monospace;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            width: 100%;
+            background: rgba(10, 20, 40, 0.95);
+            border: 1px solid #4da8da;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        }
+
+        h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.5em;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, #4da8da, #b8e0ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-align: center;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #7dd3fc;
+            font-size: 0.9em;
+            margin-bottom: 25px;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+            align-items: start;
+        }
+
+        canvas {
+            width: 100%;
+            height: 400px;
+            background: #0a1428;
+            border: 1px solid #1f4d7f;
+            border-radius: 6px;
+            display: block;
+        }
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        label {
+            font-size: 0.85em;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #7dd3fc;
+            font-weight: bold;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #1f4d7f;
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #4da8da;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(77, 168, 218, 0.5);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #4da8da;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 0 10px rgba(77, 168, 218, 0.5);
+        }
+
+        .value-display {
+            font-size: 0.9em;
+            color: #4da8da;
+            font-weight: bold;
+        }
+
+        .stats {
+            background: rgba(77, 168, 218, 0.1);
+            border-left: 3px solid #4da8da;
+            padding: 12px;
+            border-radius: 4px;
+            font-size: 0.85em;
+            line-height: 1.6;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+        }
+
+        .stat-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .stat-label {
+            color: #7dd3fc;
+        }
+
+        .stat-value {
+            color: #b8e0ff;
+            font-weight: bold;
+            font-family: 'Space Mono', monospace;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        button {
+            flex: 1;
+            padding: 10px 14px;
+            background: #4da8da;
+            color: #0a1428;
+            border: none;
+            border-radius: 4px;
+            font-family: 'Space Mono', monospace;
+            font-size: 0.85em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        button:hover {
+            background: #6bc0e0;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(77, 168, 218, 0.3);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .info {
+            font-size: 0.8em;
+            color: #5a8aa0;
+            margin-top: 8px;
+            line-height: 1.4;
+        }
+
+        @media (max-width: 768px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+
+            h1 {
+                font-size: 1.8em;
+            }
+
+            .container {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Prime Spiral</h1>
+        <p class="subtitle">Explore the hidden patterns in prime numbers</p>
+
+        <div class="main-grid">
+            <canvas id="spiralCanvas"></canvas>
+
+            <div class="controls">
+                <div class="control-group">
+                    <label for="densitySlider">Density</label>
+                    <input type="range" id="densitySlider" min="100" max="10000" value="1000" step="100">
+                    <div class="value-display"><span id="densityValue">1000</span> numbers</div>
+                </div>
+
+                <div class="control-group">
+                    <label for="zoomSlider">Zoom</label>
+                    <input type="range" id="zoomSlider" min="1" max="10" value="1" step="0.1">
+                    <div class="value-display"><span id="zoomValue">1.0</span>x</div>
+                </div>
+
+                <div class="stats">
+                    <div class="stat-row">
+                        <span class="stat-label">Total Numbers:</span>
+                        <span class="stat-value" id="statTotal">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Primes Found:</span>
+                        <span class="stat-value" id="statPrimes">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Percentage:</span>
+                        <span class="stat-value" id="statPercent">0%</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Compute Time:</span>
+                        <span class="stat-value" id="statTime">0 ms</span>
+                    </div>
+                </div>
+
+                <div class="button-group">
+                    <button id="resetBtn">Reset</button>
+                </div>
+
+                <div class="info">
+                    💡 Drag the density slider to plot more numbers and reveal the spiral's hidden structure. Primes (cyan) cluster along unexpected diagonal and horizontal lines.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('spiralCanvas');
+        const ctx = canvas.getContext('2d');
+        const densitySlider = document.getElementById('densitySlider');
+        const zoomSlider = document.getElementById('zoomSlider');
+        const densityValue = document.getElementById('densityValue');
+        const zoomValue = document.getElementById('zoomValue');
+        const resetBtn = document.getElementById('resetBtn');
+
+        let spiralData = [];
+        let density = 1000;
+        let zoom = 1;
+        let animationFrameId = null;
+        let isComputing = false;
+
+        function isPrime(n) {
+            if (n < 2) return false;
+            if (n === 2) return true;
+            if (n % 2 === 0) return false;
+            const sqrtN = Math.sqrt(n);
+            for (let i = 3; i <= sqrtN; i += 2) {
+                if (n % i === 0) return false;
+            }
+            return true;
+        }
+
+        function generateUlamSpiral(count) {
+            const start = performance.now();
+            const spiral = [];
+            let x = 0, y = 0;
+            let dx = 1, dy = 0;
+            let steps = 1;
+            let stepCount = 0;
+            let directionChange = 0;
+
+            for (let num = 1; num <= count; num++) {
+                const prime = isPrime(num);
+                spiral.push({ num, x, y, prime });
+
+                if (num < count) {
+                    x += dx;
+                    y += dy;
+                    stepCount++;
+
+                    if (stepCount === steps) {
+                        stepCount = 0;
+                        // Rotate direction counter-clockwise: right → up → left → down → right
+                        const tmp = dx;
+                        dx = -dy;
+                        dy = tmp;
+
+                        directionChange++;
+                        if (directionChange % 2 === 0) {
+                            steps++;
+                        }
+                    }
+                }
+            }
+
+            const end = performance.now();
+            const computeTime = Math.round(end - start);
+            const primeCount = spiral.filter(p => p.prime).length;
+
+            return {
+                data: spiral,
+                time: computeTime,
+                primeCount: primeCount,
+                total: count
+            };
+        }
+
+        function drawSpiral() {
+            canvas.width = canvas.offsetWidth * window.devicePixelRatio;
+            canvas.height = canvas.offsetHeight * window.devicePixelRatio;
+            ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+
+            const width = canvas.offsetWidth;
+            const height = canvas.offsetHeight;
+            const centerX = width / 2;
+            const centerY = height / 2;
+            const scale = (Math.min(width, height) / 2) * 0.85 / Math.max(...spiralData.data.map(p => Math.hypot(p.x, p.y))) * zoom;
+
+            ctx.fillStyle = '#0a1428';
+            ctx.fillRect(0, 0, width, height);
+
+            // Draw spiral points
+            spiralData.data.forEach(point => {
+                const px = centerX + point.x * scale;
+                const py = centerY + point.y * scale;
+
+                if (px >= 0 && px <= width && py >= 0 && py <= height) {
+                    if (point.prime) {
+                        ctx.fillStyle = '#00ffcc';
+                        ctx.shadowColor = 'rgba(0, 255, 204, 0.8)';
+                        ctx.shadowBlur = 8;
+                        ctx.beginPath();
+                        ctx.arc(px, py, 3.5, 0, Math.PI * 2);
+                        ctx.fill();
+                    } else {
+                        ctx.fillStyle = '#1a3a4a';
+                        ctx.shadowColor = 'transparent';
+                        ctx.beginPath();
+                        ctx.arc(px, py, 2, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                }
+            });
+
+            ctx.shadowColor = 'transparent';
+
+            // Update stats
+            document.getElementById('statTotal').textContent = spiralData.total.toLocaleString();
+            document.getElementById('statPrimes').textContent = spiralData.primeCount.toLocaleString();
+            const percent = ((spiralData.primeCount / spiralData.total) * 100).toFixed(1);
+            document.getElementById('statPercent').textContent = percent + '%';
+            document.getElementById('statTime').textContent = spiralData.time + ' ms';
+        }
+
+        function compute(newDensity) {
+            if (isComputing) return;
+            isComputing = true;
+            density = newDensity;
+            densityValue.textContent = density;
+
+            // Use requestAnimationFrame to yield to browser
+            requestAnimationFrame(() => {
+                spiralData = generateUlamSpiral(density);
+                drawSpiral();
+                isComputing = false;
+            });
+        }
+
+        function updateZoom(newZoom) {
+            zoom = parseFloat(newZoom);
+            zoomValue.textContent = zoom.toFixed(1);
+            if (spiralData.data) {
+                drawSpiral();
+            }
+        }
+
+        function resizeCanvas() {
+            if (spiralData.data) {
+                drawSpiral();
+            }
+        }
+
+        densitySlider.addEventListener('input', (e) => {
+            compute(parseInt(e.target.value));
+        });
+
+        zoomSlider.addEventListener('input', (e) => {
+            updateZoom(e.target.value);
+        });
+
+        resetBtn.addEventListener('click', () => {
+            zoomSlider.value = 1;
+            zoom = 1;
+            zoomValue.textContent = '1.0';
+            if (spiralData.data) {
+                drawSpiral();
+            }
+        });
+
+        window.addEventListener('resize', resizeCanvas);
+
+        // Initialize
+        compute(density);
+    </script>
+</body>
+</html>
