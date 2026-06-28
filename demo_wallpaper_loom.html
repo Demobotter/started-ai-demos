@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wallpaper Loom</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Space Mono', monospace;
+            background: #0a1428;
+            color: #e8f0f8;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            align-items: start;
+        }
+        h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.2em;
+            margin-bottom: 20px;
+            color: #4da8da;
+            grid-column: 1 / -1;
+        }
+        .preview-section {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .preview-label {
+            font-size: 0.9em;
+            color: #7dd3fc;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: bold;
+        }
+        canvas {
+            border: 2px solid #4da8da;
+            background: #0d1f3a;
+            width: 100%;
+            height: auto;
+            cursor: crosshair;
+        }
+        .controls-section {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .control-group {
+            background: #0d1f3a;
+            padding: 15px;
+            border-left: 3px solid #4da8da;
+            border-radius: 4px;
+        }
+        .control-label {
+            font-size: 0.85em;
+            color: #7dd3fc;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+            display: block;
+            font-weight: bold;
+        }
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #1f4d7f;
+            outline: none;
+            -webkit-appearance: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #4da8da;
+            cursor: pointer;
+            box-shadow: 0 0 8px rgba(77, 168, 218, 0.5);
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #4da8da;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 0 8px rgba(77, 168, 218, 0.5);
+        }
+        select {
+            width: 100%;
+            padding: 8px;
+            background: #1f4d7f;
+            border: 1px solid #4da8da;
+            color: #e8f0f8;
+            border-radius: 4px;
+            font-family: 'Space Mono', monospace;
+            font-size: 0.9em;
+            cursor: pointer;
+        }
+        .color-palette {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .color-swatch {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.2s;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+        }
+        .color-swatch.active {
+            border-color: #fff;
+            box-shadow: 0 0 12px rgba(77, 168, 218, 0.8);
+            transform: scale(1.1);
+        }
+        .color-swatch:hover {
+            transform: scale(1.1);
+        }
+        .button-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        button {
+            flex: 1;
+            padding: 12px 16px;
+            background: #1f4d7f;
+            color: #4da8da;
+            border: 2px solid #4da8da;
+            border-radius: 4px;
+            font-family: 'Space Mono', monospace;
+            font-size: 0.9em;
+            font-weight: bold;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: all 0.2s;
+            min-width: 100px;
+        }
+        button:hover {
+            background: #4da8da;
+            color: #0a1428;
+            box-shadow: 0 0 16px rgba(77, 168, 218, 0.5);
+        }
+        button:active {
+            transform: scale(0.98);
+        }
+        button.secondary {
+            background: transparent;
+            color: #7dd3fc;
+            border-color: #7dd3fc;
+        }
+        button.secondary:hover {
+            background: #7dd3fc;
+            color: #0a1428;
+        }
+        .stat-box {
+            background: #1f4d7f;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 0.85em;
+            border-left: 3px solid #4da8da;
+            color: #7dd3fc;
+        }
+        .stat-label {
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-size: 0.75em;
+            color: #5a9acb;
+        }
+        .stat-value {
+            font-weight: bold;
+            color: #4da8da;
+            font-size: 1.1em;
+        }
+        @media (max-width: 900px) {
+            .container {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 Wallpaper Loom</h1>
+
+        <div class="preview-section">
+            <div class="preview-label">Live Preview</div>
+            <canvas id="previewCanvas" width="500" height="500"></canvas>
+            <div class="stat-box">
+                <div class="stat-label">Pattern Seed</div>
+                <div class="stat-value" id="seedDisplay">42</div>
+            </div>
+        </div>
+
+        <div class="controls-section">
+            <div class="control-group">
+                <label class="control-label">Symmetry Type</label>
+                <select id="symmetrySelect">
+                    <option value="4fold">4-Fold (Square)</option>
+                    <option value="6fold">6-Fold (Hexagon)</option>
+                    <option value="8fold">8-Fold (Octagon)</option>
+                    <option value="radial">Radial (Circular)</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label class="control-label">Pattern Scale</label>
+                <input type="range" id="scaleSlider" min="20" max="120" value="60" step="5">
+                <div class="stat-box" style="margin-top: 8px;">
+                    <span class="stat-value" id="scaleDisplay">60</span> px
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label class="control-label">Complexity (1-5)</label>
+                <input type="range" id="complexitySlider" min="1" max="5" value="3" step="1">
+                <div class="stat-box" style="margin-top: 8px;">
+                    <span class="stat-value" id="complexityDisplay">3</span>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label class="control-label">Color Palette</label>
+                <div class="color-palette" id="colorPalette"></div>
+            </div>
+
+            <div class="control-group">
+                <label class="control-label">Random Seed</label>
+                <input type="range" id="seedSlider" min="0" max="999" value="42" step="1">
+                <div class="stat-box" style="margin-top: 8px;">
+                    <span class="stat-value" id="seedValue">42</span>
+                </div>
+            </div>
+
+            <div class="button-group">
+                <button onclick="generateWallpaper()">✨ Generate</button>
+                <button class="secondary" onclick="randomizeSeed()">🎲 Randomize</button>
+            </div>
+
+            <div class="button-group">
+                <button class="secondary" onclick="downloadPNG()">⬇ PNG</button>
+                <button class="secondary" onclick="downloadSVG()">⬇ SVG</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('previewCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        const presets = [
+            ['#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8'],
+            ['#2E86AB', '#A23B72', '#F18F01', '#C73E1D', '#6A994E'],
+            ['#264653', '#2A9D8F', '#E9C46A', '#F4A261', '#E76F51'],
+            ['#D62828', '#F77F00', '#FCBF49', '#EAE2B7', '#003049'],
+            ['#606C38', '#283618', '#FEFAE0', '#DDA15E', '#BC6C25'],
+            ['#8E44AD', '#3498DB', '#1ABC9C', '#E74C3C', '#F39C12'],
+        ];
+
+        let currentPalette = [...presets[0]];
+        let currentSeed = 42;
+
+        function seededRandom(seed) {
+            const x = Math.sin(seed) * 10000;
+            return x - Math.floor(x);
+        }
+
+        function renderColorPalette() {
+            const paletteDiv = document.getElementById('colorPalette');
+            paletteDiv.innerHTML = '';
+            currentPalette.forEach((color, idx) => {
+                const swatch = document.createElement('div');
+                swatch.className = 'color-swatch';
+                swatch.style.backgroundColor = color;
+                swatch.title = color;
+                swatch.onclick = () => rotatePalette(idx);
+                paletteDiv.appendChild(swatch);
+            });
+        }
+
+        function rotatePalette(idx) {
+            const newPalette = presets[idx % presets.length];
+            currentPalette = [...newPalette];
+            renderColorPalette();
+            generateWallpaper();
+        }
+
+        function getColorAtIndex(rng, index) {
+            const hash = seededRandom(currentSeed + index * 7.3);
+            return currentPalette[Math.floor(hash * currentPalette.length)];
+        }
+
+        function generateWallpaper() {
+            const symmetry = document.getElementById('symmetrySelect').value;
+            const scale = parseInt(document.getElementById('scaleSlider').value);
+            const complexity = parseInt(document.getElementById('complexitySlider').value);
+            currentSeed = parseInt(document.getElementById('seedSlider').value);
+
+            document.getElementById('seedDisplay').textContent = currentSeed;
+            document.getElementById('seedValue').textContent = currentSeed;
+            document.getElementById('scaleDisplay').textContent = scale;
+            document.getElementById('complexityDisplay').textContent = complexity;
+
+            ctx.fillStyle = '#0d1f3a';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            const cx = canvas.width / 2;
+            const cy = canvas.height / 2;
+            const maxRadius = Math.sqrt(cx * cx + cy * cy);
+
+            // Draw tiles based on symmetry
+            for (let x = 0; x < canvas.width; x += scale) {
+                for (let y = 0; y < canvas.height; y += scale) {
+                    const hash = seededRandom(currentSeed + (x / scale) * 31.7 + (y / scale) * 47.3);
+                    const color = getColorAtIndex(hash, Math.floor(hash * 1000));
+                    
+                    // Create geometric pattern based on symmetry
+                    ctx.save();
+                    ctx.translate(x + scale / 2, y + scale / 2);
+                    
+                    if (symmetry === '4fold') {
+                        drawSymmetricPattern(ctx, scale, color, 4, complexity, hash);
+                    } else if (symmetry === '6fold') {
+                        drawSymmetricPattern(ctx, scale, color, 6, complexity, hash);
+                    } else if (symmetry === '8fold') {
+                        drawSymmetricPattern(ctx, scale, color, 8, complexity, hash);
+                    } else if (symmetry === 'radial') {
+                        drawRadialPattern(ctx, scale, color, complexity, hash);
+                    }
+                    
+                    ctx.restore();
+                }
+            }
+        }
+
+        function drawSymmetricPattern(ctx, scale, color, folds, complexity, seed) {
+            const angleStep = (Math.PI * 2) / folds;
+            const size = scale * 0.35;
+            
+            for (let i = 0; i < complexity; i++) {
+                const hash = seededRandom(seed + i * 3.7);
+                const shape = hash < 0.33 ? 'circle' : hash < 0.66 ? 'square' : 'triangle';
+                const opac = 0.3 + hash * 0.7;
+                const scale_i = size * (1 - i * 0.2);
+                
+                for (let f = 0; f < folds; f++) {
+                    ctx.save();
+                    ctx.rotate(angleStep * f);
+                    ctx.globalAlpha = opac;
+                    ctx.fillStyle = color;
+                    
+                    if (shape === 'circle') {
+                        ctx.beginPath();
+                        ctx.arc(scale_i * 0.6, 0, scale_i * 0.3, 0, Math.PI * 2);
+                        ctx.fill();
+                    } else if (shape === 'square') {
+                        ctx.fillRect(scale_i * 0.3, -scale_i * 0.3, scale_i * 0.6, scale_i * 0.6);
+                    } else {
+                        ctx.beginPath();
+                        ctx.moveTo(scale_i * 0.6, -scale_i * 0.3);
+                        ctx.lineTo(scale_i * 0.6, scale_i * 0.3);
+                        ctx.lineTo(scale_i * 0.2, 0);
+                        ctx.closePath();
+                        ctx.fill();
+                    }
+                    
+                    ctx.restore();
+                }
+            }
+        }
+
+        function drawRadialPattern(ctx, scale, color, complexity, seed) {
+            const size = scale * 0.35;
+            
+            for (let i = 0; i < complexity; i++) {
+                const hash = seededRandom(seed + i * 5.1);
+                const rings = 2 + Math.floor(hash * 3);
+                const opac = 0.2 + hash * 0.8;
+                
+                ctx.globalAlpha = opac;
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 2;
+                
+                for (let r = 0; r < rings; r++) {
+                    const radius = (size * (r + 1)) / rings;
+                    ctx.beginPath();
+                    ctx.arc(0, 0, radius, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+            }
+        }
+
+        function randomizeSeed() {
+            const newSeed = Math.floor(Math.random() * 1000);
+            document.getElementById('seedSlider').value = newSeed;
+            generateWallpaper();
+        }
+
+        function downloadPNG() {
+            const link = document.createElement('a');
+            link.href = canvas.toDataURL('image/png');
+            link.download = `wallpaper-loom-${currentSeed}.png`;
+            link.click();
+        }
+
+        function downloadSVG() {
+            const svg = generateSVG();
+            const blob = new Blob([svg], { type: 'image/svg+xml' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `wallpaper-loom-${currentSeed}.svg`;
+            link.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function generateSVG() {
+            const symmetry = document.getElementById('symmetrySelect').value;
+            const scale = parseInt(document.getElementById('scaleSlider').value);
+            const complexity = parseInt(document.getElementById('complexitySlider').value);
+
+            let svg = `<svg width="500" height="500" xmlns="http://www.w3.org/2000/svg">
+                <rect width="500" height="500" fill="#0d1f3a"/>`;
+
+            for (let x = 0; x < 500; x += scale) {
+                for (let y = 0; y < 500; y += scale) {
+                    const hash = seededRandom(currentSeed + (x / scale) * 31.7 + (y / scale) * 47.3);
+                    const color = getColorAtIndex(hash, Math.floor(hash * 1000));
+                    const cx = x + scale / 2;
+                    const cy = y + scale / 2;
+                    const size = scale * 0.35;
+
+                    for (let i = 0; i < complexity; i++) {
+                        const iHash = seededRandom(hash + i * 3.7);
+                        const shape = iHash < 0.33 ? 'circle' : 'square';
+                        const opac = (0.3 + iHash * 0.7).toFixed(2);
+                        const scale_i = size * (1 - i * 0.2);
+
+                        if (shape === 'circle') {
+                            svg += `<circle cx="${cx}" cy="${cy}" r="${(scale_i * 0.3).toFixed(1)}" fill="${color}" opacity="${opac}"/>`;
+                        } else {
+                            svg += `<rect x="${(cx - scale_i * 0.3).toFixed(1)}" y="${(cy - scale_i * 0.3).toFixed(1)}" width="${(scale_i * 0.6).toFixed(1)}" height="${(scale_i * 0.6).toFixed(1)}" fill="${color}" opacity="${opac}"/>`;
+                        }
+                    }
+                }
+            }
+
+            svg += '</svg>';
+            return svg;
+        }
+
+        // Event listeners
+        document.getElementById('scaleSlider').addEventListener('input', generateWallpaper);
+        document.getElementById('complexitySlider').addEventListener('input', generateWallpaper);
+        document.getElementById('symmetrySelect').addEventListener('change', generateWallpaper);
+        document.getElementById('seedSlider').addEventListener('input', () => {
+            currentSeed = parseInt(document.getElementById('seedSlider').value);
+            document.getElementById('seedValue').textContent = currentSeed;
+            generateWallpaper();
+        });
+
+        renderColorPalette();
+        generateWallpaper();
+    </script>
+</body>
+</html>
