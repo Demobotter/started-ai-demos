@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Piano Key Cipher — Decode Hidden Messages</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Space Mono', monospace;
+            background: linear-gradient(135deg, #0a1428 0%, #15213e 100%);
+            color: #e0e0e0;
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            background: #0f1f35;
+            border: 2px solid #4da8da;
+            border-radius: 12px;
+            padding: 30px;
+            max-width: 900px;
+            width: 100%;
+            box-shadow: 0 0 30px rgba(77, 168, 218, 0.2);
+        }
+
+        h1 {
+            color: #4da8da;
+            margin-bottom: 10px;
+            font-size: 28px;
+            text-align: center;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #a0a0a0;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .section {
+            margin-bottom: 30px;
+        }
+
+        .section-title {
+            color: #7dd3fc;
+            font-weight: bold;
+            margin-bottom: 15px;
+            font-size: 16px;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #a0d8ff;
+            font-size: 14px;
+        }
+
+        textarea {
+            width: 100%;
+            height: 100px;
+            background: #1a2d45;
+            border: 1px solid #4da8da;
+            color: #e0e0e0;
+            padding: 12px;
+            border-radius: 6px;
+            font-family: 'Space Mono', monospace;
+            font-size: 14px;
+            resize: vertical;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #7dd3fc;
+            box-shadow: 0 0 10px rgba(125, 211, 252, 0.3);
+        }
+
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .control {
+            display: flex;
+            flex-direction: column;
+        }
+
+        input[type="number"], select {
+            background: #1a2d45;
+            border: 1px solid #4da8da;
+            color: #e0e0e0;
+            padding: 10px;
+            border-radius: 6px;
+            font-family: 'Space Mono', monospace;
+            font-size: 14px;
+        }
+
+        input[type="number"]:focus, select:focus {
+            outline: none;
+            border-color: #7dd3fc;
+            box-shadow: 0 0 10px rgba(125, 211, 252, 0.3);
+        }
+
+        button {
+            background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%);
+            color: #0a1428;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 16px;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(251, 191, 36, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .result-box {
+            background: #1a2d45;
+            border: 2px solid #7dd3fc;
+            border-radius: 6px;
+            padding: 20px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .result-box.show {
+            display: block;
+        }
+
+        .result-title {
+            color: #4da8da;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .result-message {
+            color: #fbbf24;
+            font-size: 18px;
+            word-wrap: break-word;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+
+        .result-details {
+            font-size: 13px;
+            color: #a0d8ff;
+            line-height: 1.6;
+        }
+
+        .note-mapping {
+            background: #0f1f35;
+            border-left: 3px solid #fbbf24;
+            padding: 12px;
+            margin-top: 15px;
+            font-size: 13px;
+            color: #a0d8ff;
+        }
+
+        .error {
+            color: #ff6b6b;
+        }
+
+        .success {
+            color: #00d66a;
+        }
+
+        .confidence-bar {
+            width: 100%;
+            height: 8px;
+            background: #1a2d45;
+            border-radius: 4px;
+            margin-top: 8px;
+            overflow: hidden;
+        }
+
+        .confidence-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00d66a 0%, #fbbf24 50%, #ff6b6b 100%);
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+        @media (max-width: 768px) {
+            .controls {
+                grid-template-columns: 1fr;
+            }
+            h1 {
+                font-size: 22px;
+            }
+            .container {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎹 Piano Key Cipher</h1>
+        <p class="subtitle">Decode hidden messages encoded as piano key numbers (0-87)</p>
+
+        <div class="section">
+            <div class="section-title">Step 1: Paste Encoded Sequence</div>
+            <div class="input-group">
+                <label>Enter numbers (space, comma, or newline separated)</label>
+                <textarea id="inputSequence" placeholder="Example: 5 12 4 7 19 2 11 6 18 4 9 22"></textarea>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">Step 2: Configure Decoder</div>
+            <div class="controls">
+                <div class="control">
+                    <label for="stride">Stride (numbers per letter)</label>
+                    <input type="number" id="stride" min="1" max="5" value="0" placeholder="0 = auto-detect">
+                </div>
+                <div class="control">
+                    <label for="offset">Offset (start position)</label>
+                    <input type="number" id="offset" min="0" max="87" value="0" placeholder="0 = try from start">
+                </div>
+            </div>
+        </div>
+
+        <button onclick="decodeCipher()">Decode Message</button>
+
+        <div class="result-box" id="resultBox">
+            <div class="result-title">🔓 Decoded Result</div>
+            <div class="result-message" id="resultMessage"></div>
+            <div class="result-details" id="resultDetails"></div>
+            <div class="note-mapping" id="noteMapping"></div>
+        </div>
+    </div>
+
+    <script>
+        // Piano key mapping: 0-87 represents 88 piano keys
+        // A0 (0) to C8 (87)
+        const noteNames = [
+            'A0', 'A#0', 'B0', 'C1', 'C#1', 'D1', 'D#1', 'E1', 'F1', 'F#1', 'G1', 'G#1',
+            'A1', 'A#1', 'B1', 'C2', 'C#2', 'D2', 'D#2', 'E2', 'F2', 'F#2', 'G2', 'G#2',
+            'A2', 'A#2', 'B2', 'C3', 'C#3', 'D3', 'D#3', 'E3', 'F3', 'F#3', 'G3', 'G#3',
+            'A3', 'A#3', 'B3', 'C4', 'C#4', 'D4', 'D#4', 'E4', 'F4', 'F#4', 'G4', 'G#4',
+            'A4', 'A#4', 'B4', 'C5', 'C#5', 'D5', 'D#5', 'E5', 'F5', 'F#5', 'G5', 'G#5',
+            'A5', 'A#5', 'B5', 'C6', 'C#6', 'D6', 'D#6', 'E6', 'F6', 'F#6', 'G6', 'G#6',
+            'A6', 'A#6', 'B6', 'C7', 'C#7', 'D7', 'D#7', 'E7', 'F7', 'F#7', 'G7', 'G#7',
+            'A7', 'A#7', 'B7', 'C8'
+        ];
+
+        // English letter frequency (for confidence scoring)
+        const englishFrequency = {
+            'E': 11.1, 'T': 8.2, 'A': 8.2, 'O': 7.5, 'I': 7.0, 'N': 6.7,
+            'S': 6.3, 'H': 6.1, 'R': 6.0, 'D': 4.3, 'L': 4.0, 'C': 2.8,
+            'U': 2.8, 'M': 2.4, 'W': 2.4, 'F': 2.2, 'G': 2.0, 'Y': 2.0,
+            'P': 1.9, 'B': 1.5, 'V': 1.0, 'K': 0.8, 'J': 0.2, 'X': 0.2, 'Q': 0.1
+        };
+
+        function parseInput(input) {
+            // Parse space, comma, or newline separated numbers
+            const cleaned = input.trim().replace(/[,\n]+/g, ' ');
+            const numbers = cleaned.split(/\s+/).map(n => parseInt(n, 10)).filter(n => !isNaN(n) && n >= 0 && n <= 87);
+            return numbers;
+        }
+
+        function simpleStrideDecode(numbers, stride) {
+            // Try to decode by grouping every `stride` numbers as a letter code
+            // Each group sums to an ASCII value (or maps to A-Z range 0-25)
+            let decoded = '';
+            for (let i = 0; i + stride <= numbers.length; i += stride) {
+                const group = numbers.slice(i, i + stride);
+                const sum = group.reduce((a, b) => a + b, 0);
+                // Try mapping to A-Z (0-25 or mod 26)
+                const charCode = (sum % 26) + 65; // ASCII for A-Z
+                decoded += String.fromCharCode(charCode);
+            }
+            return decoded;
+        }
+
+        function directASCIIDecode(numbers) {
+            // Try to map each number directly to ASCII (simple case)
+            // Assuming numbers are meant to represent ASCII codes
+            let decoded = '';
+            for (let num of numbers) {
+                if (num >= 65 && num <= 90) {
+                    // Direct ASCII A-Z
+                    decoded += String.fromCharCode(num);
+                } else if (num < 26) {
+                    // 0-25 mapped to A-Z
+                    decoded += String.fromCharCode(num + 65);
+                }
+            }
+            return decoded;
+        }
+
+        function frequencyScore(text) {
+            // Calculate how closely the text matches English letter frequency
+            if (text.length === 0) return 0;
+            
+            const upper = text.toUpperCase();
+            const freq = {};
+            for (let char of upper) {
+                if (char >= 'A' && char <= 'Z') {
+                    freq[char] = (freq[char] || 0) + 1;
+                }
+            }
+
+            let score = 0;
+            let totalLetters = Object.values(freq).reduce((a, b) => a + b, 0);
+            for (let char in freq) {
+                const observed = (freq[char] / totalLetters) * 100;
+                const expected = englishFrequency[char] || 1;
+                score += Math.abs(observed - expected);
+            }
+            // Lower score = better match
+            return 100 - Math.min(score, 100); // Confidence 0-100
+        }
+
+        function isValidEnglish(text) {
+            // Check if text is mostly printable ASCII letters
+            const letters = text.match(/[A-Z]/gi) || [];
+            return letters.length / text.length > 0.7;
+        }
+
+        function decodeCipher() {
+            const input = document.getElementById('inputSequence').value;
+            const strideInput = parseInt(document.getElementById('stride').value, 10) || 0;
+            const offsetInput = parseInt(document.getElementById('offset').value, 10) || 0;
+
+            const numbers = parseInput(input);
+            if (numbers.length === 0) {
+                showError('No valid numbers found. Use space or comma separated values (0-87).');
+                return;
+            }
+
+            let bestResult = null;
+            let bestConfidence = 0;
+
+            if (strideInput > 0) {
+                // User specified stride
+                const decoded = simpleStrideDecode(numbers, strideInput);
+                if (decoded.length > 0 && isValidEnglish(decoded)) {
+                    const conf = frequencyScore(decoded);
+                    bestResult = {
+                        text: decoded,
+                        stride: strideInput,
+                        offset: offsetInput,
+                        confidence: conf,
+                        method: `Stride-${strideInput}, offset-${offsetInput}`
+                    };
+                }
+            } else {
+                // Auto-detect: try strides 1-5
+                for (let stride = 1; stride <= 5; stride++) {
+                    const decoded = simpleStrideDecode(numbers, stride);
+                    if (decoded.length > 0 && isValidEnglish(decoded)) {
+                        const conf = frequencyScore(decoded);
+                        if (conf > bestConfidence) {
+                            bestConfidence = conf;
+                            bestResult = {
+                                text: decoded,
+                                stride: stride,
+                                offset: offsetInput,
+                                confidence: conf,
+                                method: `Stride-${stride} (auto-detected)`
+                            };
+                        }
+                    }
+                }
+
+                // Also try direct ASCII decode
+                const directDecode = directASCIIDecode(numbers);
+                if (directDecode.length > 0 && isValidEnglish(directDecode)) {
+                    const conf = frequencyScore(directDecode);
+                    if (conf > bestConfidence) {
+                        bestConfidence = conf;
+                        bestResult = {
+                            text: directDecode,
+                            stride: 1,
+                            offset: 0,
+                            confidence: conf,
+                            method: 'Direct ASCII mapping'
+                        };
+                    }
+                }
+            }
+
+            if (bestResult && bestResult.confidence > 30) {
+                showResult(bestResult, numbers);
+            } else {
+                showError('No decodable message found. Try a different stride or offset.');
+            }
+        }
+
+        function showResult(result, numbers) {
+            const resultBox = document.getElementById('resultBox');
+            const resultMessage = document.getElementById('resultMessage');
+            const resultDetails = document.getElementById('resultDetails');
+            const noteMapping = document.getElementById('noteMapping');
+
+            resultMessage.textContent = result.text;
+            
+            const confidencePercent = Math.round(result.confidence);
+            resultDetails.innerHTML = `
+                <strong>Method:</strong> ${result.method}<br>
+                <strong>Confidence:</strong> ${confidencePercent}% match to English letter frequency<br>
+                <strong>Characters decoded:</strong> ${result.text.length}<br>
+                <div class="confidence-bar">
+                    <div class="confidence-fill" style="width: ${Math.min(confidencePercent, 100)}%"></div>
+                </div>
+            `;
+
+            // Show note mapping for first 12 numbers
+            const notesUsed = numbers.slice(0, 12).map(n => noteNames[n]).join(', ');
+            noteMapping.innerHTML = `<strong>Piano key mapping (first 12):</strong> ${notesUsed}`;
+
+            resultBox.classList.add('show');
+        }
+
+        function showError(message) {
+            const resultBox = document.getElementById('resultBox');
+            const resultMessage = document.getElementById('resultMessage');
+            const resultDetails = document.getElementById('resultDetails');
+
+            resultMessage.innerHTML = `<span class="error">${message}</span>`;
+            resultDetails.innerHTML = '';
+            document.getElementById('noteMapping').innerHTML = '';
+
+            resultBox.classList.add('show');
+        }
+
+        // Allow Enter to decode
+        document.getElementById('inputSequence').addEventListener('keypress', (e) => {
+            if (e.ctrlKey && e.key === 'Enter') {
+                decodeCipher();
+            }
+        });
+    </script>
+</body>
+</html>
