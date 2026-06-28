@@ -240,25 +240,6 @@
             border-color: #4da8da;
             box-shadow: 0 0 6px rgba(77, 168, 218, 0.3);
         }
-        .output-section {
-            background: rgba(45, 85, 130, 0.3);
-            border-radius: 6px;
-            padding: 12px;
-            margin-bottom: 15px;
-            border: 1px solid #2a5a9f;
-            font-size: 0.9rem;
-        }
-        .output-label {
-            color: #9ca3af;
-            font-size: 0.8rem;
-            font-weight: 600;
-            margin-bottom: 4px;
-        }
-        .output-value {
-            color: #4da8da;
-            font-family: monospace;
-            font-weight: 600;
-        }
     </style>
 </head>
 <body>
@@ -276,7 +257,7 @@
         </div>
 
         <div id="message"></div>
-        <div id="turn-indicator" class="turn-indicator">Your turn</div>
+        <div id="turn-indicator" class="turn-indicator">👤 Your turn</div>
 
         <div class="game-board">
             <div id="piles"></div>
@@ -309,11 +290,6 @@
             </div>
         </div>
 
-        <div class="output-section" id="output-section" style="display:none;">
-            <div class="output-label">AI Nim-Sum Analysis:</div>
-            <div class="output-value" id="ai-analysis"></div>
-        </div>
-
         <div class="controls">
             <button class="btn" onclick="resetGame()">New Game</button>
             <button class="btn btn-danger" onclick="resetStats()">Reset Stats</button>
@@ -328,7 +304,8 @@
             wins: 0,
             losses: 0,
             difficulty: 'medium',
-            gameOver: false
+            gameOver: false,
+            aiMoving: false
         };
 
         function nimSum() {
@@ -352,58 +329,61 @@
             return gameState.piles.reduce((a, b) => a + b, 0);
         }
 
-        function aiMove() {
-            if (!gameState.isPlayerTurn || gameState.gameOver) return;
+        function checkGameEnd() {
+            const total = getTotalObjects();
+            if (total === 0) {
+                gameState.gameOver = true;
+                if (!gameState.isPlayerTurn) {
+                    // AI took the last object, player wins
+                    gameState.wins++;
+                    showMessage('✅ You win! AI was forced to take the last object.', 'success');
+                } else {
+                    // Player took the last object, AI wins
+                    gameState.losses++;
+                    showMessage('❌ AI wins! You took the last object.', 'error');
+                }
+                document.getElementById('removal-section').style.display = 'none';
+                return true;
+            }
+            return false;
+        }
 
+        function aiMove() {
+            if (gameState.isPlayerTurn || gameState.gameOver || gameState.aiMoving) return;
+
+            gameState.aiMoving = true;
             gameState.isPlayerTurn = false;
             updateTurnIndicator();
 
+            // Schedule AI move with a small delay for UX
             setTimeout(() => {
+                if (gameState.gameOver) return;
+
                 let move;
                 const shouldPlay = gameState.difficulty === 'medium' || gameState.difficulty === 'hard' || Math.random() > 0.5;
 
                 if (shouldPlay) {
                     move = findWinningMove();
-                    if (move) {
-                        const analysis = `Nim-Sum was ${nimSum()}. Removing ${move.remove} from pile ${move.pile + 1} to make Nim-Sum = 0.`;
-                        document.getElementById('ai-analysis').textContent = analysis;
-                        document.getElementById('output-section').style.display = 'block';
-                    }
                 } else {
-                    // Random move
+                    // Random move for Easy
                     const validPiles = gameState.piles.map((size, i) => size > 0 ? i : -1).filter(i => i >= 0);
-                    const pileIdx = validPiles[Math.floor(Math.random() * validPiles.length)];
-                    const removeCount = Math.floor(Math.random() * gameState.piles[pileIdx]) + 1;
-                    move = { pile: pileIdx, remove: removeCount };
+                    if (validPiles.length > 0) {
+                        const pileIdx = validPiles[Math.floor(Math.random() * validPiles.length)];
+                        const removeCount = Math.floor(Math.random() * gameState.piles[pileIdx]) + 1;
+                        move = { pile: pileIdx, remove: removeCount };
+                    }
                 }
 
                 if (move && move.remove > 0 && move.remove <= gameState.piles[move.pile]) {
                     gameState.piles[move.pile] -= move.remove;
-                    checkGameEnd();
-                    if (!gameState.gameOver) {
+                    if (!checkGameEnd()) {
                         gameState.isPlayerTurn = true;
                     }
-                    updateTurnIndicator();
                 }
+                gameState.aiMoving = false;
+                updateTurnIndicator();
                 render();
-            }, 800);
-        }
-
-        function checkGameEnd() {
-            const total = getTotalObjects();
-            if (total === 0) {
-                gameState.gameOver = true;
-                if (gameState.isPlayerTurn) {
-                    // AI took the last object, player wins
-                    gameState.wins++;
-                    showMessage('You win! AI was forced to take the last object.', 'success');
-                } else {
-                    // Player took the last object, AI wins
-                    gameState.losses++;
-                    showMessage('AI wins! You took the last object.', 'error');
-                }
-                document.getElementById('removal-section').style.display = 'none';
-            }
+            }, 600);
         }
 
         function selectPile(index) {
@@ -421,7 +401,7 @@
             if (gameState.selectedPile === null) return;
             const count = parseInt(document.getElementById('removal-count').value);
             if (isNaN(count) || count < 1 || count > gameState.piles[gameState.selectedPile]) {
-                showMessage('Invalid number. Please try again.', 'error');
+                showMessage('⚠️ Invalid number. Please try again.', 'error');
                 return;
             }
 
@@ -430,9 +410,9 @@
             gameState.selectedPile = null;
             showMessage('');
 
-            checkGameEnd();
-            if (!gameState.gameOver) {
-                aiMove();
+            if (!checkGameEnd()) {
+                gameState.isPlayerTurn = false;
+                setTimeout(aiMove, 100);
             }
             render();
         }
@@ -448,8 +428,8 @@
             gameState.selectedPile = null;
             gameState.isPlayerTurn = true;
             gameState.gameOver = false;
+            gameState.aiMoving = false;
             document.getElementById('removal-section').style.display = 'none';
-            document.getElementById('output-section').style.display = 'none';
             showMessage('');
             render();
         }
