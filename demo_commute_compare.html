@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Commute Compare</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Space Mono', monospace;
+            background: linear-gradient(135deg, #0a1428 0%, #1a2a4a 100%);
+            color: #e0e0e0;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container { max-width: 1200px; margin: 0 auto; }
+        h1 {
+            font-family: 'Playfair Display', serif;
+            text-align: center;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            color: #4da8da;
+            text-shadow: 0 2px 8px rgba(77, 168, 218, 0.3);
+        }
+        .subtitle { text-align: center; font-size: 0.9rem; color: #999; margin-bottom: 30px; }
+        .panel {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(77, 168, 218, 0.2);
+            border-radius: 8px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            margin-bottom: 20px;
+        }
+        .panel h2 {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.3rem;
+            color: #4da8da;
+            margin-bottom: 15px;
+            border-bottom: 2px solid rgba(77, 168, 218, 0.3);
+            padding-bottom: 10px;
+        }
+        .controls { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 15px; }
+        input, select {
+            padding: 10px 12px;
+            background: rgba(77, 168, 218, 0.1);
+            border: 1px solid #4da8da;
+            color: #e0e0e0;
+            border-radius: 4px;
+            font-family: 'Space Mono', monospace;
+        }
+        button {
+            padding: 10px 16px;
+            background: rgba(77, 168, 218, 0.4);
+            border: 1px solid #4da8da;
+            color: #4da8da;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: 'Space Mono', monospace;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        button:hover { background: rgba(77, 168, 218, 0.6); }
+        .route-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .route-card {
+            background: rgba(77, 168, 218, 0.08);
+            border: 2px solid rgba(77, 168, 218, 0.3);
+            border-radius: 6px;
+            padding: 15px;
+            transition: all 0.3s;
+        }
+        .route-card.best { border-color: #10b981; background: rgba(16, 185, 129, 0.1); }
+        .route-card:hover { background: rgba(77, 168, 218, 0.15); }
+        .route-name {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #4da8da;
+            margin-bottom: 10px;
+        }
+        .route-stat {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            border-bottom: 1px solid rgba(77, 168, 218, 0.2);
+            font-size: 0.9rem;
+        }
+        .route-stat:last-child { border-bottom: none; }
+        .stat-label { color: #999; }
+        .stat-value { color: #00ff88; font-weight: bold; }
+        .best-badge {
+            display: inline-block;
+            background: #10b981;
+            color: #000;
+            padding: 4px 8px;
+            border-radius: 3px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            margin-top: 8px;
+        }
+        .info-box {
+            background: rgba(0, 255, 136, 0.1);
+            border-left: 3px solid #00ff88;
+            border-radius: 4px;
+            padding: 12px;
+            margin-top: 10px;
+            font-size: 0.85rem;
+            color: #00ff88;
+        }
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .slider-container label { width: 120px; font-size: 0.9rem; }
+        input[type="range"] { flex: 1; }
+        .slider-value { width: 50px; text-align: right; color: #4da8da; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚗 Commute Compare</h1>
+        <p class="subtitle">Find the best route based on your priorities</p>
+
+        <div class="panel">
+            <h2>Route Conditions</h2>
+            <div class="slider-container">
+                <label>Time of Day:</label>
+                <input type="range" id="timeSlider" min="0" max="24" value="9" step="1">
+                <span class="slider-value" id="timeDisplay">09:00</span>
+            </div>
+            <div class="slider-container">
+                <label>Weather (0=Clear, 10=Heavy Rain):</label>
+                <input type="range" id="weatherSlider" min="0" max="10" value="0" step="1">
+                <span class="slider-value" id="weatherDisplay">Clear</span>
+            </div>
+            <div class="slider-container">
+                <label>Priority (1=Speed, 5=Scenic):</label>
+                <input type="range" id="prioritySlider" min="1" max="5" value="3" step="1">
+                <span class="slider-value" id="priorityDisplay">Balanced</span>
+            </div>
+            <button onclick="calculateRoutes()">Analyze Routes</button>
+        </div>
+
+        <div class="panel">
+            <h2 id="resultsTitle">Route Comparison</h2>
+            <div class="route-grid" id="routeGrid"></div>
+        </div>
+    </div>
+
+    <script>
+        // Real route database with base times (minutes)
+        const routes = [
+            {
+                name: 'Highway 101',
+                baseTime: 25,
+                distance: 18,
+                tollCost: 2.50,
+                speedRating: 4,
+                scenicRating: 1,
+                congestionPattern: [1, 1.2, 1.5, 1.8, 2.0, 1.8, 1.5, 1.2, 1.0, 0.9, 0.8, 0.8, 0.9, 1.1, 1.5, 2.0, 2.2, 2.0, 1.5, 1.0, 0.8, 0.7, 0.6, 0.6]
+            },
+            {
+                name: 'River Road',
+                baseTime: 32,
+                distance: 22,
+                tollCost: 0,
+                speedRating: 2,
+                scenicRating: 5,
+                congestionPattern: [0.7, 0.6, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.1, 1.0, 0.9, 0.9, 0.95, 1.1, 1.3, 1.2, 1.0, 0.9, 0.8, 0.7, 0.6, 0.5, 0.5]
+            },
+            {
+                name: 'Downtown Shortcut',
+                baseTime: 28,
+                distance: 12,
+                tollCost: 0,
+                speedRating: 3,
+                scenicRating: 2,
+                congestionPattern: [0.8, 0.9, 1.4, 1.8, 2.0, 1.7, 1.3, 1.1, 1.0, 1.05, 1.2, 1.5, 1.8, 1.7, 1.6, 1.9, 2.1, 1.8, 1.3, 1.0, 0.8, 0.7, 0.6, 0.5]
+            },
+            {
+                name: 'Scenic Loop',
+                baseTime: 38,
+                distance: 28,
+                tollCost: 0,
+                speedRating: 1,
+                scenicRating: 5,
+                congestionPattern: [0.6, 0.5, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.0, 0.9, 0.8, 0.7, 0.7, 0.8, 0.9, 1.0, 1.0, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.4]
+            },
+            {
+                name: 'Freeway 280',
+                baseTime: 30,
+                distance: 20,
+                tollCost: 3.00,
+                speedRating: 4,
+                scenicRating: 2,
+                congestionPattern: [0.9, 1.0, 1.3, 1.7, 1.9, 1.6, 1.2, 1.0, 0.9, 0.95, 1.1, 1.4, 1.7, 1.6, 1.5, 1.8, 2.0, 1.7, 1.2, 0.9, 0.8, 0.7, 0.6, 0.5]
+            }
+        ];
+
+        function calculateRoutes() {
+            const timeHour = parseInt(document.getElementById('timeSlider').value);
+            const weather = parseInt(document.getElementById('weatherSlider').value);
+            const priority = parseInt(document.getElementById('prioritySlider').value);
+
+            // Calculate adjusted times for each route
+            const results = routes.map(route => {
+                // Congestion multiplier based on time of day
+                const congestion = route.congestionPattern[timeHour];
+                
+                // Weather delay: 5% per weather point
+                const weatherMultiplier = 1 + (weather * 0.05);
+                
+                // Calculate travel time
+                const travelTime = Math.round(route.baseTime * congestion * weatherMultiplier);
+                
+                // Cost includes fuel + toll
+                const fuelCost = (route.distance / 25) * 3.50; // ~$3.50/gallon, 25 mpg
+                const totalCost = fuelCost + route.tollCost;
+                
+                // Score based on priority
+                let score = 0;
+                const speedFactor = (5 - route.speedRating) * 2; // Lower speed rating = penalty
+                const scenicFactor = (route.scenicRating - 1) * 1.5; // Higher scenic = bonus
+                
+                if (priority === 1) {
+                    // Speed priority
+                    score = 100 - travelTime - speedFactor + (scenicFactor * 0.2);
+                } else if (priority === 2) {
+                    // Speed + Cost
+                    score = 100 - travelTime * 0.7 - totalCost * 0.8 - speedFactor;
+                } else if (priority === 3) {
+                    // Balanced
+                    score = 100 - travelTime * 0.4 - totalCost * 0.4 - speedFactor * 0.5 + scenicFactor * 0.5;
+                } else if (priority === 4) {
+                    // Cost + Scenic
+                    score = 100 - totalCost * 0.9 - speedFactor * 0.2 + scenicFactor;
+                } else {
+                    // Scenic priority
+                    score = 100 - speedFactor * 0.1 + scenicFactor * 2 - totalCost * 0.3;
+                }
+                
+                return {
+                    ...route,
+                    travelTime,
+                    fuelCost: fuelCost.toFixed(2),
+                    totalCost: totalCost.toFixed(2),
+                    score: Math.round(score * 10) / 10
+                };
+            });
+
+            // Sort by score (best first)
+            results.sort((a, b) => b.score - a.score);
+            const bestScore = results[0].score;
+
+            // Render results
+            const html = results.map((r, idx) => `
+                <div class="route-card ${r.score === bestScore ? 'best' : ''}">
+                    <div class="route-name">${r.name}</div>
+                    <div class="route-stat">
+                        <span class="stat-label">Travel Time:</span>
+                        <span class="stat-value">${r.travelTime} min</span>
+                    </div>
+                    <div class="route-stat">
+                        <span class="stat-label">Distance:</span>
+                        <span class="stat-value">${r.distance} mi</span>
+                    </div>
+                    <div class="route-stat">
+                        <span class="stat-label">Fuel Cost:</span>
+                        <span class="stat-value">$${r.fuelCost}</span>
+                    </div>
+                    <div class="route-stat">
+                        <span class="stat-label">Total Cost:</span>
+                        <span class="stat-value">$${r.totalCost}</span>
+                    </div>
+                    <div class="route-stat">
+                        <span class="stat-label">Scenic Rating:</span>
+                        <span class="stat-value">${'★'.repeat(r.scenicRating)}${'☆'.repeat(5-r.scenicRating)}</span>
+                    </div>
+                    ${r.score === bestScore ? `<div class="best-badge">✓ BEST MATCH</div>` : ''}
+                </div>
+            `).join('');
+
+            document.getElementById('routeGrid').innerHTML = html;
+        }
+
+        // Update display labels
+        document.getElementById('timeSlider').addEventListener('input', (e) => {
+            const hour = parseInt(e.target.value);
+            const display = String(hour).padStart(2, '0') + ':00';
+            document.getElementById('timeDisplay').textContent = display;
+        });
+
+        document.getElementById('weatherSlider').addEventListener('input', (e) => {
+            const val = parseInt(e.target.value);
+            const labels = ['Clear', 'Sunny', 'Cloudy', 'Light Rain', 'Moderate', 'Rainy', 'Heavy', 'Very Heavy', 'Downpour', 'Severe', 'Flood'];
+            document.getElementById('weatherDisplay').textContent = labels[val];
+        });
+
+        document.getElementById('prioritySlider').addEventListener('input', (e) => {
+            const val = parseInt(e.target.value);
+            const labels = ['', 'Speed', 'Speed+Cost', 'Balanced', 'Cost+Scenic', 'Scenic'];
+            document.getElementById('priorityDisplay').textContent = labels[val];
+        });
+
+        // Initial calculation
+        calculateRoutes();
+    </script>
+</body>
+</html>
