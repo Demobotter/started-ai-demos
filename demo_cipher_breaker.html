@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cipher Breaker</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Playfair Display', 'Space Mono', monospace;
+            background: #0a1428;
+            color: #e0e0e0;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+        h1 {
+            grid-column: 1 / -1;
+            text-align: center;
+            font-size: 2.5em;
+            margin-bottom: 20px;
+            color: #4da8da;
+        }
+        .panel {
+            background: #1f2937;
+            border: 2px solid #4da8da;
+            border-radius: 8px;
+            padding: 20px;
+        }
+        h2 {
+            font-size: 1.4em;
+            margin-bottom: 15px;
+            color: #4da8da;
+            border-bottom: 1px solid #4da8da;
+            padding-bottom: 10px;
+        }
+        label {
+            display: block;
+            margin-top: 15px;
+            font-size: 0.9em;
+            color: #a0a0a0;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        input, textarea, select {
+            width: 100%;
+            padding: 10px;
+            margin-top: 5px;
+            background: #0a1428;
+            border: 1px solid #4da8da;
+            color: #e0e0e0;
+            font-family: 'Space Mono', monospace;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+        textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            margin-top: 10px;
+            background: #4da8da;
+            color: #0a1428;
+            border: none;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 0.95em;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background: #7dd3fc;
+        }
+        button:disabled {
+            background: #555;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+        .result-box {
+            background: #0a1428;
+            border: 1px solid #00d66a;
+            border-radius: 4px;
+            padding: 15px;
+            margin-top: 15px;
+            font-family: 'Space Mono', monospace;
+            font-size: 0.9em;
+            word-break: break-all;
+            min-height: 50px;
+        }
+        .error-box {
+            border-color: #ff4444 !important;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 15px;
+            font-size: 0.85em;
+        }
+        .stat-item {
+            background: #0a1428;
+            border-left: 3px solid #4da8da;
+            padding: 10px;
+            border-radius: 2px;
+        }
+        .stat-label {
+            color: #a0a0a0;
+            font-size: 0.8em;
+            text-transform: uppercase;
+        }
+        .stat-value {
+            color: #4da8da;
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+        .frequency-chart {
+            margin-top: 15px;
+        }
+        .freq-bar {
+            display: grid;
+            grid-template-columns: 30px 1fr 50px;
+            align-items: center;
+            margin: 3px 0;
+            gap: 8px;
+            font-size: 0.8em;
+        }
+        .freq-bar-letter {
+            font-weight: bold;
+            color: #4da8da;
+        }
+        .freq-bar-fill {
+            background: linear-gradient(90deg, #4da8da 0%, #00ccff 100%);
+            height: 20px;
+            border-radius: 2px;
+        }
+        .freq-bar-count {
+            color: #a0a0a0;
+            text-align: right;
+        }
+        .mapping-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
+            margin-top: 15px;
+        }
+        .mapping-item {
+            background: #0a1428;
+            border: 1px solid #4da8da;
+            padding: 8px;
+            text-align: center;
+            border-radius: 2px;
+            font-size: 0.8em;
+        }
+        .mapping-cipher {
+            color: #ff6b6b;
+            font-weight: bold;
+        }
+        .mapping-arrow {
+            color: #a0a0a0;
+            font-size: 0.7em;
+        }
+        .mapping-plain {
+            color: #4da8da;
+            font-weight: bold;
+        }
+        .tabs {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 5px;
+            margin: 15px 0;
+        }
+        .tab-btn {
+            padding: 10px;
+            border: 1px solid #4da8da;
+            background: #0a1428;
+            color: #4da8da;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 0.85em;
+            transition: all 0.3s;
+        }
+        .tab-btn.active {
+            background: #4da8da;
+            color: #0a1428;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .example-btn {
+            background: #555;
+            color: #e0e0e0;
+            font-size: 0.8em;
+            padding: 6px;
+            margin: 2px;
+            width: auto;
+            display: inline-block;
+        }
+        .example-btn:hover {
+            background: #777;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #0a1428;
+            border: 1px solid #4da8da;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4da8da, #00ccff);
+            width: 0%;
+            transition: width 0.1s;
+        }
+        @media (max-width: 800px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+            h1 {
+                font-size: 1.8em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>🔐 Cipher Breaker</h1>
+    
+    <div class="container">
+        <!-- LEFT PANEL: Encode -->
+        <div class="panel">
+            <h2>Encode Message</h2>
+            <label>Plaintext (A-Z only)</label>
+            <textarea id="plainInput" placeholder="Type a message...">HELLOWORLD</textarea>
+            
+            <label>Substitution Offset (0-25)</label>
+            <input type="range" id="offsetRange" min="0" max="25" value="3">
+            <div style="text-align: center; color: #4da8da; margin-top: 5px;">
+                <strong id="offsetDisplay">3</strong>
+            </div>
+            
+            <button onclick="encodeMessage()">Encode Message</button>
+            
+            <label style="margin-top: 20px;">Generated Ciphertext</label>
+            <div class="result-box" id="ciphertextOutput">KHOORZRUOG</div>
+            
+            <button onclick="copyCiphertext()" style="margin-top: 10px; background: #555; color: #e0e0e0;">Copy to Crack Panel</button>
+        </div>
+        
+        <!-- RIGHT PANEL: Crack -->
+        <div class="panel">
+            <h2>Crack the Cipher</h2>
+            
+            <div class="tabs">
+                <button class="tab-btn active" onclick="switchTab('crack')">Frequency Analysis</button>
+                <button class="tab-btn" onclick="switchTab('hint')">Known Plaintext</button>
+                <button class="tab-btn" onclick="switchTab('brute')">Brute Force</button>
+            </div>
+            
+            <!-- Frequency Analysis Tab -->
+            <div id="crack" class="tab-content active">
+                <label>Ciphertext to Break</label>
+                <textarea id="ciphertextInput" placeholder="Paste ciphertext here...">KHOORZRUOG</textarea>
+                
+                <button onclick="frequencyAnalysis()">Run Frequency Analysis</button>
+                
+                <div id="freqResult"></div>
+            </div>
+            
+            <!-- Known Plaintext Tab -->
+            <div id="hint" class="tab-content">
+                <label>Ciphertext</label>
+                <textarea id="ciphertextHint" placeholder="Paste ciphertext...">KHOORZRUOG</textarea>
+                
+                <label>Known Plaintext Hint (e.g., first word)</label>
+                <textarea id="plaintextHint" placeholder="HELLO" style="min-height: 60px;"></textarea>
+                
+                <button onclick="knownPlaintextAttack()">Find Offset Using Hint</button>
+                
+                <div id="hintResult"></div>
+            </div>
+            
+            <!-- Brute Force Tab -->
+            <div id="brute" class="tab-content">
+                <label>Ciphertext</label>
+                <textarea id="ciphertextBrute" placeholder="Paste ciphertext...">KHOORZRUOG</textarea>
+                
+                <button onclick="bruteForce()">Try All 26 Offsets</button>
+                
+                <div id="bruteResult"></div>
+            </div>
+            
+            <!-- Examples -->
+            <div style="margin-top: 20px;">
+                <label>Quick Examples</label>
+                <button class="example-btn" onclick="loadExample('KHOORZRUOG')">Short (offset 3)</button>
+                <button class="example-btn" onclick="loadExample('WKRUH LV D WHVW')">Medium (offset 3)</button>
+                <button class="example-btn" onclick="loadExample('SGD BNHD BV SNO HZFSDGHU')">Longer (offset 5)</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // English language letter frequencies (percent)
+        const englishFreq = {
+            A: 8.17, B: 1.29, C: 2.78, D: 4.25, E: 12.70, F: 2.23, G: 2.02,
+            H: 6.09, I: 7.00, J: 0.15, K: 0.77, L: 4.03, M: 2.41, N: 6.75,
+            O: 7.51, P: 1.93, Q: 0.10, R: 5.99, S: 6.33, T: 9.06, U: 2.76,
+            V: 0.98, W: 2.36, X: 0.15, Y: 1.97, Z: 0.07
+        };
+        
+        // Dictionary of common English words for scoring
+        const commonWords = new Set([
+            'THE', 'AND', 'FOR', 'ARE', 'BUT', 'NOT', 'YOU', 'ALL', 'CAN', 'HER',
+            'WAS', 'ONE', 'OUR', 'OUT', 'DAY', 'GET', 'HAS', 'HIM', 'HIS', 'HOW',
+            'ITS', 'MAY', 'NEW', 'NOW', 'OLD', 'SEE', 'TWO', 'WAY', 'WHO', 'BOY',
+            'DID', 'ITS', 'LET', 'PUT', 'SAY', 'SHE', 'TOO', 'USE', 'WHAT', 'WHEN',
+            'WHICH', 'WILL', 'WITH', 'WOULD', 'ABOUT', 'AFTER', 'AGAIN', 'ANOTHER',
+            'BECAUSE', 'BEFORE', 'BETWEEN', 'COULD', 'FIRST', 'FOUND', 'GOOD', 'GREAT',
+            'HELLO', 'HOUSE', 'LARGE', 'LITTLE', 'LONG', 'MAKE', 'MANY', 'MORE',
+            'MOST', 'MUST', 'NEVER', 'NIGHT', 'OFTEN', 'ONLY', 'OTHER', 'OVER',
+            'PEOPLE', 'PLACE', 'RIGHT', 'SHOULD', 'SMALL', 'SOME', 'STILL', 'SUCH',
+            'THAN', 'THANK', 'THEIR', 'THEM', 'THEN', 'THERE', 'THESE', 'THEY',
+            'THING', 'THIS', 'THOSE', 'THREE', 'THROUGH', 'TIME', 'VERY', 'WATER',
+            'WHERE', 'WHILE', 'WORLD', 'WRITE', 'YEAR'
+        ]);
+        
+        // Clean text: uppercase, remove non-letters
+        function cleanText(text) {
+            return text.toUpperCase().replace(/[^A-Z]/g, '');
+        }
+        
+        // Caesar decode with given offset
+        function caesarDecode(ciphertext, offset) {
+            return ciphertext.split('').map(char => {
+                if (!/[A-Z]/.test(char)) return char;
+                let code = char.charCodeAt(0) - 65;
+                return String.fromCharCode(((code - offset + 26) % 26) + 65);
+            }).join('');
+        }
+        
+        // Calculate letter frequencies in text
+        function getFrequencies(text) {
+            const clean = cleanText(text);
+            const freqs = {};
+            for (let letter of 'ABCDEFGHIJKLMNOPQRSTUVWXYZ') {
+                freqs[letter] = 0;
+            }
+            for (let char of clean) {
+                freqs[char]++;
+            }
+            return freqs;
+        }
+        
+        // Chi-squared scoring: lower is better match to English
+        function chiSquaredScore(frequencies, totalLetters) {
+            if (totalLetters === 0) return Infinity;
+            let score = 0;
+            for (let letter of 'ABCDEFGHIJKLMNOPQRSTUVWXYZ') {
+                const observed = frequencies[letter];
+                const expected = (englishFreq[letter] / 100) * totalLetters;
+                const chi = Math.pow(observed - expected, 2) / (expected || 1);
+                score += chi;
+            }
+            return score;
+        }
+        
+        // Count word matches in plaintext
+        function scoreWords(plaintext) {
+            const words = cleanText(plaintext).split(/[^A-Z]+/);
+            let matches = 0;
+            for (let word of words) {
+                if (word.length > 2 && commonWords.has(word)) {
+                    matches++;
+                }
+            }
+            return matches;
+        }
+        
+        // Update offset display
+        document.getElementById('offsetRange')?.addEventListener('input', (e) => {
+            document.getElementById('offsetDisplay').textContent = e.target.value;
+        });
+        
+        // Encode message
+        function encodeMessage() {
+            const plain = document.getElementById('plainInput').value;
+            const offset = parseInt(document.getElementById('offsetRange').value);
+            const clean = cleanText(plain);
+            const cipher = clean.split('').map(char => {
+                let code = char.charCodeAt(0) - 65;
+                return String.fromCharCode(((code + offset) % 26) + 65);
+            }).join('');
+            document.getElementById('ciphertextOutput').textContent = cipher;
+        }
+        
+        // Copy ciphertext to crack panel
+        function copyCiphertext() {
+            const cipher = document.getElementById('ciphertextOutput').textContent;
+            document.getElementById('ciphertextInput').value = cipher;
+            document.getElementById('ciphertextHint').value = cipher;
+            document.getElementById('ciphertextBrute').value = cipher;
+            switchTab('crack');
+        }
+        
+        // Tab switching
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+        }
+        
+        // Load example ciphertext
+        function loadExample(cipher) {
+            document.getElementById('ciphertextInput').value = cipher;
+            document.getElementById('ciphertextHint').value = cipher;
+            document.getElementById('ciphertextBrute').value = cipher;
+            switchTab('crack');
+        }
+        
+        // Frequency Analysis
+        function frequencyAnalysis() {
+            const cipher = document.getElementById('ciphertextInput').value;
+            const clean = cleanText(cipher);
+            if (clean.length === 0) {
+                document.getElementById('freqResult').innerHTML = '<div class="result-box error-box">Empty ciphertext</div>';
+                return;
+            }
+            
+            const freqs = getFrequencies(clean);
+            const sorted = Object.entries(freqs)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 10);
+            
+            let html = '<div style="margin-top: 15px;"><strong>Top 10 Letters (Ciphertext)</strong><div class="frequency-chart">';
+            let maxCount = sorted[0][1];
+            for (let [letter, count] of sorted) {
+                const pct = ((count / clean.length) * 100).toFixed(1);
+                const barWidth = (count / maxCount) * 100;
+                html += `
+                    <div class="freq-bar">
+                        <div class="freq-bar-letter">${letter}</div>
+                        <div class="freq-bar-fill" style="width: ${barWidth}%"></div>
+                        <div class="freq-bar-count">${count} (${pct}%)</div>
+                    </div>
+                `;
+            }
+            html += '</div></div>';
+            
+            // Brute force all offsets with chi-squared
+            let bestOffset = 0;
+            let bestScore = Infinity;
+            let results = [];
+            
+            for (let offset = 0; offset < 26; offset++) {
+                const decoded = caesarDecode(clean, offset);
+                const dFreqs = getFrequencies(decoded);
+                const score = chiSquaredScore(dFreqs, clean.length);
+                results.push({ offset, decoded, score });
+                if (score < bestScore) {
+                    bestScore = score;
+                    bestOffset = offset;
+                }
+            }
+            
+            // Show top 3 candidates
+            const top3 = results.sort((a, b) => a.score - b.score).slice(0, 3);
+            html += '<div style="margin-top: 20px;"><strong>Top 3 Candidates (Chi-Squared Scoring)</strong>';
+            for (let i = 0; i < top3.length; i++) {
+                const candidate = top3[i];
+                const confidence = Math.max(0, 100 - (candidate.score / bestScore) * 100);
+                const preview = candidate.decoded.substring(0, 50) + (candidate.decoded.length > 50 ? '...' : '');
+                html += `
+                    <div class="result-box" style="margin-top: 10px;">
+                        <div><strong>Offset ${candidate.offset}</strong> (Confidence: ${confidence.toFixed(0)}%)</div>
+                        <div style="margin-top: 8px; color: #a0a0a0;">Score: ${candidate.score.toFixed(0)}</div>
+                        <div style="margin-top: 8px; word-break: break-all;">${preview}</div>
+                        <button class="example-btn" style="margin-top: 8px;" onclick="document.getElementById('ciphertextHint').value = '${candidate.decoded}'; switchTab('hint');">Use This</button>
+                    </div>
+                `;
+            }
+            html += '</div>';
+            
+            document.getElementById('freqResult').innerHTML = html;
+        }
+        
+        // Known Plaintext Attack
+        function knownPlaintextAttack() {
+            const cipher = cleanText(document.getElementById('ciphertextHint').value);
+            const hint = cleanText(document.getElementById('plaintextHint').value);
+            
+            if (cipher.length === 0 || hint.length === 0) {
+                document.getElementById('hintResult').innerHTML = '<div class="result-box error-box">Both fields required</div>';
+                return;
+            }
+            
+            if (hint.length > cipher.length) {
+                document.getElementById('hintResult').innerHTML = '<div class="result-box error-box">Hint longer than ciphertext</div>';
+                return;
+            }
+            
+            // Try all positions in ciphertext
+            let solutions = [];
+            for (let pos = 0; pos <= cipher.length - hint.length; pos++) {
+                const cipherChunk = cipher.substring(pos, pos + hint.length);
+                // Calculate offset from first character match
+                const offset = (cipherChunk.charCodeAt(0) - hint.charCodeAt(0) + 26) % 26;
+                // Verify offset works for entire hint
+                let valid = true;
+                for (let i = 0; i < hint.length; i++) {
+                    const expected = hint.charCodeAt(i);
+                    const actual = (cipherChunk.charCodeAt(i) - offset + 26) % 26 + 65;
+                    if (actual !== expected) {
+                        valid = false;
+                        break;
+                    }
+                }
+                if (valid) {
+                    const decoded = caesarDecode(cipher, offset);
+                    solutions.push({ offset, decoded, position: pos });
+                }
+            }
+            
+            let html = '';
+            if (solutions.length === 0) {
+                html = '<div class="result-box error-box">No match found. Hint may not be in plaintext.</div>';
+            } else {
+                html = `<div style="margin-top: 15px;"><strong>Found ${solutions.length} Match(es)</strong>`;
+                for (let sol of solutions) {
+                    const preview = sol.decoded.substring(0, 60) + (sol.decoded.length > 60 ? '...' : '');
+                    html += `
+                        <div class="result-box" style="margin-top: 10px;">
+                            <div><strong>Offset ${sol.offset}</strong> (Match at position ${sol.position})</div>
+                            <div style="margin-top: 8px; word-break: break-all;">${preview}</div>
+                        </div>
+                    `;
+                }
+                html += '</div>';
+            }
+            
+            document.getElementById('hintResult').innerHTML = html;
+        }
+        
+        // Brute Force All Offsets
+        function bruteForce() {
+            const cipher = cleanText(document.getElementById('ciphertextBrute').value);
+            if (cipher.length === 0) {
+                document.getElementById('bruteResult').innerHTML = '<div class="result-box error-box">Empty ciphertext</div>';
+                return;
+            }
+            
+            let html = '<div style="margin-top: 15px;"><strong>All 26 Possible Offsets</strong>';
+            let candidates = [];
+            
+            for (let offset = 0; offset < 26; offset++) {
+                const decoded = caesarDecode(cipher, offset);
+                const wordScore = scoreWords(decoded);
+                const preview = decoded.substring(0, 40) + (decoded.length > 40 ? '...' : '');
+                candidates.push({ offset, decoded, wordScore, preview });
+            }
+            
+            // Sort by word matches (higher = better)
+            candidates.sort((a, b) => b.wordScore - a.wordScore);
+            
+            for (let i = 0; i < Math.min(5, candidates.length); i++) {
+                const cand = candidates[i];
+                const badge = cand.wordScore > 0 ? `(${cand.wordScore} word match${cand.wordScore > 1 ? 'es' : ''})` : '';
+                html += `
+                    <div class="result-box" style="margin-top: 10px; border-color: ${i === 0 ? '#00d66a' : '#4da8da'};">
+                        <div><strong>Offset ${cand.offset}</strong> ${badge}</div>
+                        <div style="margin-top: 8px; word-break: break-all;">${cand.preview}</div>
+                    </div>
+                `;
+            }
+            
+            html += '</div>';
+            document.getElementById('bruteResult').innerHTML = html;
+        }
+        
+        // Auto-encode on load
+        window.addEventListener('load', () => {
+            encodeMessage();
+            frequencyAnalysis();
+        });
+    </script>
+</body>
+</html>
