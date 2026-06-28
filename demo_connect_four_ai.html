@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connect Four AI</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Playfair Display', serif;
+            background: linear-gradient(135deg, #0a1428 0%, #1a2a4a 100%);
+            color: #e0e0e0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            background: rgba(15, 25, 45, 0.9);
+            border: 2px solid #4da8da;
+            border-radius: 12px;
+            padding: 30px;
+            max-width: 900px;
+            width: 100%;
+            box-shadow: 0 0 30px rgba(77, 168, 218, 0.3);
+        }
+        h1 {
+            text-align: center;
+            color: #4da8da;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+        .subtitle {
+            text-align: center;
+            color: #a0a0a0;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+        .content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            align-items: start;
+        }
+        .board-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+        canvas#gameBoard {
+            background: #0a3a6a;
+            border: 3px solid #4da8da;
+            border-radius: 8px;
+            cursor: pointer;
+            display: block;
+        }
+        .status {
+            font-size: 1.3em;
+            color: #4da8da;
+            text-align: center;
+            min-height: 30px;
+            font-weight: bold;
+        }
+        .controls {
+            background: rgba(10, 20, 40, 0.8);
+            border: 1px solid #4da8da;
+            border-radius: 8px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .control-group label {
+            color: #4da8da;
+            font-weight: bold;
+            font-size: 0.95em;
+        }
+        .difficulty-group {
+            display: flex;
+            gap: 8px;
+        }
+        .difficulty-btn {
+            flex: 1;
+            padding: 10px;
+            background: #1a3a5a;
+            border: 2px solid #4da8da;
+            color: #e0e0e0;
+            cursor: pointer;
+            border-radius: 6px;
+            font-size: 0.95em;
+            font-family: 'Space Mono', monospace;
+            transition: all 0.3s ease;
+        }
+        .difficulty-btn.active {
+            background: #4da8da;
+            color: #0a1428;
+            font-weight: bold;
+        }
+        .difficulty-btn:hover {
+            border-color: #7dd3fc;
+        }
+        button {
+            padding: 12px;
+            background: #4da8da;
+            color: #0a1428;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: bold;
+            font-family: 'Playfair Display', serif;
+            transition: all 0.3s ease;
+        }
+        button:hover {
+            background: #7dd3fc;
+            transform: scale(1.05);
+        }
+        button:active {
+            transform: scale(0.98);
+        }
+        .stats {
+            background: rgba(20, 40, 60, 0.8);
+            border-left: 4px solid #4da8da;
+            padding: 12px;
+            border-radius: 4px;
+            font-family: 'Space Mono', monospace;
+            font-size: 0.9em;
+            line-height: 1.8;
+        }
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            color: #b0b0b0;
+        }
+        .stat-label {
+            color: #4da8da;
+        }
+        .stat-value {
+            color: #7dd3fc;
+            font-weight: bold;
+        }
+        .move-history {
+            background: rgba(20, 40, 60, 0.8);
+            border: 1px solid #2a5a7a;
+            border-radius: 4px;
+            padding: 12px;
+            font-family: 'Space Mono', monospace;
+            font-size: 0.85em;
+            max-height: 150px;
+            overflow-y: auto;
+            color: #a0a0a0;
+        }
+        .move-history div {
+            padding: 4px 0;
+            border-bottom: 1px solid #1a3a5a;
+        }
+        .move-history div:last-child {
+            border-bottom: none;
+        }
+        .user-move {
+            color: #ff6b6b;
+        }
+        .ai-move {
+            color: #ffd700;
+        }
+        @media (max-width: 768px) {
+            .content {
+                grid-template-columns: 1fr;
+            }
+            h1 {
+                font-size: 2em;
+            }
+            canvas#gameBoard {
+                max-width: 100%;
+                height: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎮 Connect Four AI</h1>
+        <p class="subtitle">Beat the AI if you can</p>
+        
+        <div class="content">
+            <div class="board-section">
+                <canvas id="gameBoard" width="420" height="360"></canvas>
+                <div class="status" id="gameStatus">Your turn (Red)</div>
+            </div>
+            
+            <div class="controls">
+                <div class="control-group">
+                    <label>AI Difficulty</label>
+                    <div class="difficulty-group">
+                        <button class="difficulty-btn active" data-difficulty="2">Easy</button>
+                        <button class="difficulty-btn" data-difficulty="4">Medium</button>
+                        <button class="difficulty-btn" data-difficulty="6">Hard</button>
+                    </div>
+                </div>
+                
+                <div class="stats">
+                    <div class="stat-row">
+                        <span class="stat-label">Wins:</span>
+                        <span class="stat-value" id="wins">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Losses:</span>
+                        <span class="stat-value" id="losses">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Draws:</span>
+                        <span class="stat-value" id="draws">0</span>
+                    </div>
+                </div>
+                
+                <button onclick="game.resetGame()">New Game</button>
+                <button onclick="localStorage.clear(); location.reload();">Clear Stats</button>
+                
+                <label style="color: #4da8da; font-weight: bold; margin-top: 10px;">Last Moves</label>
+                <div class="move-history" id="moveHistory"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const COLS = 7;
+        const ROWS = 6;
+        const CELL_SIZE = 60;
+        const USER = 1;
+        const AI = 2;
+
+        class ConnectFourGame {
+            constructor() {
+                this.canvas = document.getElementById('gameBoard');
+                this.ctx = this.canvas.getContext('2d');
+                this.board = Array(ROWS).fill(null).map(() => Array(COLS).fill(0));
+                this.currentPlayer = USER;
+                this.gameOver = false;
+                this.difficulty = 2;
+                this.moves = [];
+                this.stats = this.loadStats();
+                this.updateUI();
+                
+                this.canvas.addEventListener('click', (e) => this.handleClick(e));
+                this.setupDifficultyButtons();
+                this.draw();
+            }
+
+            loadStats() {
+                const saved = localStorage.getItem('c4_stats');
+                return saved ? JSON.parse(saved) : { wins: 0, losses: 0, draws: 0 };
+            }
+
+            saveStats() {
+                localStorage.setItem('c4_stats', JSON.stringify(this.stats));
+                this.updateStatsDisplay();
+            }
+
+            updateStatsDisplay() {
+                document.getElementById('wins').textContent = this.stats.wins;
+                document.getElementById('losses').textContent = this.stats.losses;
+                document.getElementById('draws').textContent = this.stats.draws;
+            }
+
+            setupDifficultyButtons() {
+                document.querySelectorAll('.difficulty-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        document.querySelectorAll('.difficulty-btn').forEach(b => b.classList.remove('active'));
+                        btn.classList.add('active');
+                        this.difficulty = parseInt(btn.dataset.difficulty);
+                    });
+                });
+            }
+
+            handleClick(e) {
+                if (this.gameOver || this.currentPlayer !== USER) return;
+
+                const rect = this.canvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const col = Math.floor(x / CELL_SIZE);
+
+                if (col < 0 || col >= COLS) return;
+                
+                if (!this.dropPiece(col, USER)) return;
+                
+                this.moves.push(`Red → Col ${col + 1}`);
+                this.addMoveToHistory(`Red → Col ${col + 1}`, true);
+                this.draw();
+
+                if (this.checkWin(USER)) {
+                    this.endGame('You win! 🎉');
+                    this.stats.wins++;
+                    this.saveStats();
+                    return;
+                }
+
+                if (this.isBoardFull()) {
+                    this.endGame('Draw! 🤝');
+                    this.stats.draws++;
+                    this.saveStats();
+                    return;
+                }
+
+                this.currentPlayer = AI;
+                this.updateUI();
+                setTimeout(() => this.aiMove(), 500);
+            }
+
+            aiMove() {
+                const col = this.minimax(this.board, this.difficulty, true, -Infinity, Infinity).col;
+                this.dropPiece(col, AI);
+                this.moves.push(`Yellow → Col ${col + 1}`);
+                this.addMoveToHistory(`Yellow → Col ${col + 1}`, false);
+                this.draw();
+
+                if (this.checkWin(AI)) {
+                    this.endGame('AI wins! 🤖');
+                    this.stats.losses++;
+                    this.saveStats();
+                    return;
+                }
+
+                if (this.isBoardFull()) {
+                    this.endGame('Draw! 🤝');
+                    this.stats.draws++;
+                    this.saveStats();
+                    return;
+                }
+
+                this.currentPlayer = USER;
+                this.updateUI();
+            }
+
+            minimax(board, depth, isMaximizing, alpha, beta) {
+                const score = this.evaluateBoard(board);
+
+                if (depth === 0 || Math.abs(score) > 1000) {
+                    return { score };
+                }
+
+                const validCols = [];
+                for (let col = 0; col < COLS; col++) {
+                    if (board[0][col] === 0) validCols.push(col);
+                }
+
+                // Try center columns first (better pruning)
+                validCols.sort((a, b) => Math.abs(a - 3) - Math.abs(b - 3));
+
+                if (isMaximizing) {
+                    let maxScore = -Infinity;
+                    let bestCol = validCols[0];
+                    for (let col of validCols) {
+                        const newBoard = this.copyBoard(board);
+                        this.dropPiece(col, AI, newBoard);
+                        const result = this.minimax(newBoard, depth - 1, false, alpha, beta);
+                        if (result.score > maxScore) {
+                            maxScore = result.score;
+                            bestCol = col;
+                        }
+                        alpha = Math.max(alpha, result.score);
+                        if (beta <= alpha) break;
+                    }
+                    return { score: maxScore, col: bestCol };
+                } else {
+                    let minScore = Infinity;
+                    let bestCol = validCols[0];
+                    for (let col of validCols) {
+                        const newBoard = this.copyBoard(board);
+                        this.dropPiece(col, USER, newBoard);
+                        const result = this.minimax(newBoard, depth - 1, true, alpha, beta);
+                        if (result.score < minScore) {
+                            minScore = result.score;
+                            bestCol = col;
+                        }
+                        beta = Math.min(beta, result.score);
+                        if (beta <= alpha) break;
+                    }
+                    return { score: minScore, col: bestCol };
+                }
+            }
+
+            evaluateBoard(board) {
+                let score = 0;
+
+                // Check all possible 4-in-a-rows
+                for (let row = 0; row < ROWS; row++) {
+                    for (let col = 0; col < COLS; col++) {
+                        score += this.evaluateLine(board, row, col, 0, 1); // Horizontal
+                        score += this.evaluateLine(board, row, col, 1, 0); // Vertical
+                        score += this.evaluateLine(board, row, col, 1, 1); // Diagonal /
+                        score += this.evaluateLine(board, row, col, 1, -1); // Diagonal \
+                    }
+                }
+
+                // Center control bonus
+                for (let row = 0; row < ROWS; row++) {
+                    if (board[row][3] === AI) score += 5;
+                    if (board[row][3] === USER) score -= 5;
+                    if (board[row][2] === AI) score += 3;
+                    if (board[row][2] === USER) score -= 3;
+                    if (board[row][4] === AI) score += 3;
+                    if (board[row][4] === USER) score -= 3;
+                }
+
+                return score;
+            }
+
+            evaluateLine(board, row, col, dRow, dCol) {
+                let score = 0;
+                for (let piece of [USER, AI]) {
+                    let count = 0;
+                    let empty = 0;
+                    for (let i = 0; i < 4; i++) {
+                        const r = row + i * dRow;
+                        const c = col + i * dCol;
+                        if (r < 0 || r >= ROWS || c < 0 || c >= COLS) return score;
+                        if (board[r][c] === piece) count++;
+                        else if (board[r][c] === 0) empty++;
+                    }
+                    if (count === 4) return piece === AI ? 10000 : -10000;
+                    if (count === 3 && empty === 1) score += piece === AI ? 100 : -100;
+                    if (count === 2 && empty === 2) score += piece === AI ? 10 : -10;
+                }
+                return score;
+            }
+
+            dropPiece(col, piece, board = this.board) {
+                for (let row = ROWS - 1; row >= 0; row--) {
+                    if (board[row][col] === 0) {
+                        board[row][col] = piece;
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            checkWin(piece) {
+                // Horizontal
+                for (let row = 0; row < ROWS; row++) {
+                    for (let col = 0; col <= COLS - 4; col++) {
+                        if (this.board[row].slice(col, col + 4).every(p => p === piece)) return true;
+                    }
+                }
+                // Vertical
+                for (let col = 0; col < COLS; col++) {
+                    for (let row = 0; row <= ROWS - 4; row++) {
+                        if ([0, 1, 2, 3].every(i => this.board[row + i][col] === piece)) return true;
+                    }
+                }
+                // Diagonal /
+                for (let row = 3; row < ROWS; row++) {
+                    for (let col = 0; col <= COLS - 4; col++) {
+                        if ([0, 1, 2, 3].every(i => this.board[row - i][col + i] === piece)) return true;
+                    }
+                }
+                // Diagonal \
+                for (let row = 0; row <= ROWS - 4; row++) {
+                    for (let col = 0; col <= COLS - 4; col++) {
+                        if ([0, 1, 2, 3].every(i => this.board[row + i][col + i] === piece)) return true;
+                    }
+                }
+                return false;
+            }
+
+            isBoardFull() {
+                return this.board[0].every(p => p !== 0);
+            }
+
+            endGame(message) {
+                this.gameOver = true;
+                document.getElementById('gameStatus').textContent = message;
+            }
+
+            resetGame() {
+                this.board = Array(ROWS).fill(null).map(() => Array(COLS).fill(0));
+                this.currentPlayer = USER;
+                this.gameOver = false;
+                this.moves = [];
+                document.getElementById('moveHistory').innerHTML = '';
+                this.updateUI();
+                this.draw();
+            }
+
+            copyBoard(board) {
+                return board.map(row => [...row]);
+            }
+
+            updateUI() {
+                this.updateStatsDisplay();
+                if (!this.gameOver) {
+                    document.getElementById('gameStatus').textContent = 
+                        this.currentPlayer === USER ? 'Your turn (Red)' : 'AI thinking...';
+                }
+            }
+
+            addMoveToHistory(move, isUser) {
+                const history = document.getElementById('moveHistory');
+                const div = document.createElement('div');
+                div.className = isUser ? 'user-move' : 'ai-move';
+                div.textContent = move;
+                history.insertBefore(div, history.firstChild);
+                if (history.children.length > 10) history.removeChild(history.lastChild);
+            }
+
+            draw() {
+                this.ctx.fillStyle = '#0a3a6a';
+                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+                // Draw grid
+                this.ctx.strokeStyle = '#2a5a7a';
+                this.ctx.lineWidth = 2;
+                for (let row = 0; row <= ROWS; row++) {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(0, row * CELL_SIZE);
+                    this.ctx.lineTo(COLS * CELL_SIZE, row * CELL_SIZE);
+                    this.ctx.stroke();
+                }
+                for (let col = 0; col <= COLS; col++) {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(col * CELL_SIZE, 0);
+                    this.ctx.lineTo(col * CELL_SIZE, ROWS * CELL_SIZE);
+                    this.ctx.stroke();
+                }
+
+                // Draw pieces
+                for (let row = 0; row < ROWS; row++) {
+                    for (let col = 0; col < COLS; col++) {
+                        const x = col * CELL_SIZE + CELL_SIZE / 2;
+                        const y = row * CELL_SIZE + CELL_SIZE / 2;
+                        const radius = CELL_SIZE / 2 - 5;
+
+                        this.ctx.fillStyle = this.board[row][col] === 0 ? '#0a1428' : 
+                                            this.board[row][col] === USER ? '#ff6b6b' : '#ffd700';
+                        this.ctx.beginPath();
+                        this.ctx.arc(x, y, radius, 0, Math.PI * 2);
+                        this.ctx.fill();
+
+                        // Highlight border for recent moves
+                        this.ctx.strokeStyle = '#7dd3fc';
+                        this.ctx.lineWidth = 2;
+                        this.ctx.stroke();
+                    }
+                }
+            }
+        }
+
+        const game = new ConnectFourGame();
+    </script>
+</body>
+</html>
