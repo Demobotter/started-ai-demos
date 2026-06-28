@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sudoku Clue Analyzer</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Playfair Display', serif;
+            background: linear-gradient(135deg, #0a1428 0%, #1a2a4a 100%);
+            color: #e0e0e0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+            background: linear-gradient(135deg, #60a5fa, #4da8da);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .subtitle {
+            text-align: center;
+            color: #9ca3af;
+            margin-bottom: 30px;
+            font-size: 0.95em;
+            font-family: 'Space Mono', monospace;
+        }
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        .panel {
+            background: rgba(20, 30, 60, 0.6);
+            border: 1px solid #4da8da;
+            border-radius: 8px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+        }
+        .panel h2 {
+            color: #60a5fa;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+            border-bottom: 1px solid #4da8da;
+            padding-bottom: 10px;
+        }
+        .sudoku-grid {
+            display: grid;
+            grid-template-columns: repeat(9, 1fr);
+            gap: 1px;
+            background: #0a1428;
+            padding: 8px;
+            border: 2px solid #60a5fa;
+            margin-bottom: 15px;
+        }
+        .sudoku-cell {
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #1a2a4a;
+            border: 1px solid #333;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            color: #e0e0e0;
+            transition: all 0.2s;
+        }
+        .sudoku-cell:hover {
+            background: #2a3a5a;
+            color: #60a5fa;
+        }
+        .sudoku-cell input {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background: transparent;
+            text-align: center;
+            color: #60a5fa;
+            font-size: 1.1em;
+            font-weight: bold;
+            font-family: 'Space Mono', monospace;
+        }
+        .sudoku-cell input:focus {
+            outline: 2px solid #60a5fa;
+        }
+        .sudoku-cell.given {
+            background: #0f2a50;
+            color: #e0e0e0;
+        }
+        .sudoku-cell.solving {
+            background: #1a4a2a;
+            color: #10b981;
+        }
+        .sudoku-cell.deduced {
+            background: #4a3a1a;
+            color: #fbbf24;
+        }
+        .sudoku-cell.guess {
+            background: #4a1a1a;
+            color: #f87171;
+        }
+        /* Box borders */
+        .sudoku-cell:nth-child(3n) {
+            border-right: 2px solid #60a5fa;
+        }
+        .sudoku-cell:nth-child(27n) ~ .sudoku-cell:nth-child(-27n+27):not(:nth-child(n+28)),
+        .sudoku-cell:nth-child(9n+1):nth-child(3n),
+        .sudoku-cell:nth-child(9n+2):nth-child(3n),
+        .sudoku-cell:nth-child(9n+3):nth-child(3n) {
+            border-bottom: 2px solid #60a5fa;
+        }
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        button {
+            padding: 12px;
+            background: #0f2a50;
+            color: #60a5fa;
+            border: 1px solid #4da8da;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.95em;
+            font-weight: bold;
+            transition: all 0.2s;
+            font-family: 'Space Mono', monospace;
+        }
+        button:hover {
+            background: #1a3a60;
+            border-color: #60a5fa;
+            box-shadow: 0 0 10px rgba(96, 165, 250, 0.3);
+        }
+        button:active {
+            transform: scale(0.98);
+        }
+        .example-select {
+            padding: 10px;
+            background: #0f2a50;
+            color: #60a5fa;
+            border: 1px solid #4da8da;
+            border-radius: 4px;
+            font-family: 'Space Mono', monospace;
+            cursor: pointer;
+        }
+        .stats-panel {
+            background: rgba(16, 20, 50, 0.8);
+            border: 1px solid #4da8da;
+            border-radius: 4px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #333;
+            font-family: 'Space Mono', monospace;
+            font-size: 0.9em;
+        }
+        .stat-row:last-child {
+            border-bottom: none;
+        }
+        .stat-label {
+            color: #9ca3af;
+        }
+        .stat-value {
+            color: #60a5fa;
+            font-weight: bold;
+        }
+        .deductions-panel {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .deduction-item {
+            background: rgba(16, 50, 80, 0.5);
+            padding: 10px;
+            margin-bottom: 8px;
+            border-left: 3px solid #60a5fa;
+            border-radius: 2px;
+            font-size: 0.85em;
+            font-family: 'Space Mono', monospace;
+            line-height: 1.4;
+        }
+        .deduction-step {
+            color: #4da8da;
+            font-weight: bold;
+        }
+        .deduction-detail {
+            color: #9ca3af;
+            margin-top: 3px;
+        }
+        .difficulty-indicator {
+            display: flex;
+            gap: 5px;
+            align-items: center;
+            margin-top: 10px;
+        }
+        .difficulty-bar {
+            flex: 1;
+            height: 8px;
+            background: #1a2a4a;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .difficulty-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #10b981, #fbbf24, #f87171);
+            transition: width 0.3s;
+        }
+        .difficulty-label {
+            color: #9ca3af;
+            font-size: 0.8em;
+            min-width: 80px;
+        }
+        @media (max-width: 1024px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧩 Sudoku Analyzer</h1>
+        <p class="subtitle">Feed in a puzzle, watch the solver decode step-by-step logic</p>
+        
+        <div class="main-grid">
+            <div class="panel">
+                <h2>Puzzle Input</h2>
+                <div class="controls">
+                    <select class="example-select" id="exampleSelect" onchange="loadExample()">
+                        <option value="">Load an example puzzle...</option>
+                        <option value="easy">Easy</option>
+                        <option value="medium">Medium</option>
+                        <option value="hard">Hard</option>
+                        <option value="expert">Expert</option>
+                    </select>
+                    <button onclick="clearGrid()">Clear Grid</button>
+                    <button onclick="analyzePuzzle()" style="background: #1a4a2a; border-color: #10b981; color: #10b981;">Analyze & Solve</button>
+                </div>
+                
+                <div class="sudoku-grid" id="sudokuGrid"></div>
+                
+                <div class="stats-panel">
+                    <div class="stat-row">
+                        <span class="stat-label">Given Clues:</span>
+                        <span class="stat-value" id="givenCount">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Cells Solved:</span>
+                        <span class="stat-value" id="solvedCount">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Deductions Made:</span>
+                        <span class="stat-value" id="deductionCount">0</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Algorithm Steps:</span>
+                        <span class="stat-value" id="stepCount">0</span>
+                    </div>
+                    <div class="difficulty-indicator">
+                        <span class="stat-label">Difficulty:</span>
+                        <div class="difficulty-bar">
+                            <div class="difficulty-fill" id="difficultyFill" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="panel">
+                <h2>Deduction Log</h2>
+                <div class="deductions-panel" id="deductionsPanel">
+                    <p style="color: #9ca3af; font-style: italic;">Solve a puzzle to see logical deductions...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize grid
+        const grid = Array(81).fill(0);
+        const given = Array(81).fill(false);
+        let candidates = Array(81).fill(0).map(() => new Set([1,2,3,4,5,6,7,8,9]));
+
+        function initializeGrid() {
+            const sudokuGrid = document.getElementById('sudokuGrid');
+            sudokuGrid.innerHTML = '';
+            for (let i = 0; i < 81; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'sudoku-cell';
+                const input = document.createElement('input');
+                input.type = 'number';
+                input.min = '1';
+                input.max = '9';
+                input.id = `cell-${i}`;
+                input.addEventListener('input', (e) => {
+                    const val = parseInt(e.target.value) || 0;
+                    grid[i] = val;
+                    if (val > 0) {
+                        given[i] = true;
+                        cell.classList.add('given');
+                    } else {
+                        given[i] = false;
+                        cell.classList.remove('given');
+                    }
+                    updateStats();
+                });
+                cell.appendChild(input);
+                sudokuGrid.appendChild(cell);
+            }
+        }
+
+        function clearGrid() {
+            grid.fill(0);
+            given.fill(false);
+            candidates = Array(81).fill(0).map(() => new Set([1,2,3,4,5,6,7,8,9]));
+            document.querySelectorAll('.sudoku-cell').forEach(cell => {
+                cell.className = 'sudoku-cell';
+                cell.querySelector('input').value = '';
+            });
+            document.getElementById('deductionsPanel').innerHTML = '<p style="color: #9ca3af; font-style: italic;">Solve a puzzle to see logical deductions...</p>';
+            updateStats();
+        }
+
+        function loadExample() {
+            const examples = {
+                easy: [5,3,0,0,7,0,0,0,0,6,0,0,1,9,5,0,0,0,0,9,8,0,0,0,0,6,0,8,0,0,0,6,0,0,0,3,4,0,0,8,0,3,0,0,1,7,0,0,0,2,0,0,0,6,0,6,0,0,0,0,2,8,0,0,0,0,4,1,9,0,0,5,0,0,0,0,8,0,0,7,9],
+                medium: [0,0,5,0,0,0,0,0,0,0,1,0,0,0,0,0,2,0,2,0,0,0,0,0,7,0,0,0,0,3,0,1,0,0,0,5,0,0,0,0,0,0,0,0,0,1,0,0,0,8,0,6,0,0,0,0,8,0,0,0,0,0,9,0,4,0,0,0,0,0,3,0,0,0,0,0,0,0,1,0,0],
+                hard: [0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,0,0],
+                expert: [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+            };
+            const selected = document.getElementById('exampleSelect').value;
+            if (examples[selected]) {
+                grid.splice(0, 81, ...examples[selected]);
+                given.fill(false);
+                candidates = Array(81).fill(0).map(() => new Set([1,2,3,4,5,6,7,8,9]));
+                document.querySelectorAll('.sudoku-cell').forEach((cell, i) => {
+                    const input = cell.querySelector('input');
+                    if (grid[i] > 0) {
+                        input.value = grid[i];
+                        given[i] = true;
+                        cell.classList.add('given');
+                    } else {
+                        input.value = '';
+                        cell.classList.remove('given');
+                    }
+                });
+                updateStats();
+            }
+        }
+
+        function updateStats() {
+            const givenCount = given.filter(g => g).length;
+            const solvedCount = grid.filter(g => g > 0).length;
+            document.getElementById('givenCount').textContent = givenCount;
+            document.getElementById('solvedCount').textContent = solvedCount;
+        }
+
+        function getRow(idx) { return Math.floor(idx / 9); }
+        function getCol(idx) { return idx % 9; }
+        function getBox(idx) {
+            const r = getRow(idx);
+            const c = getCol(idx);
+            return Math.floor(r / 3) * 3 + Math.floor(c / 3);
+        }
+
+        function analyzePuzzle() {
+            // Reset candidates
+            candidates = Array(81).fill(0).map(() => new Set([1,2,3,4,5,6,7,8,9]));
+            
+            // Initialize constraints
+            for (let i = 0; i < 81; i++) {
+                if (grid[i] > 0) {
+                    candidates[i] = new Set([grid[i]]);
+                }
+            }
+
+            const deductions = [];
+            let stepCount = 0;
+
+            // Constraint propagation
+            let changed = true;
+            while (changed) {
+                changed = false;
+
+                // Remove candidates based on given clues
+                for (let i = 0; i < 81; i++) {
+                    if (grid[i] > 0) {
+                        const r = getRow(i);
+                        const c = getCol(i);
+                        const b = getBox(i);
+                        const val = grid[i];
+
+                        // Remove from row
+                        for (let j = 0; j < 9; j++) {
+                            const idx = r * 9 + j;
+                            if (idx !== i && candidates[idx].has(val)) {
+                                candidates[idx].delete(val);
+                                changed = true;
+                            }
+                        }
+
+                        // Remove from column
+                        for (let j = 0; j < 9; j++) {
+                            const idx = j * 9 + c;
+                            if (idx !== i && candidates[idx].has(val)) {
+                                candidates[idx].delete(val);
+                                changed = true;
+                            }
+                        }
+
+                        // Remove from box
+                        const br = Math.floor(r / 3) * 3;
+                        const bc = Math.floor(c / 3) * 3;
+                        for (let bi = br; bi < br + 3; bi++) {
+                            for (let bj = bc; bj < bc + 3; bj++) {
+                                const idx = bi * 9 + bj;
+                                if (idx !== i && candidates[idx].has(val)) {
+                                    candidates[idx].delete(val);
+                                    changed = true;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Naked singles: cells with only 1 candidate
+                for (let i = 0; i < 81; i++) {
+                    if (grid[i] === 0 && candidates[i].size === 1) {
+                        const val = [...candidates[i]][0];
+                        grid[i] = val;
+                        deductions.push(`Cell R${getRow(i)+1}C${getCol(i)+1} = ${val} (naked single, only candidate left)`);
+                        stepCount++;
+                        changed = true;
+                    }
+                }
+
+                // Hidden singles: number appears in only 1 cell in row/col/box
+                // Row
+                for (let r = 0; r < 9; r++) {
+                    for (let val = 1; val <= 9; val++) {
+                        let positions = [];
+                        for (let c = 0; c < 9; c++) {
+                            const idx = r * 9 + c;
+                            if (candidates[idx].has(val)) positions.push(idx);
+                        }
+                        if (positions.length === 1) {
+                            const idx = positions[0];
+                            if (grid[idx] === 0) {
+                                grid[idx] = val;
+                                candidates[idx] = new Set([val]);
+                                deductions.push(`Cell R${r+1}C${getCol(idx)+1} = ${val} (hidden single in row ${r+1}, only place for ${val})`);
+                                stepCount++;
+                                changed = true;
+                            }
+                        }
+                    }
+                }
+
+                // Column
+                for (let c = 0; c < 9; c++) {
+                    for (let val = 1; val <= 9; val++) {
+                        let positions = [];
+                        for (let r = 0; r < 9; r++) {
+                            const idx = r * 9 + c;
+                            if (candidates[idx].has(val)) positions.push(idx);
+                        }
+                        if (positions.length === 1) {
+                            const idx = positions[0];
+                            if (grid[idx] === 0) {
+                                grid[idx] = val;
+                                candidates[idx] = new Set([val]);
+                                deductions.push(`Cell R${getRow(idx)+1}C${c+1} = ${val} (hidden single in column ${c+1}, only place for ${val})`);
+                                stepCount++;
+                                changed = true;
+                            }
+                        }
+                    }
+                }
+
+                // Box
+                for (let b = 0; b < 9; b++) {
+                    const br = Math.floor(b / 3) * 3;
+                    const bc = (b % 3) * 3;
+                    for (let val = 1; val <= 9; val++) {
+                        let positions = [];
+                        for (let bi = br; bi < br + 3; bi++) {
+                            for (let bj = bc; bj < bc + 3; bj++) {
+                                const idx = bi * 9 + bj;
+                                if (candidates[idx].has(val)) positions.push(idx);
+                            }
+                        }
+                        if (positions.length === 1) {
+                            const idx = positions[0];
+                            if (grid[idx] === 0) {
+                                grid[idx] = val;
+                                candidates[idx] = new Set([val]);
+                                deductions.push(`Cell R${getRow(idx)+1}C${getCol(idx)+1} = ${val} (hidden single in box, only place for ${val})`);
+                                stepCount++;
+                                changed = true;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Calculate difficulty
+            const solvedCount = grid.filter(g => g > 0).length;
+            const difficulty = Math.min(100, (deductions.length / 27) * 100);
+
+            // Update display
+            document.querySelectorAll('.sudoku-cell').forEach((cell, i) => {
+                const input = cell.querySelector('input');
+                cell.className = 'sudoku-cell';
+                if (given[i]) {
+                    cell.classList.add('given');
+                } else if (grid[i] > 0) {
+                    cell.classList.add('solving');
+                    input.value = grid[i];
+                }
+            });
+
+            document.getElementById('solvedCount').textContent = solvedCount;
+            document.getElementById('deductionCount').textContent = deductions.length;
+            document.getElementById('stepCount').textContent = stepCount;
+            document.getElementById('difficultyFill').style.width = difficulty + '%';
+
+            // Display deductions
+            const panel = document.getElementById('deductionsPanel');
+            if (deductions.length > 0) {
+                panel.innerHTML = deductions.slice(0, 20).map((d, i) => 
+                    `<div class="deduction-item"><span class="deduction-step">Step ${i+1}:</span> <span class="deduction-detail">${d}</span></div>`
+                ).join('');
+                if (deductions.length > 20) {
+                    panel.innerHTML += `<div class="deduction-item" style="border-left-color: #9ca3af; color: #9ca3af;">... and ${deductions.length - 20} more deductions</div>`;
+                }
+            } else {
+                panel.innerHTML = '<p style="color: #9ca3af; font-style: italic;">No deductions found. Try adding more clues or solving an unsolvable puzzle.</p>';
+            }
+        }
+
+        // Initialize on load
+        initializeGrid();
+        updateStats();
+    </script>
+</body>
+</html>
