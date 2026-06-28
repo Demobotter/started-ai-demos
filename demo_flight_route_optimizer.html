@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flight Route Optimizer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Space Mono', monospace;
+            background: linear-gradient(135deg, #0a1428 0%, #1f3a5f 100%);
+            color: #e0e0e0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            font-family: 'Playfair Display', serif;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+            color: #64b5f6;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #90caf9;
+            margin-bottom: 30px;
+            font-size: 0.95em;
+        }
+        
+        .layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-top: 30px;
+        }
+        
+        @media (max-width: 900px) {
+            .layout {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .panel {
+            background: rgba(15, 30, 50, 0.8);
+            border: 1px solid #4da8da;
+            border-radius: 12px;
+            padding: 25px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .panel h2 {
+            font-family: 'Playfair Display', serif;
+            color: #4da8da;
+            margin-bottom: 20px;
+            font-size: 1.3em;
+        }
+        
+        .input-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #90caf9;
+            font-weight: 700;
+            font-size: 0.9em;
+        }
+        
+        input[type="text"],
+        select {
+            width: 100%;
+            padding: 10px 12px;
+            background: rgba(10, 20, 40, 0.6);
+            border: 1px solid #4da8da;
+            border-radius: 8px;
+            color: #e0e0e0;
+            font-family: 'Space Mono', monospace;
+            font-size: 0.95em;
+            margin-bottom: 8px;
+        }
+        
+        input[type="text"]:focus,
+        select:focus {
+            outline: none;
+            border-color: #64b5f6;
+            background: rgba(10, 20, 40, 0.9);
+        }
+        
+        .suggestions {
+            background: rgba(20, 40, 60, 0.9);
+            border: 1px solid #4da8da;
+            border-top: none;
+            border-radius: 0 0 8px 8px;
+            max-height: 150px;
+            overflow-y: auto;
+            position: relative;
+            z-index: 10;
+        }
+        
+        .suggestion-item {
+            padding: 8px 12px;
+            cursor: pointer;
+            font-size: 0.9em;
+            border-bottom: 1px solid rgba(77, 168, 218, 0.3);
+        }
+        
+        .suggestion-item:hover {
+            background: rgba(77, 168, 218, 0.2);
+        }
+        
+        .suggestion-item:last-child {
+            border-bottom: none;
+        }
+        
+        .slider-group {
+            margin-bottom: 20px;
+        }
+        
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            color: #90caf9;
+            font-weight: 700;
+            font-size: 0.9em;
+        }
+        
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: linear-gradient(to right, 
+                rgba(77, 168, 218, 0.3) 0%, 
+                rgba(77, 168, 218, 0.3) var(--value), 
+                rgba(50, 100, 150, 0.3) var(--value), 
+                rgba(50, 100, 150, 0.3) 100%);
+            border-radius: 3px;
+            outline: none;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #64b5f6;
+            cursor: pointer;
+            border: 2px solid #4da8da;
+        }
+        
+        input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #64b5f6;
+            cursor: pointer;
+            border: 2px solid #4da8da;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 25px;
+        }
+        
+        button {
+            flex: 1;
+            padding: 12px 20px;
+            font-family: 'Space Mono', monospace;
+            font-weight: 700;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.95em;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #4da8da, #64b5f6);
+            color: #0a1428;
+        }
+        
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #64b5f6, #7dd3fc);
+            transform: translateY(-2px);
+        }
+        
+        .btn-secondary {
+            background: rgba(77, 168, 218, 0.2);
+            color: #4da8da;
+            border: 1px solid #4da8da;
+        }
+        
+        .btn-secondary:hover {
+            background: rgba(77, 168, 218, 0.3);
+        }
+        
+        .routes-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .route-card {
+            background: rgba(20, 40, 60, 0.6);
+            border-left: 4px solid #4da8da;
+            border-radius: 8px;
+            padding: 16px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .route-card:hover {
+            background: rgba(30, 60, 90, 0.8);
+            border-left-color: #64b5f6;
+            transform: translateX(4px);
+        }
+        
+        .route-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        
+        .route-title {
+            font-weight: 700;
+            color: #64b5f6;
+            font-size: 1.1em;
+        }
+        
+        .route-score {
+            background: rgba(77, 168, 218, 0.2);
+            padding: 6px 12px;
+            border-radius: 6px;
+            color: #64b5f6;
+            font-weight: 700;
+            font-size: 0.9em;
+        }
+        
+        .route-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            font-size: 0.85em;
+        }
+        
+        .stat {
+            background: rgba(10, 20, 40, 0.4);
+            padding: 8px 10px;
+            border-radius: 6px;
+            border-left: 2px solid #4da8da;
+        }
+        
+        .stat-label {
+            color: #90caf9;
+            font-size: 0.8em;
+        }
+        
+        .stat-value {
+            color: #e0e0e0;
+            font-weight: 700;
+            margin-top: 4px;
+        }
+        
+        .message {
+            text-align: center;
+            color: #90caf9;
+            padding: 30px;
+            font-style: italic;
+        }
+        
+        .warning {
+            background: rgba(255, 193, 7, 0.1);
+            border-left: 3px solid #ffc107;
+            padding: 12px;
+            margin-top: 15px;
+            border-radius: 6px;
+            color: #ffeb3b;
+            font-size: 0.9em;
+        }
+        
+        .map-container {
+            width: 100%;
+            height: 300px;
+            background: rgba(10, 20, 40, 0.8);
+            border: 1px solid #4da8da;
+            border-radius: 8px;
+            margin-top: 20px;
+            position: relative;
+        }
+        
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>✈️ Route Finder</h1>
+        <p class="subtitle">Plan the perfect journey with multi-factor route optimization</p>
+        
+        <div class="layout">
+            <div class="panel">
+                <h2>Trip Details</h2>
+                
+                <div class="input-group">
+                    <label>Departure City</label>
+                    <input type="text" id="departureInput" placeholder="e.g., New York (JFK)">
+                    <div id="departureSuggestions" class="suggestions"></div>
+                </div>
+                
+                <div class="input-group">
+                    <label>Arrival City</label>
+                    <input type="text" id="arrivalInput" placeholder="e.g., Tokyo (NRT)">
+                    <div id="arrivalSuggestions" class="suggestions"></div>
+                </div>
+                
+                <h2 style="margin-top: 25px;">Your Priorities</h2>
+                
+                <div class="slider-group">
+                    <div class="slider-label">
+                        <span>Speed</span>
+                        <span id="speedValue">30%</span>
+                    </div>
+                    <input type="range" id="speedSlider" min="0" max="100" value="30">
+                </div>
+                
+                <div class="slider-group">
+                    <div class="slider-label">
+                        <span>Cost Savings</span>
+                        <span id="costValue">40%</span>
+                    </div>
+                    <input type="range" id="costSlider" min="0" max="100" value="40">
+                </div>
+                
+                <div class="slider-group">
+                    <div class="slider-label">
+                        <span>Comfort</span>
+                        <span id="comfortValue">30%</span>
+                    </div>
+                    <input type="range" id="comfortSlider" min="0" max="100" value="30">
+                </div>
+                
+                <div class="button-group">
+                    <button class="btn-primary" onclick="findRoutes()">Find Routes</button>
+                    <button class="btn-secondary" onclick="resetForm()">Reset</button>
+                </div>
+            </div>
+            
+            <div class="panel">
+                <h2>Best Routes</h2>
+                <div id="routesContainer">
+                    <p class="message">Enter cities and click "Find Routes"</p>
+                </div>
+                <div id="mapContainer" class="map-container" style="display:none;">
+                    <canvas id="mapCanvas"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Airport database: major international airports
+        const airports = [
+            { code: 'JFK', city: 'New York', country: 'USA', lat: 40.6413, lon: -73.7781 },
+            { code: 'LAX', city: 'Los Angeles', country: 'USA', lat: 33.9425, lon: -118.4081 },
+            { code: 'ORD', city: 'Chicago', country: 'USA', lat: 41.9742, lon: -87.9073 },
+            { code: 'LHR', city: 'London', country: 'UK', lat: 51.4700, lon: -0.4543 },
+            { code: 'CDG', city: 'Paris', country: 'France', lat: 49.0097, lon: 2.5479 },
+            { code: 'FRA', city: 'Frankfurt', country: 'Germany', lat: 50.0379, lon: 8.5622 },
+            { code: 'AMS', city: 'Amsterdam', country: 'Netherlands', lat: 52.3086, lon: 4.7639 },
+            { code: 'DUB', city: 'Dublin', country: 'Ireland', lat: 53.4213, lon: -6.2700 },
+            { code: 'DXB', city: 'Dubai', country: 'UAE', lat: 25.2528, lon: 55.3644 },
+            { code: 'SIN', city: 'Singapore', country: 'Singapore', lat: 1.3521, lon: 103.8198 },
+            { code: 'HND', city: 'Tokyo', country: 'Japan', lat: 35.5494, lon: 139.7798 },
+            { code: 'NRT', city: 'Tokyo', country: 'Japan', lat: 35.7653, lon: 140.3931 },
+            { code: 'HKG', city: 'Hong Kong', country: 'Hong Kong', lat: 22.3193, lon: 113.9150 },
+            { code: 'SYD', city: 'Sydney', country: 'Australia', lat: -33.9461, lon: 151.1772 },
+            { code: 'NZK', city: 'Auckland', country: 'New Zealand', lat: -37.2088, lon: 174.7915 },
+            { code: 'MEL', city: 'Melbourne', country: 'Australia', lat: -37.6733, lon: 144.8410 },
+            { code: 'SFO', city: 'San Francisco', country: 'USA', lat: 37.6213, lon: -122.3790 },
+            { code: 'YVR', city: 'Vancouver', country: 'Canada', lat: 49.1900, lon: -123.1794 },
+            { code: 'YYZ', city: 'Toronto', country: 'Canada', lat: 43.6772, lon: -79.6306 },
+            { code: 'BCN', city: 'Barcelona', country: 'Spain', lat: 41.2974, lon: 2.0833 },
+            { code: 'MAD', city: 'Madrid', country: 'Spain', lat: 40.4719, lon: -3.6289 },
+            { code: 'MUC', city: 'Munich', country: 'Germany', lat: 48.3538, lon: 11.7861 },
+            { code: 'ZRH', city: 'Zurich', country: 'Switzerland', lat: 47.4647, lon: 8.5492 },
+            { code: 'IST', city: 'Istanbul', country: 'Turkey', lat: 41.2619, lon: 28.7290 },
+            { code: 'BKK', city: 'Bangkok', country: 'Thailand', lat: 13.6900, lon: 100.7501 },
+            { code: 'KUL', city: 'Kuala Lumpur', country: 'Malaysia', lat: 2.7258, lon: 101.7103 },
+            { code: 'ICN', city: 'Seoul', country: 'South Korea', lat: 37.4693, lon: 126.4510 },
+            { code: 'DEL', city: 'Delhi', country: 'India', lat: 28.5721, lon: 77.1025 },
+            { code: 'BOM', city: 'Mumbai', country: 'India', lat: 19.0880, lon: 72.8685 },
+            { code: 'CGK', city: 'Jakarta', country: 'Indonesia', lat: -6.1256, lon: 106.6553 },
+            { code: 'MNL', city: 'Manila', country: 'Philippines', lat: 14.1995, lon: 121.2034 }
+        ];
+        
+        // Haversine distance formula (km)
+        function haversineDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371; // Earth radius in km
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                      Math.sin(dLon/2) * Math.sin(dLon/2);
+            const c = 2 * Math.asin(Math.sqrt(a));
+            return R * c;
+        }
+        
+        let selectedDeparture = null;
+        let selectedArrival = null;
+        
+        function getAirportSuggestions(input) {
+            if (!input) return [];
+            const lower = input.toLowerCase();
+            return airports.filter(a => 
+                a.code.toLowerCase().startsWith(lower) || 
+                a.city.toLowerCase().includes(lower)
+            ).slice(0, 8);
+        }
+        
+        function updateSuggestions(inputId, suggestionsId) {
+            const input = document.getElementById(inputId);
+            const container = document.getElementById(suggestionsId);
+            const suggestions = getAirportSuggestions(input.value);
+            
+            if (suggestions.length === 0) {
+                container.innerHTML = '';
+                return;
+            }
+            
+            container.innerHTML = suggestions.map(a => 
+                `<div class="suggestion-item" onclick="selectAirport('${inputId}', '${a.code}', '${a.city}', '${a.country}', ${a.lat}, ${a.lon})">${a.code} • ${a.city}, ${a.country}</div>`
+            ).join('');
+        }
+        
+        function selectAirport(inputId, code, city, country, lat, lon) {
+            document.getElementById(inputId).value = `${city} (${code})`;
+            document.getElementById(inputId === 'departureInput' ? 'departureSuggestions' : 'arrivalSuggestions').innerHTML = '';
+            
+            if (inputId === 'departureInput') {
+                selectedDeparture = { code, city, country, lat, lon };
+            } else {
+                selectedArrival = { code, city, country, lat, lon };
+            }
+        }
+        
+        document.getElementById('departureInput').addEventListener('input', () => {
+            updateSuggestions('departureInput', 'departureSuggestions');
+        });
+        
+        document.getElementById('arrivalInput').addEventListener('input', () => {
+            updateSuggestions('arrivalInput', 'arrivalSuggestions');
+        });
+        
+        // Update slider displays
+        ['speedSlider', 'costSlider', 'comfortSlider'].forEach(id => {
+            const slider = document.getElementById(id);
+            const valueId = id.replace('Slider', 'Value');
+            slider.addEventListener('input', (e) => {
+                document.getElementById(valueId).textContent = e.target.value + '%';
+            });
+        });
+        
+        function generateRoutes(departure, arrival) {
+            const distance = haversineDistance(departure.lat, departure.lon, arrival.lat, arrival.lon);
+            
+            const routes = [];
+            
+            // Direct flight
+            const flightHours = distance / 490; // 490 knots typical cruise
+            const cost = Math.round(50 + (distance / 500) * 100);
+            const co2 = distance * (distance > 3000 ? 0.15 : 0.25);
+            
+            routes.push({
+                type: 'Direct Flight',
+                stops: 0,
+                distance: Math.round(distance),
+                flightTime: flightHours.toFixed(1),
+                layoverTime: 0,
+                totalTime: flightHours.toFixed(1),
+                cost: cost,
+                airline: 'Major Carrier',
+                co2: Math.round(co2)
+            });
+            
+            // 1-stop route
+            const oneStopDistance = distance * 1.15;
+            const oneStopTime = (oneStopDistance / 490);
+            const oneStopCost = Math.round(100 + ((oneStopDistance) / 500) * 100);
+            const oneStopCo2 = oneStopDistance * 0.2;
+            
+            routes.push({
+                type: '1-Stop',
+                stops: 1,
+                distance: Math.round(oneStopDistance),
+                flightTime: oneStopTime.toFixed(1),
+                layoverTime: 2.5,
+                totalTime: (oneStopTime + 2.5).toFixed(1),
+                cost: oneStopCost,
+                airline: 'Global Alliance',
+                co2: Math.round(oneStopCo2)
+            });
+            
+            // 2-stop route (cheaper, longer)
+            const twoStopDistance = distance * 1.3;
+            const twoStopTime = (twoStopDistance / 490);
+            const twoStopCost = Math.round(80 + (twoStopDistance / 500) * 80);
+            const twoStopCo2 = twoStopDistance * 0.18;
+            
+            routes.push({
+                type: '2-Stop',
+                stops: 2,
+                distance: Math.round(twoStopDistance),
+                flightTime: twoStopTime.toFixed(1),
+                layoverTime: 5,
+                totalTime: (twoStopTime + 5).toFixed(1),
+                cost: twoStopCost,
+                airline: 'Budget Carrier',
+                co2: Math.round(twoStopCo2)
+            });
+            
+            return routes;
+        }
+        
+        function scoreRoute(route, speedWeight, costWeight, comfortWeight) {
+            const speedScore = Math.max(0, 100 - (parseFloat(route.totalTime) / 30 * 100));
+            const costScore = Math.max(0, 100 - (route.cost / 500 * 100));
+            const comfortScore = (route.stops === 0 ? 100 : (route.stops === 1 ? 75 : 50));
+            
+            const normalizedTotal = speedWeight + costWeight + comfortWeight;
+            return Math.round(
+                (speedScore * (speedWeight / normalizedTotal) +
+                 costScore * (costWeight / normalizedTotal) +
+                 comfortScore * (comfortWeight / normalizedTotal))
+            );
+        }
+        
+        function findRoutes() {
+            if (!selectedDeparture || !selectedArrival) {
+                alert('Please select both departure and arrival cities');
+                return;
+            }
+            
+            const speedWeight = parseInt(document.getElementById('speedSlider').value);
+            const costWeight = parseInt(document.getElementById('costSlider').value);
+            const comfortWeight = parseInt(document.getElementById('comfortSlider').value);
+            
+            const routes = generateRoutes(selectedDeparture, selectedArrival);
+            const scoredRoutes = routes.map(r => ({
+                ...r,
+                score: scoreRoute(r, speedWeight, costWeight, comfortWeight)
+            })).sort((a, b) => b.score - a.score);
+            
+            const container = document.getElementById('routesContainer');
+            container.innerHTML = scoredRoutes.map((route, idx) => `
+                <div class="route-card">
+                    <div class="route-header">
+                        <div>
+                            <div class="route-title">#${idx + 1} ${route.type}</div>
+                            <div style="color: #90caf9; font-size: 0.85em; margin-top: 4px;">
+                                ${route.airline} • ${route.stops === 0 ? 'Direct' : route.stops + ' stop' + (route.stops > 1 ? 's' : '')}
+                            </div>
+                        </div>
+                        <div class="route-score">${route.score}</div>
+                    </div>
+                    <div class="route-stats">
+                        <div class="stat">
+                            <div class="stat-label">Total Time</div>
+                            <div class="stat-value">${route.totalTime}h</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-label">Cost</div>
+                            <div class="stat-value">$${route.cost}</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-label">Distance</div>
+                            <div class="stat-value">${route.distance} km</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-label">CO₂ Emissions</div>
+                            <div class="stat-value">${route.co2} kg</div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+            
+            // Show map
+            document.getElementById('mapContainer').style.display = 'block';
+            drawMap(selectedDeparture, selectedArrival);
+        }
+        
+        function drawMap(departure, arrival) {
+            const canvas = document.getElementById('mapCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+            
+            const w = canvas.width;
+            const h = canvas.height;
+            const padding = 40;
+            
+            // Normalize coordinates to canvas
+            const minLat = Math.min(departure.lat, arrival.lat) - 5;
+            const maxLat = Math.max(departure.lat, arrival.lat) + 5;
+            const minLon = Math.min(departure.lon, arrival.lon) - 5;
+            const maxLon = Math.max(departure.lon, arrival.lon) + 5;
+            
+            const toLat = y => padding + (maxLat - y) / (maxLat - minLat) * (h - 2 * padding);
+            const toLon = x => padding + (x - minLon) / (maxLon - minLon) * (w - 2 * padding);
+            
+            // Background
+            ctx.fillStyle = 'rgba(10, 20, 40, 0.5)';
+            ctx.fillRect(0, 0, w, h);
+            
+            // Grid
+            ctx.strokeStyle = 'rgba(77, 168, 218, 0.1)';
+            ctx.lineWidth = 1;
+            for (let i = 0; i <= 5; i++) {
+                const lat = minLat + (maxLat - minLat) * i / 5;
+                const y = toLat(lat);
+                ctx.beginPath();
+                ctx.moveTo(padding, y);
+                ctx.lineTo(w - padding, y);
+                ctx.stroke();
+            }
+            
+            // Route arc
+            const depY = toLat(departure.lat);
+            const depX = toLon(departure.lon);
+            const arrY = toLat(arrival.lat);
+            const arrX = toLon(arrival.lon);
+            
+            ctx.strokeStyle = '#4da8da';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            
+            // Draw bezier curve between cities
+            const cpX = (depX + arrX) / 2;
+            const cpY = Math.min(depY, arrY) - Math.abs(arrX - depX) * 0.3;
+            ctx.moveTo(depX, depY);
+            ctx.quadraticCurveTo(cpX, cpY, arrX, arrY);
+            ctx.stroke();
+            
+            // Draw cities
+            ctx.fillStyle = '#64b5f6';
+            ctx.beginPath();
+            ctx.arc(depX, depY, 8, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.fillStyle = '#00ff88';
+            ctx.beginPath();
+            ctx.arc(arrX, arrY, 8, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Labels
+            ctx.fillStyle = '#e0e0e0';
+            ctx.font = 'bold 12px "Space Mono"';
+            ctx.textAlign = 'center';
+            ctx.fillText(departure.code, depX, depY - 18);
+            ctx.fillText(arrival.code, arrX, arrY - 18);
+        }
+        
+        function resetForm() {
+            document.getElementById('departureInput').value = '';
+            document.getElementById('arrivalInput').value = '';
+            document.getElementById('departureSuggestions').innerHTML = '';
+            document.getElementById('arrivalSuggestions').innerHTML = '';
+            document.getElementById('speedSlider').value = 30;
+            document.getElementById('costSlider').value = 40;
+            document.getElementById('comfortSlider').value = 30;
+            document.getElementById('speedValue').textContent = '30%';
+            document.getElementById('costValue').textContent = '40%';
+            document.getElementById('comfortValue').textContent = '30%';
+            document.getElementById('routesContainer').innerHTML = '<p class="message">Enter cities and click "Find Routes"</p>';
+            document.getElementById('mapContainer').style.display = 'none';
+            selectedDeparture = null;
+            selectedArrival = null;
+        }
+    </script>
+</body>
+</html>
