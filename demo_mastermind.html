@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mastermind</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Space+Mono:wght@400&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        html, body {
+            width: 100%;
+            height: 100%;
+            font-family: 'Space Mono', monospace;
+            background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%);
+            color: #e5e7eb;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 16px;
+        }
+        
+        .container {
+            background: #1a2847;
+            border: 2px solid #4f46e5;
+            border-radius: 12px;
+            padding: 32px;
+            max-width: 500px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+        
+        h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 40px;
+            text-align: center;
+            margin-bottom: 8px;
+            color: #fbbf24;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #9ca3af;
+            margin-bottom: 24px;
+            font-size: 13px;
+        }
+        
+        .game-state {
+            background: #111827;
+            border: 1px solid #374151;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 24px;
+            text-align: center;
+        }
+        
+        .turn-counter {
+            font-size: 18px;
+            font-weight: bold;
+            color: #4f46e5;
+            margin-bottom: 12px;
+        }
+        
+        .progress-bar {
+            background: #2d3748;
+            height: 8px;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 12px;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4f46e5 0%, #fbbf24 100%);
+            transition: width 0.3s ease;
+        }
+        
+        .color-picker {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-bottom: 24px;
+        }
+        
+        .color-btn {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: 2px solid transparent;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 10px;
+            color: #fff;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .color-btn:hover {
+            transform: scale(1.1);
+        }
+        
+        .color-btn.selected {
+            border-color: #fff;
+            box-shadow: 0 0 12px currentColor;
+        }
+        
+        .color-btn[data-color="red"] {
+            background: #ef4444;
+        }
+        
+        .color-btn[data-color="blue"] {
+            background: #3b82f6;
+        }
+        
+        .color-btn[data-color="green"] {
+            background: #10b981;
+        }
+        
+        .color-btn[data-color="yellow"] {
+            background: #fbbf24;
+            color: #000;
+        }
+        
+        .color-btn[data-color="white"] {
+            background: #f3f4f6;
+            color: #000;
+        }
+        
+        .color-btn[data-color="black"] {
+            background: #374151;
+            border-color: #6b7280;
+        }
+        
+        .guess-display {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            margin-bottom: 24px;
+            min-height: 60px;
+        }
+        
+        .guess-peg {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: 2px solid #4f46e5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            background: #0f172a;
+            color: #9ca3af;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+        
+        .btn {
+            flex: 1;
+            padding: 12px 16px;
+            border: none;
+            border-radius: 6px;
+            font-family: 'Space Mono', monospace;
+            font-size: 14px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s ease;
+        }
+        
+        .btn-submit {
+            background: #4f46e5;
+            color: #fff;
+        }
+        
+        .btn-submit:hover:not(:disabled) {
+            background: #6366f1;
+            transform: scale(1.02);
+        }
+        
+        .btn-submit:disabled {
+            background: #4b5563;
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+        
+        .btn-reset {
+            background: #10b981;
+            color: #fff;
+        }
+        
+        .btn-reset:hover {
+            background: #059669;
+            transform: scale(1.02);
+        }
+        
+        .history {
+            background: #111827;
+            border: 1px solid #374151;
+            border-radius: 8px;
+            padding: 16px;
+            max-height: 300px;
+            overflow-y: auto;
+            margin-bottom: 16px;
+        }
+        
+        .history-empty {
+            color: #6b7280;
+            font-size: 12px;
+            text-align: center;
+        }
+        
+        .history-row {
+            display: grid;
+            grid-template-columns: 40px 1fr 100px;
+            gap: 8px;
+            padding: 8px;
+            background: #1f2937;
+            border-radius: 4px;
+            margin-bottom: 6px;
+            align-items: center;
+            font-size: 12px;
+        }
+        
+        .guess-num {
+            color: #9ca3af;
+            text-align: center;
+            font-weight: bold;
+        }
+        
+        .guess-pegs {
+            display: flex;
+            gap: 4px;
+        }
+        
+        .guess-mini-peg {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: 1px solid #4f46e5;
+        }
+        
+        .feedback {
+            text-align: right;
+            color: #9ca3af;
+            font-size: 11px;
+        }
+        
+        .feedback-black {
+            color: #ef4444;
+            font-weight: bold;
+        }
+        
+        .feedback-white {
+            color: #f3f4f6;
+            font-weight: bold;
+        }
+        
+        .game-over {
+            background: #1f2937;
+            border: 2px solid #fbbf24;
+            border-radius: 8px;
+            padding: 16px;
+            text-align: center;
+            margin-bottom: 16px;
+        }
+        
+        .game-over-title {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #fbbf24;
+        }
+        
+        .secret-revealed {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            margin-top: 12px;
+        }
+        
+        .secret-peg {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 2px solid #fbbf24;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 Mastermind</h1>
+        <p class="subtitle">Crack the code in 12 guesses</p>
+        
+        <div class="game-state">
+            <div class="turn-counter" id="turnCounter">Guess 1 / 12</div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+        </div>
+        
+        <div class="color-picker" id="colorPicker"></div>
+        
+        <div class="guess-display">
+            <div class="guess-peg" id="peg0">?</div>
+            <div class="guess-peg" id="peg1">?</div>
+            <div class="guess-peg" id="peg2">?</div>
+            <div class="guess-peg" id="peg3">?</div>
+        </div>
+        
+        <div class="button-group">
+            <button class="btn btn-submit" id="submitBtn">Submit Guess</button>
+            <button class="btn btn-reset" id="resetBtn">New Game</button>
+        </div>
+        
+        <div id="gameOverContainer"></div>
+        
+        <div class="history" id="history">
+            <div class="history-empty">No guesses yet</div>
+        </div>
+    </div>
+    
+    <script>
+        const COLORS = ['red', 'blue', 'green', 'yellow', 'white', 'black'];
+        const COLOR_MAP = {
+            red: '#ef4444',
+            blue: '#3b82f6',
+            green: '#10b981',
+            yellow: '#fbbf24',
+            white: '#f3f4f6',
+            black: '#374151'
+        };
+        
+        let secretCode = [];
+        let guesses = [];
+        let currentGuess = [null, null, null, null];
+        let gameOver = false;
+        
+        function initGame() {
+            secretCode = [];
+            for (let i = 0; i < 4; i++) {
+                secretCode.push(COLORS[Math.floor(Math.random() * COLORS.length)]);
+            }
+            guesses = [];
+            currentGuess = [null, null, null, null];
+            gameOver = false;
+            
+            document.getElementById('gameOverContainer').innerHTML = '';
+            document.getElementById('submitBtn').disabled = false;
+            document.getElementById('submitBtn').textContent = 'Submit Guess';
+            updateDisplay();
+            updateHistory();
+        }
+        
+        function computeFeedback(guess, secret) {
+            let blackCount = 0;
+            const secretCopy = [...secret];
+            const guessCopy = [...guess];
+            
+            // Count exact matches (black pegs)
+            for (let i = 0; i < 4; i++) {
+                if (guessCopy[i] === secretCopy[i]) {
+                    blackCount++;
+                    guessCopy[i] = null;
+                    secretCopy[i] = null;
+                }
+            }
+            
+            // Count color matches in wrong positions (white pegs)
+            let whiteCount = 0;
+            for (let i = 0; i < 4; i++) {
+                if (guessCopy[i] !== null) {
+                    const idx = secretCopy.indexOf(guessCopy[i]);
+                    if (idx !== -1) {
+                        whiteCount++;
+                        secretCopy[idx] = null;
+                    }
+                }
+            }
+            
+            return { black: blackCount, white: whiteCount };
+        }
+        
+        function updateDisplay() {
+            for (let i = 0; i < 4; i++) {
+                const peg = document.getElementById(`peg${i}`);
+                if (currentGuess[i]) {
+                    peg.style.background = COLOR_MAP[currentGuess[i]];
+                    peg.textContent = '';
+                } else {
+                    peg.style.background = '#0f172a';
+                    peg.textContent = '?';
+                    peg.style.color = '#9ca3af';
+                }
+            }
+            
+            document.getElementById('submitBtn').disabled = currentGuess.includes(null);
+            
+            const progress = (guesses.length / 12) * 100;
+            document.getElementById('progressFill').style.width = progress + '%';
+            document.getElementById('turnCounter').textContent = `Guess ${guesses.length + 1} / 12`;
+        }
+        
+        function updateHistory() {
+            const historyDiv = document.getElementById('history');
+            if (guesses.length === 0) {
+                historyDiv.innerHTML = '<div class="history-empty">No guesses yet</div>';
+                return;
+            }
+            
+            historyDiv.innerHTML = guesses.map((g, idx) => {
+                const feedback = computeFeedback(g.guess, secretCode);
+                return `
+                    <div class="history-row">
+                        <div class="guess-num">${idx + 1}</div>
+                        <div class="guess-pegs">
+                            ${g.guess.map(color => `<div class="guess-mini-peg" style="background: ${COLOR_MAP[color]};"></div>`).join('')}
+                        </div>
+                        <div class="feedback">
+                            <span class="feedback-black">● ${feedback.black}</span>
+                            <span class="feedback-white">○ ${feedback.white}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        function submitGuess() {
+            if (currentGuess.includes(null) || gameOver) return;
+            
+            const guess = [...currentGuess];
+            guesses.push({ guess });
+            
+            const feedback = computeFeedback(guess, secretCode);
+            
+            if (feedback.black === 4) {
+                gameOver = true;
+                endGame(true, guess);
+            } else if (guesses.length >= 12) {
+                gameOver = true;
+                endGame(false, guess);
+            }
+            
+            currentGuess = [null, null, null, null];
+            updateDisplay();
+            updateHistory();
+        }
+        
+        function endGame(won, lastGuess) {
+            const container = document.getElementById('gameOverContainer');
+            if (won) {
+                container.innerHTML = `
+                    <div class="game-over">
+                        <div class="game-over-title">🎉 You Won!</div>
+                        <p>Cracked it in ${guesses.length} guess${guesses.length === 1 ? '' : 'es'}!</p>
+                    </div>
+                `;
+            } else {
+                const secretDisplay = secretCode.map(c => `<div class="secret-peg" style="background: ${COLOR_MAP[c]};"></div>`).join('');
+                container.innerHTML = `
+                    <div class="game-over">
+                        <div class="game-over-title">Game Over</div>
+                        <p>Secret code was:</p>
+                        <div class="secret-revealed">${secretDisplay}</div>
+                    </div>
+                `;
+            }
+            
+            document.getElementById('submitBtn').disabled = true;
+            document.getElementById('submitBtn').textContent = 'Game Over';
+        }
+        
+        // Create color picker
+        const pickerDiv = document.getElementById('colorPicker');
+        COLORS.forEach(color => {
+            const btn = document.createElement('button');
+            btn.className = 'color-btn';
+            btn.setAttribute('data-color', color);
+            btn.textContent = color.substring(0, 1).toUpperCase();
+            btn.addEventListener('click', () => selectColor(color));
+            pickerDiv.appendChild(btn);
+        });
+        
+        function selectColor(color) {
+            const emptyIdx = currentGuess.indexOf(null);
+            if (emptyIdx !== -1) {
+                currentGuess[emptyIdx] = color;
+                updateDisplay();
+            }
+        }
+        
+        document.getElementById('submitBtn').addEventListener('click', submitGuess);
+        document.getElementById('resetBtn').addEventListener('click', initGame);
+        
+        initGame();
+    </script>
+</body>
+</html>
