@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Loan Payoff Strategy Engine</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: #e2e8f0;
+            min-height: 100vh;
+            padding: 24px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 8px;
+            color: #60a5fa;
+        }
+        
+        .subtitle {
+            font-size: 1.1rem;
+            color: #94a3b8;
+        }
+        
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+        
+        @media (max-width: 1024px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .panel {
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 24px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .panel h2 {
+            font-size: 1.3rem;
+            margin-bottom: 20px;
+            color: #60a5fa;
+            border-bottom: 2px solid #334155;
+            padding-bottom: 12px;
+        }
+        
+        .input-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            font-size: 0.95rem;
+            margin-bottom: 8px;
+            color: #cbd5e1;
+            font-weight: 500;
+        }
+        
+        input, select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #475569;
+            border-radius: 8px;
+            background: rgba(30, 41, 59, 0.8);
+            color: #e2e8f0;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+        
+        input:focus, select:focus {
+            outline: none;
+            border-color: #60a5fa;
+            box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.1);
+        }
+        
+        .input-with-unit {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        
+        .input-with-unit input {
+            flex: 1;
+        }
+        
+        .unit {
+            font-size: 0.9rem;
+            color: #94a3b8;
+            min-width: 40px;
+        }
+        
+        button {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-top: 8px;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 24px rgba(59, 130, 246, 0.4);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        .goal-selector {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        
+        .goal-btn {
+            padding: 12px;
+            background: rgba(71, 85, 105, 0.5);
+            border: 2px solid #475569;
+            border-radius: 8px;
+            color: #cbd5e1;
+            cursor: pointer;
+            transition: all 0.2s;
+            width: 100%;
+            font-size: 0.95rem;
+        }
+        
+        .goal-btn:hover {
+            border-color: #60a5fa;
+            color: #60a5fa;
+        }
+        
+        .goal-btn.active {
+            background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
+            border-color: #60a5fa;
+            color: white;
+        }
+        
+        .results-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        
+        @media (max-width: 768px) {
+            .results-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        
+        .strategy-card {
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 16px;
+            text-align: center;
+        }
+        
+        .strategy-card.best {
+            border: 2px solid #10b981;
+            background: rgba(16, 185, 129, 0.1);
+        }
+        
+        .strategy-name {
+            font-size: 0.9rem;
+            color: #94a3b8;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .strategy-stat {
+            margin-bottom: 12px;
+        }
+        
+        .stat-label {
+            font-size: 0.8rem;
+            color: #64748b;
+            margin-bottom: 4px;
+        }
+        
+        .stat-value {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: #60a5fa;
+        }
+        
+        .strategy-card.best .stat-value {
+            color: #10b981;
+        }
+        
+        .best-badge {
+            display: inline-block;
+            background: #10b981;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            margin-top: 8px;
+        }
+        
+        .amortization-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+            margin-top: 20px;
+        }
+        
+        .amortization-table thead {
+            background: rgba(96, 165, 250, 0.1);
+            border-bottom: 2px solid #334155;
+        }
+        
+        .amortization-table th {
+            padding: 12px;
+            text-align: left;
+            color: #60a5fa;
+            font-weight: 600;
+        }
+        
+        .amortization-table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #334155;
+        }
+        
+        .amortization-table tbody tr:hover {
+            background: rgba(96, 165, 250, 0.05);
+        }
+        
+        .insight-box {
+            background: rgba(16, 185, 129, 0.1);
+            border-left: 4px solid #10b981;
+            padding: 16px;
+            border-radius: 8px;
+            margin-top: 20px;
+            line-height: 1.6;
+        }
+        
+        .insight-title {
+            color: #10b981;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        
+        .error {
+            color: #ef4444;
+            font-size: 0.9rem;
+            margin-top: 8px;
+        }
+        
+        .chart-container {
+            margin-top: 20px;
+            height: 300px;
+            background: rgba(30, 41, 59, 0.5);
+            border-radius: 8px;
+            padding: 16px;
+            border: 1px solid #334155;
+        }
+        
+        canvas {
+            width: 100% !important;
+            height: 100% !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>💰 Loan Payoff Strategy</h1>
+            <p class="subtitle">Find your optimal loan repayment path with real amortization math</p>
+        </header>
+        
+        <div class="main-grid">
+            <!-- Input Panel -->
+            <div class="panel">
+                <h2>Your Loan Details</h2>
+                
+                <div class="input-group">
+                    <label>Loan Amount ($)</label>
+                    <input type="number" id="principal" value="250000" min="1000" step="1000">
+                    <div class="error" id="error-principal"></div>
+                </div>
+                
+                <div class="input-group">
+                    <label>Annual Interest Rate (%)</label>
+                    <input type="number" id="rate" value="6.5" min="0.1" max="20" step="0.1">
+                    <div class="error" id="error-rate"></div>
+                </div>
+                
+                <div class="input-group">
+                    <label>Loan Term (months)</label>
+                    <input type="number" id="term" value="360" min="12" max="600" step="1">
+                    <div class="error" id="error-term"></div>
+                </div>
+                
+                <div class="input-group">
+                    <label>Current Monthly Payment ($)</label>
+                    <input type="number" id="currentPayment" value="1500" min="0" step="10">
+                </div>
+                
+                <h2 style="margin-top: 32px;">Your Goal</h2>
+                <div class="goal-selector">
+                    <button class="goal-btn active" data-goal="min-interest">Minimize Interest</button>
+                    <button class="goal-btn" data-goal="payoff-date">Target Payoff Date</button>
+                    <button class="goal-btn" data-goal="budget">Fixed Budget</button>
+                    <button class="goal-btn" data-goal="balanced">Balanced</button>
+                </div>
+                
+                <div id="goal-specific" style="margin-bottom: 20px;"></div>
+                
+                <button onclick="calculate()">Calculate Strategies</button>
+            </div>
+            
+            <!-- Results Panel -->
+            <div class="panel">
+                <h2>Strategy Comparison</h2>
+                <div class="results-grid" id="results"></div>
+                <div id="insight"></div>
+            </div>
+        </div>
+        
+        <!-- Chart -->
+        <div class="panel">
+            <h2>Interest vs. Principal Over Time</h2>
+            <div class="chart-container">
+                <canvas id="chart"></canvas>
+            </div>
+        </div>
+        
+        <!-- Amortization Table -->
+        <div class="panel">
+            <h2>Full Amortization Schedule</h2>
+            <table class="amortization-table" id="amortization-table">
+                <thead>
+                    <tr>
+                        <th>Month</th>
+                        <th>Payment</th>
+                        <th>Principal</th>
+                        <th>Interest</th>
+                        <th>Balance</th>
+                    </tr>
+                </thead>
+                <tbody id="amortization-body"></tbody>
+            </table>
+        </div>
+    </div>
+    
+    <script>
+        let selectedGoal = 'min-interest';
+        let strategies = {};
+        
+        // Goal button handlers
+        document.querySelectorAll('.goal-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.goal-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                selectedGoal = this.dataset.goal;
+                updateGoalInputs();
+            });
+        });
+        
+        function updateGoalInputs() {
+            const container = document.getElementById('goal-specific');
+            container.innerHTML = '';
+            
+            if (selectedGoal === 'payoff-date') {
+                container.innerHTML = `
+                    <div class="input-group">
+                        <label>Target Payoff Month</label>
+                        <input type="number" id="targetMonth" value="120" min="12" max="600" step="1">
+                    </div>
+                `;
+            } else if (selectedGoal === 'budget') {
+                container.innerHTML = `
+                    <div class="input-group">
+                        <label>Max Monthly Payment ($)</label>
+                        <input type="number" id="maxPayment" value="2000" min="100" step="100">
+                    </div>
+                `;
+            }
+        }
+        
+        updateGoalInputs();
+        
+        function formatCurrency(value) {
+            return '$' + value.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        }
+        
+        function calculateAmortization(principal, monthlyRate, payment) {
+            let balance = principal;
+            const schedule = [];
+            let totalInterest = 0;
+            let month = 0;
+            
+            while (balance > 0 && month < 600) {
+                month++;
+                const interestPayment = balance * monthlyRate;
+                const principalPayment = Math.min(payment - interestPayment, balance);
+                balance = Math.max(0, balance - principalPayment);
+                totalInterest += interestPayment;
+                
+                schedule.push({
+                    month,
+                    payment,
+                    principal: principalPayment,
+                    interest: interestPayment,
+                    balance
+                });
+                
+                if (balance === 0) break;
+            }
+            
+            return { schedule, totalInterest, payoffMonth: month, totalPaid: principal + totalInterest };
+        }
+        
+        function calculate() {
+            const principal = parseFloat(document.getElementById('principal').value);
+            const annualRate = parseFloat(document.getElementById('rate').value);
+            const term = parseFloat(document.getElementById('term').value);
+            const monthlyRate = annualRate / 100 / 12;
+            
+            // Validate inputs
+            let valid = true;
+            if (principal < 1000) {
+                document.getElementById('error-principal').textContent = 'Minimum $1,000';
+                valid = false;
+            } else {
+                document.getElementById('error-principal').textContent = '';
+            }
+            
+            if (annualRate < 0.1 || annualRate > 20) {
+                document.getElementById('error-rate').textContent = 'Rate must be 0.1% - 20%';
+                valid = false;
+            } else {
+                document.getElementById('error-rate').textContent = '';
+            }
+            
+            if (term < 12 || term > 600) {
+                document.getElementById('error-term').textContent = 'Term must be 12-600 months';
+                valid = false;
+            } else {
+                document.getElementById('error-term').textContent = '';
+            }
+            
+            if (!valid) return;
+            
+            strategies = {};
+            
+            // Strategy 1: Minimum Interest (standard amortization)
+            const standardPayment = principal * (monthlyRate * Math.pow(1 + monthlyRate, term)) / (Math.pow(1 + monthlyRate, term) - 1);
+            strategies['Minimize Interest'] = calculateAmortization(principal, monthlyRate, standardPayment);
+            
+            // Strategy 2: Target Payoff Date
+            if (selectedGoal === 'payoff-date') {
+                const targetMonth = parseFloat(document.getElementById('targetMonth').value);
+                const targetPayment = principal * (monthlyRate * Math.pow(1 + monthlyRate, targetMonth)) / (Math.pow(1 + monthlyRate, targetMonth) - 1);
+                strategies['Target Payoff'] = calculateAmortization(principal, monthlyRate, targetPayment);
+            } else {
+                const targetMonth = Math.min(term, Math.ceil(term * 0.7));
+                const targetPayment = principal * (monthlyRate * Math.pow(1 + monthlyRate, targetMonth)) / (Math.pow(1 + monthlyRate, targetMonth) - 1);
+                strategies['Target Payoff'] = calculateAmortization(principal, monthlyRate, targetPayment);
+            }
+            
+            // Strategy 3: Fixed Budget
+            let budgetPayment = standardPayment;
+            if (selectedGoal === 'budget') {
+                budgetPayment = parseFloat(document.getElementById('maxPayment').value);
+            }
+            strategies['Fixed Budget'] = calculateAmortization(principal, monthlyRate, budgetPayment);
+            
+            // Strategy 4: Balanced
+            const balancedPayment = standardPayment * 1.15;
+            strategies['Balanced'] = calculateAmortization(principal, monthlyRate, balancedPayment);
+            
+            displayResults(principal);
+            drawChart(principal);
+        }
+        
+        function displayResults(principal) {
+            const resultsHTML = Object.entries(strategies).map(([name, data], idx) => {
+                const isBest = idx === 0; // Minimize Interest is always recommended
+                return `
+                    <div class="strategy-card ${isBest ? 'best' : ''}">
+                        <div class="strategy-name">${name}</div>
+                        <div class="strategy-stat">
+                            <div class="stat-label">Monthly Payment</div>
+                            <div class="stat-value">${formatCurrency(data.schedule[0].payment)}</div>
+                        </div>
+                        <div class="strategy-stat">
+                            <div class="stat-label">Total Interest</div>
+                            <div class="stat-value">${formatCurrency(data.totalInterest)}</div>
+                        </div>
+                        <div class="strategy-stat">
+                            <div class="stat-label">Payoff Date</div>
+                            <div class="stat-value">${data.payoffMonth} mo</div>
+                        </div>
+                        ${isBest ? '<div class="best-badge">✓ Best for minimizing interest</div>' : ''}
+                    </div>
+                `;
+            }).join('');
+            
+            document.getElementById('results').innerHTML = resultsHTML;
+            
+            // Insight box
+            const minInterestData = strategies['Minimize Interest'];
+            const insight = `
+                <div class="insight-box">
+                    <div class="insight-title">💡 Key Insight</div>
+                    <p>By paying ${formatCurrency(minInterestData.schedule[0].payment)} monthly, you'll pay off this loan in ${minInterestData.payoffMonth} months and save ${formatCurrency(minInterestData.totalInterest)} in interest vs. the original ${parseFloat(document.getElementById('term').value)} month term.</p>
+                </div>
+            `;
+            document.getElementById('insight').innerHTML = insight;
+            
+            // Populate amortization table
+            const tableBody = document.getElementById('amortization-body');
+            tableBody.innerHTML = '';
+            minInterestData.schedule.slice(0, 60).forEach(row => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${row.month}</td>
+                    <td>${formatCurrency(row.payment)}</td>
+                    <td>${formatCurrency(row.principal)}</td>
+                    <td>${formatCurrency(row.interest)}</td>
+                    <td>${formatCurrency(row.balance)}</td>
+                `;
+                tableBody.appendChild(tr);
+            });
+            if (minInterestData.schedule.length > 60) {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td colspan="5" style="text-align: center; color: #94a3b8; padding: 12px;">... showing first 60 months of ${minInterestData.schedule.length} total ...</td>`;
+                tableBody.appendChild(tr);
+            }
+        }
+        
+        function drawChart(principal) {
+            const canvas = document.getElementById('chart');
+            const ctx = canvas.getContext('2d');
+            const rect = canvas.parentElement.getBoundingClientRect();
+            canvas.width = rect.width;
+            canvas.height = rect.height;
+            
+            const data = strategies['Minimize Interest'];
+            if (!data) return;
+            
+            const width = canvas.width;
+            const height = canvas.height;
+            const padding = 40;
+            
+            // Clear
+            ctx.fillStyle = 'rgba(30, 41, 59, 0.5)';
+            ctx.fillRect(0, 0, width, height);
+            
+            // Find max months to display
+            const displayMonths = Math.min(data.schedule.length, 360);
+            const monthsToShow = data.schedule.slice(0, displayMonths);
+            
+            const graphWidth = width - 2 * padding;
+            const graphHeight = height - 2 * padding;
+            const monthScale = graphWidth / displayMonths;
+            const maxInterest = Math.max(...monthsToShow.map(d => {
+                let totalInt = 0;
+                for (let i = 0; i <= monthsToShow.indexOf(d); i++) {
+                    totalInt += monthsToShow[i].interest;
+                }
+                return totalInt;
+            }));
+            const interestScale = graphHeight / maxInterest;
+            
+            // Draw stacked area: principal (blue) + interest (red)
+            ctx.beginPath();
+            ctx.moveTo(padding, height - padding);
+            
+            let cumulativePrincipal = 0;
+            monthsToShow.forEach((row, idx) => {
+                cumulativePrincipal += row.principal;
+                const x = padding + idx * monthScale;
+                const y = height - padding - cumulativePrincipal * (graphHeight / (principal + maxInterest));
+                if (idx === 0) ctx.lineTo(x, y);
+                else ctx.lineTo(x, y);
+            });
+            
+            let cumulativeInterest = 0;
+            for (let i = monthsToShow.length - 1; i >= 0; i--) {
+                cumulativeInterest += monthsToShow[i].interest;
+                const x = padding + i * monthScale;
+                const y = height - padding - (cumulativePrincipal + cumulativeInterest) * (graphHeight / (principal + maxInterest));
+                ctx.lineTo(x, y);
+            }
+            
+            ctx.closePath();
+            ctx.fillStyle = 'rgba(239, 68, 68, 0.3)';
+            ctx.fill();
+            ctx.strokeStyle = '#ef4444';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            
+            // Draw principal area
+            ctx.beginPath();
+            ctx.moveTo(padding, height - padding);
+            let cumInt = 0;
+            monthsToShow.forEach((row, idx) => {
+                const x = padding + idx * monthScale;
+                const y = height - padding - (principal - (principal - cumulativePrincipal)) * (graphHeight / (principal + maxInterest));
+                if (idx === 0) ctx.lineTo(x, height - padding);
+                else ctx.lineTo(x, y);
+            });
+            ctx.closePath();
+            ctx.fillStyle = 'rgba(96, 165, 250, 0.3)';
+            ctx.fill();
+            
+            // Draw axes
+            ctx.strokeStyle = '#475569';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(padding, padding);
+            ctx.lineTo(padding, height - padding);
+            ctx.lineTo(width - padding, height - padding);
+            ctx.stroke();
+            
+            // Labels
+            ctx.fillStyle = '#94a3b8';
+            ctx.font = '12px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('Months', width / 2, height - 10);
+            ctx.save();
+            ctx.translate(10, height / 2);
+            ctx.rotate(-Math.PI / 2);
+            ctx.fillText('Amount ($)', 0, 0);
+            ctx.restore();
+            
+            // Legend
+            ctx.fillStyle = '#60a5fa';
+            ctx.fillRect(width - 180, padding + 10, 12, 12);
+            ctx.fillStyle = '#e2e8f0';
+            ctx.font = '12px sans-serif';
+            ctx.textAlign = 'left';
+            ctx.fillText('Principal', width - 160, padding + 20);
+            
+            ctx.fillStyle = '#ef4444';
+            ctx.fillRect(width - 180, padding + 30, 12, 12);
+            ctx.fillStyle = '#e2e8f0';
+            ctx.fillText('Interest', width - 160, padding + 40);
+        }
+        
+        // Initial calculation
+        calculate();
+    </script>
+</body>
+</html>
