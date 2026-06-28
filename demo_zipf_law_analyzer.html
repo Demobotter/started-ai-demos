@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zipf's Law Analyzer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #1a1625 0%, #2d1b3d 50%, #1a1625 100%);
+            color: #e0e0e0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: #0f0a15;
+            border-radius: 12px;
+            padding: 30px;
+            border: 1px solid #3a2a4a;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+        }
+        
+        h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #a78bfa, #c4b5fd);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .subtitle {
+            font-size: 14px;
+            color: #9090a0;
+            margin-bottom: 25px;
+        }
+        
+        .layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+        
+        .panel {
+            background: #1a1520;
+            border-radius: 8px;
+            padding: 20px;
+            border: 1px solid #2a1a3a;
+        }
+        
+        .input-section {
+            grid-column: 1 / -1;
+        }
+        
+        .input-section h2 {
+            font-size: 16px;
+            margin-bottom: 15px;
+            color: #c4b5fd;
+        }
+        
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+        
+        textarea {
+            width: 100%;
+            height: 120px;
+            padding: 12px;
+            background: #0f0a15;
+            border: 1px solid #2a1a3a;
+            border-radius: 6px;
+            color: #e0e0e0;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            resize: vertical;
+        }
+        
+        textarea:focus {
+            outline: none;
+            border-color: #a78bfa;
+        }
+        
+        input[type="file"] {
+            display: none;
+        }
+        
+        .file-input-label {
+            padding: 8px 14px;
+            background: #2a1a3a;
+            border: 1px solid #3a2a4a;
+            border-radius: 6px;
+            cursor: pointer;
+            color: #c4b5fd;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+        
+        .file-input-label:hover {
+            background: #3a2a4a;
+            border-color: #a78bfa;
+        }
+        
+        button {
+            padding: 10px 18px;
+            background: linear-gradient(135deg, #a78bfa, #8b5cf6);
+            border: none;
+            border-radius: 6px;
+            color: white;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(167, 139, 250, 0.4);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .toggle-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: #b0b0c0;
+        }
+        
+        input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+            accent-color: #a78bfa;
+        }
+        
+        .chart-container {
+            background: #0f0a15;
+            border-radius: 6px;
+            padding: 15px;
+            border: 1px solid #2a1a3a;
+            margin-bottom: 15px;
+        }
+        
+        canvas {
+            width: 100%;
+            height: 350px;
+            display: block;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .stat-box {
+            background: #0f0a15;
+            border-left: 3px solid #a78bfa;
+            padding: 12px;
+            border-radius: 4px;
+            border: 1px solid #2a1a3a;
+        }
+        
+        .stat-label {
+            font-size: 11px;
+            color: #7070a0;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+        
+        .stat-value {
+            font-size: 20px;
+            font-weight: 600;
+            color: #c4b5fd;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .interpretation {
+            background: #1a1520;
+            border-radius: 6px;
+            padding: 14px;
+            border-left: 3px solid #8b5cf6;
+            font-size: 13px;
+            line-height: 1.6;
+            margin-top: 15px;
+        }
+        
+        .interpretation.natural {
+            border-left-color: #10b981;
+            background: rgba(16, 185, 129, 0.05);
+        }
+        
+        .interpretation.anomalous {
+            border-left-color: #f59e0b;
+            background: rgba(245, 158, 11, 0.05);
+        }
+        
+        .table-container {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #2a1a3a;
+            border-radius: 6px;
+            margin-top: 15px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+        
+        thead {
+            background: #1a1520;
+            position: sticky;
+            top: 0;
+            border-bottom: 1px solid #2a1a3a;
+        }
+        
+        th {
+            padding: 8px 10px;
+            text-align: left;
+            color: #a78bfa;
+            font-weight: 500;
+        }
+        
+        td {
+            padding: 8px 10px;
+            border-bottom: 1px solid #2a1a3a;
+        }
+        
+        tr:hover {
+            background: #1a1520;
+        }
+        
+        .word {
+            color: #c4b5fd;
+            font-weight: 500;
+        }
+        
+        .freq {
+            color: #7dd3fc;
+        }
+        
+        .rank {
+            color: #10b981;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            color: #a78bfa;
+        }
+        
+        .error {
+            display: none;
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid #dc2626;
+            border-radius: 6px;
+            padding: 12px;
+            margin-top: 15px;
+            color: #fca5a5;
+            font-size: 13px;
+        }
+        
+        @media (max-width: 1024px) {
+            .layout {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📖 Zipf's Law Analyzer</h1>
+        <p class="subtitle">Reveal the hidden linguistic structure in any text</p>
+        
+        <div class="layout">
+            <div class="panel input-section">
+                <h2>Input Text</h2>
+                
+                <textarea id="textInput" placeholder="Paste your text here... (or upload a file)"></textarea>
+                
+                <div class="input-group" style="margin-top: 15px;">
+                    <label class="file-input-label" for="fileInput">
+                        📤 Upload .txt File
+                    </label>
+                    <input type="file" id="fileInput" accept=".txt">
+                    
+                    <button onclick="analyzeText()">Analyze</button>
+                    <button onclick="loadSampleShakespeare()">Sample: Shakespeare</button>
+                </div>
+                
+                <div class="toggle-label">
+                    <input type="checkbox" id="removeStopwords" checked>
+                    <label for="removeStopwords" style="margin: 0; cursor: pointer;">Remove common stop-words (the, a, is...)</label>
+                </div>
+                
+                <div class="error" id="error"></div>
+                <div class="loading" id="loading">Analyzing...</div>
+            </div>
+            
+            <div class="panel">
+                <h2>Frequency Distribution</h2>
+                <div class="chart-container">
+                    <canvas id="zipfChart"></canvas>
+                </div>
+            </div>
+            
+            <div class="panel">
+                <h2>Statistics</h2>
+                <div class="stats-grid">
+                    <div class="stat-box">
+                        <div class="stat-label">Total Words</div>
+                        <div class="stat-value" id="statTotal">—</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">Unique Words</div>
+                        <div class="stat-value" id="statUnique">—</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">Zipf Exponent (α)</div>
+                        <div class="stat-value" id="statAlpha">—</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">χ² Goodness-of-Fit</div>
+                        <div class="stat-value" id="statChiSq">—</div>
+                    </div>
+                </div>
+                <div class="interpretation" id="interpretation"></div>
+            </div>
+            
+            <div class="panel">
+                <h2>Top 20 Words</h2>
+                <div class="table-container">
+                    <table id="wordTable">
+                        <thead>
+                            <tr>
+                                <th>Rank</th>
+                                <th>Word</th>
+                                <th>Count</th>
+                                <th>Freq %</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const STOP_WORDS = new Set([
+            'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'from',
+            'is', 'am', 'are', 'was', 'were', 'be', 'been', 'being', 'have', 'has', 'had', 'do', 'does', 'did',
+            'will', 'would', 'shall', 'should', 'may', 'might', 'must', 'can', 'could', 'this', 'that', 'these',
+            'those', 'i', 'you', 'he', 'she', 'it', 'we', 'they', 'what', 'which', 'who', 'when', 'where', 'why',
+            'how', 'as', 'about', 'into', 'through', 'during', 'before', 'after', 'above', 'below', 'up', 'down',
+            'so', 'more', 'most', 'other', 'some', 'any', 'all', 'each', 'every', 'both', 'neither', 'either',
+            'than', 'just', 'only', 'even', 'also', 'very', 'too', 'not', 'no'
+        ]);
+
+        let chart = null;
+
+        document.getElementById('fileInput').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                document.getElementById('textInput').value = event.target.result;
+                analyzeText();
+            };
+            reader.readAsText(file);
+        });
+
+        function tokenizeAndCount(text) {
+            const removeStopwords = document.getElementById('removeStopwords').checked;
+            
+            // Tokenize: split on non-word characters, lowercase, filter empty
+            const tokens = text
+                .toLowerCase()
+                .split(/\W+/)
+                .filter(word => word.length > 0)
+                .filter(word => !removeStopwords || !STOP_WORDS.has(word));
+
+            // Count frequencies
+            const freqMap = {};
+            tokens.forEach(word => {
+                freqMap[word] = (freqMap[word] || 0) + 1;
+            });
+
+            // Sort by frequency descending
+            const sorted = Object.entries(freqMap)
+                .map(([word, count]) => ({ word, count }))
+                .sort((a, b) => b.count - a.count);
+
+            return { tokens, freqMap, sorted, totalWords: tokens.length };
+        }
+
+        function fitZipfLaw(sorted) {
+            // Fit power law: log(freq) = log(k) - α * log(rank)
+            // Using linear regression on log-log data
+            const n = Math.min(sorted.length, 50); // Use first 50 words for fit
+            let sumLogRankLogFreq = 0;
+            let sumLogRankSq = 0;
+            let sumLogRank = 0;
+            let sumLogFreq = 0;
+
+            for (let i = 0; i < n; i++) {
+                const rank = i + 1;
+                const freq = sorted[i].count;
+                const logRank = Math.log(rank);
+                const logFreq = Math.log(freq);
+
+                sumLogRank += logRank;
+                sumLogFreq += logFreq;
+                sumLogRankLogFreq += logRank * logFreq;
+                sumLogRankSq += logRank * logRank;
+            }
+
+            const alpha = (n * sumLogRankLogFreq - sumLogRank * sumLogFreq) / (n * sumLogRankSq - sumLogRank * sumLogRank);
+            const logK = (sumLogFreq - alpha * sumLogRank) / n;
+            const k = Math.exp(logK);
+
+            return { alpha: Math.abs(alpha), k };
+        }
+
+        function calculateChiSquared(sorted, alpha, k) {
+            const n = Math.min(sorted.length, 50);
+            let chiSq = 0;
+
+            for (let i = 0; i < n; i++) {
+                const rank = i + 1;
+                const observed = sorted[i].count;
+                const expected = k / Math.pow(rank, alpha);
+
+                if (expected > 0) {
+                    chiSq += Math.pow(observed - expected, 2) / expected;
+                }
+            }
+
+            return chiSq / n; // Normalize
+        }
+
+        function drawChart(sorted, alpha, k) {
+            const canvas = document.getElementById('zipfChart');
+            const ctx = canvas.getContext('2d');
+            
+            // Set canvas resolution
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+
+            const padding = 50;
+            const width = canvas.width - 2 * padding;
+            const height = canvas.height - 2 * padding;
+
+            // Clear
+            ctx.fillStyle = '#0f0a15';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Plot area background
+            ctx.fillStyle = '#1a1520';
+            ctx.fillRect(padding, padding, width, height);
+
+            // Grid lines
+            ctx.strokeStyle = '#2a1a3a';
+            ctx.lineWidth = 1;
+            
+            for (let i = 0; i <= 4; i++) {
+                const y = padding + (height * i / 4);
+                ctx.beginPath();
+                ctx.moveTo(padding, y);
+                ctx.lineTo(padding + width, y);
+                ctx.stroke();
+            }
+
+            // Axes
+            ctx.strokeStyle = '#5a4a6a';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(padding, padding);
+            ctx.lineTo(padding, padding + height);
+            ctx.lineTo(padding + width, padding + height);
+            ctx.stroke();
+
+            // Data points (observed)
+            const n = Math.min(sorted.length, 50);
+            const maxRank = n;
+            const maxFreq = sorted[0].count;
+
+            ctx.fillStyle = '#ff4466'; // Red for observed
+            ctx.beginPath();
+            for (let i = 0; i < n; i++) {
+                const rank = i + 1;
+                const freq = sorted[i].count;
+                const x = padding + (Math.log(rank) / Math.log(maxRank)) * width;
+                const y = padding + height - (Math.log(freq) / Math.log(maxFreq)) * height;
+
+                if (i === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            }
+            ctx.stroke();
+
+            // Draw points
+            for (let i = 0; i < n; i++) {
+                const rank = i + 1;
+                const freq = sorted[i].count;
+                const x = padding + (Math.log(rank) / Math.log(maxRank)) * width;
+                const y = padding + height - (Math.log(freq) / Math.log(maxFreq)) * height;
+                ctx.fillRect(x - 3, y - 3, 6, 6);
+            }
+
+            // Theoretical Zipf curve (blue)
+            ctx.strokeStyle = '#4488ff';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([5, 5]);
+            ctx.beginPath();
+            for (let i = 0; i < n; i++) {
+                const rank = i + 1;
+                const expectedFreq = k / Math.pow(rank, alpha);
+                const x = padding + (Math.log(rank) / Math.log(maxRank)) * width;
+                const y = padding + height - (Math.log(expectedFreq) / Math.log(maxFreq)) * height;
+
+                if (i === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            }
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Labels
+            ctx.fillStyle = '#a0a0b0';
+            ctx.font = '12px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('Log(Rank)', canvas.width / 2, canvas.height - 10);
+
+            ctx.save();
+            ctx.translate(15, canvas.height / 2);
+            ctx.rotate(-Math.PI / 2);
+            ctx.textAlign = 'center';
+            ctx.fillText('Log(Frequency)', 0, 0);
+            ctx.restore();
+
+            // Legend
+            ctx.fillStyle = '#ff4466';
+            ctx.fillRect(padding + 15, padding + 15, 10, 10);
+            ctx.fillStyle = '#a0a0b0';
+            ctx.textAlign = 'left';
+            ctx.font = '11px sans-serif';
+            ctx.fillText('Observed', padding + 30, padding + 24);
+
+            ctx.strokeStyle = '#4488ff';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([3, 3]);
+            ctx.beginPath();
+            ctx.moveTo(padding + 15, padding + 45);
+            ctx.lineTo(padding + 25, padding + 45);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.fillStyle = '#a0a0b0';
+            ctx.fillText('Zipf Prediction', padding + 30, padding + 50);
+        }
+
+        function analyzeText() {
+            const text = document.getElementById('textInput').value.trim();
+            
+            if (!text) {
+                showError('Please enter or upload text to analyze');
+                return;
+            }
+
+            document.getElementById('error').style.display = 'none';
+            document.getElementById('loading').style.display = 'block';
+
+            setTimeout(() => {
+                try {
+                    const { tokens, freqMap, sorted, totalWords } = tokenizeAndCount(text);
+                    
+                    if (sorted.length === 0) {
+                        showError('No words found in text');
+                        return;
+                    }
+
+                    const { alpha, k } = fitZipfLaw(sorted);
+                    const chiSq = calculateChiSquared(sorted, alpha, k);
+
+                    // Update stats
+                    document.getElementById('statTotal').textContent = totalWords.toLocaleString();
+                    document.getElementById('statUnique').textContent = sorted.length;
+                    document.getElementById('statAlpha').textContent = alpha.toFixed(3);
+                    document.getElementById('statChiSq').textContent = chiSq.toFixed(2);
+
+                    // Interpretation
+                    const interpEl = document.getElementById('interpretation');
+                    let interpretation = '';
+                    
+                    if (alpha >= 0.8 && alpha <= 1.2 && chiSq < 0.3) {
+                        interpEl.className = 'interpretation natural';
+                        interpretation = `✓ <strong>Natural Language</strong>: This text follows Zipf's Law closely (α=${alpha.toFixed(2)}), indicating authentic human writing. The frequency distribution is consistent with natural language.`;
+                    } else if (alpha >= 0.5 && alpha <= 1.5) {
+                        interpEl.className = 'interpretation natural';
+                        interpretation = `✓ <strong>Likely Natural</strong>: This text roughly follows Zipf's Law (α=${alpha.toFixed(2)}). Slight deviations may indicate specialized vocabulary or writing style.`;
+                    } else {
+                        interpEl.className = 'interpretation anomalous';
+                        interpretation = `⚠ <strong>Unusual Distribution</strong>: This text deviates from Zipf's Law (α=${alpha.toFixed(2)}). This may indicate synthetic content, highly specialized vocabulary, or unusual text characteristics.`;
+                    }
+                    
+                    interpEl.innerHTML = interpretation;
+
+                    // Draw chart
+                    drawChart(sorted, alpha, k);
+
+                    // Update table
+                    const tbody = document.getElementById('tableBody');
+                    tbody.innerHTML = '';
+                    const displayCount = Math.min(20, sorted.length);
+                    
+                    for (let i = 0; i < displayCount; i++) {
+                        const rank = i + 1;
+                        const { word, count } = sorted[i];
+                        const percent = ((count / totalWords) * 100).toFixed(1);
+
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td class="rank">${rank}</td>
+                            <td class="word">${word}</td>
+                            <td class="freq">${count}</td>
+                            <td>${percent}%</td>
+                        `;
+                        tbody.appendChild(tr);
+                    }
+
+                } catch (error) {
+                    showError('Analysis failed: ' + error.message);
+                } finally {
+                    document.getElementById('loading').style.display = 'none';
+                }
+            }, 100);
+        }
+
+        function showError(msg) {
+            const errorEl = document.getElementById('error');
+            errorEl.textContent = msg;
+            errorEl.style.display = 'block';
+            document.getElementById('loading').style.display = 'none';
+        }
+
+        function loadSampleShakespeare() {
+            const sample = `To be, or not to be, that is the question:
+Whether 'tis nobler in the mind to suffer
+The slings and arrows of outrageous fortune,
+Or to take arms against a sea of troubles
+And by opposing end them; to die, to sleep—
+No more; and by a sleep to say we end
+The heart-ache and the thousand natural shocks
+That flesh is heir to: 'tis a consummation
+Devoutly to be wish'd. To die, to sleep;
+To sleep, perchance to dream; ay, there's the rub:
+For in that sleep of death what dreams may come
+When we have shuffled off this mortal coil,
+Must give us pause— there's the respect
+That makes calamity of so long life.
+For who would bear the whips and scorns of time,
+Th'oppressor's wrong, the proud man's contumely,
+The pangs of dispriz'd love, the law's delay,
+The insolence of office, and the spurns
+That patient merit of the unworthy takes,
+When he himself might his quietus make
+With a bare bodkin? who would fardels bear,
+To grunt and sweat under a weary life,
+But that the dread of something after death,
+The undiscovered country, from whose bourn
+No traveller returns, puzzles the will,
+And makes us rather bear those ills we have
+Than fly to others that we know not of?
+Thus conscience does make cowards of us all,
+And thus the native hue of resolution
+Is sicklied o'er with the pale cast of thought,
+And enterprises of great pith and moment
+With this regard their currents turn awry
+And lose the name of action.`;
+            
+            document.getElementById('textInput').value = sample;
+            analyzeText();
+        }
+
+        // Initialize: draw placeholder
+        window.addEventListener('load', () => {
+            const canvas = document.getElementById('zipfChart');
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#1a1520';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#5a4a6a';
+            ctx.textAlign = 'center';
+            ctx.font = '14px sans-serif';
+            ctx.fillText('Analyze text to see Zipf\'s Law visualization', canvas.width / 2, canvas.height / 2);
+        });
+    </script>
+</body>
+</html>
