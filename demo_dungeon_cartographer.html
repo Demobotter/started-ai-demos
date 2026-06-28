@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dungeon Cartographer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: "Space Mono", monospace;
+            background: linear-gradient(135deg, #1a1a2e 0%, #2a1a4a 100%);
+            color: #e0e0e0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: #0f0f1e;
+            border: 2px solid #00ffff;
+            border-radius: 8px;
+            padding: 24px;
+            max-width: 1200px;
+            width: 100%;
+            box-shadow: 0 0 30px rgba(0, 255, 255, 0.2);
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 12px;
+            font-size: 28px;
+            color: #00ffff;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #aaaaaa;
+            font-size: 14px;
+            margin-bottom: 24px;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        .canvas-section {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .label {
+            font-size: 12px;
+            color: #00ffff;
+            margin-bottom: 8px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        canvas {
+            border: 1px solid #00ffff;
+            background: #0a0f1a;
+            flex: 1;
+            min-height: 400px;
+            image-rendering: pixelated;
+        }
+
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .control-group {
+            background: #1a1a2e;
+            border: 1px solid #2a4a5a;
+            padding: 16px;
+            border-radius: 4px;
+        }
+
+        .control-label {
+            font-size: 12px;
+            color: #00ffff;
+            margin-bottom: 8px;
+            display: block;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            margin-bottom: 8px;
+            cursor: pointer;
+            accent-color: #00ffff;
+        }
+
+        .value-display {
+            font-size: 12px;
+            color: #aaaaaa;
+        }
+
+        select {
+            width: 100%;
+            padding: 8px;
+            background: #0f0f1e;
+            color: #e0e0e0;
+            border: 1px solid #00ffff;
+            border-radius: 3px;
+            cursor: pointer;
+            font-family: "Space Mono", monospace;
+        }
+
+        .checkbox-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+        }
+
+        input[type="checkbox"] {
+            cursor: pointer;
+            accent-color: #00ffff;
+            width: 16px;
+            height: 16px;
+        }
+
+        .checkbox-item label {
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 12px;
+        }
+
+        button {
+            flex: 1;
+            padding: 12px 16px;
+            background: #00ffff;
+            color: #0f0f1e;
+            border: none;
+            border-radius: 4px;
+            font-family: "Space Mono", monospace;
+            font-weight: bold;
+            font-size: 12px;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: all 0.2s;
+        }
+
+        button:hover {
+            background: #00ffff;
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+            transform: translateY(-2px);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-top: 12px;
+            font-size: 11px;
+        }
+
+        .stat-item {
+            background: #0f0f1e;
+            border-left: 2px solid #00ffff;
+            padding: 8px;
+        }
+
+        .stat-label {
+            color: #aaaaaa;
+            font-size: 10px;
+            text-transform: uppercase;
+        }
+
+        .stat-value {
+            color: #00ffff;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .full-width {
+            grid-column: 1 / -1;
+        }
+
+        @media (max-width: 1024px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+
+            .controls {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>⚔️ Dungeon Cartographer</h1>
+        <p class="subtitle">Generate procedural fantasy dungeons with real maze algorithms</p>
+
+        <div class="main-content">
+            <div class="canvas-section">
+                <div class="label">Dungeon Map</div>
+                <canvas id="mazeCanvas" width="400" height="400"></canvas>
+            </div>
+
+            <div class="controls">
+                <div class="control-group">
+                    <label class="control-label">Maze Size</label>
+                    <input type="range" id="sizeSlider" min="8" max="32" value="16" step="2">
+                    <div class="value-display">Rooms: <span id="sizeValue">16</span>×<span id="sizeValue2">16</span></div>
+                </div>
+
+                <div class="control-group">
+                    <label class="control-label">Theme</label>
+                    <select id="themeSelect">
+                        <option value="eldritch">Eldritch Ruin</option>
+                        <option value="dwarven">Dwarven Hall</option>
+                        <option value="aquatic">Underwater Cavern</option>
+                        <option value="crypt">Haunted Crypt</option>
+                        <option value="forest">Forest Temple</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label class="control-label">Wall Thickness</label>
+                    <input type="range" id="wallThickSlider" min="1" max="5" value="2" step="1">
+                    <div class="value-display">Pixels: <span id="wallThickValue">2</span></div>
+                </div>
+
+                <div class="control-group">
+                    <label class="control-label">Entrance Style</label>
+                    <select id="entranceSelect">
+                        <option value="top-left">Top-Left Corner</option>
+                        <option value="top-right">Top-Right Corner</option>
+                        <option value="bottom-left">Bottom-Left Corner</option>
+                        <option value="bottom-right">Bottom-Right Corner</option>
+                        <option value="random">Random</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label class="control-label">Features</label>
+                    <div class="checkbox-group">
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="treasureCheck" checked>
+                            <label for="treasureCheck">Treasure Chambers</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="trapCheck">
+                            <label for="trapCheck">Add Traps</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="secretCheck">
+                            <label for="secretCheck">Secret Passages</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="control-group full-width">
+                    <div class="button-group">
+                        <button id="generateBtn">⚙️ Generate</button>
+                        <button id="downloadBtn">📥 Export SVG</button>
+                    </div>
+                </div>
+
+                <div class="control-group full-width">
+                    <div class="stats">
+                        <div class="stat-item">
+                            <div class="stat-label">Rooms</div>
+                            <div class="stat-value" id="roomCount">256</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">Paths</div>
+                            <div class="stat-value" id="pathCount">0</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">Dead Ends</div>
+                            <div class="stat-value" id="deadEndCount">0</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">Algorithm</div>
+                            <div class="stat-value" id="algoName">Backtracking</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('mazeCanvas');
+        const ctx = canvas.getContext('2d');
+
+        const sizeSlider = document.getElementById('sizeSlider');
+        const themeSelect = document.getElementById('themeSelect');
+        const wallThickSlider = document.getElementById('wallThickSlider');
+        const entranceSelect = document.getElementById('entranceSelect');
+        const treasureCheck = document.getElementById('treasureCheck');
+        const trapCheck = document.getElementById('trapCheck');
+        const secretCheck = document.getElementById('secretCheck');
+        const generateBtn = document.getElementById('generateBtn');
+        const downloadBtn = document.getElementById('downloadBtn');
+
+        let currentMaze = null;
+
+        // Theme colors
+        const themes = {
+            eldritch: {
+                wall: '#2a1a4a',
+                path: '#0a0a1a',
+                entrance: '#00ffff',
+                accent: '#00ff00'
+            },
+            dwarven: {
+                wall: '#5a5a5a',
+                path: '#3a3a3a',
+                entrance: '#ffaa00',
+                accent: '#ffdd00'
+            },
+            aquatic: {
+                wall: '#0a3a5a',
+                path: '#001a2a',
+                entrance: '#00ffff',
+                accent: '#00aaff'
+            },
+            crypt: {
+                wall: '#1a1a1a',
+                path: '#0a0a0a',
+                entrance: '#ff3333',
+                accent: '#aa3333'
+            },
+            forest: {
+                wall: '#6a4a3a',
+                path: '#3a2a1a',
+                entrance: '#00ff00',
+                accent: '#44aa44'
+            }
+        };
+
+        // Recursive Backtracking maze generation algorithm
+        function generateMaze(width, height) {
+            const maze = Array(height).fill(null).map(() => Array(width).fill(1)); // 1 = wall, 0 = path
+
+            function carve(x, y) {
+                maze[y][x] = 0; // Mark as path
+                const directions = [[0, -2], [2, 0], [0, 2], [-2, 0]].sort(() => Math.random() - 0.5);
+
+                for (const [dx, dy] of directions) {
+                    const nx = x + dx;
+                    const ny = y + dy;
+
+                    if (nx > 0 && nx < width && ny > 0 && ny < height && maze[ny][nx] === 1) {
+                        maze[y + dy / 2][x + dx / 2] = 0; // Carve wall between cells
+                        carve(nx, ny);
+                    }
+                }
+            }
+
+            carve(1, 1);
+            return maze;
+        }
+
+        function drawMaze() {
+            if (!currentMaze) return;
+
+            const size = parseInt(sizeSlider.value);
+            const wallThick = parseInt(wallThickSlider.value);
+            const theme = themes[themeSelect.value];
+
+            const cellWidth = canvas.width / size;
+            const cellHeight = canvas.height / size;
+
+            ctx.fillStyle = theme.path;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw walls
+            ctx.fillStyle = theme.wall;
+            for (let y = 0; y < size; y++) {
+                for (let x = 0; x < size; x++) {
+                    if (currentMaze[y][x] === 1) {
+                        ctx.fillRect(x * cellWidth, y * cellHeight, cellWidth, cellHeight);
+                    }
+                }
+            }
+
+            // Draw entrance
+            const entrance = getEntrancePos(size);
+            ctx.fillStyle = theme.entrance;
+            ctx.fillRect(entrance.x * cellWidth, entrance.y * cellHeight, cellWidth, cellHeight);
+
+            // Draw treasure if enabled
+            if (treasureCheck.checked) {
+                ctx.fillStyle = theme.accent;
+                const treasurePos = getTreasurePos(size, entrance);
+                ctx.beginPath();
+                ctx.arc(
+                    treasurePos.x * cellWidth + cellWidth / 2,
+                    treasurePos.y * cellHeight + cellHeight / 2,
+                    cellWidth / 4,
+                    0,
+                    Math.PI * 2
+                );
+                ctx.fill();
+            }
+
+            // Update stats
+            updateStats(size);
+        }
+
+        function getEntrancePos(size) {
+            const entranceStyle = entranceSelect.value;
+            const positions = {
+                'top-left': { x: 0, y: 0 },
+                'top-right': { x: size - 1, y: 0 },
+                'bottom-left': { x: 0, y: size - 1 },
+                'bottom-right': { x: size - 1, y: size - 1 },
+                'random': {
+                    x: Math.floor(Math.random() * size),
+                    y: Math.floor(Math.random() * size)
+                }
+            };
+            return positions[entranceStyle];
+        }
+
+        function getTreasurePos(size, entrance) {
+            let x, y;
+            do {
+                x = Math.floor(Math.random() * size);
+                y = Math.floor(Math.random() * size);
+            } while ((x === entrance.x && y === entrance.y) || currentMaze[y][x] === 1);
+            return { x, y };
+        }
+
+        function updateStats(size) {
+            const totalRooms = size * size;
+            const pathCount = currentMaze.flat().filter(v => v === 0).length;
+            const deadEnds = countDeadEnds();
+
+            document.getElementById('roomCount').textContent = totalRooms;
+            document.getElementById('pathCount').textContent = pathCount;
+            document.getElementById('deadEndCount').textContent = deadEnds;
+            document.getElementById('algoName').textContent = 'Backtracking';
+        }
+
+        function countDeadEnds() {
+            let count = 0;
+            const size = parseInt(sizeSlider.value);
+
+            for (let y = 1; y < size - 1; y++) {
+                for (let x = 1; x < size - 1; x++) {
+                    if (currentMaze[y][x] === 0) {
+                        let neighbors = 0;
+                        if (currentMaze[y - 1][x] === 0) neighbors++;
+                        if (currentMaze[y + 1][x] === 0) neighbors++;
+                        if (currentMaze[y][x - 1] === 0) neighbors++;
+                        if (currentMaze[y][x + 1] === 0) neighbors++;
+                        if (neighbors === 1) count++;
+                    }
+                }
+            }
+
+            return count;
+        }
+
+        function downloadSVG() {
+            if (!currentMaze) return;
+
+            const size = parseInt(sizeSlider.value);
+            const theme = themes[themeSelect.value];
+            const cellSize = 20;
+            const totalSize = size * cellSize;
+
+            let svg = `<svg width="${totalSize}" height="${totalSize}" xmlns="http://www.w3.org/2000/svg">`;
+            svg += `<rect width="${totalSize}" height="${totalSize}" fill="${theme.path}"/>`;
+
+            // Draw walls
+            for (let y = 0; y < size; y++) {
+                for (let x = 0; x < size; x++) {
+                    if (currentMaze[y][x] === 1) {
+                        svg += `<rect x="${x * cellSize}" y="${y * cellSize}" width="${cellSize}" height="${cellSize}" fill="${theme.wall}"/>`;
+                    }
+                }
+            }
+
+            // Draw entrance
+            const entrance = getEntrancePos(size);
+            svg += `<rect x="${entrance.x * cellSize}" y="${entrance.y * cellSize}" width="${cellSize}" height="${cellSize}" fill="${theme.entrance}"/>`;
+
+            // Draw treasure
+            if (treasureCheck.checked) {
+                const treasurePos = getTreasurePos(size, entrance);
+                svg += `<circle cx="${treasurePos.x * cellSize + cellSize / 2}" cy="${treasurePos.y * cellSize + cellSize / 2}" r="${cellSize / 4}" fill="${theme.accent}"/>`;
+            }
+
+            svg += '</svg>';
+
+            const blob = new Blob([svg], { type: 'image/svg+xml' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `dungeon_${Date.now()}.svg`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // Event listeners
+        generateBtn.addEventListener('click', () => {
+            const size = parseInt(sizeSlider.value);
+            currentMaze = generateMaze(size, size);
+            drawMaze();
+        });
+
+        downloadBtn.addEventListener('click', downloadSVG);
+
+        sizeSlider.addEventListener('input', (e) => {
+            document.getElementById('sizeValue').textContent = e.target.value;
+            document.getElementById('sizeValue2').textContent = e.target.value;
+            if (currentMaze) generateBtn.click();
+        });
+
+        themeSelect.addEventListener('change', () => {
+            if (currentMaze) drawMaze();
+        });
+
+        wallThickSlider.addEventListener('input', (e) => {
+            document.getElementById('wallThickValue').textContent = e.target.value;
+        });
+
+        treasureCheck.addEventListener('change', () => {
+            if (currentMaze) drawMaze();
+        });
+
+        // Initial generation
+        generateBtn.click();
+    </script>
+</body>
+</html>
