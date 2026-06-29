@@ -3,479 +3,429 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Route Optimizer</title>
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <title>Route Optimizer — Shipping Route Decision Engine</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
-      font-family: 'Inter', sans-serif;
-      background: linear-gradient(135deg, #0a1428 0%, #1a2332 100%);
-      color: #e8f0f8;
-      min-height: 100vh;
+      font-family: 'Space Mono', monospace;
+      background: linear-gradient(135deg, #0a1428 0%, #1a3a52 100%);
+      color: #e0e0e0;
       padding: 20px;
+      min-height: 100vh;
     }
     .container {
       max-width: 1200px;
       margin: 0 auto;
-      background: rgba(10, 20, 40, 0.8);
-      border-radius: 12px;
-      border: 1px solid rgba(77, 168, 218, 0.3);
-      overflow: hidden;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-    }
-    .header {
-      background: linear-gradient(90deg, #0a1428 0%, #1a3a5c 100%);
-      padding: 24px;
-      border-bottom: 2px solid #4da8da;
-      text-align: center;
-    }
-    .header h1 {
-      font-family: 'Fraunces', serif;
-      font-size: 2.2em;
-      color: #4da8da;
-      margin-bottom: 4px;
-    }
-    .header p {
-      color: #a0c4e8;
-      font-size: 0.95em;
-    }
-    .content {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 24px;
-      padding: 24px;
+      gap: 30px;
     }
-    @media (max-width: 800px) {
-      .content { grid-template-columns: 1fr; }
+    h1 {
+      grid-column: 1 / -1;
+      font-family: 'Playfair Display', serif;
+      font-size: 2.5em;
+      text-align: center;
+      color: #4da8da;
+      margin-bottom: 20px;
+      letter-spacing: 1px;
     }
     .panel {
-      background: rgba(26, 51, 76, 0.6);
-      border: 1px solid rgba(77, 168, 218, 0.2);
+      background: rgba(10, 20, 40, 0.9);
+      border: 2px solid #4da8da;
       border-radius: 8px;
-      padding: 20px;
+      padding: 25px;
     }
-    .panel h2 {
-      font-family: 'Fraunces', serif;
-      font-size: 1.2em;
-      color: #7dd3fc;
-      margin-bottom: 16px;
-      border-bottom: 1px solid rgba(77, 168, 218, 0.3);
-      padding-bottom: 8px;
-    }
-    .control-group {
-      margin-bottom: 18px;
+    .control-section {
+      margin-bottom: 25px;
     }
     label {
       display: block;
-      font-size: 0.85em;
-      color: #a0c4e8;
-      margin-bottom: 6px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-    select {
-      width: 100%;
-      padding: 10px;
-      background: rgba(15, 30, 50, 0.9);
-      color: #e8f0f8;
-      border: 1px solid #4da8da;
-      border-radius: 4px;
-      font-size: 0.95em;
-      cursor: pointer;
-    }
-    select:focus {
-      outline: none;
-      border-color: #7dd3fc;
-      box-shadow: 0 0 8px rgba(77, 168, 218, 0.3);
-    }
-    .metric-group {
-      display: flex;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
-    .metric-radio {
-      flex: 1;
-      min-width: 100px;
-    }
-    .metric-radio input[type="radio"] {
-      display: none;
-    }
-    .metric-radio label {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 8px 12px;
-      background: rgba(15, 30, 50, 0.7);
-      border: 1px solid rgba(77, 168, 218, 0.3);
-      border-radius: 4px;
-      cursor: pointer;
-      text-transform: none;
-      font-size: 0.85em;
-      margin-bottom: 0;
-      transition: all 0.2s;
-    }
-    .metric-radio label:hover {
-      border-color: #4da8da;
-      background: rgba(77, 168, 218, 0.1);
-    }
-    .metric-radio input[type="radio"]:checked + label {
-      background: rgba(77, 168, 218, 0.3);
-      border-color: #4da8da;
-      color: #7dd3fc;
-    }
-    .btn {
-      width: 100%;
-      padding: 12px;
-      background: linear-gradient(135deg, #4da8da 0%, #3d8cb8 100%);
-      color: #0a1428;
-      border: none;
-      border-radius: 4px;
-      font-size: 1em;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-    .btn:hover {
-      background: linear-gradient(135deg, #7dd3fc 0%, #4da8da 100%);
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(77, 168, 218, 0.3);
-    }
-    .btn:active {
-      transform: translateY(0);
-    }
-    .results {
-      background: rgba(26, 51, 76, 0.6);
-      border: 1px solid rgba(77, 168, 218, 0.2);
-      border-radius: 8px;
-      padding: 20px;
-      margin-top: 20px;
-    }
-    .results.hidden { display: none; }
-    .route-step {
-      background: rgba(15, 30, 50, 0.7);
-      border-left: 3px solid #4da8da;
-      padding: 12px;
-      margin-bottom: 10px;
-      border-radius: 4px;
-      font-size: 0.9em;
-    }
-    .route-step .city-name {
-      font-weight: 600;
-      color: #7dd3fc;
-    }
-    .route-step .details {
-      color: #a0c4e8;
-      font-size: 0.85em;
-      margin-top: 4px;
-    }
-    .summary {
-      background: rgba(77, 168, 218, 0.1);
-      border: 1px solid rgba(77, 168, 218, 0.3);
-      padding: 16px;
-      border-radius: 4px;
-      margin-bottom: 16px;
-    }
-    .summary-item {
-      display: flex;
-      justify-content: space-between;
+      color: #4da8da;
+      font-weight: bold;
       margin-bottom: 8px;
       font-size: 0.95em;
     }
-    .summary-item:last-child { margin-bottom: 0; }
-    .summary-label {
-      color: #a0c4e8;
-      text-transform: uppercase;
-      font-size: 0.8em;
-      font-weight: 600;
-      letter-spacing: 0.5px;
-    }
-    .summary-value {
-      color: #7dd3fc;
-      font-weight: 600;
-      font-size: 1.1em;
-    }
-    .error {
-      background: rgba(220, 38, 38, 0.1);
-      border: 1px solid rgba(220, 38, 38, 0.5);
-      color: #fca5a5;
-      padding: 12px;
+    select, input[type="radio"] {
+      margin-right: 10px;
+      padding: 6px 8px;
+      background: #1a3a52;
+      color: #4da8da;
+      border: 1px solid #4da8da;
       border-radius: 4px;
-      margin-top: 12px;
+      cursor: pointer;
+    }
+    select {
+      width: 100%;
+      padding: 8px;
+    }
+    .radio-group {
+      display: flex;
+      gap: 15px;
+      flex-wrap: wrap;
+    }
+    .radio-group label {
+      display: flex;
+      align-items: center;
+      margin-bottom: 0;
+    }
+    input[type="radio"] {
+      margin-right: 5px;
+      margin-bottom: 0;
+      width: 16px;
+      height: 16px;
+      cursor: pointer;
+    }
+    .speed-slider {
+      width: 100%;
+      margin: 10px 0;
+    }
+    button {
+      width: 100%;
+      padding: 12px;
+      background: #4da8da;
+      border: none;
+      border-radius: 4px;
+      color: #0a1428;
+      font-weight: bold;
+      cursor: pointer;
+      font-size: 1em;
+      transition: all 0.3s;
+    }
+    button:hover {
+      background: #7dd3fc;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(77, 168, 218, 0.3);
+    }
+    .output-section {
+      background: rgba(10, 20, 40, 0.95);
+      border: 2px solid #00ff88;
+      border-radius: 8px;
+      padding: 25px;
+      font-family: 'Space Mono', monospace;
+      color: #00ff88;
+      max-height: 600px;
+      overflow-y: auto;
+    }
+    .route-card {
+      background: rgba(0, 30, 20, 0.8);
+      border-left: 4px solid #4da8da;
+      padding: 15px;
+      margin-bottom: 15px;
+      border-radius: 4px;
+    }
+    .route-card.risk-high { border-left-color: #ff6666; }
+    .route-card.risk-medium { border-left-color: #ffaa00; }
+    .route-card.risk-low { border-left-color: #00ff88; }
+    .route-title {
+      color: #7dd3fc;
+      font-weight: bold;
+      font-size: 1.1em;
+      margin-bottom: 8px;
+    }
+    .route-stat {
+      display: grid;
+      grid-template-columns: 150px 1fr;
+      gap: 10px;
+      margin: 5px 0;
       font-size: 0.9em;
+    }
+    .stat-label { color: #4da8da; }
+    .stat-value { color: #00ff88; }
+    .reason {
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid #4da8da;
+      color: #b0d9ff;
+      font-size: 0.9em;
+    }
+    .comparison-matrix {
+      margin: 20px 0;
+      border: 1px solid #4da8da;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85em;
+    }
+    th {
+      background: #1a3a52;
+      color: #4da8da;
+      padding: 8px;
+      text-align: left;
+      border: 1px solid #4da8da;
+    }
+    td {
+      padding: 8px;
+      border: 1px solid #2a5a7a;
+      color: #00ff88;
+    }
+    .narrative {
+      background: rgba(45, 85, 125, 0.4);
+      border-left: 3px solid #00ff88;
+      padding: 15px;
+      margin: 15px 0;
+      border-radius: 4px;
+      line-height: 1.5;
+      color: #b0d9ff;
+    }
+    .error { color: #ff6666; }
+    @media (max-width: 1024px) {
+      .container { grid-template-columns: 1fr; }
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <div class="header">
-      <h1>🌍 Route Optimizer</h1>
-      <p>Find the fastest, cheapest, or shortest path between cities</p>
-    </div>
+    <h1>⚓ Route Optimizer</h1>
     
-    <div class="content">
-      <div class="panel">
-        <h2>Plan Your Route</h2>
-        
-        <div class="control-group">
-          <label for="startCity">Start City</label>
-          <select id="startCity">
-            <option value="">Select a city...</option>
-          </select>
-        </div>
-        
-        <div class="control-group">
-          <label for="endCity">End City</label>
-          <select id="endCity">
-            <option value="">Select a city...</option>
-          </select>
-        </div>
-        
-        <div class="control-group">
-          <label>Optimization Metric</label>
-          <div class="metric-group">
-            <div class="metric-radio">
-              <input type="radio" id="metric-distance" name="metric" value="distance" checked>
-              <label for="metric-distance">📏 Distance</label>
-            </div>
-            <div class="metric-radio">
-              <input type="radio" id="metric-time" name="metric" value="time">
-              <label for="metric-time">⏱️ Time</label>
-            </div>
-            <div class="metric-radio">
-              <input type="radio" id="metric-cost" name="metric" value="cost">
-              <label for="metric-cost">💰 Cost</label>
-            </div>
-          </div>
-        </div>
-        
-        <button class="btn" onclick="computeRoute()">Find Route</button>
+    <div class="panel">
+      <div class="control-section">
+        <label for="origin">Origin Port:</label>
+        <select id="origin">
+          <option value="">— Select Origin —</option>
+          <option value="singapore">Singapore (1.27°N, 103.8°E)</option>
+          <option value="rotterdam">Rotterdam (51.95°N, 4.1°E)</option>
+          <option value="la">Los Angeles (33.74°N, -118.24°W)</option>
+          <option value="shanghai">Shanghai (31.4°N, 121.5°E)</option>
+          <option value="dubai">Dubai (24.98°N, 55.09°E)</option>
+          <option value="hongkong">Hong Kong (22.3°N, 114.2°E)</option>
+          <option value="hamburg">Hamburg (53.55°N, 10°E)</option>
+          <option value="longbeach">Long Beach (33.73°N, -118.2°W)</option>
+          <option value="newyork">New York (40.75°N, -74°W)</option>
+          <option value="antwerp">Antwerp (51.22°N, 4.4°E)</option>
+          <option value="busan">Busan (35.1°N, 129°E)</option>
+          <option value="ningbo">Ningbo (29.9°N, 121.6°E)</option>
+          <option value="shenzhen">Shenzhen (22.6°N, 114°E)</option>
+          <option value="qingdao">Qingdao (36.07°N, 120.3°E)</option>
+          <option value="santos">Santos (-23.95°S, -46.3°W)</option>
+        </select>
       </div>
-      
-      <div class="panel results hidden" id="resultsPanel">
-        <h2>Optimal Route</h2>
-        <div id="resultContent"></div>
+
+      <div class="control-section">
+        <label for="destination">Destination Port:</label>
+        <select id="destination">
+          <option value="">— Select Destination —</option>
+          <option value="singapore">Singapore (1.27°N, 103.8°E)</option>
+          <option value="rotterdam">Rotterdam (51.95°N, 4.1°E)</option>
+          <option value="la">Los Angeles (33.74°N, -118.24°W)</option>
+          <option value="shanghai">Shanghai (31.4°N, 121.5°E)</option>
+          <option value="dubai">Dubai (24.98°N, 55.09°E)</option>
+          <option value="hongkong">Hong Kong (22.3°N, 114.2°E)</option>
+          <option value="hamburg">Hamburg (53.55°N, 10°E)</option>
+          <option value="longbeach">Long Beach (33.73°N, -118.2°W)</option>
+          <option value="newyork">New York (40.75°N, -74°W)</option>
+          <option value="antwerp">Antwerp (51.22°N, 4.4°E)</option>
+          <option value="busan">Busan (35.1°N, 129°E)</option>
+          <option value="ningbo">Ningbo (29.9°N, 121.6°E)</option>
+          <option value="shenzhen">Shenzhen (22.6°N, 114°E)</option>
+          <option value="qingdao">Qingdao (36.07°N, 120.3°E)</option>
+          <option value="santos">Santos (-23.95°S, -46.3°W)</option>
+        </select>
       </div>
+
+      <div class="control-section">
+        <label>Cargo Type:</label>
+        <div class="radio-group">
+          <label><input type="radio" name="cargo" value="fragile" checked> Fragile</label>
+          <label><input type="radio" name="cargo" value="standard"> Standard</label>
+          <label><input type="radio" name="cargo" value="hazmat"> Hazmat</label>
+        </div>
+      </div>
+
+      <div class="control-section">
+        <label for="speed">Speed Preference: <span id="speedLabel">Standard</span></label>
+        <input type="range" id="speed" class="speed-slider" min="0" max="2" step="0.5" value="1">
+        <small style="color: #7dd3fc;">Slow ← → Fast</small>
+      </div>
+
+      <button onclick="calculateRoutes()">Optimize Routes</button>
+    </div>
+
+    <div class="output-section" id="output">
+      <p style="color: #7dd3fc;">Select ports and click "Optimize Routes" to see recommendations.</p>
     </div>
   </div>
 
   <script>
-    // City database with real coordinates
-    const cities = {
-      'New York': { lat: 40.7128, lon: -74.0060, code: 'NYC' },
-      'Los Angeles': { lat: 34.0522, lon: -118.2437, code: 'LAX' },
-      'London': { lat: 51.5074, lon: -0.1278, code: 'LHR' },
-      'Tokyo': { lat: 35.6762, lon: 139.6503, code: 'NRT' },
-      'Sydney': { lat: -33.8688, lon: 151.2093, code: 'SYD' },
-      'Paris': { lat: 48.8566, lon: 2.3522, code: 'CDG' },
-      'Dubai': { lat: 25.2048, lon: 55.2708, code: 'DXB' },
-      'Singapore': { lat: 1.3521, lon: 103.8198, code: 'SIN' },
-      'Hong Kong': { lat: 22.3193, lon: 114.1694, code: 'HKG' },
-      'Bangkok': { lat: 13.7563, lon: 100.5018, code: 'BKK' },
-      'São Paulo': { lat: -23.5505, lon: -46.6333, code: 'GRU' },
-      'Moscow': { lat: 55.7558, lon: 37.6173, code: 'SVO' },
-      'Mumbai': { lat: 19.0760, lon: 72.8777, code: 'BOM' },
-      'Toronto': { lat: 43.6532, lon: -79.3832, code: 'YYZ' },
-      'Mexico City': { lat: 19.4326, lon: -99.1332, code: 'MEX' },
-      'Istanbul': { lat: 41.0082, lon: 28.9784, code: 'IST' },
-      'Seoul': { lat: 37.5665, lon: 126.9780, code: 'ICN' },
-      'Amsterdam': { lat: 52.3676, lon: 4.9041, code: 'AMS' },
-      'Barcelona': { lat: 41.3851, lon: 2.1734, code: 'BCN' },
-      'Berlin': { lat: 52.5200, lon: 13.4050, code: 'BER' },
-      'Rome': { lat: 41.9028, lon: 12.4964, code: 'FCO' },
-      'Madrid': { lat: 40.4168, lon: -3.7038, code: 'MAD' },
-      'Melbourne': { lat: -37.8136, lon: 144.9631, code: 'MEL' },
-      'Auckland': { lat: -37.0882, lon: 174.8860, code: 'AKL' },
-      'Johannesburg': { lat: -26.1425, lon: 28.2453, code: 'JNB' },
-      'Cairo': { lat: 30.0444, lon: 31.2357, code: 'CAI' },
-      'Vancouver': { lat: 49.2827, lon: -123.1207, code: 'YVR' },
-      'Miami': { lat: 25.7617, lon: -80.1918, code: 'MIA' },
-      'Chicago': { lat: 41.8781, lon: -87.6298, code: 'ORD' },
-      'Frankfurt': { lat: 50.0379, lon: 8.5622, code: 'FRA' },
-      'Geneva': { lat: 46.2044, lon: 6.1432, code: 'GVA' },
-      'Zurich': { lat: 47.3769, lon: 8.5472, code: 'ZRH' }
+    const ports = {
+      singapore: { lat: 1.27, lon: 103.8, name: 'Singapore' },
+      rotterdam: { lat: 51.95, lon: 4.1, name: 'Rotterdam' },
+      la: { lat: 33.74, lon: -118.24, name: 'Los Angeles' },
+      shanghai: { lat: 31.4, lon: 121.5, name: 'Shanghai' },
+      dubai: { lat: 24.98, lon: 55.09, name: 'Dubai' },
+      hongkong: { lat: 22.3, lon: 114.2, name: 'Hong Kong' },
+      hamburg: { lat: 53.55, lon: 10, name: 'Hamburg' },
+      longbeach: { lat: 33.73, lon: -118.2, name: 'Long Beach' },
+      newyork: { lat: 40.75, lon: -74, name: 'New York' },
+      antwerp: { lat: 51.22, lon: 4.4, name: 'Antwerp' },
+      busan: { lat: 35.1, lon: 129, name: 'Busan' },
+      ningbo: { lat: 29.9, lon: 121.6, name: 'Ningbo' },
+      shenzhen: { lat: 22.6, lon: 114, name: 'Shenzhen' },
+      qingdao: { lat: 36.07, lon: 120.3, name: 'Qingdao' },
+      santos: { lat: -23.95, lon: -46.3, name: 'Santos' }
     };
 
-    // Calculate great-circle distance in km
-    function distance(lat1, lon1, lat2, lon2) {
-      const R = 6371;
+    const piracyZones = [
+      { name: 'Strait of Malacca', minLat: 0, maxLat: 10, minLon: 100, maxLon: 108, risk: 0.25 },
+      { name: 'Gulf of Aden', minLat: 10, maxLat: 18, minLon: 42, maxLon: 54, risk: 0.30 },
+      { name: 'Gulf of Guinea', minLat: -3, maxLat: 5, minLon: -5, maxLon: 15, risk: 0.20 },
+      { name: 'Somali Basin', minLat: -5, maxLat: 8, minLon: 40, maxLon: 56, risk: 0.35 }
+    ];
+
+    const cargoValues = {
+      fragile: { insurable: 2000000, delayPenalty: 100000, multiplier: 1.2 },
+      standard: { insurable: 500000, delayPenalty: 50000, multiplier: 1.0 },
+      hazmat: { insurable: 1000000, delayPenalty: 200000, multiplier: 1.3 }
+    };
+
+    function haversine(lat1, lon1, lat2, lon2) {
+      const R = 3440.65; // Earth radius in nautical miles
       const dLat = (lat2 - lat1) * Math.PI / 180;
       const dLon = (lon2 - lon1) * Math.PI / 180;
-      const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-                Math.sin(dLon/2) * Math.sin(dLon/2);
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-      return R * c;
+      const a = Math.sin(dLat / 2) ** 2 + 
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
+      return 2 * R * Math.asin(Math.sqrt(a));
     }
 
-    // Build adjacency with edges for all city pairs
-    function buildGraph() {
-      const graph = {};
-      const cityList = Object.keys(cities);
-      
-      for (const city of cityList) {
-        graph[city] = [];
-      }
-
-      for (let i = 0; i < cityList.length; i++) {
-        for (let j = i + 1; j < cityList.length; j++) {
-          const c1 = cityList[i];
-          const c2 = cityList[j];
-          const d = distance(cities[c1].lat, cities[c1].lon,
-                            cities[c2].lat, cities[c2].lon);
-          
-          // Compute time and cost
-          const flightTime = d / 900 + 1; // hours (900 km/h cruise + 1h overhead)
-          const flightCost = Math.round(d * 0.1 + 100); // rough cost model
-          
-          graph[c1].push({ to: c2, distance: d, time: flightTime, cost: flightCost });
-          graph[c2].push({ to: c1, distance: d, time: flightTime, cost: flightCost });
-        }
-      }
-      return graph;
+    function isInZone(lat, lon, zone) {
+      return lat >= zone.minLat && lat <= zone.maxLat && lon >= zone.minLon && lon <= zone.maxLon;
     }
 
-    // Dijkstra's algorithm
-    function dijkstra(graph, start, end, metric) {
-      const dist = {};
-      const prev = {};
-      const visited = new Set();
-      
-      for (const city of Object.keys(graph)) {
-        dist[city] = Infinity;
-        prev[city] = null;
+    function calculatePiracyRisk(lat1, lon1, lat2, lon2) {
+      let totalRisk = 0;
+      for (let zone of piracyZones) {
+        let inZone = isInZone((lat1 + lat2) / 2, (lon1 + lon2) / 2, zone);
+        if (inZone) totalRisk += zone.risk;
       }
-      dist[start] = 0;
-
-      while (visited.size < Object.keys(graph).length) {
-        let minCity = null;
-        let minDist = Infinity;
-        
-        for (const city of Object.keys(graph)) {
-          if (!visited.has(city) && dist[city] < minDist) {
-            minCity = city;
-            minDist = dist[city];
-          }
-        }
-        
-        if (minCity === null || minDist === Infinity) break;
-        visited.add(minCity);
-        
-        for (const edge of graph[minCity]) {
-          const edgeWeight = edge[metric];
-          const alt = dist[minCity] + edgeWeight;
-          
-          if (alt < dist[edge.to]) {
-            dist[edge.to] = alt;
-            prev[edge.to] = minCity;
-          }
-        }
-      }
-
-      // Reconstruct path
-      const path = [];
-      let current = end;
-      while (current !== null) {
-        path.unshift(current);
-        current = prev[current];
-      }
-
-      return { path, totalCost: dist[end], graph };
+      return Math.min(totalRisk, 0.60);
     }
 
-    // Initialize city selects
-    function initializeCitySelects() {
-      const cityList = Object.keys(cities).sort();
-      const startSel = document.getElementById('startCity');
-      const endSel = document.getElementById('endCity');
-      
-      for (const city of cityList) {
-        startSel.innerHTML += `<option value="${city}">${city}</option>`;
-        endSel.innerHTML += `<option value="${city}">${city}</option>`;
-      }
+    function getSeasonalMultiplier() {
+      const month = new Date().getMonth() + 1;
+      let mult = 1.0;
+      if (month >= 6 && month <= 11) mult += 0.15; // Atlantic hurricane
+      if (month >= 6 && month <= 9) mult += 0.10;  // Indian monsoon
+      if (month >= 6 && month <= 8) mult -= 0.05;  // Mediterranean calm
+      return mult;
     }
 
-    // Compute and display route
-    function computeRoute() {
-      const startCity = document.getElementById('startCity').value;
-      const endCity = document.getElementById('endCity').value;
-      const metric = document.querySelector('input[name="metric"]:checked').value;
-      const resultsPanel = document.getElementById('resultsPanel');
-      const resultContent = document.getElementById('resultContent');
+    function calculateRoutes() {
+      const origin = document.getElementById('origin').value;
+      const destination = document.getElementById('destination').value;
+      const cargo = document.querySelector('input[name="cargo"]:checked').value;
+      const speed = parseFloat(document.getElementById('speed').value);
+      const output = document.getElementById('output');
 
-      if (!startCity || !endCity) {
-        resultContent.innerHTML = '<div class="error">Please select both start and end cities</div>';
-        resultsPanel.classList.remove('hidden');
+      if (!origin || !destination) {
+        output.innerHTML = '<p class="error">Please select both origin and destination ports.</p>';
         return;
       }
 
-      if (startCity === endCity) {
-        resultContent.innerHTML = '<div class="error">Start and end cities must be different</div>';
-        resultsPanel.classList.remove('hidden');
+      if (origin === destination) {
+        output.innerHTML = '<p class="error">Origin and destination must be different.</p>';
         return;
       }
 
-      const graph = buildGraph();
-      const result = dijkstra(graph, startCity, endCity, metric);
+      const orig = ports[origin];
+      const dest = ports[destination];
+      const cargoInfo = cargoValues[cargo];
 
-      if (result.path[0] !== startCity || result.path[result.path.length - 1] !== endCity) {
-        resultContent.innerHTML = '<div class="error">No route found</div>';
-        resultsPanel.classList.remove('hidden');
-        return;
-      }
+      const directDistance = haversine(orig.lat, orig.lon, dest.lat, dest.lon);
+      const piracyRisk = calculatePiracyRisk(orig.lat, orig.lon, dest.lat, dest.lon);
+      const seasonalMult = getSeasonalMultiplier();
 
-      // Format results
-      let metricLabel = metric === 'distance' ? 'km' : (metric === 'time' ? 'hours' : '$');
-      let metricValue = result.totalCost;
-      if (metric === 'distance') {
-        metricValue = Math.round(metricValue);
-      } else if (metric === 'time') {
-        metricValue = metricValue.toFixed(1);
-      }
+      // Speed multipliers
+      const speedMultiplier = speed === 0 ? 0.7 : speed === 1 ? 1.0 : 1.3;
+      const speedName = speed === 0 ? 'Slow' : speed === 1 ? 'Standard' : 'Fast';
 
-      let html = `<div class="summary">
-        <div class="summary-item">
-          <span class="summary-label">Route</span>
-          <span class="summary-value">${result.path.join(' → ')}</span>
-        </div>
-        <div class="summary-item">
-          <span class="summary-label">${metric.toUpperCase()}</span>
-          <span class="summary-value">${metricValue} ${metricLabel}</span>
-        </div>
-        <div class="summary-item">
-          <span class="summary-label">Stops</span>
-          <span class="summary-value">${result.path.length - 1}</span>
-        </div>
-      </div>`;
+      // Base costs
+      const baseFuelCost = (directDistance / 1000) * 10000;
+      const fuelCost = baseFuelCost * speedMultiplier * (cargo === 'hazmat' ? 1.3 : 1.0);
+      const insuranceCost = (cargoInfo.insurable / 1000000) * 50000 * (1 + piracyRisk);
+      const estimatedDays = Math.ceil(directDistance / (400 * speedMultiplier));
+      const delayPenalty = estimatedDays * cargoInfo.delayPenalty;
+      const totalCost = fuelCost + insuranceCost + delayPenalty;
 
-      html += '<div style="margin-bottom: 12px;"><strong style="color: #7dd3fc;">Route Steps:</strong></div>';
-      for (let i = 0; i < result.path.length - 1; i++) {
-        const from = result.path[i];
-        const to = result.path[i + 1];
-        const edges = result.graph[from].find(e => e.to === to);
-        
-        let edgeInfo = '';
-        if (metric === 'distance') {
-          edgeInfo = `${Math.round(edges.distance)} km`;
-        } else if (metric === 'time') {
-          edgeInfo = `${edges.time.toFixed(1)} hours`;
-        } else {
-          edgeInfo = `$${edges.cost}`;
+      // Routes
+      const routes = [
+        {
+          name: 'Direct Route',
+          distance: directDistance,
+          days: estimatedDays,
+          fuel: fuelCost,
+          insurance: insuranceCost,
+          piracy: piracyRisk * 100,
+          total: totalCost,
+          score: totalCost * (speed === 0 ? 0.8 : speed === 1 ? 1.0 : 1.2),
+          reason: `Direct optimal path. ${piracyRisk > 0.2 ? 'High piracy risk — consider alternatives.' : 'Safe passage.'}`
+        },
+        {
+          name: 'Conservative Route (Piracy Avoidance)',
+          distance: directDistance * 1.15,
+          days: Math.ceil(directDistance * 1.15 / (400 * speedMultiplier)),
+          fuel: baseFuelCost * 1.15 * speedMultiplier * (cargo === 'hazmat' ? 1.3 : 1.0),
+          insurance: (cargoInfo.insurable / 1000000) * 30000,
+          piracy: Math.max(0, piracyRisk - 0.15) * 100,
+          total: 0,
+          score: 0,
+          reason: 'Avoids known piracy zones. +15% distance but -40% insurance cost.'
+        },
+        {
+          name: 'Speed Optimized Route',
+          distance: directDistance * 0.98,
+          days: Math.ceil(directDistance * 0.98 / (400 * 1.3)),
+          fuel: baseFuelCost * 0.98 * 1.3 * (cargo === 'hazmat' ? 1.3 : 1.0),
+          insurance: insuranceCost,
+          piracy: piracyRisk * 100,
+          total: 0,
+          score: 0,
+          reason: `Fast corridor optimized for ${speedName} service. Minimal delay cost.`
         }
+      ];
 
-        html += `<div class="route-step">
-          <div class="city-name">${from} → ${to}</div>
-          <div class="details">${edgeInfo}</div>
-        </div>`;
-      }
+      // Recalc route 2 & 3 totals
+      routes[1].total = routes[1].fuel + routes[1].insurance + (routes[1].days * cargoInfo.delayPenalty);
+      routes[1].score = routes[1].total * 0.9; // Better score due to low insurance
+      routes[2].total = routes[2].fuel + routes[2].insurance + (routes[2].days * cargoInfo.delayPenalty);
+      routes[2].score = routes[2].total * 1.1; // Worse score due to high fuel
 
-      resultContent.innerHTML = html;
-      resultsPanel.classList.remove('hidden');
+      routes.sort((a, b) => a.score - b.score);
+
+      let html = `<h2 style="color: #4da8da; margin-bottom: 15px;">📊 Recommended Routes</h2>`;
+      html += `<p style="margin-bottom: 15px; color: #b0d9ff;">From <strong>${orig.name}</strong> to <strong>${dest.name}</strong></p>`;
+
+      // Comparison matrix
+      html += '<div class="comparison-matrix"><table><tr><th>Route</th><th>Distance (nm)</th><th>Days</th><th>Fuel Cost</th><th>Insurance</th><th>Piracy %</th><th>Total Cost</th></tr>';
+      routes.forEach((r, idx) => {
+        const costClass = r.total < 500000 ? 'risk-low' : r.total < 1000000 ? 'risk-medium' : 'risk-high';
+        html += `<tr><td>${idx + 1}. ${r.name}</td><td>${Math.round(r.distance)}</td><td>${r.days}</td><td>$${(r.fuel / 1000).toFixed(0)}k</td><td>$${(r.insurance / 1000).toFixed(0)}k</td><td>${r.piracy.toFixed(1)}%</td><td><span style="color: ${r.total < 500000 ? '#00ff88' : r.total < 1000000 ? '#ffaa00' : '#ff6666'};">$${(r.total / 1000000).toFixed(2)}M</span></td></tr>`;
+      });
+      html += '</table></div>';
+
+      // Detailed routes
+      routes.forEach((route, idx) => {
+        const riskClass = route.piracy > 20 ? 'risk-high' : route.piracy > 10 ? 'risk-medium' : 'risk-low';
+        html += `<div class="route-card ${riskClass}"><div class="route-title">Route ${idx + 1}: ${route.name}</div>`;
+        html += `<div class="route-stat"><span class="stat-label">Distance:</span><span class="stat-value">${Math.round(route.distance)} nm</span></div>`;
+        html += `<div class="route-stat"><span class="stat-label">Est. Duration:</span><span class="stat-value">${route.days} days</span></div>`;
+        html += `<div class="route-stat"><span class="stat-label">Fuel Cost:</span><span class="stat-value">$${(route.fuel / 1000).toFixed(1)}k</span></div>`;
+        html += `<div class="route-stat"><span class="stat-label">Insurance:</span><span class="stat-value">$${(route.insurance / 1000).toFixed(1)}k</span></div>`;
+        html += `<div class="route-stat"><span class="stat-label">Piracy Risk:</span><span class="stat-value">${route.piracy.toFixed(1)}%</span></div>`;
+        html += `<div class="route-stat"><span class="stat-label">TOTAL COST:</span><span class="stat-value" style="font-weight: bold; color: ${route.total < 500000 ? '#00ff88' : route.total < 1000000 ? '#ffaa00' : '#ff6666'};">$${(route.total / 1000000).toFixed(2)}M</span></div>`;
+        html += `<div class="reason">💡 ${route.reason}</div></div>`;
+      });
+
+      html += `<div class="narrative"><strong>Narrative:</strong> For ${cargoValues[cargo] ? cargo + ' cargo' : 'standard'} traveling ${cargo === 'fragile' ? 'with high time sensitivity' : 'on standard timeline'}, Route ${routes.findIndex(r => r.score === Math.min(...routes.map(x => x.score))) + 1} offers the best balance of cost and risk. ${piracyRisk > 0.2 ? 'Piracy zones detected along direct route; conservative route adds distance but eliminates insurance premium.' : 'No significant piracy risk on primary routes.'}</div>`;
+
+      output.innerHTML = html;
     }
 
-    initializeCitySelects();
+    document.getElementById('speed').addEventListener('input', (e) => {
+      const labels = ['Slow (cost-optimized)', 'Standard (balanced)', 'Fast (time-optimized)'];
+      document.getElementById('speedLabel').textContent = labels[parseInt(e.target.value) * 2];
+    });
   </script>
 </body>
 </html>
