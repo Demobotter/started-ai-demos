@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tessellation Weaver</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Space+Mono:wght@400&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Space Mono', monospace;
+            background-color: #0a1428;
+            color: #e0e0e0;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+        #sidebar {
+            width: 250px;
+            background-color: #0f1f35;
+            padding: 20px;
+            overflow-y: auto;
+            border-right: 2px solid #4da8da;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 20px;
+            color: #4da8da;
+            margin-bottom: 10px;
+        }
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        label {
+            font-size: 12px;
+            color: #b0d4e3;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        button {
+            background-color: #1f4d7f;
+            color: #4da8da;
+            border: 2px solid #4da8da;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: 'Space Mono', monospace;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+        button:hover {
+            background-color: #4da8da;
+            color: #0a1428;
+        }
+        button.active {
+            background-color: #4da8da;
+            color: #0a1428;
+        }
+        .button-group {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+        .button-group button {
+            flex: 1;
+            min-width: 60px;
+        }
+        input[type="range"] {
+            width: 100%;
+            cursor: pointer;
+            accent-color: #4da8da;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            appearance: none;
+            width: 14px;
+            height: 14px;
+            background-color: #4da8da;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 14px;
+            height: 14px;
+            background-color: #4da8da;
+            border-radius: 50%;
+            cursor: pointer;
+            border: none;
+        }
+        select {
+            background-color: #1f4d7f;
+            color: #4da8da;
+            border: 2px solid #4da8da;
+            padding: 8px;
+            border-radius: 4px;
+            font-family: 'Space Mono', monospace;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        select option {
+            background-color: #0a1428;
+            color: #4da8da;
+        }
+        .palette-swatches {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+        .swatch {
+            width: 100%;
+            aspect-ratio: 1;
+            border-radius: 4px;
+            cursor: pointer;
+            border: 3px solid transparent;
+            transition: border-color 0.2s;
+        }
+        .swatch.active {
+            border-color: #ffffff;
+            box-shadow: 0 0 8px rgba(77, 168, 218, 0.6);
+        }
+        .swatch:hover {
+            border-color: #4da8da;
+        }
+        .stat {
+            font-size: 11px;
+            color: #7dd3fc;
+            padding: 6px 0;
+        }
+        .stat-value {
+            font-weight: bold;
+            color: #4da8da;
+        }
+        #canvas-container {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #0a1428;
+            position: relative;
+        }
+        canvas {
+            max-width: 100%;
+            max-height: 100%;
+            background-color: #0a1428;
+        }
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .action-buttons button {
+            flex: 1;
+            min-width: 100px;
+        }
+    </style>
+</head>
+<body>
+    <div id="sidebar">
+        <h1>Tessellation<br>Weaver</h1>
+
+        <div class="control-group">
+            <label>Polygon Type</label>
+            <div class="button-group">
+                <button id="polygon-triangle" class="polygon-btn active">Triangle</button>
+                <button id="polygon-square" class="polygon-btn">Square</button>
+                <button id="polygon-hexagon" class="polygon-btn">Hexagon</button>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <label>Rotation Angle</label>
+            <input type="range" id="rotation-slider" min="0" max="360" value="0" step="5">
+            <span class="stat">Angle: <span id="rotation-value" class="stat-value">0°</span></span>
+        </div>
+
+        <div class="control-group">
+            <label>Symmetry Type</label>
+            <select id="symmetry-select">
+                <option value="2">2-Fold (180°)</option>
+                <option value="3">3-Fold (120°)</option>
+                <option value="4" selected>4-Fold (90°)</option>
+                <option value="6">6-Fold (60°)</option>
+            </select>
+        </div>
+
+        <div class="control-group">
+            <label>Color Palette</label>
+            <div class="palette-swatches">
+                <div class="swatch active" id="palette-ocean" style="background: linear-gradient(135deg, #0077be, #4db8e8);"></div>
+                <div class="swatch" id="palette-sunset" style="background: linear-gradient(135deg, #ff6b35, #ffa500);"></div>
+                <div class="swatch" id="palette-forest" style="background: linear-gradient(135deg, #2d6a4f, #95d5b2);"></div>
+                <div class="swatch" id="palette-candy" style="background: linear-gradient(135deg, #e91e63, #9c27b0);"></div>
+                <div class="swatch" id="palette-cosmic" style="background: linear-gradient(135deg, #1a0033, #b19cd9);"></div>
+                <div class="swatch" id="palette-desert" style="background: linear-gradient(135deg, #d4a574, #f4d09f);"></div>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <label>Tile Scale</label>
+            <input type="range" id="scale-slider" min="10" max="200" value="80" step="10">
+            <span class="stat">Size: <span id="scale-value" class="stat-value">80px</span></span>
+        </div>
+
+        <div class="action-buttons">
+            <button id="generate-btn" style="flex: 1;">Generate</button>
+            <button id="download-btn" style="flex: 1;">Download PNG</button>
+        </div>
+    </div>
+
+    <div id="canvas-container">
+        <canvas id="canvas" width="800" height="600"></canvas>
+    </div>
+
+    <script>
+        // Palette definitions
+        const PALETTES = {
+            ocean: ['#0077be', '#4db8e8', '#00bcd4', '#0099cc', '#005a87', '#004d7a'],
+            sunset: ['#ff6b35', '#ffa500', '#ff8c00', '#ff7514', '#d2691e', '#e67e22'],
+            forest: ['#2d6a4f', '#40916c', '#52b788', '#95d5b2', '#d8f3dc', '#1b4332'],
+            candy: ['#e91e63', '#f06292', '#f48fb1', '#f8bbd0', '#c2185b', '#880e4f'],
+            cosmic: ['#1a0033', '#4a0080', '#7b1fa2', '#b19cd9', '#ede7f6', '#2e1a47'],
+            desert: ['#d4a574', '#f4d09f', '#deb887', '#cd853f', '#a0826d', '#8b7355']
+        };
+
+        let state = {
+            polygon: 'triangle',
+            rotation: 0,
+            symmetry: 4,
+            palette: 'ocean',
+            scale: 80,
+            canvas: document.getElementById('canvas'),
+            ctx: document.getElementById('canvas').getContext('2d')
+        };
+
+        // Polygon button handlers
+        document.querySelectorAll('.polygon-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                document.querySelectorAll('.polygon-btn').forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
+                state.polygon = e.target.id.split('-')[1];
+                generate();
+            });
+        });
+
+        // Rotation slider
+        document.getElementById('rotation-slider').addEventListener('input', (e) => {
+            state.rotation = parseInt(e.target.value);
+            document.getElementById('rotation-value').textContent = state.rotation + '°';
+            generate();
+        });
+
+        // Symmetry select
+        document.getElementById('symmetry-select').addEventListener('change', (e) => {
+            state.symmetry = parseInt(e.target.value);
+            generate();
+        });
+
+        // Palette swatches
+        document.querySelectorAll('[id^="palette-"]').forEach(swatch => {
+            swatch.addEventListener('click', () => {
+                document.querySelectorAll('[id^="palette-"]').forEach(s => s.classList.remove('active'));
+                swatch.classList.add('active');
+                state.palette = swatch.id.split('-')[1];
+                generate();
+            });
+        });
+
+        // Scale slider
+        document.getElementById('scale-slider').addEventListener('input', (e) => {
+            state.scale = parseInt(e.target.value);
+            document.getElementById('scale-value').textContent = state.scale + 'px';
+            generate();
+        });
+
+        // Generate button
+        document.getElementById('generate-btn').addEventListener('click', generate);
+
+        // Download button
+        document.getElementById('download-btn').addEventListener('click', () => {
+            const link = document.createElement('a');
+            link.href = state.canvas.toDataURL('image/png');
+            link.download = `tessellation_${Date.now()}.png`;
+            link.click();
+        });
+
+        function getPolygonVertices(cx, cy, scale, rotation) {
+            const angleOffset = (rotation * Math.PI) / 180;
+            let vertices = [];
+
+            if (state.polygon === 'triangle') {
+                for (let i = 0; i < 3; i++) {
+                    const angle = (i * 120 * Math.PI) / 180 + angleOffset;
+                    vertices.push([cx + scale * Math.cos(angle), cy + scale * Math.sin(angle)]);
+                }
+            } else if (state.polygon === 'square') {
+                for (let i = 0; i < 4; i++) {
+                    const angle = (45 + i * 90) * Math.PI / 180 + angleOffset;
+                    vertices.push([cx + scale * Math.cos(angle), cy + scale * Math.sin(angle)]);
+                }
+            } else if (state.polygon === 'hexagon') {
+                for (let i = 0; i < 6; i++) {
+                    const angle = (i * 60 * Math.PI) / 180 + angleOffset;
+                    vertices.push([cx + scale * Math.cos(angle), cy + scale * Math.sin(angle)]);
+                }
+            }
+            return vertices;
+        }
+
+        function drawPolygon(vertices, colorIndex) {
+            const colors = PALETTES[state.palette];
+            const color = colors[colorIndex % colors.length];
+
+            state.ctx.fillStyle = color;
+            state.ctx.strokeStyle = '#4da8da';
+            state.ctx.lineWidth = 1;
+
+            state.ctx.beginPath();
+            state.ctx.moveTo(vertices[0][0], vertices[0][1]);
+            for (let i = 1; i < vertices.length; i++) {
+                state.ctx.lineTo(vertices[i][0], vertices[i][1]);
+            }
+            state.ctx.closePath();
+            state.ctx.fill();
+            state.ctx.stroke();
+        }
+
+        function generate() {
+            state.ctx.fillStyle = '#0a1428';
+            state.ctx.fillRect(0, 0, state.canvas.width, state.canvas.height);
+
+            const scale = state.scale / 2;
+            const spacing = state.scale;
+            let colorIndex = 0;
+
+            // Determine grid offsets based on polygon type
+            let offsetX, offsetY;
+            if (state.polygon === 'triangle') {
+                offsetX = spacing;
+                offsetY = spacing * Math.sqrt(3) / 2;
+            } else if (state.polygon === 'square') {
+                offsetX = spacing;
+                offsetY = spacing;
+            } else {
+                offsetX = spacing * 1.5;
+                offsetY = spacing * Math.sqrt(3) / 2;
+            }
+
+            // Apply symmetry-based scaling
+            const symFactor = state.symmetry / 4;
+            offsetX *= symFactor;
+            offsetY *= symFactor;
+
+            for (let x = -spacing * 2; x < state.canvas.width + spacing * 2; x += offsetX) {
+                for (let y = -spacing * 2; y < state.canvas.height + spacing * 2; y += offsetY) {
+                    const vertices = getPolygonVertices(x, y, scale, state.rotation);
+                    drawPolygon(vertices, colorIndex);
+                    colorIndex++;
+                }
+            }
+        }
+
+        // Initial render
+        generate();
+    </script>
+</body>
+</html>
