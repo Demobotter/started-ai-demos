@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pulse Radar — Real-time Global Earthquake Heatmap</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #0f1419;
+      color: #e0e6ed;
+      padding: 20px;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      background: #1a1f2e;
+      border-radius: 12px;
+      padding: 24px;
+      border: 1px solid #2a3042;
+    }
+
+    h1 {
+      font-family: 'Syne', sans-serif;
+      font-size: 28px;
+      margin-bottom: 8px;
+      color: #fff;
+    }
+
+    .subtitle {
+      font-size: 13px;
+      color: #8892a6;
+      margin-bottom: 20px;
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .control-group {
+      background: #0f1419;
+      padding: 12px 14px;
+      border-radius: 8px;
+      border: 1px solid #2a3042;
+    }
+
+    .control-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: #8892a6;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+      display: block;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 8px;
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 8px 12px;
+      border: 1px solid #2a3042;
+      background: #0f1419;
+      color: #8892a6;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .tab-btn.active {
+      background: #d32f2f;
+      color: #fff;
+      border-color: #d32f2f;
+    }
+
+    .tab-btn:hover {
+      border-color: #FFB700;
+    }
+
+    .magnitude-slider {
+      width: 100%;
+      height: 6px;
+      border-radius: 3px;
+      background: #2a3042;
+      outline: none;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+
+    .magnitude-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #FFB700;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .magnitude-slider::-moz-range-thumb {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #FFB700;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s;
+    }
+
+    .magnitude-value {
+      font-size: 12px;
+      color: #FFB700;
+      font-weight: 600;
+      margin-top: 6px;
+    }
+
+    .canvas-wrapper {
+      background: #0f1419;
+      border-radius: 8px;
+      border: 1px solid #2a3042;
+      overflow: hidden;
+      margin-bottom: 20px;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .stat-box {
+      background: #0f1419;
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid #2a3042;
+    }
+
+    .stat-label {
+      font-size: 11px;
+      color: #8892a6;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+      display: block;
+    }
+
+    .stat-value {
+      font-family: 'Syne', sans-serif;
+      font-size: 20px;
+      font-weight: 700;
+      color: #FFB700;
+    }
+
+    .histogram {
+      background: #0f1419;
+      padding: 14px;
+      border-radius: 8px;
+      border: 1px solid #2a3042;
+      margin-bottom: 20px;
+    }
+
+    .hist-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: #8892a6;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 10px;
+    }
+
+    .hist-bars {
+      display: flex;
+      gap: 8px;
+      height: 60px;
+      align-items: flex-end;
+    }
+
+    .hist-bar {
+      flex: 1;
+      background: linear-gradient(to top, #d32f2f, #FFB700);
+      border-radius: 4px 4px 0 0;
+      position: relative;
+      min-height: 4px;
+      transition: all 0.3s;
+    }
+
+    .hist-bar:hover {
+      opacity: 0.8;
+    }
+
+    .hist-label {
+      font-size: 10px;
+      color: #8892a6;
+      text-align: center;
+      margin-top: 4px;
+    }
+
+    .regions-list {
+      background: #0f1419;
+      padding: 14px;
+      border-radius: 8px;
+      border: 1px solid #2a3042;
+      margin-bottom: 20px;
+    }
+
+    .region-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px solid #2a3042;
+      font-size: 13px;
+    }
+
+    .region-item:last-child {
+      border-bottom: none;
+    }
+
+    .region-name {
+      font-weight: 600;
+      color: #e0e6ed;
+    }
+
+    .region-count {
+      color: #FFB700;
+      font-weight: 700;
+      font-family: 'Syne', sans-serif;
+    }
+
+    .footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      color: #8892a6;
+      padding-top: 12px;
+      border-top: 1px solid #2a3042;
+    }
+
+    .refresh-timer {
+      font-weight: 600;
+      color: #FFB700;
+    }
+
+    .safety-tip {
+      background: rgba(211, 47, 47, 0.1);
+      border-left: 3px solid #d32f2f;
+      padding: 10px 12px;
+      border-radius: 4px;
+      font-size: 12px;
+      color: #c5c5c5;
+      margin-bottom: 16px;
+    }
+
+    @media (max-width: 600px) {
+      .controls {
+        grid-template-columns: 1fr;
+      }
+
+      .stats-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      h1 {
+        font-size: 22px;
+      }
+
+      .container {
+        padding: 16px;
+      }
+    }
+
+    .loading {
+      text-align: center;
+      color: #8892a6;
+      padding: 20px;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>📡 Pulse Radar</h1>
+    <p class="subtitle">Real-time global earthquake activity from USGS</p>
+
+    <div class="safety-tip">
+      ⚠️ Earthquake data is 5–10 minutes behind real-time. For official warnings, see <strong>USGS Earthquake Hazards</strong>.
+    </div>
+
+    <div class="controls">
+      <div class="control-group">
+        <label class="control-label">Time Window</label>
+        <div class="tabs">
+          <button class="tab-btn active" data-window="all_hour">Last 1h</button>
+          <button class="tab-btn" data-window="all_6h">Last 6h</button>
+          <button class="tab-btn" data-window="all_day">Last 24h</button>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <label class="control-label">Min. Magnitude</label>
+        <input type="range" class="magnitude-slider" id="magSlider" min="0" max="9" step="0.1" value="0">
+        <div class="magnitude-value" id="magValue">All (0+)</div>
+      </div>
+    </div>
+
+    <div class="canvas-wrapper">
+      <canvas id="heatmapCanvas"></canvas>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-box">
+        <span class="stat-label">Total Events</span>
+        <div class="stat-value" id="totalEvents">—</div>
+      </div>
+      <div class="stat-box">
+        <span class="stat-label">Strongest</span>
+        <div class="stat-value" id="strongestMag">—</div>
+      </div>
+      <div class="stat-box">
+        <span class="stat-label">Avg. Depth</span>
+        <div class="stat-value" id="avgDepth">—</div>
+      </div>
+      <div class="stat-box">
+        <span class="stat-label">Newest Event</span>
+        <div class="stat-value" id="newestTime">—</div>
+      </div>
+    </div>
+
+    <div class="histogram">
+      <div class="hist-title">Magnitude Distribution</div>
+      <div style="display: flex; gap: 12px;">
+        <div style="flex: 1;">
+          <div class="hist-bars">
+            <div class="hist-bar" id="bar0" style="height: 0%;"></div>
+            <div class="hist-bar" id="bar1" style="height: 0%;"></div>
+            <div class="hist-bar" id="bar2" style="height: 0%;"></div>
+            <div class="hist-bar" id="bar3" style="height: 0%;"></div>
+          </div>
+          <div style="display: flex; gap: 12px; margin-top: 8px;">
+            <div class="hist-label">0–3</div>
+            <div class="hist-label">3–5</div>
+            <div class="hist-label">5–7</div>
+            <div class="hist-label">7+</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="regions-list">
+      <div class="hist-title" style="margin-bottom: 12px;">Top 5 Regions</div>
+      <div id="regionsList">
+        <div class="loading">Loading regional data...</div>
+      </div>
+    </div>
+
+    <div class="footer">
+      <span>Last updated: <span id="lastUpdate">—</span></span>
+      <span class="refresh-timer">Auto-refresh in <span id="refreshCountdown">30</span>s</span>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('heatmapCanvas');
+    const ctx = canvas.getContext('2d');
+    const magSlider = document.getElementById('magSlider');
+    const tabs = document.querySelectorAll('.tab-btn');
+
+    let allQuakes = [];
+    let currentWindow = 'all_hour';
+    let minMagnitude = 0;
+
+    // Set canvas resolution
+    function resizeCanvas() {
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = rect.width;
+      canvas.height = 400;
+    }
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+
+    // Fetch USGS data
+    async function fetchQuakes(window = 'all_hour') {
+      try {
+        const url = `https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/${window}.geojson`;
+        const resp = await fetch(url);
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const json = await resp.json();
+        allQuakes = json.features || [];
+        updateUI();
+      } catch (err) {
+        console.error('Fetch error:', err);
+        document.getElementById('totalEvents').textContent = 'Error';
+      }
+    }
+
+    // Filter quakes by magnitude
+    function getFilteredQuakes() {
+      return allQuakes.filter(q => q.properties.mag >= minMagnitude);
+    }
+
+    // Draw heatmap
+    function drawHeatmap() {
+      const filtered = getFilteredQuakes();
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Grid heatmap (40x20)
+      const gridW = 40;
+      const gridH = 20;
+      const cellW = canvas.width / gridW;
+      const cellH = canvas.height / gridH;
+
+      // Create heatmap grid
+      const grid = Array(gridH).fill(0).map(() => Array(gridW).fill(0));
+      const maxTime = Math.max(...filtered.map(q => q.properties.time), Date.now());
+
+      filtered.forEach(q => {
+        const lon = q.geometry.coordinates[0]; // -180 to 180
+        const lat = q.geometry.coordinates[1]; // -90 to 90
+        const mag = q.properties.mag || 0;
+        const time = q.properties.time || 0;
+
+        // Normalize to grid
+        const gridX = Math.floor((lon + 180) / 360 * gridW);
+        const gridY = Math.floor((lat + 90) / 180 * gridH);
+
+        if (gridX >= 0 && gridX < gridW && gridY >= 0 && gridY < gridH) {
+          const recency = (maxTime - time) / (30 * 24 * 60 * 60 * 1000); // Days to 30-day scale
+          const score = mag * (1 - Math.min(recency, 1) * 0.3); // Decay older events slightly
+          grid[gridY][gridX] = Math.max(grid[gridY][gridX], score);
+        }
+      });
+
+      // Normalize grid for display
+      const maxScore = Math.max(...grid.flat());
+      const normGrid = grid.map(row => row.map(val => maxScore > 0 ? val / maxScore : 0));
+
+      // Draw cells
+      normGrid.forEach((row, y) => {
+        row.forEach((val, x) => {
+          const hue = val < 0.3 ? 200 : val < 0.6 ? 20 : val < 0.85 ? 0 : 0; // Blue to red
+          const sat = Math.min(val * 150, 100);
+          const light = 50 - val * 30;
+          const color = `hsl(${hue}, ${sat}%, ${light}%)`;
+
+          ctx.fillStyle = color;
+          ctx.fillRect(x * cellW, y * cellH, cellW, cellH);
+
+          // Grid lines
+          ctx.strokeStyle = 'rgba(42, 48, 66, 0.3)';
+          ctx.lineWidth = 0.5;
+          ctx.strokeRect(x * cellW, y * cellH, cellW, cellH);
+        });
+      });
+    }
+
+    // Update stats
+    function updateStats() {
+      const filtered = getFilteredQuakes();
+      if (filtered.length === 0) {
+        document.getElementById('totalEvents').textContent = '0';
+        document.getElementById('strongestMag').textContent = '—';
+        document.getElementById('avgDepth').textContent = '—';
+        document.getElementById('newestTime').textContent = '—';
+        return;
+      }
+
+      const mags = filtered.map(q => q.properties.mag);
+      const depths = filtered.map(q => q.geometry.coordinates[2] || 0);
+      const times = filtered.map(q => q.properties.time || 0);
+
+      const strongest = Math.max(...mags);
+      const avgDepth = (depths.reduce((a, b) => a + b, 0) / depths.length).toFixed(1);
+      const newest = Math.max(...times);
+      const minutesAgo = Math.floor((Date.now() - newest) / 60000);
+
+      document.getElementById('totalEvents').textContent = filtered.length;
+      document.getElementById('strongestMag').textContent = strongest.toFixed(1);
+      document.getElementById('avgDepth').textContent = `${avgDepth} km`;
+      document.getElementById('newestTime').textContent = minutesAgo < 1 ? 'Now' : `${minutesAgo}m ago`;
+
+      // Histogram
+      const bins = [0, 0, 0, 0];
+      mags.forEach(mag => {
+        if (mag < 3) bins[0]++;
+        else if (mag < 5) bins[1]++;
+        else if (mag < 7) bins[2]++;
+        else bins[3]++;
+      });
+
+      const maxBin = Math.max(...bins);
+      ['bar0', 'bar1', 'bar2', 'bar3'].forEach((id, i) => {
+        const height = maxBin > 0 ? (bins[i] / maxBin) * 100 : 0;
+        document.getElementById(id).style.height = height + '%';
+      });
+
+      // Regions
+      const regionMap = {};
+      filtered.forEach(q => {
+        const lat = q.geometry.coordinates[1];
+        const region = getRegion(lat, q.geometry.coordinates[0]);
+        regionMap[region] = (regionMap[region] || 0) + 1;
+      });
+
+      const topRegions = Object.entries(regionMap)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5);
+
+      const regionHtml = topRegions.map(([name, count]) =>
+        `<div class="region-item">
+          <span class="region-name">${name}</span>
+          <span class="region-count">${count}</span>
+        </div>`
+      ).join('');
+
+      document.getElementById('regionsList').innerHTML = regionHtml || '<div class="loading">No data</div>';
+    }
+
+    function getRegion(lat, lon) {
+      if (lat > 50) return 'North Pacific';
+      if (lat > 0 && lon > 100 && lon < 180) return 'Ring of Fire (East)';
+      if (lat > 0 && lon < 100) return 'Asia–Pacific';
+      if (lat < -30) return 'Australia–Pacific';
+      if (lon > -30 && lon < 30 && lat < 0) return 'East Africa';
+      if (lon < -60) return 'Americas';
+      return 'Other';
+    }
+
+    function updateUI() {
+      drawHeatmap();
+      updateStats();
+      document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
+    }
+
+    // Magnitude slider
+    magSlider.addEventListener('input', (e) => {
+      minMagnitude = parseFloat(e.target.value);
+      const label = minMagnitude === 0 ? 'All (0+)' : `${minMagnitude.toFixed(1)}+`;
+      document.getElementById('magValue').textContent = label;
+      updateUI();
+    });
+
+    // Time window tabs
+    tabs.forEach(tab => {
+      tab.addEventListener('click', (e) => {
+        tabs.forEach(t => t.classList.remove('active'));
+        e.target.classList.add('active');
+        currentWindow = e.target.dataset.window;
+        fetchQuakes(currentWindow);
+      });
+    });
+
+    // Auto-refresh every 30s
+    let countdownVal = 30;
+    setInterval(() => {
+      fetchQuakes(currentWindow);
+      countdownVal = 30;
+    }, 30000);
+
+    setInterval(() => {
+      countdownVal--;
+      document.getElementById('refreshCountdown').textContent = countdownVal;
+    }, 1000);
+
+    // Initial load
+    fetchQuakes(currentWindow);
+  </script>
+</body>
+</html>
