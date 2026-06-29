@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plasma Waves</title>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Rubik:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Rubik', sans-serif;
+            background: linear-gradient(135deg, #0d1117 0%, #1a1f2e 100%);
+            color: #e0e0e0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            max-width: 900px;
+            width: 100%;
+            background: rgba(13, 17, 23, 0.9);
+            border: 1px solid rgba(0, 255, 136, 0.2);
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0, 255, 136, 0.1);
+        }
+        h1 {
+            font-family: 'Space Mono', monospace;
+            font-size: 2.2rem;
+            color: #00ff88;
+            margin-bottom: 10px;
+            text-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+        }
+        .subtitle {
+            color: #ffb700;
+            font-size: 0.95rem;
+            margin-bottom: 25px;
+            opacity: 0.9;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+        @media (max-width: 700px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        .stat-box {
+            background: rgba(0, 255, 136, 0.05);
+            border: 1px solid rgba(0, 255, 136, 0.3);
+            border-radius: 8px;
+            padding: 20px;
+        }
+        .stat-label {
+            font-size: 0.85rem;
+            color: #aaa;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+        .stat-value {
+            font-family: 'Space Mono', monospace;
+            font-size: 1.8rem;
+            color: #00ff88;
+            margin-bottom: 5px;
+        }
+        .stat-subtext {
+            font-size: 0.8rem;
+            color: #888;
+        }
+        .waveform-container {
+            background: rgba(255, 183, 0, 0.05);
+            border: 1px solid rgba(255, 183, 0, 0.3);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 25px;
+        }
+        .waveform-title {
+            font-family: 'Space Mono', monospace;
+            font-size: 0.9rem;
+            color: #ffb700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 15px;
+        }
+        canvas {
+            width: 100%;
+            height: auto;
+            display: block;
+            border-radius: 6px;
+            background: rgba(10, 14, 39, 0.8);
+        }
+        .kp-gauge {
+            margin: 20px 0;
+        }
+        .gauge-label {
+            font-size: 0.85rem;
+            color: #aaa;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+        }
+        .gauge-bar {
+            width: 100%;
+            height: 30px;
+            background: linear-gradient(90deg, #1a4d2e 0%, #2d8659 25%, #f7b801 50%, #ff6b35 75%, #d62828 100%);
+            border-radius: 6px;
+            position: relative;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .gauge-pointer {
+            position: absolute;
+            width: 3px;
+            height: 40px;
+            background: #00ff88;
+            top: -5px;
+            border-radius: 2px;
+            box-shadow: 0 0 8px rgba(0, 255, 136, 0.8);
+        }
+        .impact-section {
+            margin-top: 30px;
+        }
+        .impact-title {
+            font-family: 'Space Mono', monospace;
+            font-size: 0.9rem;
+            color: #ff3535;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 15px;
+        }
+        .impact-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+        }
+        .impact-card {
+            background: rgba(255, 53, 53, 0.08);
+            border: 1px solid rgba(255, 53, 53, 0.4);
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+        }
+        .impact-name {
+            font-weight: 600;
+            color: #ffb700;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+        }
+        .impact-level {
+            font-family: 'Space Mono', monospace;
+            font-size: 1.1rem;
+            color: #ff3535;
+        }
+        .status {
+            font-size: 0.8rem;
+            color: #888;
+            margin-top: 30px;
+            text-align: center;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding-top: 15px;
+        }
+        .loading {
+            color: #aaa;
+            text-align: center;
+            padding: 20px;
+        }
+        .error {
+            color: #ff3535;
+            background: rgba(255, 53, 53, 0.1);
+            border: 1px solid rgba(255, 53, 53, 0.4);
+            padding: 15px;
+            border-radius: 6px;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>⚡ Plasma Waves</h1>
+        <p class="subtitle">Real-time solar magnetosphere activity from NOAA</p>
+        
+        <div id="data-container">
+            <div class="loading">Loading live K-index data...</div>
+        </div>
+    </div>
+
+    <script>
+        const container = document.getElementById('data-container');
+
+        async function fetchSolarData() {
+            try {
+                // Fetch planetary K-index from NOAA (live, real-time updates every minute)
+                const kpResponse = await fetch(
+                    'https://services.swpc.noaa.gov/json/planetary_k_index_1m.json'
+                );
+                if (!kpResponse.ok) throw new Error('Kp fetch failed');
+                const kpData = await kpResponse.json();
+                
+                if (!kpData || kpData.length === 0) {
+                    throw new Error('No K-index data available');
+                }
+
+                const latestKp = kpData[kpData.length - 1];
+                const kpValue = parseFloat(latestKp.kp);
+                
+                return {
+                    kp: kpValue,
+                    time: latestKp.time_tag,
+                    estimated_kp: latestKp.estimated_kp,
+                    kpHistory: kpData.slice(-40).map(d => parseFloat(d.kp))
+                };
+            } catch (err) {
+                console.error('Fetch error:', err);
+                return null;
+            }
+        }
+
+        function getImpactLevel(kp) {
+            if (kp < 1) return 'none';
+            if (kp < 3) return 'low';
+            if (kp < 5) return 'medium';
+            if (kp < 7) return 'high';
+            return 'severe';
+        }
+
+        function renderUI(data) {
+            if (!data) {
+                container.innerHTML = '<div class="error">Unable to fetch solar K-index data. Please refresh.</div>';
+                return;
+            }
+
+            const kp = data.kp;
+            const impactLevel = getImpactLevel(kp);
+            const impacts = {
+                'Power Grid': kp < 2 ? 'none' : kp < 5 ? 'low' : kp < 7 ? 'medium' : 'high',
+                'Communications': kp < 2 ? 'none' : kp < 4 ? 'low' : kp < 6 ? 'medium' : 'high',
+                'Satellites': kp < 2 ? 'low' : kp < 4 ? 'medium' : 'high',
+                'GPS/Navigation': kp < 3 ? 'low' : kp < 5 ? 'medium' : 'high'
+            };
+
+            container.innerHTML = `
+                <h1>⚡ Plasma Waves</h1>
+                <p class="subtitle">Real-time solar magnetosphere activity from NOAA</p>
+                
+                <div class="grid">
+                    <div class="stat-box">
+                        <div class="stat-label">Planetary K-Index</div>
+                        <div class="stat-value">${kp}</div>
+                        <div class="stat-subtext">${impactLevel.toUpperCase()} activity (0–9 scale)</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">Latest Reading</div>
+                        <div class="stat-value">${new Date(data.time).toLocaleTimeString()}</div>
+                        <div class="stat-subtext">Updated every 60 seconds</div>
+                    </div>
+                </div>
+
+                <div class="waveform-container">
+                    <div class="waveform-title">K-Index History (Last 40 readings, 1 per minute)</div>
+                    <canvas id="waveform" width="800" height="200"></canvas>
+                </div>
+
+                <div class="waveform-container">
+                    <div class="kp-gauge">
+                        <div class="gauge-label">Magnetosphere Activity Gauge</div>
+                        <div class="gauge-bar">
+                            <div class="gauge-pointer" style="left: ${(kp / 9) * 100}%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="impact-section">
+                    <div class="impact-title">⚠️ Impact Forecast (based on K-index)</div>
+                    <div class="impact-grid">
+                        <div class="impact-card">
+                            <div class="impact-name">Power Grid</div>
+                            <div class="impact-level">${impacts['Power Grid'].toUpperCase()}</div>
+                        </div>
+                        <div class="impact-card">
+                            <div class="impact-name">Communications</div>
+                            <div class="impact-level">${impacts['Communications'].toUpperCase()}</div>
+                        </div>
+                        <div class="impact-card">
+                            <div class="impact-name">Satellites</div>
+                            <div class="impact-level">${impacts['Satellites'].toUpperCase()}</div>
+                        </div>
+                        <div class="impact-card">
+                            <div class="impact-name">GPS/Navigation</div>
+                            <div class="impact-level">${impacts['GPS/Navigation'].toUpperCase()}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="status">
+                    NOAA K-index data • Auto-refresh every 90s
+                </div>
+            `;
+
+            // Draw waveform
+            const canvas = document.getElementById('waveform');
+            if (canvas) {
+                drawWaveform(canvas, data.kpHistory);
+            }
+
+            // Refresh every 90s
+            setTimeout(main, 90000);
+        }
+
+        function drawWaveform(canvas, history) {
+            const ctx = canvas.getContext('2d');
+            const width = canvas.width;
+            const height = canvas.height;
+            const padding = 40;
+            const graphWidth = width - 2 * padding;
+            const graphHeight = height - 2 * padding;
+
+            ctx.fillStyle = 'rgba(13, 17, 23, 0.8)';
+            ctx.fillRect(0, 0, width, height);
+
+            // Grid lines
+            ctx.strokeStyle = 'rgba(0, 255, 136, 0.1)';
+            ctx.lineWidth = 1;
+            for (let i = 0; i <= 9; i++) {
+                const y = padding + (i / 9) * graphHeight;
+                ctx.beginPath();
+                ctx.moveTo(padding, y);
+                ctx.lineTo(width - padding, y);
+                ctx.stroke();
+            }
+
+            // Axes
+            ctx.strokeStyle = 'rgba(0, 255, 136, 0.4)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(padding, padding);
+            ctx.lineTo(padding, height - padding);
+            ctx.lineTo(width - padding, height - padding);
+            ctx.stroke();
+
+            // Plot data
+            ctx.strokeStyle = '#ffb700';
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            for (let i = 0; i < history.length; i++) {
+                const x = padding + (i / (history.length - 1)) * graphWidth;
+                const y = height - padding - (history[i] / 9) * graphHeight;
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+
+            // Fill area under curve
+            ctx.lineTo(width - padding, height - padding);
+            ctx.lineTo(padding, height - padding);
+            ctx.closePath();
+            ctx.fillStyle = 'rgba(255, 183, 0, 0.1)';
+            ctx.fill();
+
+            // Y-axis labels
+            ctx.fillStyle = '#aaa';
+            ctx.font = '12px Rubik';
+            ctx.textAlign = 'right';
+            ctx.textBaseline = 'middle';
+            for (let i = 0; i <= 9; i++) {
+                const y = padding + (i / 9) * graphHeight;
+                ctx.fillText(i.toString(), padding - 15, y);
+            }
+
+            // Title
+            ctx.fillStyle = '#00ff88';
+            ctx.font = 'bold 14px Space Mono';
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'top';
+            ctx.fillText('K-Index (0–9)', padding, 8);
+        }
+
+        async function main() {
+            const data = await fetchSolarData();
+            renderUI(data);
+        }
+
+        main();
+    </script>
+</body>
+</html>
