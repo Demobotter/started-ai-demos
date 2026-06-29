@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ROT Cipher Breaker</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Space Mono', monospace;
+            background: linear-gradient(135deg, #0a1428 0%, #1a2750 100%);
+            color: #e0e0e0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1000px;
+            width: 100%;
+            background: rgba(10, 20, 40, 0.95);
+            border: 1px solid #4da8da;
+            border-radius: 12px;
+            padding: 40px;
+            box-shadow: 0 8px 32px rgba(77, 168, 218, 0.2);
+        }
+        h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.5em;
+            color: #4da8da;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        .subtitle {
+            text-align: center;
+            color: #7dd3fc;
+            margin-bottom: 30px;
+            font-size: 0.95em;
+        }
+        .section {
+            margin-bottom: 30px;
+        }
+        .section-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.3em;
+            color: #00ff88;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .control-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #7dd3fc;
+            font-weight: bold;
+        }
+        textarea, input {
+            width: 100%;
+            padding: 12px;
+            background: #1a3a4a;
+            border: 1px solid #4da8da;
+            color: #e0e0e0;
+            font-family: 'Space Mono', monospace;
+            border-radius: 6px;
+            font-size: 0.95em;
+            resize: vertical;
+        }
+        textarea {
+            min-height: 100px;
+            font-size: 0.9em;
+        }
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            padding: 0;
+        }
+        .slider-value {
+            display: inline-block;
+            color: #00ff88;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        button {
+            padding: 12px 24px;
+            background: #4da8da;
+            color: #0a1428;
+            border: none;
+            border-radius: 6px;
+            font-family: 'Space Mono', monospace;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            flex: 1;
+            min-width: 120px;
+        }
+        button:hover {
+            background: #7dd3fc;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(77, 168, 218, 0.4);
+        }
+        button:active {
+            transform: translateY(0);
+        }
+        .rotation-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .rotation-card {
+            background: #1a3a4a;
+            border: 2px solid #2a5a7a;
+            border-radius: 8px;
+            padding: 15px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+        .rotation-card:hover {
+            border-color: #4da8da;
+            box-shadow: 0 4px 12px rgba(77, 168, 218, 0.3);
+        }
+        .rotation-card.likely {
+            border-color: #00ff88;
+            background: rgba(0, 255, 136, 0.1);
+        }
+        .rotation-card.top-3 {
+            border-color: #fbbf24;
+            background: rgba(251, 191, 36, 0.1);
+        }
+        .rot-label {
+            color: #7dd3fc;
+            font-size: 0.85em;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .rot-text {
+            color: #e0e0e0;
+            font-size: 0.9em;
+            word-break: break-word;
+            margin-bottom: 8px;
+            min-height: 40px;
+        }
+        .rot-stats {
+            font-size: 0.75em;
+            color: #00ff88;
+            margin-bottom: 5px;
+        }
+        .likelihood-bar {
+            width: 100%;
+            height: 8px;
+            background: #0a1428;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+        .likelihood-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4da8da, #00ff88);
+            transition: width 0.3s ease;
+        }
+        .detail-panel {
+            background: #1a3a4a;
+            border: 1px solid #4da8da;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+            display: none;
+        }
+        .detail-panel.active {
+            display: block;
+            animation: slideIn 0.3s ease;
+        }
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .detail-text {
+            color: #e0e0e0;
+            line-height: 1.6;
+            margin-bottom: 15px;
+            word-wrap: break-word;
+            white-space: pre-wrap;
+        }
+        .frequency-chart {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(25px, 1fr));
+            gap: 4px;
+            margin-top: 15px;
+        }
+        .freq-bar {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .freq-bar-fill {
+            width: 100%;
+            background: #4da8da;
+            border-radius: 2px;
+            margin-bottom: 3px;
+            min-height: 2px;
+        }
+        .freq-label {
+            font-size: 0.65em;
+            color: #7dd3fc;
+        }
+        .close-detail {
+            background: #ff4444;
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9em;
+            margin-top: 15px;
+        }
+        .close-detail:hover {
+            background: #ff6666;
+        }
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+            h1 {
+                font-size: 1.8em;
+            }
+            .rotation-grid {
+                grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 ROT Cipher Breaker</h1>
+        <div class="subtitle">See why Caesar cipher is broken in seconds</div>
+
+        <div class="section">
+            <div class="section-title">Encrypt Your Own</div>
+            <div class="control-group">
+                <label for="plaintext">Plain Text:</label>
+                <textarea id="plaintext" placeholder="Type a message..."></textarea>
+            </div>
+            <div class="control-group">
+                <label for="shift">Shift (ROT-N): <span class="slider-value" id="shiftValue">3</span></label>
+                <input type="range" id="shift" min="0" max="25" value="3">
+            </div>
+            <div class="control-group">
+                <label>Encrypted Text:</label>
+                <textarea id="encrypted" readonly></textarea>
+            </div>
+            <div class="button-group">
+                <button onclick="encryptText()">Encrypt</button>
+                <button onclick="clearEncrypt()">Clear</button>
+            </div>
+        </div>
+
+        <div class="section" style="border-top: 1px solid #2a5a7a; padding-top: 30px;">
+            <div class="section-title">Crack Encrypted Text</div>
+            <div class="control-group">
+                <label for="ciphertext">Encrypted Text:</label>
+                <textarea id="ciphertext" placeholder="Paste encrypted message here..."></textarea>
+            </div>
+            <div class="button-group">
+                <button onclick="crackCipher()">Analyze All 26 Rotations</button>
+                <button onclick="clearCrack()">Clear</button>
+            </div>
+        </div>
+
+        <div id="results" class="section"></div>
+        <div id="detailPanel" class="detail-panel"></div>
+    </div>
+
+    <script>
+        // Common English words for validation (500 most common)
+        const COMMON_WORDS = new Set([
+            'the', 'be', 'to', 'of', 'and', 'a', 'in', 'that', 'have', 'i', 'it', 'for', 'not', 'on', 'with',
+            'he', 'as', 'you', 'do', 'at', 'this', 'but', 'his', 'by', 'from', 'they', 'we', 'say', 'her', 'she',
+            'or', 'an', 'will', 'my', 'one', 'all', 'would', 'there', 'their', 'what', 'so', 'up', 'out', 'if',
+            'about', 'who', 'get', 'which', 'go', 'me', 'when', 'make', 'can', 'like', 'time', 'no', 'just', 'him',
+            'know', 'take', 'people', 'into', 'year', 'your', 'good', 'some', 'could', 'them', 'see', 'other',
+            'than', 'then', 'now', 'look', 'only', 'come', 'its', 'over', 'think', 'also', 'back', 'after', 'use',
+            'two', 'how', 'our', 'work', 'first', 'well', 'way', 'even', 'new', 'want', 'because', 'any', 'these',
+            'give', 'day', 'most', 'us', 'is', 'was', 'are', 'been', 'being', 'has', 'had', 'does', 'did', 'doing',
+            'would', 'could', 'should', 'may', 'might', 'must', 'can', 'shall', 'will', 'should', 'may', 'right',
+            'life', 'hand', 'part', 'place', 'case', 'week', 'company', 'number', 'group', 'problem', 'fact',
+            'water', 'room', 'mother', 'father', 'side', 'boy', 'girl', 'man', 'woman', 'child', 'thing', 'kind',
+            'line', 'point', 'piece', 'set', 'money', 'reason', 'body', 'head', 'eye', 'face', 'word', 'name',
+            'book', 'end', 'story', 'game', 'house', 'school', 'help', 'friend', 'world', 'talk', 'call', 'tell',
+            'ask', 'answer', 'need', 'feel', 'leave', 'find', 'play', 'read', 'write', 'eat', 'drink', 'walk',
+            'live', 'move', 'run', 'stand', 'sit', 'sleep', 'wake', 'die', 'kill', 'buy', 'sell', 'pay', 'cost',
+            'keep', 'hold', 'open', 'close', 'stop', 'start', 'begin', 'end', 'turn', 'break', 'cut', 'push',
+            'pull', 'throw', 'catch', 'jump', 'fly', 'swim', 'clean', 'build', 'grow', 'fall', 'rise', 'sit',
+            'stand', 'lie', 'beat', 'win', 'lose', 'love', 'hate', 'like', 'dislike', 'agree', 'disagree',
+            'learn', 'teach', 'remember', 'forget', 'understand', 'explain', 'suggest', 'imagine', 'believe',
+            'hope', 'fear', 'expect', 'seem', 'appear', 'sound', 'taste', 'smell', 'touch', 'look', 'watch'
+        ]);
+
+        // English letter frequency (approximate percentages)
+        const ENGLISH_FREQ = {
+            'e': 11.0, 't': 8.2, 'a': 8.2, 'o': 7.5, 'i': 7.0, 'n': 6.7, 's': 6.3, 'h': 6.1,
+            'r': 6.0, 'd': 4.3, 'l': 4.0, 'c': 2.8, 'u': 2.8, 'm': 2.4, 'w': 2.4, 'f': 2.2,
+            'g': 2.0, 'y': 2.0, 'p': 1.9, 'b': 1.5, 'v': 1.0, 'k': 0.8, 'j': 0.15, 'x': 0.15,
+            'q': 0.1, 'z': 0.07
+        };
+
+        // ROT-N cipher
+        function rotn(text, shift) {
+            return text.replace(/[a-zA-Z]/g, char => {
+                const start = char.charCodeAt(0) <= 90 ? 65 : 97;
+                return String.fromCharCode((char.charCodeAt(0) - start + shift) % 26 + start);
+            });
+        }
+
+        // Calculate frequency distribution
+        function getFrequency(text) {
+            const freq = {};
+            text.toLowerCase().replace(/[^a-z]/g, '').split('').forEach(char => {
+                freq[char] = (freq[char] || 0) + 1;
+            });
+            return freq;
+        }
+
+        // Chi-squared test against English frequencies
+        function chiSquaredScore(text) {
+            const freq = getFrequency(text);
+            const total = text.replace(/[^a-zA-Z]/g, '').length || 1;
+            let chi2 = 0;
+            
+            for (let letter in ENGLISH_FREQ) {
+                const observed = (freq[letter] || 0) / total * 100;
+                const expected = ENGLISH_FREQ[letter];
+                const diff = observed - expected;
+                chi2 += (diff * diff) / expected;
+            }
+            return chi2;
+        }
+
+        // Count common English words
+        function countCommonWords(text) {
+            const words = text.toLowerCase().match(/\b[a-z]+\b/g) || [];
+            let count = 0;
+            words.forEach(word => {
+                if (COMMON_WORDS.has(word)) count++;
+            });
+            return { count, total: words.length };
+        }
+
+        // Calculate likelihood score (0-100)
+        function calculateLikelihood(text) {
+            // Inverse chi-squared (lower is better, invert for 0-100 scale)
+            const chi2 = chiSquaredScore(text);
+            const frequencyScore = Math.max(0, 100 - Math.min(chi2, 100));
+            
+            // Word match score
+            const { count, total } = countCommonWords(text);
+            const wordScore = total > 0 ? (count / total) * 100 : 0;
+            
+            // Combined score
+            return Math.round((frequencyScore * 0.6 + wordScore * 0.4));
+        }
+
+        function encryptText() {
+            const plaintext = document.getElementById('plaintext').value;
+            const shift = parseInt(document.getElementById('shift').value);
+            document.getElementById('encrypted').value = rotn(plaintext, shift);
+        }
+
+        function clearEncrypt() {
+            document.getElementById('plaintext').value = '';
+            document.getElementById('encrypted').value = '';
+            document.getElementById('shift').value = '3';
+            document.getElementById('shiftValue').textContent = '3';
+        }
+
+        function crackCipher() {
+            const ciphertext = document.getElementById('ciphertext').value;
+            if (!ciphertext.trim()) {
+                alert('Please paste encrypted text first');
+                return;
+            }
+
+            const rotations = [];
+            for (let i = 0; i < 26; i++) {
+                const decrypted = rotn(ciphertext, i);
+                const likelihood = calculateLikelihood(decrypted);
+                const { count } = countCommonWords(decrypted);
+                rotations.push({
+                    offset: i,
+                    decrypted,
+                    likelihood,
+                    wordCount: count
+                });
+            }
+
+            // Sort by likelihood
+            rotations.sort((a, b) => b.likelihood - a.likelihood);
+
+            // Render results
+            const resultsHtml = `
+                <div class="section-title">All 26 Rotations (Ranked by Likelihood)</div>
+                <div class="rotation-grid">
+                    ${rotations.map((r, idx) => {
+                        const isTop3 = idx < 3;
+                        const textSnippet = r.decrypted.substring(0, 30);
+                        return `
+                            <div class="rotation-card ${isTop3 ? 'top-3' : ''}" onclick="showDetail('${r.offset}', \`${r.decrypted.replace(/`/g, '\\`')}\`, ${r.likelihood})">
+                                <div class="rot-label">ROT-${r.offset}</div>
+                                <div class="rot-text">${textSnippet}${r.decrypted.length > 30 ? '...' : ''}</div>
+                                <div class="rot-stats">${r.wordCount} common words</div>
+                                <div class="likelihood-bar">
+                                    <div class="likelihood-fill" style="width: ${r.likelihood}%"></div>
+                                </div>
+                                <div class="rot-stats" style="text-align: right;">${r.likelihood}%</div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            `;
+
+            document.getElementById('results').innerHTML = resultsHtml;
+            document.getElementById('detailPanel').innerHTML = '';
+            document.getElementById('detailPanel').classList.remove('active');
+        }
+
+        function showDetail(offset, decrypted, likelihood) {
+            const maxLength = 500;
+            const snippet = decrypted.substring(0, maxLength);
+            const freq = getFrequency(decrypted);
+            
+            // Get top letters
+            const topLetters = Object.entries(freq)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 10);
+
+            const maxFreq = Math.max(...topLetters.map(x => x[1]));
+
+            const freqChartHtml = topLetters.map(([letter, count]) => `
+                <div class="freq-bar">
+                    <div class="freq-bar-fill" style="height: ${(count / maxFreq) * 80}px;"></div>
+                    <div class="freq-label">${letter.toUpperCase()}</div>
+                </div>
+            `).join('');
+
+            const detailHtml = `
+                <div class="section-title">ROT-${offset} Decryption (Likelihood: ${likelihood}%)</div>
+                <div class="detail-text">${snippet}${decrypted.length > maxLength ? '\n\n[... truncated ...]' : ''}</div>
+                <div style="color: #7dd3fc; font-size: 0.9em; margin-bottom: 15px;">
+                    Character frequency analysis (top 10 letters):
+                </div>
+                <div class="frequency-chart">${freqChartHtml}</div>
+                <button class="close-detail" onclick="closeDetail()">Close</button>
+            `;
+
+            document.getElementById('detailPanel').innerHTML = detailHtml;
+            document.getElementById('detailPanel').classList.add('active');
+        }
+
+        function closeDetail() {
+            document.getElementById('detailPanel').classList.remove('active');
+        }
+
+        function clearCrack() {
+            document.getElementById('ciphertext').value = '';
+            document.getElementById('results').innerHTML = '';
+            document.getElementById('detailPanel').innerHTML = '';
+            document.getElementById('detailPanel').classList.remove('active');
+        }
+
+        // Update shift display
+        document.getElementById('shift').addEventListener('input', (e) => {
+            document.getElementById('shiftValue').textContent = e.target.value;
+        });
+    </script>
+</body>
+</html>
