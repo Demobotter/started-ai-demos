@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Connect Four AI</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Space+Mono&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: linear-gradient(135deg, #0a1428 0%, #1a2a3a 100%);
+      font-family: 'Space Mono', monospace;
+      color: #e0e0e0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .container {
+      max-width: 500px;
+      width: 100%;
+      background: #0f1f2f;
+      border: 2px solid #4da8da;
+      border-radius: 12px;
+      padding: 30px;
+      box-shadow: 0 8px 32px rgba(77, 168, 218, 0.2);
+    }
+    h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: 2.5em;
+      text-align: center;
+      color: #4da8da;
+      margin-bottom: 10px;
+    }
+    .subtitle {
+      text-align: center;
+      font-size: 0.9em;
+      color: #7dd3fc;
+      margin-bottom: 20px;
+    }
+    .board {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 8px;
+      margin: 20px 0;
+      background: #1a3a5a;
+      padding: 12px;
+      border-radius: 8px;
+    }
+    .cell {
+      width: 100%;
+      aspect-ratio: 1;
+      border-radius: 50%;
+      background: #2a4a6a;
+      border: 2px solid #4da8da;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 2em;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .cell:hover { background: #3a5a7a; transform: scale(1.05); }
+    .cell.red { background: #ff4444; border-color: #ff0000; }
+    .cell.yellow { background: #ffdd00; border-color: #ffaa00; }
+    .cell.drop-target { background: #4da8da; box-shadow: 0 0 10px #4da8da; cursor: grab; animation: pulse 0.5s infinite alternate; }
+    @keyframes pulse { from { box-shadow: 0 0 8px #4da8da; } to { box-shadow: 0 0 14px #4da8da; } }
+    .info { text-align: center; margin: 20px 0; font-size: 1.1em; color: #7dd3fc; }
+    .status {
+      min-height: 40px;
+      background: rgba(77, 168, 218, 0.1);
+      border-left: 3px solid #4da8da;
+      padding: 12px;
+      border-radius: 4px;
+      margin: 15px 0;
+    }
+    .game-over {
+      background: rgba(0, 255, 136, 0.2) !important;
+      border-left-color: #00ff88 !important;
+      color: #00ff88 !important;
+      font-weight: bold;
+      font-size: 1.2em;
+    }
+    .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 20px 0; }
+    button {
+      padding: 12px 20px;
+      border: none;
+      border-radius: 6px;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.95em;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-primary { background: #4da8da; color: #0a1428; }
+    .btn-primary:hover { background: #7dd3fc; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(77, 168, 218, 0.4); }
+    .btn-secondary { background: #1a3a5a; color: #4da8da; border: 1px solid #4da8da; }
+    .btn-secondary:hover { background: #2a4a6a; }
+    .btn-secondary.active { background: #4da8da; color: #0a1428; }
+    .difficulty-section { margin: 20px 0; }
+    .difficulty-label { font-size: 0.95em; margin-bottom: 10px; color: #7dd3fc; }
+    .difficulty-buttons { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .difficulty-buttons button { padding: 8px 0; font-size: 0.85em; }
+    .move-log {
+      background: rgba(77, 168, 218, 0.1);
+      border: 1px solid #4da8da;
+      border-radius: 6px;
+      padding: 12px;
+      max-height: 120px;
+      overflow-y: auto;
+      font-size: 0.85em;
+      margin: 15px 0;
+    }
+    .move-log-entry { padding: 4px 0; color: #7dd3fc; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>⚫ Connect Four</h1>
+    <p class="subtitle">Play against Minimax AI</p>
+    
+    <div class="difficulty-section">
+      <div class="difficulty-label">Difficulty:</div>
+      <div class="difficulty-buttons">
+        <button class="btn-secondary" id="easyBtn" onclick="setDifficulty('easy')">Easy</button>
+        <button class="btn-secondary active" id="mediumBtn" onclick="setDifficulty('medium')">Medium</button>
+        <button class="btn-secondary" id="hardBtn" onclick="setDifficulty('hard')">Hard</button>
+      </div>
+    </div>
+
+    <div class="status" id="status"></div>
+    <div class="board" id="board"></div>
+    <div class="move-log" id="moveLog"></div>
+
+    <div class="controls">
+      <button class="btn-primary" onclick="startNewGame()">New Game</button>
+      <button class="btn-secondary" onclick="resetGame()">Reset</button>
+    </div>
+  </div>
+
+  <script>
+    const ROWS = 6, COLS = 7, WIN_LEN = 4;
+    let board = [], gameOver = false, moves = [], difficulty = 'medium';
+    const DEPTHS = { easy: 3, medium: 5, hard: 7 };
+
+    function createBoard() { return Array(ROWS).fill(null).map(() => Array(COLS).fill(0)); }
+
+    function dropPiece(boardState, col, player) {
+      for (let row = ROWS - 1; row >= 0; row--) {
+        if (boardState[row][col] === 0) {
+          boardState[row][col] = player;
+          return row;
+        }
+      }
+      return -1;
+    }
+
+    function checkWin(boardState, row, col, player) {
+      const directions = [[0, 1], [1, 0], [1, 1], [1, -1]];
+      for (const [dr, dc] of directions) {
+        let count = 1;
+        for (let [r, c] = [row + dr, col + dc]; r >= 0 && r < ROWS && c >= 0 && c < COLS && boardState[r][c] === player; r += dr, c += dc) count++;
+        for (let [r, c] = [row - dr, col - dc]; r >= 0 && r < ROWS && c >= 0 && c < COLS && boardState[r][c] === player; r -= dr, c -= dc) count++;
+        if (count >= WIN_LEN) return true;
+      }
+      return false;
+    }
+
+    function isBoardFull(boardState) { return boardState[0].every(cell => cell !== 0); }
+
+    function evaluate(boardState) {
+      let score = 0;
+      for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+          for (const [dr, dc] of [[0, 1], [1, 0], [1, 1], [1, -1]]) {
+            let aiCount = 0, humanCount = 0;
+            for (let i = 0; i < WIN_LEN; i++) {
+              const nr = r + i * dr, nc = c + i * dc;
+              if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS) {
+                if (boardState[nr][nc] === 2) aiCount++;
+                if (boardState[nr][nc] === 1) humanCount++;
+              }
+            }
+            if (aiCount > 0 && humanCount === 0) score += Math.pow(10, aiCount);
+            if (humanCount > 0 && aiCount === 0) score -= Math.pow(10, humanCount);
+          }
+        }
+      }
+      for (let r = 0; r < ROWS; r++) if (boardState[r][3] === 2) score += 5; else if (boardState[r][3] === 1) score -= 5;
+      return score;
+    }
+
+    function minimax(boardState, depth, isAI, alpha = -Infinity, beta = Infinity) {
+      for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+          if (boardState[r][c] === 2 && checkWin(boardState, r, c, 2)) return { score: 10000, move: null };
+          if (boardState[r][c] === 1 && checkWin(boardState, r, c, 1)) return { score: -10000, move: null };
+        }
+      }
+      if (isBoardFull(boardState)) return { score: 0, move: null };
+      if (depth === 0) return { score: evaluate(boardState), move: null };
+
+      if (isAI) {
+        let maxScore = -Infinity, bestMove = null;
+        for (let c = 0; c < COLS; c++) {
+          const copy = boardState.map(r => [...r]);
+          const row = dropPiece(copy, c, 2);
+          if (row === -1) continue;
+          const { score } = minimax(copy, depth - 1, false, alpha, beta);
+          if (score > maxScore) { maxScore = score; bestMove = c; }
+          alpha = Math.max(alpha, score);
+          if (beta <= alpha) break;
+        }
+        return { score: maxScore, move: bestMove };
+      } else {
+        let minScore = Infinity, bestMove = null;
+        for (let c = 0; c < COLS; c++) {
+          const copy = boardState.map(r => [...r]);
+          const row = dropPiece(copy, c, 1);
+          if (row === -1) continue;
+          const { score } = minimax(copy, depth - 1, true, alpha, beta);
+          if (score < minScore) { minScore = score; bestMove = c; }
+          beta = Math.min(beta, score);
+          if (beta <= alpha) break;
+        }
+        return { score: minScore, move: bestMove };
+      }
+    }
+
+    function renderBoard() {
+      const boardEl = document.getElementById('board');
+      boardEl.innerHTML = '';
+      for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+          const cell = document.createElement('div');
+          cell.className = 'cell';
+          if (board[r][c] === 1) cell.classList.add('red');
+          else if (board[r][c] === 2) cell.classList.add('yellow');
+          else if (!gameOver) cell.classList.add('drop-target');
+          cell.innerHTML = board[r][c] === 1 ? '●' : board[r][c] === 2 ? '●' : '';
+          cell.style.color = board[r][c] !== 0 ? '#000' : 'transparent';
+          if (board[r][c] === 0 && !gameOver) cell.onclick = () => makeHumanMove(c);
+          boardEl.appendChild(cell);
+        }
+      }
+    }
+
+    function makeHumanMove(col) {
+      const row = dropPiece(board, col, 1);
+      if (row === -1) return;
+      moves.push(`Red → Column ${col + 1}`);
+      document.getElementById('moveLog').innerHTML = moves.map(m => `<div class="move-log-entry">${m}</div>`).join('');
+      if (checkWin(board, row, col, 1)) {
+        document.getElementById('status').classList.add('game-over');
+        document.getElementById('status').textContent = '🏆 You Win!';
+        gameOver = true;
+        renderBoard();
+        return;
+      }
+      if (isBoardFull(board)) {
+        document.getElementById('status').classList.add('game-over');
+        document.getElementById('status').textContent = '🤝 Draw!';
+        gameOver = true;
+        renderBoard();
+        return;
+      }
+      document.getElementById('status').textContent = '💛 AI thinking...';
+      renderBoard();
+      setTimeout(() => makeAIMove(), 600);
+    }
+
+    function makeAIMove() {
+      const depth = DEPTHS[difficulty];
+      const { move } = minimax(board, depth, true);
+      const row = dropPiece(board, move, 2);
+      moves.push(`Yellow → Column ${move + 1}`);
+      document.getElementById('moveLog').innerHTML = moves.map(m => `<div class="move-log-entry">${m}</div>`).join('');
+      if (checkWin(board, row, move, 2)) {
+        document.getElementById('status').classList.add('game-over');
+        document.getElementById('status').textContent = '💻 I Win!';
+        gameOver = true;
+        renderBoard();
+        return;
+      }
+      if (isBoardFull(board)) {
+        document.getElementById('status').classList.add('game-over');
+        document.getElementById('status').textContent = '🤝 Draw!';
+        gameOver = true;
+        renderBoard();
+        return;
+      }
+      document.getElementById('status').textContent = '🔴 Your turn';
+      document.getElementById('status').classList.remove('game-over');
+      renderBoard();
+    }
+
+    function startNewGame() {
+      board = createBoard();
+      gameOver = false;
+      moves = [];
+      document.getElementById('status').classList.remove('game-over');
+      document.getElementById('status').textContent = '🔴 Your turn';
+      document.getElementById('moveLog').innerHTML = '';
+      renderBoard();
+    }
+
+    function setDifficulty(level) {
+      difficulty = level;
+      ['easy', 'medium', 'hard'].forEach(l => document.getElementById(l + 'Btn').classList.remove('active'));
+      document.getElementById(level + 'Btn').classList.add('active');
+    }
+
+    function resetGame() {
+      difficulty = 'medium';
+      ['easy', 'medium', 'hard'].forEach(l => document.getElementById(l + 'Btn').classList.remove('active'));
+      document.getElementById('mediumBtn').classList.add('active');
+      startNewGame();
+    }
+
+    window.addEventListener('load', () => startNewGame());
+  </script>
+</body>
+</html>
