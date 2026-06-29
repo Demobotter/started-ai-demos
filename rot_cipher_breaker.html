@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ROT Cipher Breaker</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: linear-gradient(135deg, #0a1428 0%, #1a2a4a 100%);
+            color: #e0e0e0;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 10px;
+            color: #4da8da;
+            font-size: 2.5em;
+            font-weight: 700;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #00ff88;
+            margin-bottom: 30px;
+            font-size: 1em;
+            font-weight: 300;
+        }
+        
+        .control-panel {
+            background: rgba(15, 30, 50, 0.8);
+            border: 1px solid #4da8da;
+            border-radius: 8px;
+            padding: 25px;
+            margin-bottom: 30px;
+        }
+        
+        .control-group {
+            margin-bottom: 20px;
+        }
+        
+        .control-label {
+            display: block;
+            color: #4da8da;
+            font-weight: 600;
+            margin-bottom: 10px;
+            font-size: 0.95em;
+        }
+        
+        textarea {
+            width: 100%;
+            padding: 12px;
+            background: #1a2a4a;
+            border: 1px solid #4da8da;
+            color: #e0e0e0;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.95em;
+            min-height: 80px;
+            resize: vertical;
+        }
+        
+        textarea:focus {
+            outline: none;
+            border-color: #00ff88;
+            box-shadow: 0 0 10px rgba(0, 255, 136, 0.3);
+        }
+        
+        .slider-row {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        input[type="range"] {
+            flex: 1;
+            cursor: pointer;
+        }
+        
+        .slider-value {
+            color: #00ff88;
+            font-weight: 600;
+            min-width: 40px;
+            text-align: right;
+        }
+        
+        .button-row {
+            display: flex;
+            gap: 10px;
+        }
+        
+        button {
+            flex: 1;
+            padding: 12px;
+            background: #4da8da;
+            border: none;
+            color: #0a1428;
+            font-weight: 600;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.95em;
+            transition: background 0.3s;
+        }
+        
+        button:hover {
+            background: #00ff88;
+        }
+        
+        button:active {
+            transform: scale(0.98);
+        }
+        
+        .output-section {
+            background: rgba(15, 30, 50, 0.8);
+            border: 1px solid #4da8da;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .output-label {
+            color: #4da8da;
+            font-weight: 600;
+            margin-bottom: 10px;
+            font-size: 0.95em;
+        }
+        
+        .encrypted-box {
+            background: #1a2a4a;
+            border: 1px solid #00ff88;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            color: #00ff88;
+            word-break: break-all;
+            min-height: 60px;
+        }
+        
+        .rotations-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 12px;
+            margin-top: 15px;
+        }
+        
+        .rotation-card {
+            background: #1a2a4a;
+            border: 2px solid #4da8da;
+            border-radius: 6px;
+            padding: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+        
+        .rotation-card:hover {
+            border-color: #00ff88;
+            box-shadow: 0 0 10px rgba(0, 255, 136, 0.2);
+        }
+        
+        .rotation-card.likely {
+            border-color: #00ff88;
+            background: rgba(0, 255, 136, 0.1);
+        }
+        
+        .rotation-card.selected {
+            border-color: #ff00ff;
+            background: rgba(255, 0, 255, 0.15);
+            box-shadow: 0 0 15px rgba(255, 0, 255, 0.4);
+        }
+        
+        .rotation-offset {
+            color: #4da8da;
+            font-weight: 600;
+            font-size: 0.9em;
+        }
+        
+        .rotation-text {
+            color: #e0e0e0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.75em;
+            margin-top: 5px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .rotation-score {
+            color: #00ff88;
+            font-size: 0.8em;
+            margin-top: 5px;
+            font-weight: 500;
+        }
+        
+        .likelihood-bar {
+            width: 100%;
+            height: 4px;
+            background: #0a1428;
+            border-radius: 2px;
+            margin-top: 6px;
+            overflow: hidden;
+        }
+        
+        .likelihood-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4da8da 0%, #00ff88 100%);
+            border-radius: 2px;
+            transition: width 0.2s;
+        }
+        
+        .selected-decryption {
+            background: #1a2a4a;
+            border: 2px solid #ff00ff;
+            padding: 20px;
+            border-radius: 6px;
+            margin-top: 20px;
+        }
+        
+        .selected-title {
+            color: #ff00ff;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+        
+        .selected-text {
+            color: #e0e0e0;
+            font-family: 'Courier New', monospace;
+            line-height: 1.5;
+            word-break: break-word;
+        }
+        
+        .frequency-panel {
+            background: rgba(15, 30, 50, 0.8);
+            border: 1px solid #4da8da;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        
+        .frequency-title {
+            color: #4da8da;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+        
+        .frequency-chart {
+            display: grid;
+            grid-template-columns: repeat(13, 1fr);
+            gap: 8px;
+        }
+        
+        .frequency-bar {
+            text-align: center;
+        }
+        
+        .bar-label {
+            color: #4da8da;
+            font-size: 0.8em;
+            font-weight: 600;
+        }
+        
+        .bar-container {
+            height: 150px;
+            background: #0a1428;
+            border-radius: 3px;
+            margin-top: 5px;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+        }
+        
+        .bar-fill {
+            width: 70%;
+            background: linear-gradient(180deg, #00ff88 0%, #4da8da 100%);
+            border-radius: 2px;
+            transition: height 0.2s;
+        }
+        
+        .bar-value {
+            color: #e0e0e0;
+            font-size: 0.7em;
+            margin-top: 5px;
+        }
+        
+        .info-box {
+            background: rgba(0, 255, 136, 0.1);
+            border-left: 3px solid #00ff88;
+            padding: 12px;
+            margin-top: 20px;
+            border-radius: 3px;
+            color: #e0e0e0;
+            font-size: 0.9em;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>ROT Cipher Breaker</h1>
+        <div class="subtitle">Decrypt Caesar cipher by seeing why only one rotation works</div>
+        
+        <div class="control-panel">
+            <div class="control-group">
+                <label class="control-label">Encrypt a message (optional)</label>
+                <textarea id="plaintext" placeholder="Type a message to encrypt with ROT-N..."></textarea>
+            </div>
+            
+            <div class="control-group">
+                <label class="control-label">Rotation offset (ROT-N)</label>
+                <div class="slider-row">
+                    <input type="range" id="encryptSlider" min="0" max="25" value="3">
+                    <span class="slider-value" id="encryptValue">ROT-3</span>
+                </div>
+            </div>
+            
+            <div class="button-row">
+                <button id="encryptBtn">Encrypt</button>
+            </div>
+            
+            <div style="margin-top: 25px; border-top: 1px solid #4da8da; padding-top: 20px;">
+                <label class="control-label">Paste encrypted text to crack</label>
+                <textarea id="encrypted" placeholder="Paste an encrypted message here to crack it..."></textarea>
+            </div>
+            
+            <div class="button-row" style="margin-top: 15px;">
+                <button id="crackBtn">Crack All Rotations</button>
+            </div>
+        </div>
+        
+        <div class="output-section">
+            <div class="output-label">Encrypted Output</div>
+            <div class="encrypted-box" id="encryptedOutput">
+                (encrypted text will appear here)
+            </div>
+        </div>
+        
+        <div class="output-section">
+            <div class="output-label">All 26 Possible Rotations (ranked by likelihood)</div>
+            <div class="rotations-grid" id="rotationsGrid">
+                <!-- rotation cards will be inserted here -->
+            </div>
+            
+            <div class="selected-decryption" id="selectedDecryption" style="display: none;">
+                <div class="selected-title">Selected Decryption</div>
+                <div class="selected-text" id="selectedText"></div>
+            </div>
+        </div>
+        
+        <div class="frequency-panel" id="frequencyPanel" style="display: none;">
+            <div class="frequency-title">Letter Frequency Analysis</div>
+            <div class="frequency-chart" id="frequencyChart"></div>
+        </div>
+        
+        <div class="info-box">
+            💡 <strong>How it works:</strong> Caesar cipher shifts each letter by a fixed number (ROT-N). With only 26 possible shifts, we try all of them and rank by English letter frequency (E, T, A are most common). The correct rotation will have a frequency distribution closest to English.
+        </div>
+    </div>
+    
+    <script>
+        // Common English words (500-word simplified dictionary)
+        const englishWords = new Set([
+            'the', 'be', 'to', 'of', 'and', 'a', 'in', 'that', 'have', 'i',
+            'it', 'for', 'not', 'on', 'with', 'he', 'as', 'you', 'do', 'at',
+            'this', 'but', 'his', 'by', 'from', 'they', 'we', 'say', 'her', 'she',
+            'or', 'an', 'will', 'my', 'one', 'all', 'would', 'there', 'their', 'what',
+            'so', 'up', 'out', 'if', 'about', 'who', 'get', 'which', 'go', 'me',
+            'when', 'make', 'can', 'like', 'time', 'no', 'just', 'him', 'know', 'take',
+            'people', 'into', 'year', 'your', 'good', 'some', 'could', 'them', 'see', 'other',
+            'than', 'then', 'now', 'look', 'only', 'come', 'its', 'over', 'think', 'also',
+            'back', 'after', 'use', 'two', 'how', 'our', 'work', 'first', 'well', 'way',
+            'even', 'new', 'want', 'because', 'any', 'these', 'give', 'day', 'most', 'us',
+            'is', 'was', 'are', 'been', 'being', 'has', 'had', 'having', 'does', 'did',
+            'doing', 'would', 'should', 'could', 'might', 'must', 'may', 'shall', 'can', 'going',
+            'great', 'need', 'feel', 'help', 'tell', 'become', 'find', 'ask', 'work', 'seem',
+            'leave', 'put', 'mean', 'keep', 'let', 'begin', 'show', 'hear', 'turn', 'watch',
+            'try', 'read', 'allow', 'lead', 'win', 'lose', 'save', 'sell', 'buy', 'hold',
+            'break', 'spend', 'cut', 'run', 'lose', 'beat', 'grow', 'lose', 'fly', 'draw',
+            'here', 'there', 'where', 'why', 'when', 'how', 'such', 'each', 'both', 'few',
+            'many', 'much', 'more', 'less', 'same', 'very', 'just', 'even', 'still', 'right',
+            'left', 'next', 'last', 'long', 'short', 'high', 'low', 'early', 'late', 'old',
+            'young', 'big', 'small', 'large', 'little', 'bad', 'poor', 'rich', 'free', 'easy',
+            'hard', 'true', 'false', 'real', 'sure', 'able', 'able', 'ready', 'open', 'close',
+            'start', 'end', 'stop', 'play', 'live', 'die', 'love', 'hate', 'like', 'want',
+            'need', 'help', 'hope', 'wish', 'believe', 'trust', 'doubt', 'remember', 'forget', 'know',
+            'understand', 'learn', 'teach', 'tell', 'ask', 'answer', 'say', 'speak', 'talk', 'listen',
+            'hear', 'sound', 'music', 'song', 'book', 'page', 'word', 'letter', 'name', 'thing',
+            'place', 'point', 'part', 'piece', 'kind', 'sort', 'type', 'reason', 'cause', 'effect',
+            'result', 'change', 'difference', 'same', 'similar', 'different', 'equal', 'level', 'degree', 'measure'
+        ]);
+        
+        // English letter frequency (%)
+        const englishFreq = {
+            'e': 11.1, 't': 8.5, 'a': 8.2, 'o': 7.5, 'i': 7.0, 'n': 6.7,
+            's': 6.3, 'h': 6.1, 'r': 6.0, 'd': 4.3, 'l': 4.0, 'c': 2.8,
+            'u': 2.8, 'm': 2.4, 'w': 2.4, 'f': 2.2, 'g': 2.0, 'y': 2.0,
+            'p': 1.9, 'b': 1.5, 'v': 1.0, 'k': 0.8, 'j': 0.15, 'x': 0.15,
+            'q': 0.1, 'z': 0.07
+        };
+        
+        function rotChar(char, shift) {
+            if (!/[a-z]/i.test(char)) return char;
+            const base = char.charCodeAt(0) - (char === char.toUpperCase() ? 65 : 97);
+            return String.fromCharCode((base + shift) % 26 + (char === char.toUpperCase() ? 65 : 97));
+        }
+        
+        function rotText(text, shift) {
+            return text.split('').map(c => rotChar(c, shift)).join('');
+        }
+        
+        function countLetterFreq(text) {
+            const freq = {};
+            const lower = text.toLowerCase();
+            let total = 0;
+            for (const char of lower) {
+                if (/[a-z]/.test(char)) {
+                    freq[char] = (freq[char] || 0) + 1;
+                    total++;
+                }
+            }
+            for (const letter in freq) {
+                freq[letter] = (freq[letter] / total) * 100;
+            }
+            return freq;
+        }
+        
+        function countEnglishWords(text) {
+            const words = text.toLowerCase().match(/\b\w+\b/g) || [];
+            let count = 0;
+            for (const word of words) {
+                if (englishWords.has(word)) count++;
+            }
+            return words.length > 0 ? (count / words.length) : 0;
+        }
+        
+        function chiSquared(observed, expected) {
+            let chi2 = 0;
+            for (const letter of 'abcdefghijklmnopqrstuvwxyz') {
+                const obs = observed[letter] || 0;
+                const exp = expected[letter] || 0.1;
+                chi2 += Math.pow(obs - exp, 2) / exp;
+            }
+            return chi2;
+        }
+        
+        function scoreLikelihood(text) {
+            const freq = countLetterFreq(text);
+            const chi2 = chiSquared(freq, englishFreq);
+            const wordScore = countEnglishWords(text) * 100;
+            
+            // Lower chi2 is better, higher wordScore is better
+            const freqScore = Math.max(0, 100 - chi2 / 3);
+            return (freqScore * 0.6 + wordScore * 0.4);
+        }
+        
+        function crackAllRotations(encrypted) {
+            const rotations = [];
+            for (let shift = 0; shift < 26; shift++) {
+                const decrypted = rotText(encrypted, shift);
+                const likelihood = scoreLikelihood(decrypted);
+                rotations.push({ shift, decrypted, likelihood });
+            }
+            return rotations.sort((a, b) => b.likelihood - a.likelihood);
+        }
+        
+        function renderRotations(rotations) {
+            const grid = document.getElementById('rotationsGrid');
+            grid.innerHTML = '';
+            const top3Shifts = new Set(rotations.slice(0, 3).map(r => r.shift));
+            
+            for (const rotation of rotations) {
+                const card = document.createElement('div');
+                card.className = 'rotation-card';
+                if (top3Shifts.has(rotation.shift)) {
+                    card.classList.add('likely');
+                }
+                
+                const preview = rotation.decrypted.substring(0, 30);
+                const likelihood = rotation.likelihood.toFixed(0);
+                
+                card.innerHTML = `
+                    <div class="rotation-offset">ROT-${rotation.shift}</div>
+                    <div class="rotation-text">${preview}${rotation.decrypted.length > 30 ? '…' : ''}</div>
+                    <div class="rotation-score">${likelihood}%</div>
+                    <div class="likelihood-bar">
+                        <div class="likelihood-fill" style="width: ${likelihood}%"></div>
+                    </div>
+                `;
+                
+                card.addEventListener('click', () => selectRotation(rotation));
+                grid.appendChild(card);
+            }
+        }
+        
+        function selectRotation(rotation) {
+            document.querySelectorAll('.rotation-card').forEach(c => c.classList.remove('selected'));
+            event.target.closest('.rotation-card').classList.add('selected');
+            
+            const selectedDiv = document.getElementById('selectedDecryption');
+            selectedDiv.style.display = 'block';
+            document.getElementById('selectedText').textContent = rotation.decrypted;
+            
+            renderFrequencyChart(rotation.decrypted);
+        }
+        
+        function renderFrequencyChart(text) {
+            const panel = document.getElementById('frequencyPanel');
+            panel.style.display = 'block';
+            const chart = document.getElementById('frequencyChart');
+            chart.innerHTML = '';
+            
+            const freq = countLetterFreq(text);
+            const letters = 'etaoinshrdlcumwfgypbvkjxqz'.split('');
+            
+            for (const letter of letters) {
+                const count = freq[letter] || 0;
+                const bar = document.createElement('div');
+                bar.className = 'frequency-bar';
+                bar.innerHTML = `
+                    <div class="bar-label">${letter.toUpperCase()}</div>
+                    <div class="bar-container">
+                        <div class="bar-fill" style="height: ${Math.min(count * 1.5, 100)}%"></div>
+                    </div>
+                    <div class="bar-value">${count.toFixed(1)}%</div>
+                `;
+                chart.appendChild(bar);
+            }
+        }
+        
+        document.getElementById('encryptSlider').addEventListener('input', (e) => {
+            document.getElementById('encryptValue').textContent = `ROT-${e.target.value}`;
+        });
+        
+        document.getElementById('encryptBtn').addEventListener('click', () => {
+            const plain = document.getElementById('plaintext').value;
+            if (!plain) {
+                alert('Enter a message to encrypt');
+                return;
+            }
+            const shift = parseInt(document.getElementById('encryptSlider').value);
+            const encrypted = rotText(plain, shift);
+            document.getElementById('encryptedOutput').textContent = encrypted;
+            document.getElementById('encrypted').value = encrypted;
+        });
+        
+        document.getElementById('crackBtn').addEventListener('click', () => {
+            const encrypted = document.getElementById('encrypted').value;
+            if (!encrypted) {
+                alert('Paste encrypted text to crack');
+                return;
+            }
+            const rotations = crackAllRotations(encrypted);
+            renderRotations(rotations);
+            document.getElementById('selectedDecryption').style.display = 'none';
+            document.getElementById('frequencyPanel').style.display = 'none';
+        });
+        
+        // Demo: pre-load a sample encrypted message
+        window.addEventListener('load', () => {
+            const sample = "Uryyb Jbeyq! Guvf vf n grfg.";
+            document.getElementById('encrypted').value = sample;
+        });
+    </script>
+</body>
+</html>
