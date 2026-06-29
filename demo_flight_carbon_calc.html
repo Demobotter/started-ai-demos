@@ -415,9 +415,6 @@
             const distance = haversineDistance(lat1, lon1, lat2, lon2);
 
             // Fuel burn: vary by distance
-            // Short-haul (< 500km): 2.0 kg/km
-            // Medium-haul (500-2000km): 1.9 kg/km
-            // Long-haul (> 2000km): 2.5 kg/km
             let fuelBurnRate;
             if (distance < 500) {
                 fuelBurnRate = 2.0;
@@ -429,18 +426,17 @@
 
             const totalFuel = distance * fuelBurnRate;
 
-            // CO₂ emissions: fuel (kg) × 3.16 (kg CO₂ per kg jet fuel)
-            // × cabin multiplier × RFI (radiative forcing, ~2.7 for total effect)
+            // CO₂ emissions: fuel (kg) × 3.16 × cabin multiplier × RFI
             const cabinMult = cabinMultipliers[cabin] || 1.0;
-            const RFI = 2.7; // Radiative Forcing Index for total warming effect
+            const RFI = 2.7;
 
             const totalCO2kg = totalFuel * 3.16 * cabinMult * RFI;
             const co2PerPassenger = totalCO2kg / passengers;
 
             // Offset calculations
             const co2PerPassengerTons = co2PerPassenger / 1000;
-            const treesNeeded = Math.ceil(co2PerPassenger / (21 * 10)); // 21 kg/tree/year, 10-year lifespan
-            const carbonPrice = 20; // $/metric ton (market rate $15-30)
+            const treesNeeded = Math.ceil(co2PerPassenger / (21 * 10));
+            const carbonPrice = 20;
             const offsetCost = (totalCO2kg / 1000) * carbonPrice;
             const offsetCostPerPax = offsetCost / passengers;
 
@@ -484,12 +480,12 @@
                 document.getElementById('renewable').textContent = '$' + result.offsetCostPerPax + '/pax';
 
                 // Comparison
-                const carAnnual = 5; // Typical car: 5 tons/year
-                const co2PerPaxTons = parseFloat(result.co2PerPassengerTons);
-                const carMonths = (co2PerPaxTons / carAnnual * 12).toFixed(1);
-                const annual = (co2PerPaxTons * 52).toFixed(2); // If flying weekly
-                const comparison = `This 1 flight = ${carMonths} months of driving a typical car (${co2PerPaxTons.toFixed(2)} tons CO₂ per person). If you fly this route weekly, that's ~${annual} tons/year per passenger — nearly 2 years of average car driving.`;
-                document.getElementById('comparison').textContent = comparison;
+                const paxTons = parseFloat(result.co2PerPassengerTons);
+                const carAnnual = 5;
+                const carMonths = (paxTons / carAnnual * 12).toFixed(1);
+                const annual = (paxTons * 52).toFixed(2);
+                const comp = `This 1 flight = ${carMonths} months of driving a typical car (${paxTons.toFixed(2)} tons CO₂ per person). If you fly this route weekly, that's ~${annual} tons/year per passenger.`;
+                document.getElementById('comparison').textContent = comp;
 
                 document.getElementById('results').classList.add('show');
             } catch (e) {
