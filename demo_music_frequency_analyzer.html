@@ -4,8 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Frequency Analyzer</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
         * {
@@ -13,476 +11,581 @@
             padding: 0;
             box-sizing: border-box;
         }
+
         body {
             font-family: 'Inter', sans-serif;
             background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
-            color: #fff;
+            color: #00ff00;
             min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             padding: 20px;
         }
+
         .container {
-            max-width: 900px;
-            margin: 0 auto;
+            max-width: 1200px;
+            width: 100%;
+            background: rgba(10, 10, 10, 0.9);
+            border: 2px solid #00ff00;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.3);
         }
-        .header {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-        .header h1 {
-            font-family: 'Syne', sans-serif;
-            font-size: 2.5rem;
-            margin-bottom: 10px;
-            font-weight: 700;
-        }
-        .status-line {
+
+        header {
             display: flex;
-            justify-content: center;
-            gap: 15px;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #00ff00;
+            padding-bottom: 15px;
+        }
+
+        h1 {
+            font-family: 'Syne', sans-serif;
+            font-size: 2rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
             font-size: 0.9rem;
-            color: #aaa;
         }
-        .mic-indicator {
-            width: 12px;
-            height: 12px;
+
+        .led {
+            width: 16px;
+            height: 16px;
             border-radius: 50%;
-            display: inline-block;
-            animation: pulse-red 1s infinite;
+            background: #333;
+            border: 2px solid #666;
+            transition: all 0.1s;
         }
-        .mic-indicator.ready { background: #4ade80; animation: none; }
-        .mic-indicator.listening { background: #00ff00; animation: pulse-green 0.5s infinite; }
-        .mic-indicator.no-permission { background: #666; }
-        @keyframes pulse-green {
+
+        .led.ready {
+            background: #00ff00;
+            box-shadow: 0 0 10px #00ff00;
+        }
+
+        .led.error {
+            background: #ff0000;
+            box-shadow: 0 0 10px #ff0000;
+        }
+
+        .led.listening {
+            background: #ffff00;
+            box-shadow: 0 0 10px #ffff00;
+            animation: pulse 0.5s infinite;
+        }
+
+        @keyframes pulse {
             0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
+            50% { opacity: 0.6; }
         }
-        @keyframes pulse-red {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
+
         .controls {
             display: flex;
-            gap: 10px;
-            justify-content: center;
-            margin-bottom: 25px;
+            gap: 15px;
+            margin-bottom: 20px;
             flex-wrap: wrap;
         }
+
         button {
-            padding: 10px 20px;
-            font-family: 'Inter', sans-serif;
-            font-size: 0.95rem;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
             background: #00ff00;
-            color: #000;
-            font-weight: 600;
-            transition: all 0.2s;
-        }
-        button:hover { transform: scale(1.05); }
-        button:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none;
-        }
-        button.secondary {
-            background: #666;
-            color: #fff;
-        }
-        .analyzer-section {
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 20px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        .band-meter {
-            display: flex;
-            justify-content: space-around;
-            align-items: flex-end;
-            height: 120px;
-            margin-bottom: 20px;
-            gap: 8px;
-        }
-        .band-bar {
-            flex: 1;
-            background: linear-gradient(180deg, #00ff00 0%, #00aa00 100%);
-            border-radius: 4px 4px 0 0;
-            min-height: 5px;
-            position: relative;
-            box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
-            transition: height 0.05s linear;
-        }
-        .band-label {
-            position: absolute;
-            bottom: -25px;
-            left: 50%;
-            transform: translateX(-50%);
-            font-size: 0.7rem;
-            color: #aaa;
-            white-space: nowrap;
-        }
-        .spectrum-canvas-container {
-            position: relative;
-            margin-bottom: 30px;
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 8px;
-            padding: 10px;
-            overflow: hidden;
-        }
-        #spectrumCanvas {
-            width: 100%;
-            height: 200px;
-            display: block;
-        }
-        .frequency-ruler {
-            display: flex;
-            justify-content: space-between;
-            padding: 0 10px;
-            font-size: 0.8rem;
-            color: #888;
-            margin-bottom: 15px;
-        }
-        .frequency-ruler span {
-            position: relative;
-        }
-        .peak-info {
-            text-align: center;
-            padding: 20px;
-            background: rgba(0, 255, 0, 0.1);
-            border-radius: 8px;
-            border: 1px solid rgba(0, 255, 0, 0.3);
-            margin-bottom: 20px;
-        }
-        .peak-freq {
+            color: #1a1a1a;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
             font-family: 'Syne', sans-serif;
-            font-size: 2.5rem;
             font-weight: 700;
-            color: #00ff00;
-            margin-bottom: 5px;
-        }
-        .peak-note {
-            font-size: 1.2rem;
-            color: #00ff00;
-            margin-bottom: 10px;
-        }
-        .peak-label {
-            font-size: 0.85rem;
-            color: #aaa;
-        }
-        .controls-slider {
-            margin: 20px 0;
-        }
-        .slider-label {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
             font-size: 0.9rem;
         }
+
+        button:hover {
+            background: #00cc00;
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+        }
+
+        button:disabled {
+            background: #666;
+            color: #999;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .slider-group {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .slider-group label {
+            font-size: 0.9rem;
+            white-space: nowrap;
+        }
+
         input[type="range"] {
-            width: 100%;
+            flex: 1;
             height: 6px;
             border-radius: 3px;
-            background: #444;
+            background: #333;
             outline: none;
             -webkit-appearance: none;
+            appearance: none;
         }
+
         input[type="range"]::-webkit-slider-thumb {
             -webkit-appearance: none;
             appearance: none;
-            width: 16px;
-            height: 16px;
+            width: 18px;
+            height: 18px;
             border-radius: 50%;
             background: #00ff00;
             cursor: pointer;
-            box-shadow: 0 0 8px rgba(0, 255, 0, 0.5);
+            box-shadow: 0 0 5px #00ff00;
         }
+
         input[type="range"]::-moz-range-thumb {
-            width: 16px;
-            height: 16px;
+            width: 18px;
+            height: 18px;
             border-radius: 50%;
             background: #00ff00;
             cursor: pointer;
             border: none;
+            box-shadow: 0 0 5px #00ff00;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 250px;
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        @media (max-width: 900px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .equalizer {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-around;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 20px;
+            border-radius: 4px;
+            height: 200px;
+            border: 1px solid #00ff00;
+            gap: 8px;
+        }
+
+        .band {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-end;
+            height: 100%;
+            gap: 8px;
+        }
+
+        .band-bar {
+            width: 100%;
+            background: linear-gradient(to top, #00ff00, #ffff00, #ff0000);
+            border-radius: 2px;
+            transition: height 0.05s;
+            min-height: 4px;
             box-shadow: 0 0 8px rgba(0, 255, 0, 0.5);
         }
-        .stats-panel {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 15px;
+
+        .band-label {
+            font-size: 0.75rem;
+            text-align: center;
+            color: #aaa;
+            white-space: nowrap;
         }
-        .stat-card {
-            background: rgba(0, 255, 0, 0.05);
-            border: 1px solid rgba(0, 255, 0, 0.2);
-            padding: 15px;
-            border-radius: 8px;
+
+        .spectrum-canvas {
+            width: 100%;
+            height: 150px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 4px;
+            border: 1px solid #00ff00;
+            margin-top: 20px;
+            display: block;
+        }
+
+        .peak-display {
+            background: rgba(0, 0, 0, 0.5);
+            border: 2px solid #ff0000;
+            padding: 20px;
+            border-radius: 4px;
+            margin-top: 20px;
             text-align: center;
         }
-        .stat-value {
-            font-size: 1.5rem;
-            font-weight: 600;
-            color: #00ff00;
+
+        .peak-freq {
+            font-size: 2rem;
+            font-family: 'Syne', sans-serif;
+            font-weight: 700;
+            color: #ff0000;
             margin-bottom: 5px;
         }
-        .stat-label {
-            font-size: 0.8rem;
-            color: #aaa;
+
+        .peak-note {
+            font-size: 1.2rem;
+            color: #00ff00;
+            letter-spacing: 2px;
         }
-        @media (max-width: 600px) {
-            .header h1 { font-size: 1.8rem; }
-            .band-meter { height: 80px; }
-            .peak-freq { font-size: 1.8rem; }
-            .stats-panel { grid-template-columns: 1fr 1fr; }
+
+        .stats-panel {
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid #00ff00;
+            padding: 20px;
+            border-radius: 4px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #333;
+        }
+
+        .stat-item:last-child {
+            border-bottom: none;
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            color: #999;
+        }
+
+        .stat-value {
+            font-family: 'Syne', sans-serif;
+            font-weight: 700;
+            color: #00ff00;
+            font-size: 1.1rem;
+        }
+
+        .error-message {
+            background: rgba(255, 0, 0, 0.1);
+            border: 2px solid #ff0000;
+            color: #ff6666;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="header">
+        <header>
             <h1>🎚️ Frequency Analyzer</h1>
-            <div class="status-line">
-                <span>Mic: <span id="micStatus" class="mic-indicator no-permission"></span></span>
-                <span id="statusText">Allow microphone access to begin</span>
+            <div class="status">
+                <span id="statusText">Ready</span>
+                <div class="led ready" id="statusLED"></div>
             </div>
-        </div>
+        </header>
 
         <div class="controls">
-            <button id="startBtn" onclick="startAnalyzer()">Start Listening</button>
-            <button id="stopBtn" onclick="stopAnalyzer()" disabled>Stop</button>
-            <button class="secondary" onclick="resetStats()">Reset</button>
-        </div>
-
-        <div class="analyzer-section">
-            <h2 style="font-family: 'Syne', sans-serif; margin-bottom: 15px; font-size: 1.1rem;">Frequency Bands</h2>
-            <div class="band-meter" id="bandMeter"></div>
-            <div style="margin-top: 40px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; font-size: 0.75rem; color: #888; text-align: center;">
-                <div>Bass<br>20-200Hz</div>
-                <div>Low-Mid<br>200-500Hz</div>
-                <div>Mid<br>500-2kHz</div>
-                <div>Presence<br>2-5kHz</div>
-                <div>High<br>5-20kHz</div>
+            <button id="startBtn">Start</button>
+            <button id="stopBtn" disabled>Stop</button>
+            <button id="clearBtn">Clear</button>
+            <div class="slider-group">
+                <label for="sensitivitySlider">Sensitivity:</label>
+                <input type="range" id="sensitivitySlider" min="0" max="100" value="50">
+                <span id="sensitivityValue">50</span>
             </div>
         </div>
 
-        <div class="analyzer-section">
-            <h2 style="font-family: 'Syne', sans-serif; margin-bottom: 15px; font-size: 1.1rem;">Spectrum Waveform</h2>
-            <div class="spectrum-canvas-container">
-                <canvas id="spectrumCanvas"></canvas>
-            </div>
-            <div class="frequency-ruler">
-                <span>20 Hz</span>
-                <span>100 Hz</span>
-                <span>1 kHz</span>
-                <span>5 kHz</span>
-                <span>20 kHz</span>
-            </div>
-        </div>
-
-        <div class="peak-info">
-            <div class="peak-freq" id="peakFreq">— Hz</div>
-            <div class="peak-note" id="peakNote">No input</div>
-            <div class="peak-label">Peak Frequency</div>
-        </div>
-
-        <div class="analyzer-section">
-            <div class="controls-slider">
-                <div class="slider-label">
-                    <span>Sensitivity</span>
-                    <span id="sensitivityValue">50%</span>
+        <div class="main-grid">
+            <div>
+                <div class="equalizer" id="equalizer"></div>
+                <canvas id="spectrumCanvas" class="spectrum-canvas"></canvas>
+                <div class="peak-display">
+                    <div class="peak-freq" id="peakFreq">-- Hz</div>
+                    <div class="peak-note" id="peakNote">-- --</div>
                 </div>
-                <input type="range" id="sensitivitySlider" min="0" max="100" value="50" oninput="updateSensitivity(this.value)">
             </div>
-        </div>
 
-        <div class="analyzer-section">
-            <h2 style="font-family: 'Syne', sans-serif; margin-bottom: 15px; font-size: 1.1rem;">Statistics</h2>
             <div class="stats-panel">
-                <div class="stat-card">
-                    <div class="stat-value" id="rmsLevel">0</div>
-                    <div class="stat-label">RMS Loudness (dB)</div>
+                <div class="stat-item">
+                    <span class="stat-label">RMS Level</span>
+                    <span class="stat-value" id="rmsValue">0.0</span>
                 </div>
-                <div class="stat-card">
-                    <div class="stat-value" id="dominant">—</div>
-                    <div class="stat-label">Dominant Band</div>
+                <div class="stat-item">
+                    <span class="stat-label">Peak Level</span>
+                    <span class="stat-value" id="peakLevelValue">0.0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">FFT Size</span>
+                    <span class="stat-value" id="fftValue">2048</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Freq Range</span>
+                    <span class="stat-value">20Hz - 20kHz</span>
                 </div>
             </div>
         </div>
+
+        <div class="error-message" id="errorMessage"></div>
     </div>
 
     <script>
-        const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
-        const A4_FREQ = 440;
-        const A4_MIDI = 69;
-        const LOG2 = Math.log(2);
+        // Musical note reference: A0 (27.5Hz) to C8 (4186Hz)
+        const noteFreqs = {
+            'C': 16.35, 'C#': 17.32, 'D': 18.35, 'D#': 19.45, 'E': 20.60, 'F': 21.83,
+            'F#': 23.12, 'G': 24.50, 'G#': 25.96, 'A': 27.50, 'A#': 29.14, 'B': 30.87
+        };
+
+        function frequencyToNote(freq) {
+            if (freq < 20) return '-- --';
+            const a4 = 440;
+            const c0 = 16.35;
+            const halfSteps = 12 * Math.log2(freq / c0);
+            const noteIndex = Math.round(halfSteps) % 12;
+            const octave = Math.floor((halfSteps + 9) / 12);
+            const notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+            return notes[noteIndex] + octave;
+        }
+
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const sensitivitySlider = document.getElementById('sensitivitySlider');
+        const sensitivityValue = document.getElementById('sensitivityValue');
+        const statusText = document.getElementById('statusText');
+        const statusLED = document.getElementById('statusLED');
+        const canvas = document.getElementById('spectrumCanvas');
+        const ctx = canvas.getContext('2d');
+        const equalizer = document.getElementById('equalizer');
+        const errorMessage = document.getElementById('errorMessage');
+        const peakFreqEl = document.getElementById('peakFreq');
+        const peakNoteEl = document.getElementById('peakNote');
+        const rmsValueEl = document.getElementById('rmsValue');
+        const peakLevelValueEl = document.getElementById('peakLevelValue');
 
         let audioContext;
         let analyser;
-        let microphone;
+        let micStream;
         let animationId;
-        let isListening = false;
-        let fftSize = 2048;
+        let isRunning = false;
+        let peakLevel = 0;
 
-        const bandRanges = [
-            { label: 'Bass', min: 20, max: 200 },
-            { label: 'Low-Mid', min: 200, max: 500 },
-            { label: 'Mid', min: 500, max: 2000 },
-            { label: 'Presence', min: 2000, max: 5000 },
-            { label: 'High', min: 5000, max: 20000 }
-        ];
+        // Initialize canvas and equalizer
+        function initEqualizer() {
+            equalizer.innerHTML = '';
+            const bands = [
+                { label: 'Bass\n20-200Hz', min: 20, max: 200 },
+                { label: 'Low-Mid\n200-500Hz', min: 200, max: 500 },
+                { label: 'Mid-L\n500-1k', min: 500, max: 1000 },
+                { label: 'Mid-H\n1k-2k', min: 1000, max: 2000 },
+                { label: 'Presence\n2k-5k', min: 2000, max: 5000 },
+                { label: 'Bright-L\n5k-8k', min: 5000, max: 8000 },
+                { label: 'Bright-H\n8k-12k', min: 8000, max: 12000 },
+                { label: 'Sizzle\n12k-16k', min: 12000, max: 16000 },
+                { label: 'Air\n16k-18k', min: 16000, max: 18000 },
+                { label: 'Ultra\n18k-20k', min: 18000, max: 20000 }
+            ];
 
-        async function startAnalyzer() {
+            bands.forEach((band, i) => {
+                const bandEl = document.createElement('div');
+                bandEl.className = 'band';
+                bandEl.innerHTML = `
+                    <div class="band-bar" id="band-${i}"></div>
+                    <div class="band-label">${band.label}</div>
+                `;
+                equalizer.appendChild(bandEl);
+            });
+        }
+
+        function resizeCanvas() {
+            canvas.width = canvas.offsetWidth * window.devicePixelRatio;
+            canvas.height = canvas.offsetHeight * window.devicePixelRatio;
+            ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+        }
+
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+        initEqualizer();
+
+        // Start button
+        startBtn.addEventListener('click', async () => {
             try {
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                audioContext = audioContext || new (window.AudioContext || window.webkitAudioContext)();
-                microphone = audioContext.createMediaStreamSource(stream);
+                errorMessage.classList.remove('show');
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
                 analyser = audioContext.createAnalyser();
-                analyser.fftSize = fftSize;
+                
+                const fftSize = 2048 + (sensitivitySlider.value * 20); // 2048 to 4048
+                analyser.fftSize = Math.min(fftSize, 4096);
                 analyser.smoothingTimeConstant = 0.85;
-                microphone.connect(analyser);
-                
-                isListening = true;
-                document.getElementById('startBtn').disabled = true;
-                document.getElementById('stopBtn').disabled = false;
-                document.getElementById('micStatus').className = 'mic-indicator listening';
-                document.getElementById('statusText').textContent = 'Listening...';
-                
-                createBandMeter();
+
+                document.getElementById('fftValue').textContent = analyser.fftSize;
+
+                micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                const source = audioContext.createMediaStreamSource(micStream);
+                source.connect(analyser);
+
+                startBtn.disabled = true;
+                stopBtn.disabled = false;
+                sensitivitySlider.disabled = false;
+                isRunning = true;
+                statusText.textContent = 'Listening';
+                statusLED.className = 'led listening';
                 animate();
             } catch (err) {
-                document.getElementById('statusText').textContent = 'Microphone access denied';
-                document.getElementById('micStatus').className = 'mic-indicator no-permission';
+                showError('Microphone access denied or not available');
+                statusLED.className = 'led error';
+                statusText.textContent = 'Error';
             }
-        }
+        });
 
-        function stopAnalyzer() {
-            isListening = false;
-            if (microphone) microphone.disconnect();
-            cancelAnimationFrame(animationId);
-            document.getElementById('startBtn').disabled = false;
-            document.getElementById('stopBtn').disabled = true;
-            document.getElementById('micStatus').className = 'mic-indicator ready';
-            document.getElementById('statusText').textContent = 'Stopped';
-        }
-
-        function createBandMeter() {
-            const meter = document.getElementById('bandMeter');
-            meter.innerHTML = '';
-            for (let i = 0; i < 5; i++) {
-                const bar = document.createElement('div');
-                bar.className = 'band-bar';
-                bar.id = `band-${i}`;
-                meter.appendChild(bar);
+        // Stop button
+        stopBtn.addEventListener('click', () => {
+            isRunning = false;
+            if (animationId) cancelAnimationFrame(animationId);
+            if (micStream) {
+                micStream.getTracks().forEach(track => track.stop());
             }
-        }
-
-        function frequencyToNote(freq) {
-            if (!freq || freq <= 0) return { note: '—', octave: '' };
-            const halfStepsfromA4 = 12 * Math.log(freq / A4_FREQ) / LOG2;
-            const midiNote = Math.round(A4_MIDI + halfStepsfromA4);
-            const noteName = NOTE_NAMES[midiNote % 12];
-            const octave = Math.floor(midiNote / 12) - 1;
-            return { note: noteName, octave };
-        }
-
-        function getFrequencyBin(freq) {
-            const nyquist = audioContext.sampleRate / 2;
-            return Math.round((freq / nyquist) * analyser.frequencyBinCount);
-        }
-
-        function updateSensitivity(value) {
-            document.getElementById('sensitivityValue').textContent = value + '%';
-            fftSize = 1024 + Math.round((value / 100) * 3072);
-            if (isListening && analyser) {
-                analyser.fftSize = fftSize;
+            if (audioContext) {
+                audioContext.close();
             }
-        }
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+            sensitivitySlider.disabled = true;
+            statusText.textContent = 'Ready';
+            statusLED.className = 'led ready';
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        });
 
-        function resetStats() {
-            document.getElementById('peakFreq').textContent = '— Hz';
-            document.getElementById('peakNote').textContent = 'No input';
-            document.getElementById('rmsLevel').textContent = '0';
-            document.getElementById('dominant').textContent = '—';
+        // Clear button
+        clearBtn.addEventListener('click', () => {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            peakLevel = 0;
+            peakLevelValueEl.textContent = '0.0';
+        });
+
+        // Sensitivity slider
+        sensitivitySlider.addEventListener('input', (e) => {
+            sensitivityValue.textContent = e.target.value;
+            if (isRunning && analyser) {
+                const fftSize = 2048 + (e.target.value * 20);
+                analyser.fftSize = Math.min(Math.floor(fftSize), 4096);
+                document.getElementById('fftValue').textContent = analyser.fftSize;
+            }
+        });
+
+        function showError(msg) {
+            errorMessage.textContent = msg;
+            errorMessage.classList.add('show');
         }
 
         function animate() {
-            if (!isListening) return;
+            if (!isRunning) return;
+
+            animationId = requestAnimationFrame(animate);
 
             const dataArray = new Uint8Array(analyser.frequencyBinCount);
             analyser.getByteFrequencyData(dataArray);
 
-            // Update band meters
-            const bandsData = bandRanges.map((range, idx) => {
-                const minBin = getFrequencyBin(range.min);
-                const maxBin = getFrequencyBin(range.max);
-                let sum = 0;
-                for (let i = minBin; i < maxBin; i++) sum += dataArray[i] || 0;
-                const avg = sum / (maxBin - minBin);
-                return { idx, avg };
-            });
-
-            bandsData.forEach(({ idx, avg }) => {
-                const bar = document.getElementById(`band-${idx}`);
-                if (bar) bar.style.height = (avg / 255 * 100) + '%';
-            });
-
-            // Find peak frequency
-            let maxValue = 0;
-            let maxBin = 0;
-            for (let i = 0; i < dataArray.length; i++) {
-                if (dataArray[i] > maxValue) {
-                    maxValue = dataArray[i];
-                    maxBin = i;
-                }
-            }
-
-            const peakFreq = (maxBin / analyser.frequencyBinCount) * (audioContext.sampleRate / 2);
-            if (maxValue > 20 && peakFreq > 20) {
-                document.getElementById('peakFreq').textContent = Math.round(peakFreq) + ' Hz';
-                const { note, octave } = frequencyToNote(peakFreq);
-                document.getElementById('peakNote').textContent = note + octave;
-            } else {
-                document.getElementById('peakFreq').textContent = '— Hz';
-                document.getElementById('peakNote').textContent = 'No input';
-            }
-
-            // RMS level
-            let rms = 0;
-            for (let i = 0; i < dataArray.length; i++) rms += dataArray[i] * dataArray[i];
-            rms = Math.sqrt(rms / dataArray.length);
-            const dB = 20 * Math.log10(rms / 255);
-            document.getElementById('rmsLevel').textContent = Math.max(-40, dB).toFixed(1);
-
-            // Dominant band
-            const domBand = bandsData.reduce((a, b) => a.avg > b.avg ? a : b);
-            document.getElementById('dominant').textContent = bandRanges[domBand.idx].label;
-
             // Draw spectrum waveform
-            const canvas = document.getElementById('spectrumCanvas');
-            const ctx = canvas.getContext('2d');
-            canvas.width = canvas.offsetWidth;
-            canvas.height = canvas.offsetHeight;
+            const width = canvas.width;
+            const height = canvas.height;
+            ctx.fillStyle = 'rgba(26, 26, 26, 0.2)';
+            ctx.fillRect(0, 0, width, height);
 
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
             ctx.strokeStyle = '#00ff00';
             ctx.lineWidth = 2;
             ctx.beginPath();
 
-            const sliceWidth = canvas.width / analyser.frequencyBinCount;
+            const sliceWidth = width / dataArray.length;
             let x = 0;
-            for (let i = 0; i < analyser.frequencyBinCount; i++) {
+
+            for (let i = 0; i < dataArray.length; i++) {
                 const v = dataArray[i] / 255;
-                const y = canvas.height - (v * canvas.height);
-                if (i === 0) ctx.moveTo(x, y);
-                else ctx.lineTo(x, y);
+                const y = (1 - v) * height;
+
+                if (i === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+
                 x += sliceWidth;
             }
+
+            ctx.lineTo(width, height / 2);
             ctx.stroke();
 
-            animationId = requestAnimationFrame(animate);
-        }
+            // Update equalizer bars
+            const bandSize = Math.floor(dataArray.length / 10);
+            for (let i = 0; i < 10; i++) {
+                const start = i * bandSize;
+                const end = start + bandSize;
+                let sum = 0;
+                for (let j = start; j < end && j < dataArray.length; j++) {
+                    sum += dataArray[j];
+                }
+                const avg = sum / bandSize;
+                const barEl = document.getElementById(`band-${i}`);
+                barEl.style.height = (avg / 255 * 100) + '%';
+            }
 
-        // Initialize UI
-        document.getElementById('micStatus').className = 'mic-indicator ready';
+            // Calculate RMS and find peak frequency
+            let sum = 0;
+            for (let i = 0; i < dataArray.length; i++) {
+                const normalized = dataArray[i] / 255;
+                sum += normalized * normalized;
+            }
+            const rms = Math.sqrt(sum / dataArray.length);
+            rmsValueEl.textContent = (rms * 100).toFixed(1);
+
+            // Find peak frequency
+            let maxValue = 0;
+            let maxIndex = 0;
+            for (let i = 0; i < dataArray.length; i++) {
+                if (dataArray[i] > maxValue) {
+                    maxValue = dataArray[i];
+                    maxIndex = i;
+                }
+            }
+
+            if (maxValue > peakLevel) {
+                peakLevel = maxValue;
+            }
+            peakLevelValueEl.textContent = (maxValue / 255 * 100).toFixed(1);
+
+            // Convert bin to frequency
+            const nyquist = audioContext.sampleRate / 2;
+            const freqBinWidth = nyquist / dataArray.length;
+            const peakFreq = maxIndex * freqBinWidth;
+
+            if (peakFreq > 20) {
+                peakFreqEl.textContent = peakFreq.toFixed(0) + ' Hz';
+                peakNoteEl.textContent = frequencyToNote(peakFreq);
+            }
+        }
     </script>
 </body>
 </html>
