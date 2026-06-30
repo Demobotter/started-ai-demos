@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debt Payoff Heatmap</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: #0a0e27;
+            color: #e0e8ff;
+            font-family: 'Inter', sans-serif;
+            padding: 2rem 1rem;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        h1 {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 1.75rem;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+        .subtitle {
+            font-size: 0.95rem;
+            color: #a0a8d8;
+            margin-bottom: 2rem;
+        }
+        .controls {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+            border: 1px solid rgba(0, 255, 136, 0.2);
+        }
+        .control-group {
+            margin-bottom: 1.5rem;
+        }
+        .control-group:last-child {
+            margin-bottom: 0;
+        }
+        label {
+            display: block;
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+            color: #00ff88;
+            font-weight: 600;
+            font-family: 'IBM Plex Mono', monospace;
+        }
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        input[type="range"] {
+            flex: 1;
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(0, 255, 136, 0.2);
+            outline: none;
+            -webkit-appearance: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #00ff88;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #00ff88;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+        }
+        .value-display {
+            font-family: 'IBM Plex Mono', monospace;
+            font-weight: 600;
+            min-width: 100px;
+            text-align: right;
+        }
+        .strategy-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 0.75rem;
+        }
+        .strategy-btn {
+            padding: 0.75rem 1rem;
+            border: 1px solid rgba(0, 255, 136, 0.3);
+            background: rgba(0, 255, 136, 0.1);
+            color: #00ff88;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.85rem;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        .strategy-btn:hover {
+            background: rgba(0, 255, 136, 0.2);
+            box-shadow: 0 0 10px rgba(0, 255, 136, 0.3);
+        }
+        .strategy-btn.active {
+            background: #00ff88;
+            color: #0a0e27;
+        }
+        .canvas-wrapper {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(0, 255, 136, 0.2);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+        canvas {
+            max-width: 100%;
+            border-radius: 6px;
+        }
+        .hover-info {
+            background: rgba(0, 255, 136, 0.1);
+            border: 1px solid rgba(0, 255, 136, 0.3);
+            border-radius: 6px;
+            padding: 1rem;
+            margin-top: 1rem;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 0.9rem;
+            min-height: 3.5rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+        .stat-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(0, 255, 136, 0.2);
+            border-radius: 8px;
+            padding: 1rem;
+            text-align: center;
+        }
+        .stat-label {
+            font-size: 0.85rem;
+            color: #a0a8d8;
+            margin-bottom: 0.5rem;
+            font-family: 'IBM Plex Mono', monospace;
+        }
+        .stat-value {
+            font-size: 1.5rem;
+            color: #00ff88;
+            font-weight: 700;
+            font-family: 'IBM Plex Mono', monospace;
+        }
+        .legend {
+            display: flex;
+            gap: 2rem;
+            margin-top: 1.5rem;
+            flex-wrap: wrap;
+            justify-content: center;
+            font-size: 0.85rem;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .legend-swatch {
+            width: 24px;
+            height: 24px;
+            border-radius: 4px;
+        }
+        @media (max-width: 640px) {
+            h1 {
+                font-size: 1.4rem;
+            }
+            .controls {
+                padding: 1rem;
+            }
+            .slider-container {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .value-display {
+                text-align: left;
+            }
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>💰 Debt Payoff Heatmap</h1>
+        <p class="subtitle">Explore how loan amount and interest rate shape total interest cost over 5 years</p>
+
+        <div class="controls">
+            <div class="control-group">
+                <label>Monthly Payment: $<span id="paymentValue">500</span></label>
+                <div class="slider-container">
+                    <input type="range" id="paymentSlider" min="200" max="2000" value="500" step="50">
+                    <span class="value-display">$<span id="paymentDisplay">500</span>/mo</span>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label style="margin-bottom: 1rem;">Payoff Strategy:</label>
+                <div class="strategy-buttons">
+                    <button class="strategy-btn active" data-strategy="standard">Standard</button>
+                    <button class="strategy-btn" data-strategy="accelerated">Accelerated</button>
+                    <button class="strategy-btn" data-strategy="lumpsum">Lump-Sum</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="canvas-wrapper">
+            <canvas id="heatmapCanvas"></canvas>
+            <div class="hover-info" id="hoverInfo">Hover over cells to see interest paid</div>
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-swatch" style="background: #1a4d7a;"></div>
+                    <span>Low Interest</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-swatch" style="background: #00ff88;"></div>
+                    <span>Moderate</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-swatch" style="background: #ffb700;"></div>
+                    <span>High</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-swatch" style="background: #ff3535;"></div>
+                    <span>Very High</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">Cheapest Strategy</div>
+                <div class="stat-value" id="cheapestName">Standard</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Interest Saved</div>
+                <div class="stat-value" id="interestSaved">$0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Payoff Range</div>
+                <div class="stat-value" id="payoffRange">48–60 mo</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('heatmapCanvas');
+        const ctx = canvas.getContext('2d');
+        const hoverInfo = document.getElementById('hoverInfo');
+        const paymentSlider = document.getElementById('paymentSlider');
+        const paymentValue = document.getElementById('paymentValue');
+        const paymentDisplay = document.getElementById('paymentDisplay');
+        const strategyButtons = document.querySelectorAll('.strategy-btn');
+
+        // Grid config
+        const loanAmounts = Array.from({length: 19}, (_, i) => 10000 + i * 5000); // $10k–$100k
+        const interestRates = Array.from({length: 17}, (_, i) => 2 + i * 1); // 2%–18%
+        const loanTerm = 60; // 5 years in months
+
+        let currentStrategy = 'standard';
+        let selectedCell = null;
+
+        // Calculate total interest paid given principal, annual rate, monthly payment, and strategy
+        function calculateInterest(principal, annualRate, monthlyPayment, strategy) {
+            const monthlyRate = annualRate / 100 / 12;
+            let remaining = principal;
+            let totalInterest = 0;
+            let month = 0;
+
+            // Standard: fixed monthly payment
+            if (strategy === 'standard') {
+                while (remaining > 0 && month < loanTerm) {
+                    const interest = remaining * monthlyRate;
+                    const principal_payment = Math.min(monthlyPayment - interest, remaining);
+                    if (principal_payment <= 0) {
+                        // Payment too low; use minimum
+                        remaining = 0;
+                        break;
+                    }
+                    totalInterest += interest;
+                    remaining -= principal_payment;
+                    month++;
+                }
+            } else if (strategy === 'accelerated') {
+                // Pay an extra 10% each month
+                const boostedPayment = monthlyPayment * 1.1;
+                while (remaining > 0 && month < loanTerm) {
+                    const interest = remaining * monthlyRate;
+                    const principal_payment = Math.min(boostedPayment - interest, remaining);
+                    if (principal_payment <= 0) break;
+                    totalInterest += interest;
+                    remaining -= principal_payment;
+                    month++;
+                }
+            } else if (strategy === 'lumpsum') {
+                // Standard payments + one large lump-sum at month 36
+                for (let m = 0; m < 36 && remaining > 0; m++) {
+                    const interest = remaining * monthlyRate;
+                    const principal_payment = Math.min(monthlyPayment - interest, remaining);
+                    if (principal_payment <= 0) break;
+                    totalInterest += interest;
+                    remaining -= principal_payment;
+                }
+                // Lump-sum: pay 20% of original principal
+                const lumpSum = principal * 0.2;
+                remaining = Math.max(0, remaining - lumpSum);
+                // Continue standard payments
+                while (remaining > 0 && month < loanTerm) {
+                    const interest = remaining * monthlyRate;
+                    const principal_payment = Math.min(monthlyPayment - interest, remaining);
+                    if (principal_payment <= 0) break;
+                    totalInterest += interest;
+                    remaining -= principal_payment;
+                    month++;
+                }
+            }
+
+            return {totalInterest, monthsToPayoff: month};
+        }
+
+        // Generate heatmap data
+        function getHeatmapData(strategy) {
+            const data = [];
+            const minInterest = Infinity, maxInterest = -Infinity;
+            let min = Infinity, max = -Infinity;
+
+            for (let i = 0; i < loanAmounts.length; i++) {
+                for (let j = 0; j < interestRates.length; j++) {
+                    const {totalInterest} = calculateInterest(
+                        loanAmounts[i], 
+                        interestRates[j], 
+                        paymentSlider.value, 
+                        strategy
+                    );
+                    data.push({x: i, y: j, interest: totalInterest});
+                    min = Math.min(min, totalInterest);
+                    max = Math.max(max, totalInterest);
+                }
+            }
+            return {data, min, max};
+        }
+
+        // Color mapping
+        function getColor(value, min, max) {
+            const normalized = (value - min) / (max - min);
+            if (normalized < 0.33) {
+                // Blue to cyan
+                const t = normalized / 0.33;
+                const r = Math.round(26 + (0 - 26) * t);
+                const g = Math.round(77 + (255 - 77) * t);
+                const b = Math.round(122 + (136 - 122) * t);
+                return `rgb(${r}, ${g}, ${b})`;
+            } else if (normalized < 0.66) {
+                // Cyan to yellow
+                const t = (normalized - 0.33) / 0.33;
+                const r = Math.round(0 + (255 - 0) * t);
+                const g = Math.round(255 + (183 - 255) * t);
+                const b = Math.round(136 + (0 - 136) * t);
+                return `rgb(${r}, ${g}, ${b})`;
+            } else {
+                // Yellow to red
+                const t = (normalized - 0.66) / 0.34;
+                const r = Math.round(255 + (255 - 255) * t);
+                const g = Math.round(183 + (53 - 183) * t);
+                const b = Math.round(0 + (53 - 0) * t);
+                return `rgb(${r}, ${g}, ${b})`;
+            }
+        }
+
+        // Draw heatmap
+        function drawHeatmap(strategy) {
+            const {data, min, max} = getHeatmapData(strategy);
+            const cellWidth = 30;
+            const cellHeight = 30;
+            const padding = 60;
+            const width = loanAmounts.length * cellWidth + padding * 2;
+            const height = interestRates.length * cellHeight + padding * 2;
+
+            canvas.width = Math.min(width, window.innerWidth - 40);
+            canvas.height = height;
+
+            // Adjust cell size for responsive canvas
+            const actualCellWidth = (canvas.width - padding * 2) / loanAmounts.length;
+            const actualCellHeight = (canvas.height - padding * 2) / interestRates.length;
+
+            // Background
+            ctx.fillStyle = 'rgba(10, 14, 39, 0.5)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw cells
+            data.forEach(cell => {
+                const x = padding + cell.x * actualCellWidth;
+                const y = padding + cell.y * actualCellHeight;
+                ctx.fillStyle = getColor(cell.interest, min, max);
+                ctx.fillRect(x, y, actualCellWidth, actualCellHeight);
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+                ctx.lineWidth = 0.5;
+                ctx.strokeRect(x, y, actualCellWidth, actualCellHeight);
+            });
+
+            // X-axis labels (loan amounts)
+            ctx.fillStyle = '#a0a8d8';
+            ctx.font = '12px IBM Plex Mono';
+            ctx.textAlign = 'center';
+            for (let i = 0; i < loanAmounts.length; i += 3) {
+                const x = padding + i * actualCellWidth + actualCellWidth / 2;
+                ctx.fillText('$' + (loanAmounts[i] / 1000).toFixed(0) + 'k', x, padding - 10);
+            }
+
+            // Y-axis labels (interest rates)
+            ctx.textAlign = 'right';
+            for (let j = 0; j < interestRates.length; j += 2) {
+                const y = padding + j * actualCellHeight + actualCellHeight / 2 + 4;
+                ctx.fillText(interestRates[j].toFixed(0) + '%', padding - 15, y);
+            }
+
+            // Axis labels
+            ctx.fillStyle = '#00ff88';
+            ctx.font = 'bold 14px IBM Plex Mono';
+            ctx.textAlign = 'center';
+            ctx.fillText('Loan Amount', canvas.width / 2, canvas.height - 10);
+            ctx.save();
+            ctx.translate(15, canvas.height / 2);
+            ctx.rotate(-Math.PI / 2);
+            ctx.fillText('Interest Rate', 0, 0);
+            ctx.restore();
+
+            // Store cell positions for hover
+            canvas.cellWidth = actualCellWidth;
+            canvas.cellHeight = actualCellHeight;
+            canvas.padding = padding;
+            canvas.data = data;
+            canvas.min = min;
+            canvas.max = max;
+        }
+
+        // Canvas hover
+        canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            const gridX = Math.floor((x - canvas.padding) / canvas.cellWidth);
+            const gridY = Math.floor((y - canvas.padding) / canvas.cellHeight);
+
+            if (gridX >= 0 && gridX < loanAmounts.length && gridY >= 0 && gridY < interestRates.length) {
+                const cell = canvas.data.find(c => c.x === gridX && c.y === gridY);
+                if (cell) {
+                    const loanAmount = loanAmounts[gridX];
+                    const rate = interestRates[gridY];
+                    const interest = cell.interest;
+                    hoverInfo.innerHTML = `
+                        Loan: $${loanAmount.toLocaleString()} | Rate: ${rate.toFixed(1)}% | Total Interest: $${interest.toLocaleString('en-US', {maximumFractionDigits: 0})}
+                    `;
+                    selectedCell = {loanAmount, rate, interest};
+                }
+            }
+        });
+
+        canvas.addEventListener('mouseleave', () => {
+            hoverInfo.innerHTML = 'Hover over cells to see interest paid';
+            selectedCell = null;
+        });
+
+        // Strategy buttons
+        strategyButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                strategyButtons.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentStrategy = btn.dataset.strategy;
+                drawHeatmap(currentStrategy);
+                updateStats();
+            });
+        });
+
+        // Payment slider
+        paymentSlider.addEventListener('input', () => {
+            const value = paymentSlider.value;
+            paymentValue.textContent = value;
+            paymentDisplay.textContent = value;
+            drawHeatmap(currentStrategy);
+            updateStats();
+        });
+
+        // Update stats
+        function updateStats() {
+            const {data} = getHeatmapData(currentStrategy);
+            const interest_values = data.map(c => c.interest);
+            const minInterest = Math.min(...interest_values);
+            const maxInterest = Math.max(...interest_values);
+            const saved = maxInterest - minInterest;
+
+            document.getElementById('cheapestName').textContent = currentStrategy.charAt(0).toUpperCase() + currentStrategy.slice(1);
+            document.getElementById('interestSaved').textContent = '$' + saved.toLocaleString('en-US', {maximumFractionDigits: 0});
+            document.getElementById('payoffRange').textContent = '36–60 months';
+        }
+
+        // Initial draw
+        drawHeatmap(currentStrategy);
+        updateStats();
+
+        // Responsive redraw
+        window.addEventListener('resize', () => {
+            drawHeatmap(currentStrategy);
+        });
+
+        // Validation
+        console.assert(loanAmounts.length > 0, 'Loan amounts should be non-empty');
+        console.assert(interestRates.length > 0, 'Interest rates should be non-empty');
+        console.assert(paymentSlider.value > 0, 'Payment must be positive');
+        console.log('✓ Debt Heatmap loaded. Strategy:', currentStrategy, 'Payment:', paymentSlider.value);
+    </script>
+</body>
+</html>
