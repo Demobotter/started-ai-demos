@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Refraction Lens</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 100%);
+      color: #e0e0e0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .container {
+      max-width: 900px;
+      width: 100%;
+      background: rgba(15, 20, 40, 0.9);
+      border: 1px solid #00ffff;
+      border-radius: 16px;
+      padding: 40px;
+      box-shadow: 0 0 40px rgba(0, 255, 255, 0.1);
+    }
+    h1 {
+      font-family: 'Syne', sans-serif;
+      font-size: 32px;
+      margin-bottom: 10px;
+      color: #00ffff;
+    }
+    .subtitle {
+      color: #ffb700;
+      margin-bottom: 30px;
+      font-size: 14px;
+      font-weight: 500;
+    }
+    .canvas-wrapper {
+      background: #0d1419;
+      border: 1px solid #1a3a4a;
+      border-radius: 12px;
+      margin-bottom: 30px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    canvas {
+      display: block;
+      background: #0d1419;
+      cursor: crosshair;
+    }
+    .controls {
+      display: grid;
+      gap: 20px;
+    }
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .control-label {
+      font-size: 14px;
+      font-weight: 600;
+      color: #00ffff;
+      display: flex;
+      justify-content: space-between;
+    }
+    .control-value {
+      color: #ffb700;
+      font-family: 'Space Mono', monospace;
+      font-weight: 700;
+    }
+    input[type="range"] {
+      width: 100%;
+      height: 6px;
+      background: #1a3a4a;
+      border-radius: 3px;
+      outline: none;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 16px;
+      height: 16px;
+      background: #00ffff;
+      border-radius: 50%;
+      cursor: pointer;
+      box-shadow: 0 0 8px rgba(0, 255, 255, 0.6);
+    }
+    input[type="range"]::-moz-range-thumb {
+      width: 16px;
+      height: 16px;
+      background: #00ffff;
+      border: none;
+      border-radius: 50%;
+      cursor: pointer;
+      box-shadow: 0 0 8px rgba(0, 255, 255, 0.6);
+    }
+    .stats-panel {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin-top: 20px;
+      padding: 20px;
+      background: rgba(26, 58, 74, 0.5);
+      border: 1px solid #1a3a4a;
+      border-radius: 12px;
+    }
+    .stat-item {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .stat-label {
+      font-size: 12px;
+      color: #ffb700;
+      text-transform: uppercase;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+    .stat-value {
+      font-size: 18px;
+      font-family: 'Space Mono', monospace;
+      color: #00ffff;
+      font-weight: 700;
+    }
+    .info-box {
+      background: rgba(0, 255, 136, 0.1);
+      border-left: 4px solid #00ff88;
+      padding: 15px;
+      border-radius: 8px;
+      font-size: 13px;
+      color: #b0e0d0;
+      margin-bottom: 20px;
+    }
+    @media (max-width: 768px) {
+      .container {
+        padding: 20px;
+      }
+      h1 {
+        font-size: 24px;
+      }
+      .stats-panel {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔬 Refraction Lens</h1>
+    <div class="subtitle">Real optics: Snell's law, Fresnel equations, TIR</div>
+    
+    <div class="info-box">
+      💡 Click to position the lens. Adjust ray angle and refractive index to see refraction, reflection, and total internal reflection on exit.
+    </div>
+
+    <div class="canvas-wrapper">
+      <canvas id="canvas"></canvas>
+    </div>
+
+    <div class="controls">
+      <div class="control-group">
+        <label class="control-label">
+          Incident Ray Angle
+          <span class="control-value" id="angleValue">30°</span>
+        </label>
+        <input type="range" id="angleSlider" min="0" max="85" value="30">
+      </div>
+
+      <div class="control-group">
+        <label class="control-label">
+          Refractive Index (Glass)
+          <span class="control-value" id="indexValue">1.50</span>
+        </label>
+        <input type="range" id="indexSlider" min="1" max="2.5" step="0.01" value="1.5">
+      </div>
+    </div>
+
+    <div class="stats-panel">
+      <div class="stat-item">
+        <div class="stat-label">Refracted (Entry)</div>
+        <div class="stat-value" id="refractAngle">19.5°</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-label">Critical Angle</div>
+        <div class="stat-value" id="criticalAngle">41.8°</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-label">Reflection %</div>
+        <div class="stat-value" id="reflectionPct">5.3%</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-label">TIR on Exit</div>
+        <div class="stat-value" id="tirStatus">No</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const angleSlider = document.getElementById('angleSlider');
+    const indexSlider = document.getElementById('indexSlider');
+    const angleValue = document.getElementById('angleValue');
+    const indexValue = document.getElementById('indexValue');
+    const refractAngleEl = document.getElementById('refractAngle');
+    const criticalAngleEl = document.getElementById('criticalAngle');
+    const reflectionPctEl = document.getElementById('reflectionPct');
+    const tirStatusEl = document.getElementById('tirStatus');
+
+    // State
+    let lensX = 0;
+    let lensY = 0;
+    let lensRadius = 80;
+    let isDragging = false;
+    let incidentAngle = 30; // degrees
+    let refractiveIndex = 1.5;
+
+    // Resize canvas
+    function resizeCanvas() {
+      const parent = canvas.parentElement;
+      canvas.width = parent.clientWidth;
+      canvas.height = Math.min(500, canvas.width * 0.6);
+      lensX = canvas.width / 2;
+      lensY = canvas.height / 2;
+      draw();
+    }
+
+    // Snell's Law: n1 * sin(θ1) = n2 * sin(θ2)
+    function snellsLaw(theta1Deg, n1, n2) {
+      const theta1Rad = theta1Deg * Math.PI / 180;
+      const sinTheta2 = (n1 / n2) * Math.sin(theta1Rad);
+      if (sinTheta2 > 1) return null; // TIR
+      return Math.asin(sinTheta2) * 180 / Math.PI;
+    }
+
+    // Critical angle: sin(θc) = n2 / n1
+    function criticalAngle(n1, n2) {
+      const sinTheta = n2 / n1;
+      if (sinTheta >= 1) return null;
+      return Math.asin(sinTheta) * 180 / Math.PI;
+    }
+
+    // Fresnel reflection: R = ((n1-n2)/(n1+n2))^2
+    function fresnelReflection(n1, n2, thetaI) {
+      const r = (n1 - n2) / (n1 + n2);
+      let R = r * r;
+      const thetaIRad = thetaI * Math.PI / 180;
+      const cosTheta = Math.cos(thetaIRad);
+      R = R + (1 - R) * Math.pow(1 - cosTheta, 5); // Schlick's approximation
+      return Math.min(R, 1.0) * 100;
+    }
+
+    // Draw
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Grid
+      ctx.strokeStyle = 'rgba(26, 58, 74, 0.3)';
+      ctx.lineWidth = 1;
+      for (let x = 0; x < canvas.width; x += 50) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, canvas.height);
+        ctx.stroke();
+      }
+      for (let y = 0; y < canvas.height; y += 50) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(canvas.width, y);
+        ctx.stroke();
+      }
+
+      // Interface line (lens boundary)
+      ctx.strokeStyle = '#00ffff';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([5, 5]);
+      ctx.beginPath();
+      ctx.moveTo(lensX, 0);
+      ctx.lineTo(lensX, canvas.height);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Incident rays (5 parallel rays)
+      const raySpacing = 15;
+      const theta1Rad = incidentAngle * Math.PI / 180;
+      const theta2 = snellsLaw(incidentAngle, 1, refractiveIndex);
+      const crit = criticalAngle(refractiveIndex, 1); // glass→air
+      
+      for (let i = -2; i <= 2; i++) {
+        const rayY = lensY + i * raySpacing;
+
+        // Incident ray from left
+        ctx.strokeStyle = '#00ffff';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(lensX - 280, rayY);
+        ctx.lineTo(lensX - lensRadius - 5, rayY);
+        ctx.stroke();
+
+        if (theta2 === null) {
+          // No refraction at entry (shouldn't happen for air→glass)
+          ctx.strokeStyle = '#ff3535';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(lensX - lensRadius - 5, rayY);
+          ctx.lineTo(lensX - lensRadius - 5 - 100, rayY);
+          ctx.stroke();
+        } else {
+          // Ray enters the glass
+          const theta2Rad = theta2 * Math.PI / 180;
+          const refractDirX = Math.cos(theta2Rad);
+          const refractDirY = Math.sin(theta2Rad);
+          
+          // Travel through glass to exit point
+          const exitX = lensX + lensRadius + 5;
+          const entryX = lensX - lensRadius - 5;
+          const distX = exitX - entryX;
+          const travelY = rayY + distX * Math.tan(theta2Rad);
+
+          // Refracted ray inside glass
+          ctx.strokeStyle = '#00ff88';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(entryX, rayY);
+          ctx.lineTo(exitX, travelY);
+          ctx.stroke();
+
+          // At exit: check for TIR (glass→air)
+          // The ray inside is at angle theta2 to the normal
+          // On exit, it hits the glass-air interface at angle theta2
+          const isTIR = crit !== null && theta2 >= crit;
+
+          if (isTIR) {
+            // Total Internal Reflection
+            ctx.strokeStyle = '#ff3535';
+            ctx.lineWidth = 2;
+            const reflectDirX = Math.cos(-theta2Rad);
+            const reflectDirY = Math.sin(-theta2Rad);
+            ctx.beginPath();
+            ctx.moveTo(exitX, travelY);
+            ctx.lineTo(exitX + reflectDirX * 120, travelY + reflectDirY * 120);
+            ctx.stroke();
+          } else {
+            // Ray exits the glass
+            const exitAngle = snellsLaw(theta2, refractiveIndex, 1);
+            const exitAngleRad = exitAngle * Math.PI / 180;
+            const exitDirX = Math.cos(exitAngleRad);
+            const exitDirY = Math.sin(exitAngleRad);
+            
+            ctx.strokeStyle = '#00ff88';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(exitX, travelY);
+            ctx.lineTo(exitX + exitDirX * 100, travelY + exitDirY * 100);
+            ctx.stroke();
+
+            // Reflection at exit
+            ctx.strokeStyle = '#ffb700';
+            ctx.lineWidth = 1.5;
+            const reflectDirX = Math.cos(-theta2Rad);
+            const reflectDirY = Math.sin(-theta2Rad);
+            ctx.beginPath();
+            ctx.moveTo(exitX, travelY);
+            ctx.lineTo(exitX + reflectDirX * 60, travelY + reflectDirY * 60);
+            ctx.stroke();
+          }
+
+          // Reflection at entry
+          ctx.strokeStyle = '#ffb700';
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.moveTo(lensX - lensRadius - 5, rayY);
+          ctx.lineTo(lensX - lensRadius - 5 - 50, rayY - 50 * Math.tan(theta1Rad));
+          ctx.stroke();
+        }
+      }
+
+      // Lens circle
+      ctx.fillStyle = 'rgba(0, 255, 136, 0.15)';
+      ctx.strokeStyle = '#00ff88';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(lensX, lensY, lensRadius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      // Center point
+      ctx.fillStyle = '#ffb700';
+      ctx.beginPath();
+      ctx.arc(lensX, lensY, 4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Update stats
+    function updateStats() {
+      angleValue.textContent = incidentAngle + '°';
+      indexValue.textContent = refractiveIndex.toFixed(2);
+
+      const theta2 = snellsLaw(incidentAngle, 1, refractiveIndex);
+      const critAngle = criticalAngle(refractiveIndex, 1); // glass→air
+      const isTIR = critAngle !== null && theta2 !== null && theta2 >= critAngle;
+
+      if (theta2 !== null) {
+        refractAngleEl.textContent = theta2.toFixed(1) + '°';
+      } else {
+        refractAngleEl.textContent = '—';
+      }
+
+      if (critAngle !== null) {
+        criticalAngleEl.textContent = critAngle.toFixed(1) + '°';
+      } else {
+        criticalAngleEl.textContent = '—';
+      }
+
+      const R = fresnelReflection(1, refractiveIndex, incidentAngle);
+      reflectionPctEl.textContent = R.toFixed(1) + '%';
+
+      if (isTIR) {
+        tirStatusEl.textContent = 'YES';
+        tirStatusEl.parentElement.parentElement.style.background = 'rgba(255, 53, 53, 0.2)';
+      } else {
+        tirStatusEl.textContent = 'No';
+        tirStatusEl.parentElement.parentElement.style.background = 'rgba(0, 255, 136, 0.2)';
+      }
+
+      draw();
+    }
+
+    // Events
+    angleSlider.addEventListener('input', (e) => {
+      incidentAngle = parseFloat(e.target.value);
+      updateStats();
+    });
+
+    indexSlider.addEventListener('input', (e) => {
+      refractiveIndex = parseFloat(e.target.value);
+      updateStats();
+    });
+
+    canvas.addEventListener('mousedown', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      const dist = Math.sqrt((x - lensX) ** 2 + (y - lensY) ** 2);
+      if (dist < lensRadius + 20) {
+        isDragging = true;
+      }
+    });
+
+    canvas.addEventListener('mousemove', (e) => {
+      if (isDragging) {
+        const rect = canvas.getBoundingClientRect();
+        lensX = Math.max(lensRadius + 100, Math.min(canvas.width - lensRadius - 100, e.clientX - rect.left));
+        lensY = Math.max(lensRadius + 20, Math.min(canvas.height - lensRadius - 20, e.clientY - rect.top));
+        draw();
+      }
+    });
+
+    canvas.addEventListener('mouseup', () => {
+      isDragging = false;
+    });
+
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+    updateStats();
+  </script>
+</body>
+</html>
