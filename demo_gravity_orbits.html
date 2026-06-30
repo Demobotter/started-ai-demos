@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gravity Orbits</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, #0a0a15 0%, #15051f 100%);
+      color: #e0e0e0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    
+    .container {
+      max-width: 900px;
+      width: 100%;
+      background: #0d0415;
+      border-radius: 12px;
+      padding: 30px;
+      box-shadow: 0 20px 60px rgba(200, 100, 255, 0.15);
+      border: 1px solid rgba(200, 100, 255, 0.2);
+    }
+    
+    h1 {
+      font-family: 'Syne', sans-serif;
+      font-size: 2.2em;
+      margin-bottom: 8px;
+      color: #dd88ff;
+      text-shadow: 0 0 20px rgba(200, 100, 255, 0.4);
+    }
+    
+    .subtitle {
+      color: #bb99dd;
+      font-size: 0.95em;
+      margin-bottom: 25px;
+      font-weight: 500;
+    }
+    
+    canvas {
+      display: block;
+      width: 100%;
+      max-width: 100%;
+      border-radius: 8px;
+      background: #050008;
+      border: 1px solid rgba(200, 100, 255, 0.25);
+      margin-bottom: 25px;
+    }
+    
+    .controls {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+    
+    @media (max-width: 600px) {
+      .controls {
+        grid-template-columns: 1fr;
+      }
+    }
+    
+    .control-group {
+      display: flex;
+      flex-direction: column;
+    }
+    
+    label {
+      font-family: 'Syne', sans-serif;
+      font-size: 0.9em;
+      margin-bottom: 6px;
+      color: #dd88ff;
+      font-weight: 600;
+    }
+    
+    input[type="range"], button {
+      padding: 8px 12px;
+      background: #1a0d25;
+      border: 1px solid rgba(200, 100, 255, 0.3);
+      border-radius: 6px;
+      color: #e0e0e0;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.9em;
+      cursor: pointer;
+    }
+    
+    button {
+      background: rgba(200, 100, 255, 0.1);
+      font-weight: 600;
+    }
+    
+    button:hover {
+      background: rgba(200, 100, 255, 0.25);
+      border-color: rgba(200, 100, 255, 0.6);
+    }
+    
+    input[type="range"]:hover {
+      border-color: rgba(200, 100, 255, 0.6);
+      box-shadow: 0 0 10px rgba(200, 100, 255, 0.2);
+    }
+    
+    .stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 15px;
+      margin-top: 20px;
+    }
+    
+    @media (max-width: 600px) {
+      .stats {
+        grid-template-columns: 1fr;
+      }
+    }
+    
+    .stat-box {
+      background: rgba(200, 100, 255, 0.1);
+      border: 1px solid rgba(200, 100, 255, 0.3);
+      border-radius: 8px;
+      padding: 15px;
+      text-align: center;
+    }
+    
+    .stat-value {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.8em;
+      color: #88ff44;
+      margin: 5px 0;
+    }
+    
+    .stat-label {
+      font-size: 0.8em;
+      color: #dd88ff;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    
+    .info {
+      margin-top: 20px;
+      padding: 15px;
+      background: rgba(200, 100, 255, 0.05);
+      border-left: 3px solid #bb99dd;
+      border-radius: 4px;
+      font-size: 0.9em;
+      line-height: 1.6;
+      color: #b0b0b0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🛰️ Gravity Orbits</h1>
+    <div class="subtitle">Click to place bodies and watch them orbit under real Newtonian gravity</div>
+    
+    <canvas id="canvas"></canvas>
+    
+    <div class="controls">
+      <div class="control-group">
+        <label for="gravityScale">Gravity Strength: <span id="gravVal">1.0</span></label>
+        <input type="range" id="gravityScale" min="0.5" max="2" step="0.1" value="1.0">
+      </div>
+      
+      <div class="control-group">
+        <button id="clearBtn">Clear All Bodies</button>
+      </div>
+    </div>
+    
+    <div class="stats">
+      <div class="stat-box">
+        <div class="stat-label">Bodies</div>
+        <div class="stat-value" id="bodyCount">0</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Max Speed</div>
+        <div class="stat-value" id="maxSpeed">0.0</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Avg Speed</div>
+        <div class="stat-value" id="avgSpeed">0.0</div>
+      </div>
+    </div>
+    
+    <div class="info">
+      <strong>How to use:</strong> Click anywhere on the canvas to place a massive body. Bodies attract each other via real Newton's law of gravitation (F = G * m1 * m2 / r²). Adjust gravity strength to see tighter or looser orbits. Larger bodies (heavier mass) move slower but bend spacetime more.
+    </div>
+  </div>
+  
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const gravityScale = document.getElementById('gravityScale');
+    const gravVal = document.getElementById('gravVal');
+    const clearBtn = document.getElementById('clearBtn');
+    const bodyCountSpan = document.getElementById('bodyCount');
+    const maxSpeedSpan = document.getElementById('maxSpeed');
+    const avgSpeedSpan = document.getElementById('avgSpeed');
+    
+    let w = canvas.offsetWidth;
+    let h = canvas.offsetHeight;
+    canvas.width = w * window.devicePixelRatio;
+    canvas.height = h * window.devicePixelRatio;
+    ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+    
+    let bodies = [];
+    let g = 1.0;
+    let clickBuffer = [];
+    
+    class Body {
+      constructor(x, y) {
+        this.x = x;
+        this.y = y;
+        this.vx = 0;
+        this.vy = 0;
+        this.mass = 1 + Math.random() * 2;
+        this.trail = [];
+        this.color = `hsl(${Math.random()*60 + 240}, 80%, 60%)`;
+      }
+      
+      applyForce(fx, fy) {
+        const ax = fx / this.mass;
+        const ay = fy / this.mass;
+        this.vx += ax;
+        this.vy += ay;
+      }
+      
+      update() {
+        this.x += this.vx;
+        this.y += this.vy;
+        
+        this.trail.push({x: this.x, y: this.y});
+        if (this.trail.length > 100) {
+          this.trail.shift();
+        }
+        
+        // Boundary wrap
+        if (this.x < 0) this.x = w;
+        if (this.x > w) this.x = 0;
+        if (this.y < 0) this.y = h;
+        if (this.y > h) this.y = 0;
+      }
+      
+      draw(ctx) {
+        // Draw trail
+        ctx.strokeStyle = this.color;
+        ctx.globalAlpha = 0.3;
+        ctx.lineWidth = 1;
+        
+        if (this.trail.length > 1) {
+          ctx.beginPath();
+          ctx.moveTo(this.trail[0].x, this.trail[0].y);
+          for (let i = 1; i < this.trail.length; i++) {
+            ctx.lineTo(this.trail[i].x, this.trail[i].y);
+          }
+          ctx.stroke();
+        }
+        
+        // Draw body
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = this.color;
+        const radius = 2 + Math.sqrt(this.mass) * 1.5;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, radius, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Glow
+        ctx.strokeStyle = this.color;
+        ctx.lineWidth = 2;
+        ctx.globalAlpha = 0.5;
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+      }
+    }
+    
+    function computeGravity() {
+      // Reset forces
+      for (let b of bodies) {
+        b.fx = 0;
+        b.fy = 0;
+      }
+      
+      // Apply gravity
+      const G = 0.001 * g;
+      for (let i = 0; i < bodies.length; i++) {
+        for (let j = i + 1; j < bodies.length; j++) {
+          const b1 = bodies[i];
+          const b2 = bodies[j];
+          const dx = b2.x - b1.x;
+          const dy = b2.y - b1.y;
+          const dist = Math.sqrt(dx*dx + dy*dy) + 1e-2;
+          
+          const force = G * b1.mass * b2.mass / (dist * dist);
+          const fx = force * dx / dist;
+          const fy = force * dy / dist;
+          
+          b1.applyForce(fx, fy);
+          b2.applyForce(-fx, -fy);
+        }
+      }
+      
+      for (let b of bodies) {
+        b.update();
+      }
+    }
+    
+    function updateStats() {
+      bodyCountSpan.textContent = bodies.length;
+      
+      if (bodies.length > 0) {
+        let maxS = 0, sumS = 0;
+        for (let b of bodies) {
+          const s = Math.sqrt(b.vx*b.vx + b.vy*b.vy);
+          maxS = Math.max(maxS, s);
+          sumS += s;
+        }
+        const avgS = sumS / bodies.length;
+        maxSpeedSpan.textContent = maxS.toFixed(2);
+        avgSpeedSpan.textContent = avgS.toFixed(2);
+      } else {
+        maxSpeedSpan.textContent = '0.0';
+        avgSpeedSpan.textContent = '0.0';
+      }
+    }
+    
+    function draw() {
+      ctx.fillStyle = '#050008';
+      ctx.fillRect(0, 0, w, h);
+      
+      for (let b of bodies) {
+        b.draw(ctx);
+      }
+    }
+    
+    function animate() {
+      computeGravity();
+      updateStats();
+      draw();
+      requestAnimationFrame(animate);
+    }
+    
+    canvas.addEventListener('click', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      const x = (e.clientX - rect.left) * scaleX / window.devicePixelRatio;
+      const y = (e.clientY - rect.top) * scaleY / window.devicePixelRatio;
+      bodies.push(new Body(x, y));
+    });
+    
+    gravityScale.addEventListener('input', (e) => {
+      g = parseFloat(e.target.value);
+      gravVal.textContent = g.toFixed(1);
+    });
+    
+    clearBtn.addEventListener('click', () => {
+      bodies = [];
+    });
+    
+    window.addEventListener('resize', () => {
+      w = canvas.offsetWidth;
+      h = canvas.offsetHeight;
+      canvas.width = w * window.devicePixelRatio;
+      canvas.height = h * window.devicePixelRatio;
+      ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+    });
+    
+    animate();
+  </script>
+</body>
+</html>
