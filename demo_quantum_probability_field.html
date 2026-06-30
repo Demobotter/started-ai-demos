@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantum Probability Field</title>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #0a0e27;
+            color: #e0e0e0;
+            font-family: 'Inter', sans-serif;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        h1 {
+            font-family: 'Syne', sans-serif;
+            font-size: 2.2rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: #00ffff;
+            text-align: center;
+        }
+        .subtitle {
+            text-align: center;
+            color: #888;
+            margin-bottom: 24px;
+            font-size: 0.95rem;
+        }
+        .controls {
+            background: #0f1419;
+            border: 1px solid #1a2035;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 24px;
+            display: grid;
+            gap: 16px;
+        }
+        .control-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        label {
+            font-weight: 500;
+            color: #ffb700;
+            font-size: 0.9rem;
+        }
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #1a3a3a;
+            outline: none;
+            -webkit-appearance: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #00ffff;
+            cursor: pointer;
+            box-shadow: 0 0 8px rgba(0, 255, 255, 0.5);
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #00ffff;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 0 8px rgba(0, 255, 255, 0.5);
+        }
+        .button-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 12px;
+        }
+        button {
+            padding: 10px 16px;
+            background: #00ffff;
+            color: #0a0e27;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+        button:hover {
+            background: #00e6e6;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 255, 255, 0.3);
+        }
+        button.secondary {
+            background: #ff3535;
+        }
+        button.secondary:hover {
+            background: #e63a3a;
+        }
+        .canvas-section {
+            background: #0f1419;
+            border: 1px solid #1a2035;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 24px;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: auto;
+            max-width: 100%;
+            border-radius: 6px;
+            background: #0a0e27;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 12px;
+        }
+        .stat {
+            background: #0f1419;
+            border: 1px solid #1a2035;
+            border-radius: 6px;
+            padding: 14px;
+            text-align: center;
+        }
+        .stat-label {
+            font-size: 0.8rem;
+            color: #888;
+            margin-bottom: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .stat-value {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 1.4rem;
+            color: #ffb700;
+            font-weight: 600;
+        }
+        .checkbox-group {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            accent-color: #00ffff;
+        }
+        .info-box {
+            background: #1a2f3a;
+            border-left: 3px solid #00ffff;
+            padding: 12px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            color: #b0b0b0;
+            margin-top: 16px;
+        }
+        @media (max-width: 768px) {
+            h1 { font-size: 1.8rem; }
+            .control-row { grid-template-columns: 1fr; }
+            .button-row { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>⚛️ Quantum Probability Field</h1>
+        <p class="subtitle">Evolve a superposition state through time and collapse to measurement</p>
+
+        <div class="controls">
+            <div class="control-row">
+                <div class="control-group">
+                    <label>Position Spread (σ_x)</label>
+                    <input type="range" id="posSpread" min="0.5" max="3" step="0.1" value="1.5">
+                    <span id="posSpreadVal">1.5</span>
+                </div>
+                <div class="control-group">
+                    <label>Momentum Spread (σ_p)</label>
+                    <input type="range" id="momSpread" min="0.5" max="3" step="0.1" value="1.5">
+                    <span id="momSpreadVal">1.5</span>
+                </div>
+            </div>
+
+            <div class="control-row">
+                <div class="control-group">
+                    <label>Initial Momentum (k₀)</label>
+                    <input type="range" id="initMom" min="-4" max="4" step="0.2" value="0">
+                    <span id="initMomVal">0</span>
+                </div>
+                <div class="control-group">
+                    <label>Time Step (ℏt/m = 1)</label>
+                    <input type="range" id="timeStep" min="0.01" max="0.1" step="0.01" value="0.03">
+                    <span id="timeStepVal">0.03</span>
+                </div>
+            </div>
+
+            <div class="checkbox-group">
+                <label class="checkbox-item">
+                    <input type="checkbox" id="showPhase" checked>
+                    <span>Show Phase Contours</span>
+                </label>
+                <label class="checkbox-item">
+                    <input type="checkbox" id="autoEvolve" checked>
+                    <span>Auto-Evolve</span>
+                </label>
+            </div>
+
+            <div class="button-row">
+                <button onclick="initWavefunction()">Reset State</button>
+                <button onclick="evolveStep()">Evolve 1 Step</button>
+                <button onclick="measurementCollapse()" class="secondary">Measure (Collapse)</button>
+            </div>
+
+            <div class="info-box">
+                <strong>Quantum Mechanics:</strong> This wave packet evolves via the free-particle Schrödinger equation in momentum space (split-step FFT). Click "Measure" to collapse to a position eigenstate. The Heisenberg uncertainty principle (Δx·Δp ≥ ℏ/2) limits how sharply you can define both spreads simultaneously.
+            </div>
+        </div>
+
+        <div class="canvas-section">
+            <canvas id="canvas"></canvas>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat">
+                <div class="stat-label">⟨x⟩</div>
+                <div class="stat-value" id="meanX">0.0</div>
+            </div>
+            <div class="stat">
+                <div class="stat-label">Δx (spread)</div>
+                <div class="stat-value" id="spreadX">1.5</div>
+            </div>
+            <div class="stat">
+                <div class="stat-label">⟨p⟩</div>
+                <div class="stat-value" id="meanP">0.0</div>
+            </div>
+            <div class="stat">
+                <div class="stat-label">Δp (spread)</div>
+                <div class="stat-value" id="spreadP">1.5</div>
+            </div>
+            <div class="stat">
+                <div class="stat-label">Uncertainty</div>
+                <div class="stat-value" id="uncertainty">--</div>
+            </div>
+            <div class="stat">
+                <div class="stat-label">Time</div>
+                <div class="stat-value" id="timeDisplay">0.00</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const N = 256; // Grid points
+        const xMin = -10, xMax = 10;
+        const kMin = -Math.PI * N / (2 * (xMax - xMin));
+        const kMax = Math.PI * N / (2 * (xMax - xMin));
+
+        let psi = new Float32Array(N); // Real part
+        let psiImag = new Float32Array(N); // Imaginary part
+        let psiK = new Float32Array(N); // Momentum space (real)
+        let psiKImag = new Float32Array(N); // Momentum space (imag)
+
+        let time = 0;
+        let animationId = null;
+        let isMeasured = false;
+        let measureX = null;
+
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        function resizeCanvas() {
+            const container = canvas.parentElement;
+            canvas.width = Math.min(container.offsetWidth - 40, 800);
+            canvas.height = 400;
+        }
+
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        // Simple FFT-like transform (for demo, using simple DFT)
+        function spatialToMomentum() {
+            for (let k = 0; k < N; k++) {
+                let real = 0, imag = 0;
+                for (let x = 0; x < N; x++) {
+                    const angle = -2 * Math.PI * k * x / N;
+                    real += psi[x] * Math.cos(angle) - psiImag[x] * Math.sin(angle);
+                    imag += psi[x] * Math.sin(angle) + psiImag[x] * Math.cos(angle);
+                }
+                psiK[k] = real / Math.sqrt(N);
+                psiKImag[k] = imag / Math.sqrt(N);
+            }
+        }
+
+        function momentumToSpatial() {
+            for (let x = 0; x < N; x++) {
+                let real = 0, imag = 0;
+                for (let k = 0; k < N; k++) {
+                    const angle = 2 * Math.PI * k * x / N;
+                    real += psiK[k] * Math.cos(angle) - psiKImag[k] * Math.sin(angle);
+                    imag += psiK[k] * Math.sin(angle) + psiKImag[k] * Math.cos(angle);
+                }
+                psi[x] = real;
+                psiImag[x] = imag;
+            }
+        }
+
+        function initWavefunction() {
+            time = 0;
+            isMeasured = false;
+            measureX = null;
+
+            const posSpread = parseFloat(document.getElementById('posSpread').value);
+            const momSpread = parseFloat(document.getElementById('momSpread').value);
+            const initMom = parseFloat(document.getElementById('initMom').value);
+
+            const dx = (xMax - xMin) / N;
+            const x0 = 0; // Center at origin
+
+            for (let i = 0; i < N; i++) {
+                const x = xMin + i * dx;
+                const gauss = Math.exp(-Math.pow(x - x0, 2) / (2 * posSpread * posSpread));
+                const phase = initMom * x;
+                psi[i] = gauss * Math.cos(phase);
+                psiImag[i] = gauss * Math.sin(phase);
+            }
+
+            // Normalize
+            let norm = 0;
+            for (let i = 0; i < N; i++) {
+                norm += psi[i] * psi[i] + psiImag[i] * psiImag[i];
+            }
+            norm = Math.sqrt(norm);
+            for (let i = 0; i < N; i++) {
+                psi[i] /= norm;
+                psiImag[i] /= norm;
+            }
+
+            draw();
+        }
+
+        function evolveStep() {
+            const dt = parseFloat(document.getElementById('timeStep').value);
+
+            spatialToMomentum();
+
+            // Free particle dispersion: phase += k²·dt / 2
+            const dk = 2 * Math.PI / (xMax - xMin);
+            for (let k = 0; k < N; k++) {
+                const kVal = (k < N / 2) ? k * dk : (k - N) * dk;
+                const phase = 0.5 * kVal * kVal * dt;
+                const c = Math.cos(phase);
+                const s = Math.sin(phase);
+                const rk = psiK[k], ik = psiKImag[k];
+                psiK[k] = rk * c - ik * s;
+                psiKImag[k] = rk * s + ik * c;
+            }
+
+            momentumToSpatial();
+            time += dt;
+            draw();
+        }
+
+        function measurementCollapse() {
+            // Sample from |ψ(x)|² distribution
+            const probs = [];
+            let sum = 0;
+            for (let i = 0; i < N; i++) {
+                const mag2 = psi[i] * psi[i] + psiImag[i] * psiImag[i];
+                probs.push(mag2);
+                sum += mag2;
+            }
+
+            const rand = Math.random() * sum;
+            let cumsum = 0;
+            let idx = 0;
+            for (let i = 0; i < N; i++) {
+                cumsum += probs[i];
+                if (cumsum >= rand) {
+                    idx = i;
+                    break;
+                }
+            }
+
+            // Collapse to this position
+            const dx = (xMax - xMin) / N;
+            measureX = xMin + idx * dx;
+
+            // Set wave function to delta-like (narrow Gaussian)
+            const collapseSigma = dx * 0.5;
+            for (let i = 0; i < N; i++) {
+                const x = xMin + i * dx;
+                const gauss = Math.exp(-Math.pow(x - measureX, 2) / (2 * collapseSigma * collapseSigma));
+                psi[i] = gauss;
+                psiImag[i] = 0;
+            }
+
+            let norm = 0;
+            for (let i = 0; i < N; i++) {
+                norm += psi[i] * psi[i] + psiImag[i] * psiImag[i];
+            }
+            norm = Math.sqrt(norm);
+            for (let i = 0; i < N; i++) {
+                psi[i] /= norm;
+                psiImag[i] /= norm;
+            }
+
+            isMeasured = true;
+            draw();
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const w = canvas.width;
+            const h = canvas.height;
+            const margin = 40;
+            const plotW = w - 2 * margin;
+            const plotH = h - 2 * margin;
+
+            // Draw axes
+            ctx.strokeStyle = '#1a2035';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(margin, h - margin);
+            ctx.lineTo(w - margin, h - margin);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(margin, margin);
+            ctx.lineTo(margin, h - margin);
+            ctx.stroke();
+
+            // Draw probability density |ψ(x)|²
+            ctx.strokeStyle = '#00ffff';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            for (let i = 0; i < N; i++) {
+                const mag2 = psi[i] * psi[i] + psiImag[i] * psiImag[i];
+                const px = margin + (i / N) * plotW;
+                const py = h - margin - Math.sqrt(mag2) * plotH;
+                if (i === 0) ctx.moveTo(px, py);
+                else ctx.lineTo(px, py);
+            }
+            ctx.stroke();
+
+            // Draw phase contours if enabled
+            if (document.getElementById('showPhase').checked) {
+                ctx.strokeStyle = 'rgba(255, 183, 0, 0.4)';
+                ctx.lineWidth = 1;
+                for (let i = 0; i < N; i++) {
+                    const phase = Math.atan2(psiImag[i], psi[i]);
+                    if (Math.abs(phase) > 1.5) {
+                        const mag2 = psi[i] * psi[i] + psiImag[i] * psiImag[i];
+                        if (mag2 > 0.01) {
+                            const px = margin + (i / N) * plotW;
+                            const py = h - margin - Math.sqrt(mag2) * plotH * 0.7;
+                            ctx.fillRect(px - 1, py - 2, 2, 4);
+                        }
+                    }
+                }
+            }
+
+            // Draw measurement collapse marker
+            if (isMeasured && measureX !== null) {
+                const ix = Math.round(((measureX - xMin) / (xMax - xMin)) * N);
+                if (ix >= 0 && ix < N) {
+                    const mag2 = psi[ix] * psi[ix] + psiImag[ix] * psiImag[ix];
+                    const px = margin + (ix / N) * plotW;
+                    const py = h - margin - Math.sqrt(mag2) * plotH;
+
+                    ctx.strokeStyle = '#ff3535';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.arc(px, py, 6, 0, 2 * Math.PI);
+                    ctx.stroke();
+
+                    ctx.fillStyle = 'rgba(255, 53, 53, 0.1)';
+                    ctx.beginPath();
+                    ctx.arc(px, py, 12, 0, 2 * Math.PI);
+                    ctx.fill();
+                }
+            }
+
+            // Labels
+            ctx.fillStyle = '#888';
+            ctx.font = '12px Inter';
+            ctx.textAlign = 'center';
+            ctx.fillText('Position (x)', w / 2, h - 10);
+            ctx.save();
+            ctx.translate(10, h / 2);
+            ctx.rotate(-Math.PI / 2);
+            ctx.fillText('|ψ(x)|²', 0, 0);
+            ctx.restore();
+
+            updateStats();
+
+            // Auto-evolve if enabled
+            if (document.getElementById('autoEvolve').checked && !isMeasured) {
+                animationId = setTimeout(evolveStep, 50);
+            }
+        }
+
+        function updateStats() {
+            const dx = (xMax - xMin) / N;
+            let meanX = 0, meanP = 0, var_x = 0, var_p = 0;
+            let norm = 0;
+
+            for (let i = 0; i < N; i++) {
+                const mag2 = psi[i] * psi[i] + psiImag[i] * psiImag[i];
+                const x = xMin + i * dx;
+                meanX += x * mag2;
+                norm += mag2;
+            }
+            meanX /= norm;
+
+            for (let i = 0; i < N; i++) {
+                const mag2 = psi[i] * psi[i] + psiImag[i] * psiImag[i];
+                const x = xMin + i * dx;
+                var_x += (x - meanX) * (x - meanX) * mag2;
+            }
+            var_x /= norm;
+            const spreadX = Math.sqrt(var_x);
+
+            // Estimate momentum from Fourier
+            spatialToMomentum();
+            const dk = 2 * Math.PI / (xMax - xMin);
+            for (let k = 0; k < N; k++) {
+                const mag2k = psiK[k] * psiK[k] + psiKImag[k] * psiKImag[k];
+                const kVal = (k < N / 2) ? k * dk : (k - N) * dk;
+                meanP += kVal * mag2k;
+            }
+            meanP /= norm;
+
+            for (let k = 0; k < N; k++) {
+                const mag2k = psiK[k] * psiK[k] + psiKImag[k] * psiKImag[k];
+                const kVal = (k < N / 2) ? k * dk : (k - N) * dk;
+                var_p += (kVal - meanP) * (kVal - meanP) * mag2k;
+            }
+            var_p /= norm;
+            const spreadP = Math.sqrt(var_p);
+
+            const uncertainty = (spreadX * spreadP).toFixed(3);
+
+            document.getElementById('meanX').textContent = meanX.toFixed(2);
+            document.getElementById('spreadX').textContent = spreadX.toFixed(2);
+            document.getElementById('meanP').textContent = meanP.toFixed(2);
+            document.getElementById('spreadP').textContent = spreadP.toFixed(2);
+            document.getElementById('uncertainty').textContent = uncertainty;
+            document.getElementById('timeDisplay').textContent = time.toFixed(2);
+        }
+
+        document.getElementById('posSpread').addEventListener('input', (e) => {
+            document.getElementById('posSpreadVal').textContent = e.target.value;
+        });
+        document.getElementById('momSpread').addEventListener('input', (e) => {
+            document.getElementById('momSpreadVal').textContent = e.target.value;
+        });
+        document.getElementById('initMom').addEventListener('input', (e) => {
+            document.getElementById('initMomVal').textContent = e.target.value;
+        });
+        document.getElementById('timeStep').addEventListener('input', (e) => {
+            document.getElementById('timeStepVal').textContent = e.target.value;
+        });
+
+        initWavefunction();
+    </script>
+</body>
+</html>
