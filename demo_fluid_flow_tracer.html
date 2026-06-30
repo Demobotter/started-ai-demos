@@ -180,227 +180,229 @@
   </div>
 
   <script>
-    const canvas = document.getElementById('flowCanvas');
-    const ctx = canvas.getContext('2d');
-    
-    function resizeCanvas() {
-      const rect = canvas.parentElement.getBoundingClientRect();
-      canvas.width = rect.width - 4;
-      canvas.height = Math.max(400, Math.min(600, canvas.width * 0.6));
-    }
-    resizeCanvas();
-    window.addEventListener('resize', resizeCanvas);
-
-    const W = canvas.width;
-    const H = canvas.height;
-    const particles = [];
-    let animationId;
-    let emitterLoc = null;
-
-    const state = {
-      fieldType: 'vortex',
-      strength: 1,
-      particleCount: 150,
-      emissionRate: 3,
-    };
-
-    document.getElementById('fieldType').addEventListener('change', (e) => {
-      state.fieldType = e.target.value;
-      document.getElementById('fieldLabel').textContent = 
-        e.target.value.charAt(0).toUpperCase() + e.target.value.slice(1);
-    });
-    document.getElementById('strength').addEventListener('input', (e) => { state.strength = parseFloat(e.target.value); });
-    document.getElementById('particleCount').addEventListener('input', (e) => { state.particleCount = parseInt(e.target.value); });
-    document.getElementById('emissionRate').addEventListener('input', (e) => { state.emissionRate = parseInt(e.target.value); });
-
-    canvas.addEventListener('click', (e) => {
-      const rect = canvas.getBoundingClientRect();
-      emitterLoc = { x: e.clientX - rect.left, y: e.clientY - rect.top };
-      setTimeout(() => { emitterLoc = null; }, 500);
-    });
-
-    function vortex(x, y, cx, cy, strength) {
-      const dx = x - cx, dy = y - cy;
-      const r2 = dx * dx + dy * dy + 1e-4;
-      const s = strength / Math.sqrt(r2);
-      return { vx: -s * dy / r2, vy: s * dx / r2 };
-    }
-
-    function source(x, y, cx, cy, strength) {
-      const dx = x - cx, dy = y - cy;
-      const r2 = dx * dx + dy * dy + 1e-4;
-      const s = strength / Math.sqrt(r2);
-      return { vx: s * dx / Math.sqrt(r2), vy: s * dy / Math.sqrt(r2) };
-    }
-
-    function sink(x, y, cx, cy, strength) {
-      const v = source(x, y, cx, cy, strength);
-      return { vx: -v.vx, vy: -v.vy };
-    }
-
-    function shear(x, y, strength) {
-      return { vx: strength * y / H, vy: 0 };
-    }
-
-    function cylinderWind(x, y, strength) {
-      const cx = W / 2, cy = H / 2;
-      const dx = x - cx, dy = y - cy;
-      const r2 = dx * dx + dy * dy;
-      const r = Math.sqrt(r2);
-      if (r < 30) return { vx: 0, vy: 0 };
-      const u = strength * (1 - 900 / r2);
-      const angle = Math.atan2(dy, dx);
-      const vx = u * Math.cos(angle);
-      const vy = u * Math.sin(angle);
-      return { vx, vy };
-    }
-
-    function getFieldVelocity(x, y, fieldType, strength) {
-      const cx = W / 2, cy = H / 2;
-      switch (fieldType) {
-        case 'vortex': return vortex(x, y, cx, cy, strength * 0.5);
-        case 'source': return source(x, y, cx, cy, strength * 0.3);
-        case 'sink': return sink(x, y, cx, cy, strength * 0.3);
-        case 'shear': return shear(x, y, strength * 0.8);
-        case 'cylinder': return cylinderWind(x, y, strength * 0.6);
-        default: return { vx: 0, vy: 0 };
+    (function() {
+      const canvas = document.getElementById('flowCanvas');
+      if (!canvas) { console.error('Canvas not found'); return; }
+      const ctx = canvas.getContext('2d');
+      
+      function resizeCanvas() {
+        const rect = canvas.parentElement.getBoundingClientRect();
+        canvas.width = rect.width - 4;
+        canvas.height = Math.max(400, Math.min(600, canvas.width * 0.6));
       }
-    }
+      resizeCanvas();
+      window.addEventListener('resize', resizeCanvas);
 
-    function rk4Step(x, y, fieldType, strength, dt = 0.5) {
-      const k1 = getFieldVelocity(x, y, fieldType, strength);
-      const k2 = getFieldVelocity(x + k1.vx * dt * 0.5, y + k1.vy * dt * 0.5, fieldType, strength);
-      const k3 = getFieldVelocity(x + k2.vx * dt * 0.5, y + k2.vy * dt * 0.5, fieldType, strength);
-      const k4 = getFieldVelocity(x + k3.vx * dt, y + k3.vy * dt, fieldType, strength);
-      return {
-        x: x + (k1.vx + 2 * k2.vx + 2 * k3.vx + k4.vx) * dt / 6,
-        y: y + (k1.vy + 2 * k2.vy + 2 * k3.vy + k4.vy) * dt / 6,
+      const W = canvas.width;
+      const H = canvas.height;
+      const particles = [];
+      let emitterLoc = null;
+
+      const state = {
+        fieldType: 'vortex',
+        strength: 1,
+        particleCount: 150,
+        emissionRate: 3,
       };
-    }
 
-    function createParticle(x, y) {
-      return {
-        x, y,
-        trail: [{ x, y }],
-        age: 0,
-        maxAge: 200 + Math.random() * 100,
-      };
-    }
+      document.getElementById('fieldType').addEventListener('change', (e) => {
+        state.fieldType = e.target.value;
+        document.getElementById('fieldLabel').textContent = 
+          e.target.value.charAt(0).toUpperCase() + e.target.value.slice(1);
+      });
+      document.getElementById('strength').addEventListener('input', (e) => { state.strength = parseFloat(e.target.value); });
+      document.getElementById('particleCount').addEventListener('input', (e) => { state.particleCount = parseInt(e.target.value); });
+      document.getElementById('emissionRate').addEventListener('input', (e) => { state.emissionRate = parseInt(e.target.value); });
 
-    function updateParticles() {
-      // Emission from left boundary
-      for (let i = 0; i < state.emissionRate; i++) {
-        if (particles.length < state.particleCount) {
-          particles.push(createParticle(-5, Math.random() * H));
+      canvas.addEventListener('click', (e) => {
+        const rect = canvas.getBoundingClientRect();
+        emitterLoc = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+        setTimeout(() => { emitterLoc = null; }, 500);
+      });
+
+      function vortex(x, y, cx, cy, strength) {
+        const dx = x - cx, dy = y - cy;
+        const r2 = dx * dx + dy * dy + 1e-4;
+        const s = strength / Math.sqrt(r2);
+        return { vx: -s * dy / r2, vy: s * dx / r2 };
+      }
+
+      function source(x, y, cx, cy, strength) {
+        const dx = x - cx, dy = y - cy;
+        const r2 = dx * dx + dy * dy + 1e-4;
+        const s = strength / Math.sqrt(r2);
+        return { vx: s * dx / Math.sqrt(r2), vy: s * dy / Math.sqrt(r2) };
+      }
+
+      function sink(x, y, cx, cy, strength) {
+        const v = source(x, y, cx, cy, strength);
+        return { vx: -v.vx, vy: -v.vy };
+      }
+
+      function shear(x, y, strength) {
+        return { vx: strength * y / H, vy: 0 };
+      }
+
+      function cylinderWind(x, y, strength) {
+        const cx = W / 2, cy = H / 2;
+        const dx = x - cx, dy = y - cy;
+        const r2 = dx * dx + dy * dy;
+        const r = Math.sqrt(r2);
+        if (r < 30) return { vx: 0, vy: 0 };
+        const u = strength * (1 - 900 / r2);
+        const angle = Math.atan2(dy, dx);
+        const vx = u * Math.cos(angle);
+        const vy = u * Math.sin(angle);
+        return { vx, vy };
+      }
+
+      function getFieldVelocity(x, y, fieldType, strength) {
+        const cx = W / 2, cy = H / 2;
+        switch (fieldType) {
+          case 'vortex': return vortex(x, y, cx, cy, strength * 0.5);
+          case 'source': return source(x, y, cx, cy, strength * 0.3);
+          case 'sink': return sink(x, y, cx, cy, strength * 0.3);
+          case 'shear': return shear(x, y, strength * 0.8);
+          case 'cylinder': return cylinderWind(x, y, strength * 0.6);
+          default: return { vx: 0, vy: 0 };
         }
       }
 
-      // Emission from click
-      if (emitterLoc && particles.length < state.particleCount) {
-        for (let i = 0; i < state.emissionRate * 2; i++) {
-          const angle = Math.random() * Math.PI * 2;
-          const r = Math.random() * 10;
-          particles.push(createParticle(
-            emitterLoc.x + r * Math.cos(angle),
-            emitterLoc.y + r * Math.sin(angle)
-          ));
+      function rk4Step(x, y, fieldType, strength, dt = 0.5) {
+        const k1 = getFieldVelocity(x, y, fieldType, strength);
+        const k2 = getFieldVelocity(x + k1.vx * dt * 0.5, y + k1.vy * dt * 0.5, fieldType, strength);
+        const k3 = getFieldVelocity(x + k2.vx * dt * 0.5, y + k2.vy * dt * 0.5, fieldType, strength);
+        const k4 = getFieldVelocity(x + k3.vx * dt, y + k3.vy * dt, fieldType, strength);
+        return {
+          x: x + (k1.vx + 2 * k2.vx + 2 * k3.vx + k4.vx) * dt / 6,
+          y: y + (k1.vy + 2 * k2.vy + 2 * k3.vy + k4.vy) * dt / 6,
+        };
+      }
+
+      function createParticle(x, y) {
+        return {
+          x, y,
+          trail: [{ x, y }],
+          age: 0,
+          maxAge: 200 + Math.random() * 100,
+        };
+      }
+
+      function updateParticles() {
+        // Emission from left boundary
+        for (let i = 0; i < state.emissionRate; i++) {
+          if (particles.length < state.particleCount) {
+            particles.push(createParticle(-5, Math.random() * H));
+          }
+        }
+
+        // Emission from click
+        if (emitterLoc && particles.length < state.particleCount) {
+          for (let i = 0; i < state.emissionRate * 2; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const r = Math.random() * 10;
+            particles.push(createParticle(
+              emitterLoc.x + r * Math.cos(angle),
+              emitterLoc.y + r * Math.sin(angle)
+            ));
+          }
+        }
+
+        // Update each particle
+        for (let i = particles.length - 1; i >= 0; i--) {
+          const p = particles[i];
+          const newPos = rk4Step(p.x, p.y, state.fieldType, state.strength);
+          p.x = newPos.x;
+          p.y = newPos.y;
+          p.age++;
+
+          if (p.trail.length === 0 || 
+              Math.hypot(p.x - p.trail[p.trail.length - 1].x, p.y - p.trail[p.trail.length - 1].y) > 2) {
+            p.trail.push({ x: p.x, y: p.y });
+          }
+          if (p.trail.length > 30) p.trail.shift();
+
+          // Remove if out of bounds or too old
+          if (p.age > p.maxAge || p.x < -50 || p.x > W + 50 || p.y < -50 || p.y > H + 50) {
+            particles.splice(i, 1);
+          }
         }
       }
 
-      // Update each particle
-      for (let i = particles.length - 1; i >= 0; i--) {
-        const p = particles[i];
-        const newPos = rk4Step(p.x, p.y, state.fieldType, state.strength);
-        p.x = newPos.x;
-        p.y = newPos.y;
-        p.age++;
-
-        if (p.trail.length === 0 || 
-            Math.hypot(p.x - p.trail[p.trail.length - 1].x, p.y - p.trail[p.trail.length - 1].y) > 2) {
-          p.trail.push({ x: p.x, y: p.y });
+      function computeStats() {
+        let maxSpeed = 0, totalSpeed = 0;
+        for (const p of particles) {
+          if (p.trail.length > 1) {
+            const prev = p.trail[p.trail.length - 2];
+            const curr = p.trail[p.trail.length - 1];
+            const speed = Math.hypot(curr.x - prev.x, curr.y - prev.y);
+            maxSpeed = Math.max(maxSpeed, speed);
+            totalSpeed += speed;
+          }
         }
-        if (p.trail.length > 30) p.trail.shift();
-
-        // Remove if out of bounds or too old
-        if (p.age > p.maxAge || p.x < -50 || p.x > W + 50 || p.y < -50 || p.y > H + 50) {
-          particles.splice(i, 1);
-        }
-      }
-    }
-
-    function computeStats() {
-      let maxSpeed = 0, totalSpeed = 0;
-      for (const p of particles) {
-        if (p.trail.length > 1) {
-          const prev = p.trail[p.trail.length - 2];
-          const curr = p.trail[p.trail.length - 1];
-          const speed = Math.hypot(curr.x - prev.x, curr.y - prev.y);
-          maxSpeed = Math.max(maxSpeed, speed);
-          totalSpeed += speed;
-        }
-      }
-      const avgSpeed = particles.length > 0 ? totalSpeed / particles.length : 0;
-      document.getElementById('maxSpeed').textContent = maxSpeed.toFixed(2);
-      document.getElementById('avgSpeed').textContent = avgSpeed.toFixed(2);
-      document.getElementById('particleCountStat').textContent = particles.length;
-    }
-
-    function render() {
-      ctx.fillStyle = '#0a0e27';
-      ctx.fillRect(0, 0, W, H);
-
-      // Render particle trails
-      for (const p of particles) {
-        if (p.trail.length < 2) continue;
-        const progress = p.age / p.maxAge;
-        const alpha = Math.max(0, 1 - progress);
-        const speed = p.trail.length > 1 
-          ? Math.hypot(p.trail[p.trail.length - 1].x - p.trail[p.trail.length - 2].x, 
-                       p.trail[p.trail.length - 1].y - p.trail[p.trail.length - 2].y)
-          : 0;
-        
-        // Color by speed: blue→cyan→green→yellow→red
-        let color;
-        if (speed < 0.5) color = `rgba(0, 100, 255, ${alpha})`;
-        else if (speed < 1) color = `rgba(0, 255, 255, ${alpha})`;
-        else if (speed < 2) color = `rgba(0, 255, 136, ${alpha})`;
-        else if (speed < 3) color = `rgba(255, 183, 0, ${alpha})`;
-        else color = `rgba(255, 100, 100, ${alpha})`;
-
-        ctx.strokeStyle = color;
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        ctx.moveTo(p.trail[0].x, p.trail[0].y);
-        for (let i = 1; i < p.trail.length; i++) {
-          ctx.lineTo(p.trail[i].x, p.trail[i].y);
-        }
-        ctx.stroke();
-
-        // Draw particle head
-        const last = p.trail[p.trail.length - 1];
-        ctx.fillStyle = color;
-        ctx.beginPath();
-        ctx.arc(last.x, last.y, 2, 0, Math.PI * 2);
-        ctx.fill();
+        const avgSpeed = particles.length > 0 ? totalSpeed / particles.length : 0;
+        document.getElementById('maxSpeed').textContent = maxSpeed.toFixed(2);
+        document.getElementById('avgSpeed').textContent = avgSpeed.toFixed(2);
+        document.getElementById('particleCountStat').textContent = particles.length;
       }
 
-      // Draw emitter center if active
-      if (emitterLoc) {
-        ctx.fillStyle = 'rgba(255, 183, 0, 0.5)';
-        ctx.beginPath();
-        ctx.arc(emitterLoc.x, emitterLoc.y, 15, 0, Math.PI * 2);
-        ctx.fill();
+      function render() {
+        ctx.fillStyle = '#0a0e27';
+        ctx.fillRect(0, 0, W, H);
+
+        // Render particle trails
+        for (const p of particles) {
+          if (p.trail.length < 2) continue;
+          const progress = p.age / p.maxAge;
+          const alpha = Math.max(0, 1 - progress);
+          const speed = p.trail.length > 1 
+            ? Math.hypot(p.trail[p.trail.length - 1].x - p.trail[p.trail.length - 2].x, 
+                         p.trail[p.trail.length - 1].y - p.trail[p.trail.length - 2].y)
+            : 0;
+          
+          // Color by speed: blue→cyan→green→yellow→red
+          let color;
+          if (speed < 0.5) color = `rgba(0, 100, 255, ${alpha})`;
+          else if (speed < 1) color = `rgba(0, 255, 255, ${alpha})`;
+          else if (speed < 2) color = `rgba(0, 255, 136, ${alpha})`;
+          else if (speed < 3) color = `rgba(255, 183, 0, ${alpha})`;
+          else color = `rgba(255, 100, 100, ${alpha})`;
+
+          ctx.strokeStyle = color;
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.moveTo(p.trail[0].x, p.trail[0].y);
+          for (let i = 1; i < p.trail.length; i++) {
+            ctx.lineTo(p.trail[i].x, p.trail[i].y);
+          }
+          ctx.stroke();
+
+          // Draw particle head
+          const last = p.trail[p.trail.length - 1];
+          ctx.fillStyle = color;
+          ctx.beginPath();
+          ctx.arc(last.x, last.y, 2, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        // Draw emitter center if active
+        if (emitterLoc) {
+          ctx.fillStyle = 'rgba(255, 183, 0, 0.5)';
+          ctx.beginPath();
+          ctx.arc(emitterLoc.x, emitterLoc.y, 15, 0, Math.PI * 2);
+          ctx.fill();
+        }
       }
-    }
 
-    function animate() {
-      updateParticles();
-      computeStats();
-      render();
-      animationId = setTimeout(animate, 50);
-    }
+      function step() {
+        updateParticles();
+        computeStats();
+        render();
+      }
 
-    animate();
+      // Use setInterval for timer-based animation
+      setInterval(step, 50);
+    })();
   </script>
 </body>
 </html>
