@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Spring Mass Chain</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #0a0e27;
+      color: #e0e6ff;
+      padding: 2rem 1rem;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .container {
+      max-width: 1200px;
+      width: 100%;
+      background: #0f1425;
+      border-radius: 16px;
+      padding: 2rem;
+      box-shadow: 0 8px 32px rgba(0, 255, 255, 0.1);
+    }
+    h1 {
+      font-family: 'Syne', sans-serif;
+      font-size: 2.5rem;
+      margin-bottom: 0.5rem;
+      color: #00ffff;
+      text-align: center;
+    }
+    .subtitle {
+      text-align: center;
+      color: #a0a6d0;
+      margin-bottom: 2rem;
+      font-size: 0.95rem;
+    }
+    .layout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+      margin-bottom: 2rem;
+    }
+    @media (max-width: 900px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+    }
+    .canvas-area {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    canvas {
+      background: #0a0e27;
+      border: 1px solid #00ffff33;
+      border-radius: 8px;
+      cursor: move;
+      width: 100%;
+      height: auto;
+    }
+    .controls {
+      background: #0a0e27;
+      padding: 1.5rem;
+      border-radius: 8px;
+      border: 1px solid #00ffff22;
+    }
+    .control-group {
+      margin-bottom: 1.5rem;
+    }
+    .control-group:last-child {
+      margin-bottom: 0;
+    }
+    label {
+      display: block;
+      font-weight: 500;
+      margin-bottom: 0.5rem;
+      color: #00ffff;
+      font-size: 0.9rem;
+    }
+    input[type="range"] {
+      width: 100%;
+      height: 6px;
+      border-radius: 3px;
+      background: #1a2040;
+      outline: none;
+      -webkit-appearance: none;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #ffb700;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    input[type="range"]::-webkit-slider-thumb:hover {
+      background: #ffc934;
+    }
+    input[type="range"]::-moz-range-thumb {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #ffb700;
+      cursor: pointer;
+      border: none;
+      transition: background 0.2s;
+    }
+    input[type="range"]::-moz-range-thumb:hover {
+      background: #ffc934;
+    }
+    .value-display {
+      display: inline-block;
+      margin-left: 0.5rem;
+      color: #ffb700;
+      font-weight: 600;
+      font-family: 'Inter', monospace;
+    }
+    .stats-panel {
+      background: #0a0e27;
+      padding: 1.5rem;
+      border-radius: 8px;
+      border: 1px solid #ffb70033;
+    }
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 0.75rem;
+      font-size: 0.9rem;
+    }
+    .stat-row:last-child {
+      margin-bottom: 0;
+    }
+    .stat-label {
+      color: #a0a6d0;
+    }
+    .stat-value {
+      color: #ffb700;
+      font-weight: 600;
+      font-family: 'Inter', monospace;
+    }
+    .hint {
+      background: #1a2040;
+      padding: 1rem;
+      border-radius: 6px;
+      border-left: 3px solid #00ffff;
+      font-size: 0.85rem;
+      color: #a0a6d0;
+      margin-top: 1.5rem;
+      line-height: 1.5;
+    }
+    button {
+      background: #00ffff;
+      color: #0a0e27;
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: 'Inter', sans-serif;
+      transition: background 0.2s;
+    }
+    button:hover {
+      background: #33ffff;
+    }
+    button:active {
+      background: #00dddd;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Spring Mass Chain</h1>
+    <p class="subtitle">Interactive 1D spring-mass oscillator with real physics</p>
+    
+    <div class="layout">
+      <div class="canvas-area">
+        <canvas id="canvas" width="600" height="400"></canvas>
+        <div class="hint">
+          💡 <strong>Drag any mass</strong> to disturb the chain. Watch harmonic oscillation unfold. <strong>Adjust sliders</strong> to change spring stiffness, mass, and damping.
+        </div>
+      </div>
+      
+      <div>
+        <div class="controls">
+          <div class="control-group">
+            <label>Spring Constant k (N/m)
+              <span class="value-display" id="kValue">5.0</span>
+            </label>
+            <input type="range" id="kSlider" min="0.1" max="10" step="0.1" value="5.0">
+          </div>
+          
+          <div class="control-group">
+            <label>Mass per unit (kg)
+              <span class="value-display" id="mValue">1.0</span>
+            </label>
+            <input type="range" id="mSlider" min="0.1" max="5" step="0.1" value="1.0">
+          </div>
+          
+          <div class="control-group">
+            <label>Damping Coefficient (0–1.5)
+              <span class="value-display" id="dampValue">0.1</span>
+            </label>
+            <input type="range" id="dampSlider" min="0" max="1.5" step="0.05" value="0.1">
+          </div>
+          
+          <button id="resetBtn" style="width: 100%; margin-top: 1.5rem;">Reset to Center</button>
+        </div>
+        
+        <div class="stats-panel">
+          <div class="stat-row">
+            <span class="stat-label">Natural Frequency (ω₀)</span>
+            <span class="stat-value" id="freqValue">2.236 rad/s</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Damping Ratio (ζ)</span>
+            <span class="stat-value" id="ratioValue">0.045</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Max Displacement</span>
+            <span class="stat-value" id="maxDispValue">0.00 m</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Energy Loss/Cycle</span>
+            <span class="stat-value" id="energyLossValue">0.0%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    const kSlider = document.getElementById('kSlider');
+    const mSlider = document.getElementById('mSlider');
+    const dampSlider = document.getElementById('dampSlider');
+    const resetBtn = document.getElementById('resetBtn');
+    
+    const kValue = document.getElementById('kValue');
+    const mValue = document.getElementById('mValue');
+    const dampValue = document.getElementById('dampValue');
+    const freqValue = document.getElementById('freqValue');
+    const ratioValue = document.getElementById('ratioValue');
+    const maxDispValue = document.getElementById('maxDispValue');
+    const energyLossValue = document.getElementById('energyLossValue');
+    
+    // Physics state
+    const numMasses = 6;
+    let k = 5.0;
+    let m = 1.0;
+    let damping = 0.1;
+    
+    let positions = [];
+    let velocities = [];
+    let forces = [];
+    let equilibrium = [];
+    
+    let draggedIndex = -1;
+    let dragOffsetX = 0;
+    let energyHistory = [];
+    let maxDisplacement = 0;
+    
+    function initMasses() {
+      positions = [];
+      velocities = [];
+      forces = [];
+      equilibrium = [];
+      
+      const spacing = canvas.width / (numMasses + 1);
+      for (let i = 0; i < numMasses; i++) {
+        const x = spacing * (i + 1);
+        positions.push(x);
+        equilibrium.push(x);
+        velocities.push(0);
+        forces.push(0);
+      }
+      maxDisplacement = 0;
+      energyHistory = [];
+    }
+    
+    function calculateStats() {
+      const omega0 = Math.sqrt(k / m);
+      const zeta = damping / (2 * Math.sqrt(k * m));
+      
+      let maxDisp = 0;
+      for (let i = 0; i < positions.length; i++) {
+        const disp = Math.abs(positions[i] - equilibrium[i]);
+        maxDisp = Math.max(maxDisp, disp);
+      }
+      maxDisplacement = maxDisp;
+      
+      // Calculate total mechanical energy
+      let energy = 0;
+      for (let i = 0; i < positions.length; i++) {
+        const disp = positions[i] - equilibrium[i];
+        energy += 0.5 * k * disp * disp;
+        energy += 0.5 * m * velocities[i] * velocities[i];
+      }
+      energyHistory.push(energy);
+      if (energyHistory.length > 100) energyHistory.shift();
+      
+      let energyLoss = 0;
+      if (energyHistory.length > 10) {
+        const oldEnergy = energyHistory[Math.max(0, energyHistory.length - 11)];
+        if (oldEnergy > 0) {
+          energyLoss = ((oldEnergy - energy) / oldEnergy) * 100;
+        }
+      }
+      
+      freqValue.textContent = omega0.toFixed(3) + ' rad/s';
+      ratioValue.textContent = zeta.toFixed(3);
+      maxDispValue.textContent = (maxDisp / 30).toFixed(3) + ' m';
+      energyLossValue.textContent = Math.max(0, energyLoss).toFixed(1) + '%';
+    }
+    
+    function update() {
+      // Calculate spring forces
+      for (let i = 0; i < numMasses; i++) {
+        forces[i] = 0;
+        
+        if (i > 0) {
+          const dx = positions[i - 1] - positions[i];
+          forces[i] += k * dx;
+        }
+        if (i < numMasses - 1) {
+          const dx = positions[i + 1] - positions[i];
+          forces[i] += k * dx;
+        }
+        
+        // Fixed boundary at edges
+        if (i === 0) {
+          const dx = equilibrium[i] - positions[i];
+          forces[i] += k * dx;
+        }
+        if (i === numMasses - 1) {
+          const dx = equilibrium[i] - positions[i];
+          forces[i] += k * dx;
+        }
+      }
+      
+      // Verlet integration with damping
+      const dt = 0.016; // ~60fps
+      for (let i = 0; i < numMasses; i++) {
+        const accel = (forces[i] - damping * m * velocities[i]) / m;
+        velocities[i] += accel * dt;
+        positions[i] += velocities[i] * dt;
+      }
+      
+      calculateStats();
+    }
+    
+    function draw() {
+      // Background
+      ctx.fillStyle = '#0a0e27';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // Grid
+      ctx.strokeStyle = '#00ffff11';
+      ctx.lineWidth = 1;
+      for (let i = 0; i < canvas.width; i += 50) {
+        ctx.beginPath();
+        ctx.moveTo(i, 0);
+        ctx.lineTo(i, canvas.height);
+        ctx.stroke();
+      }
+      for (let i = 0; i < canvas.height; i += 50) {
+        ctx.beginPath();
+        ctx.moveTo(0, i);
+        ctx.lineTo(canvas.width, i);
+        ctx.stroke();
+      }
+      
+      const centerY = canvas.height / 2;
+      
+      // Draw springs and masses
+      ctx.strokeStyle = '#ffb700';
+      ctx.lineWidth = 2;
+      
+      // Spring from fixed left boundary
+      ctx.beginPath();
+      ctx.moveTo(0, centerY);
+      ctx.lineTo(positions[0], centerY);
+      ctx.stroke();
+      
+      // Springs between masses
+      for (let i = 0; i < numMasses - 1; i++) {
+        ctx.beginPath();
+        ctx.moveTo(positions[i], centerY);
+        ctx.lineTo(positions[i + 1], centerY);
+        ctx.stroke();
+      }
+      
+      // Spring from last mass to fixed right boundary
+      ctx.beginPath();
+      ctx.moveTo(positions[numMasses - 1], centerY);
+      ctx.lineTo(canvas.width, centerY);
+      ctx.stroke();
+      
+      // Draw masses
+      for (let i = 0; i < numMasses; i++) {
+        const speed = Math.abs(velocities[i]);
+        const hue = Math.min(255, (speed / 2) * 255);
+        ctx.fillStyle = `hsl(${hue}, 100%, 50%)`;
+        
+        ctx.beginPath();
+        ctx.arc(positions[i], centerY, 8, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Highlight dragged mass
+        if (i === draggedIndex) {
+          ctx.strokeStyle = '#00ffff';
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.arc(positions[i], centerY, 12, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+      }
+      
+      // Draw equilibrium line (faint)
+      ctx.strokeStyle = '#00ffff33';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([5, 5]);
+      ctx.beginPath();
+      ctx.moveTo(canvas.width / (numMasses + 1), centerY - 30);
+      ctx.lineTo(canvas.width / (numMasses + 1), centerY + 30);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+    
+    function animate() {
+      update();
+      draw();
+      requestAnimationFrame(animate);
+    }
+    
+    // Event listeners
+    kSlider.addEventListener('input', (e) => {
+      k = parseFloat(e.target.value);
+      kValue.textContent = k.toFixed(1);
+      calculateStats();
+    });
+    
+    mSlider.addEventListener('input', (e) => {
+      m = parseFloat(e.target.value);
+      mValue.textContent = m.toFixed(1);
+      calculateStats();
+    });
+    
+    dampSlider.addEventListener('input', (e) => {
+      damping = parseFloat(e.target.value);
+      dampValue.textContent = damping.toFixed(2);
+      calculateStats();
+    });
+    
+    resetBtn.addEventListener('click', () => {
+      initMasses();
+      draggedIndex = -1;
+      calculateStats();
+    });
+    
+    canvas.addEventListener('mousedown', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+      const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+      const centerY = canvas.height / 2;
+      
+      for (let i = 0; i < numMasses; i++) {
+        const dx = x - positions[i];
+        const dy = y - centerY;
+        if (Math.sqrt(dx * dx + dy * dy) < 15) {
+          draggedIndex = i;
+          dragOffsetX = x - positions[i];
+          break;
+        }
+      }
+    });
+    
+    canvas.addEventListener('mousemove', (e) => {
+      if (draggedIndex >= 0) {
+        const rect = canvas.getBoundingClientRect();
+        const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+        positions[draggedIndex] = x - dragOffsetX;
+        velocities[draggedIndex] = 0;
+      }
+    });
+    
+    canvas.addEventListener('mouseup', () => {
+      draggedIndex = -1;
+    });
+    
+    canvas.addEventListener('mouseleave', () => {
+      draggedIndex = -1;
+    });
+    
+    // Handle canvas responsiveness
+    function resizeCanvas() {
+      const container = document.querySelector('.canvas-area');
+      const rect = container.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = Math.min(600, rect.width - 20);
+      canvas.height = Math.min(400, (canvas.width * 400) / 600);
+    }
+    
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+    
+    // Initialize and start
+    initMasses();
+    calculateStats();
+    animate();
+  </script>
+</body>
+</html>
