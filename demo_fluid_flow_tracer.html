@@ -2,407 +2,499 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Fluid Flow Tracer</title>
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { 
-      font-family: 'Inter', sans-serif; 
-      background: #0a0e27; 
-      color: #e0e0e0; 
-      padding: 20px;
+    body {
+      font-family: Inter, sans-serif;
+      background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 100%);
+      color: #ffffff;
       min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
     }
     .container {
       max-width: 900px;
-      margin: 0 auto;
-      background: #0f1437;
+      width: 100%;
+      background: rgba(15, 18, 42, 0.9);
+      border: 1px solid rgba(0, 217, 255, 0.2);
       border-radius: 12px;
-      padding: 30px;
-      box-shadow: 0 8px 32px rgba(0, 255, 255, 0.1);
+      padding: 2rem;
     }
     h1 {
-      font-family: 'Syne', sans-serif;
-      font-size: 2.2em;
-      margin-bottom: 8px;
-      color: #00ffff;
-      font-weight: 700;
-    }
-    .subtitle {
-      font-size: 0.9em;
-      color: #888;
-      margin-bottom: 24px;
+      font-family: Syne, sans-serif;
+      font-size: 2rem;
+      margin-bottom: 1rem;
+      color: #00d9ff;
+      text-align: center;
     }
     .controls {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 16px;
-      margin-bottom: 24px;
-      padding: 16px;
-      background: rgba(0, 255, 255, 0.05);
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+      background: rgba(0, 0, 0, 0.3);
+      padding: 1.5rem;
       border-radius: 8px;
-      border: 1px solid rgba(0, 255, 255, 0.2);
+      border: 1px solid rgba(0, 217, 255, 0.15);
     }
     .control-group {
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      gap: 0.5rem;
     }
-    .control-group label {
-      font-size: 0.85em;
+    label {
+      font-size: 0.85rem;
       font-weight: 600;
       color: #00ffff;
       text-transform: uppercase;
       letter-spacing: 0.5px;
     }
-    select, input[type="range"] {
-      padding: 8px 12px;
-      background: #1a1f3a;
-      border: 1px solid rgba(0, 255, 255, 0.3);
+    select, input[type="range"], button {
+      padding: 0.6rem 1rem;
+      background: rgba(0, 217, 255, 0.1);
+      border: 1px solid rgba(0, 217, 255, 0.4);
       border-radius: 6px;
-      color: #e0e0e0;
-      font-family: 'Inter', sans-serif;
+      color: #ffffff;
+      font-family: Inter, sans-serif;
+      font-size: 0.9rem;
       cursor: pointer;
+      transition: all 0.2s ease;
     }
-    input[type="range"] {
-      padding: 8px;
+    select:hover, input[type="range"]:hover { border-color: rgba(0, 217, 255, 0.8); }
+    button {
+      background: linear-gradient(135deg, rgba(0, 217, 255, 0.3) 0%, rgba(0, 255, 136, 0.2) 100%);
+      font-weight: 600;
+      transition: all 0.3s ease;
     }
-    select:focus, input[type="range"]:focus { outline: none; border-color: #00ffff; }
+    button:hover {
+      background: linear-gradient(135deg, rgba(0, 217, 255, 0.6) 0%, rgba(0, 255, 136, 0.4) 100%);
+      border-color: rgba(0, 217, 255, 1);
+    }
+    .value-label { font-size: 0.8rem; color: #00ffff; }
     .canvas-wrapper {
-      position: relative;
-      background: #0a0e27;
+      background: rgba(0, 0, 0, 0.5);
+      border: 1px solid rgba(0, 217, 255, 0.3);
       border-radius: 8px;
       overflow: hidden;
-      border: 2px solid rgba(0, 255, 255, 0.2);
-      margin-bottom: 24px;
+      margin-bottom: 2rem;
+      aspect-ratio: 16/9;
+      max-height: 500px;
       cursor: crosshair;
     }
     canvas {
       display: block;
       width: 100%;
-      height: auto;
+      height: 100%;
     }
     .stats {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-      gap: 12px;
-      padding: 16px;
-      background: rgba(0, 255, 136, 0.05);
-      border-radius: 8px;
-      border: 1px solid rgba(0, 255, 136, 0.2);
+      gap: 1rem;
+      margin-bottom: 1.5rem;
     }
-    .stat-item {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
+    .stat-box {
+      background: rgba(0, 217, 255, 0.1);
+      border: 1px solid rgba(0, 217, 255, 0.3);
+      border-radius: 6px;
+      padding: 1rem;
+      text-align: center;
     }
     .stat-label {
-      font-size: 0.75em;
+      font-size: 0.75rem;
+      color: #00d9ff;
       text-transform: uppercase;
-      color: #00ff88;
-      font-weight: 600;
       letter-spacing: 0.5px;
+      margin-bottom: 0.5rem;
     }
     .stat-value {
-      font-size: 1.4em;
+      font-family: Syne, sans-serif;
+      font-size: 1.5rem;
       font-weight: 700;
       color: #00ffff;
-      font-family: 'Syne', sans-serif;
     }
-    .hint {
-      margin-top: 16px;
-      padding: 12px;
-      background: rgba(255, 183, 0, 0.05);
-      border-left: 3px solid #ffb700;
-      font-size: 0.85em;
-      color: #ffb700;
+    .info {
+      background: rgba(0, 217, 255, 0.05);
+      border-left: 3px solid rgba(0, 217, 255, 0.4);
+      padding: 1rem;
       border-radius: 4px;
+      font-size: 0.9rem;
+      line-height: 1.6;
+      color: #d0d9ff;
+    }
+    @media (max-width: 768px) {
+      .container { padding: 1.5rem; }
+      h1 { font-size: 1.5rem; }
+      .controls { grid-template-columns: 1fr; }
+      .stat-box { padding: 0.75rem; }
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>Fluid Flow Tracer</h1>
-    <p class="subtitle">Lagrangian particle tracing through real fluid vector fields</p>
+    <h1>🌊 Fluid Flow Tracer</h1>
     
     <div class="controls">
       <div class="control-group">
-        <label>Vector Field</label>
+        <label for="fieldType">Vector Field</label>
         <select id="fieldType">
           <option value="vortex">Vortex</option>
           <option value="source">Source</option>
           <option value="sink">Sink</option>
           <option value="shear">Shear</option>
-          <option value="cylinder">Wind over Cylinder</option>
+          <option value="cylinder">Cylinder</option>
         </select>
       </div>
       <div class="control-group">
-        <label>Field Strength</label>
-        <input type="range" id="strength" min="0.5" max="3" step="0.1" value="1">
+        <label for="strength">Field Strength: <span class="value-label" id="strengthVal">1.0</span></label>
+        <input type="range" id="strength" min="0.1" max="3" step="0.1" value="1.0">
       </div>
       <div class="control-group">
-        <label>Particle Count</label>
-        <input type="range" id="particleCount" min="10" max="300" step="10" value="150">
+        <label for="particleCount">Particles: <span class="value-label" id="particleCountVal">150</span></label>
+        <input type="range" id="particleCount" min="50" max="300" step="10" value="150">
       </div>
-      <div class="control-group">
-        <label>Emission Rate</label>
-        <input type="range" id="emissionRate" min="1" max="10" step="1" value="3">
-      </div>
+      <button id="toggleStreamlines">Show Streamlines</button>
+      <button id="resetBtn">Reset</button>
     </div>
 
     <div class="canvas-wrapper">
-      <canvas id="flowCanvas"></canvas>
+      <canvas id="canvas"></canvas>
     </div>
 
     <div class="stats">
-      <div class="stat-item">
+      <div class="stat-box">
         <div class="stat-label">Max Speed</div>
-        <div class="stat-value" id="maxSpeed">0.00</div>
+        <div class="stat-value" id="maxSpeed">0</div>
       </div>
-      <div class="stat-item">
+      <div class="stat-box">
         <div class="stat-label">Avg Speed</div>
-        <div class="stat-value" id="avgSpeed">0.00</div>
+        <div class="stat-value" id="avgSpeed">0</div>
       </div>
-      <div class="stat-item">
+      <div class="stat-box">
         <div class="stat-label">Active Particles</div>
-        <div class="stat-value" id="particleCountStat">0</div>
+        <div class="stat-value" id="activeParticles">0</div>
       </div>
-      <div class="stat-item">
+      <div class="stat-box">
         <div class="stat-label">Field Type</div>
         <div class="stat-value" id="fieldLabel">Vortex</div>
       </div>
     </div>
 
-    <div class="hint">
-      💡 Click on the canvas to emit particles at that location. Real vector field math, no fake data.
+    <div class="info">
+      <strong>How to use:</strong> Click anywhere on the canvas to emit particles. Adjust field type, strength, and particle count. Toggle streamlines to see the vector field backbone. Particles are colored by velocity (blue → slow, red → fast).
     </div>
   </div>
 
   <script>
-    (function() {
-      const canvas = document.getElementById('flowCanvas');
-      if (!canvas) { console.error('Canvas not found'); return; }
-      const ctx = canvas.getContext('2d');
-      
-      function resizeCanvas() {
-        const rect = canvas.parentElement.getBoundingClientRect();
-        canvas.width = rect.width - 4;
-        canvas.height = Math.max(400, Math.min(600, canvas.width * 0.6));
-      }
-      resizeCanvas();
-      window.addEventListener('resize', resizeCanvas);
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
 
-      const W = canvas.width;
-      const H = canvas.height;
-      const particles = [];
-      let emitterLoc = null;
+    let particles = [];
+    let showStreamlines = false;
+    let fieldType = 'vortex';
+    let fieldStrength = 1.0;
+    let targetParticleCount = 150;
+    let emitterActive = false;
+    let emitterX = canvas.width / 2;
+    let emitterY = canvas.height / 2;
 
-      const state = {
-        fieldType: 'vortex',
-        strength: 1,
-        particleCount: 150,
-        emissionRate: 3,
-      };
+    function resizeCanvas() {
+      const rect = canvas.parentElement.getBoundingClientRect();
+      canvas.width = rect.width;
+      canvas.height = rect.height;
+    }
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
 
-      document.getElementById('fieldType').addEventListener('change', (e) => {
-        state.fieldType = e.target.value;
-        document.getElementById('fieldLabel').textContent = 
-          e.target.value.charAt(0).toUpperCase() + e.target.value.slice(1);
-      });
-      document.getElementById('strength').addEventListener('input', (e) => { state.strength = parseFloat(e.target.value); });
-      document.getElementById('particleCount').addEventListener('input', (e) => { state.particleCount = parseInt(e.target.value); });
-      document.getElementById('emissionRate').addEventListener('input', (e) => { state.emissionRate = parseInt(e.target.value); });
-
-      canvas.addEventListener('click', (e) => {
-        const rect = canvas.getBoundingClientRect();
-        emitterLoc = { x: e.clientX - rect.left, y: e.clientY - rect.top };
-        setTimeout(() => { emitterLoc = null; }, 500);
-      });
-
-      function vortex(x, y, cx, cy, strength) {
-        const dx = x - cx, dy = y - cy;
-        const r2 = dx * dx + dy * dy + 1e-4;
-        const s = strength / Math.sqrt(r2);
-        return { vx: -s * dy / r2, vy: s * dx / r2 };
+    // Particle class with RK4 integration
+    class Particle {
+      constructor(x, y) {
+        this.x = x;
+        this.y = y;
+        this.vx = 0;
+        this.vy = 0;
+        this.age = 0;
+        this.lifetime = 250;
       }
 
-      function source(x, y, cx, cy, strength) {
-        const dx = x - cx, dy = y - cy;
-        const r2 = dx * dx + dy * dy + 1e-4;
-        const s = strength / Math.sqrt(r2);
-        return { vx: s * dx / Math.sqrt(r2), vy: s * dy / Math.sqrt(r2) };
-      }
+      getVelocity(x, y) {
+        const cx = canvas.width / 2;
+        const cy = canvas.height / 2;
+        const dx = x - cx;
+        const dy = y - cy;
+        const r = Math.sqrt(dx * dx + dy * dy) + 1;
 
-      function sink(x, y, cx, cy, strength) {
-        const v = source(x, y, cx, cy, strength);
-        return { vx: -v.vx, vy: -v.vy };
-      }
+        let vx = 0, vy = 0;
 
-      function shear(x, y, strength) {
-        return { vx: strength * y / H, vy: 0 };
-      }
-
-      function cylinderWind(x, y, strength) {
-        const cx = W / 2, cy = H / 2;
-        const dx = x - cx, dy = y - cy;
-        const r2 = dx * dx + dy * dy;
-        const r = Math.sqrt(r2);
-        if (r < 30) return { vx: 0, vy: 0 };
-        const u = strength * (1 - 900 / r2);
-        const angle = Math.atan2(dy, dx);
-        const vx = u * Math.cos(angle);
-        const vy = u * Math.sin(angle);
-        return { vx, vy };
-      }
-
-      function getFieldVelocity(x, y, fieldType, strength) {
-        const cx = W / 2, cy = H / 2;
         switch (fieldType) {
-          case 'vortex': return vortex(x, y, cx, cy, strength * 0.5);
-          case 'source': return source(x, y, cx, cy, strength * 0.3);
-          case 'sink': return sink(x, y, cx, cy, strength * 0.3);
-          case 'shear': return shear(x, y, strength * 0.8);
-          case 'cylinder': return cylinderWind(x, y, strength * 0.6);
-          default: return { vx: 0, vy: 0 };
+          case 'vortex':
+            vx = -dy / (r * r) * fieldStrength;
+            vy = dx / (r * r) * fieldStrength;
+            break;
+          case 'source':
+            vx = dx / r * fieldStrength;
+            vy = dy / r * fieldStrength;
+            break;
+          case 'sink':
+            vx = -dx / r * fieldStrength;
+            vy = -dy / r * fieldStrength;
+            break;
+          case 'shear':
+            vx = dy * 0.5 * fieldStrength;
+            vy = 0;
+            break;
+          case 'cylinder':
+            const angle = Math.atan2(dy, dx);
+            vx = Math.cos(angle + 0.3) * fieldStrength;
+            vy = Math.sin(angle + 0.3) * fieldStrength;
+            break;
         }
+        return [vx, vy];
       }
 
-      function rk4Step(x, y, fieldType, strength, dt = 0.5) {
-        const k1 = getFieldVelocity(x, y, fieldType, strength);
-        const k2 = getFieldVelocity(x + k1.vx * dt * 0.5, y + k1.vy * dt * 0.5, fieldType, strength);
-        const k3 = getFieldVelocity(x + k2.vx * dt * 0.5, y + k2.vy * dt * 0.5, fieldType, strength);
-        const k4 = getFieldVelocity(x + k3.vx * dt, y + k3.vy * dt, fieldType, strength);
-        return {
-          x: x + (k1.vx + 2 * k2.vx + 2 * k3.vx + k4.vx) * dt / 6,
-          y: y + (k1.vy + 2 * k2.vy + 2 * k3.vy + k4.vy) * dt / 6,
-        };
+      // RK4 integration step
+      update() {
+        const dt = 0.5;
+        const [vx0, vy0] = this.getVelocity(this.x, this.y);
+
+        const [vx1, vy1] = this.getVelocity(this.x + vx0 * dt * 0.5, this.y + vy0 * dt * 0.5);
+        const [vx2, vy2] = this.getVelocity(this.x + vx1 * dt * 0.5, this.y + vy1 * dt * 0.5);
+        const [vx3, vy3] = this.getVelocity(this.x + vx2 * dt, this.y + vy2 * dt);
+
+        this.vx = (vx0 + 2 * vx1 + 2 * vx2 + vx3) / 6;
+        this.vy = (vy0 + 2 * vy1 + 2 * vy2 + vy3) / 6;
+
+        this.x += this.vx * dt;
+        this.y += this.vy * dt;
+        this.age++;
       }
 
-      function createParticle(x, y) {
-        return {
-          x, y,
-          trail: [{ x, y }],
-          age: 0,
-          maxAge: 200 + Math.random() * 100,
-        };
+      getSpeed() {
+        return Math.sqrt(this.vx * this.vx + this.vy * this.vy);
       }
 
-      function updateParticles() {
-        // Emission from left boundary
-        for (let i = 0; i < state.emissionRate; i++) {
-          if (particles.length < state.particleCount) {
-            particles.push(createParticle(-5, Math.random() * H));
-          }
+      getColor() {
+        const speed = this.getSpeed();
+        const normalizedSpeed = Math.min(speed / (3 * fieldStrength), 1);
+        
+        // Blue → Cyan → Green → Yellow → Red
+        let r, g, b;
+        if (normalizedSpeed < 0.25) {
+          const t = normalizedSpeed / 0.25;
+          r = 0; g = 128 + 128 * t; b = 255;
+        } else if (normalizedSpeed < 0.5) {
+          const t = (normalizedSpeed - 0.25) / 0.25;
+          r = 0; g = 255; b = 255 * (1 - t);
+        } else if (normalizedSpeed < 0.75) {
+          const t = (normalizedSpeed - 0.5) / 0.25;
+          r = 255 * t; g = 255; b = 0;
+        } else {
+          const t = (normalizedSpeed - 0.75) / 0.25;
+          r = 255; g = 255 * (1 - t); b = 0;
         }
-
-        // Emission from click
-        if (emitterLoc && particles.length < state.particleCount) {
-          for (let i = 0; i < state.emissionRate * 2; i++) {
-            const angle = Math.random() * Math.PI * 2;
-            const r = Math.random() * 10;
-            particles.push(createParticle(
-              emitterLoc.x + r * Math.cos(angle),
-              emitterLoc.y + r * Math.sin(angle)
-            ));
-          }
-        }
-
-        // Update each particle
-        for (let i = particles.length - 1; i >= 0; i--) {
-          const p = particles[i];
-          const newPos = rk4Step(p.x, p.y, state.fieldType, state.strength);
-          p.x = newPos.x;
-          p.y = newPos.y;
-          p.age++;
-
-          if (p.trail.length === 0 || 
-              Math.hypot(p.x - p.trail[p.trail.length - 1].x, p.y - p.trail[p.trail.length - 1].y) > 2) {
-            p.trail.push({ x: p.x, y: p.y });
-          }
-          if (p.trail.length > 30) p.trail.shift();
-
-          // Remove if out of bounds or too old
-          if (p.age > p.maxAge || p.x < -50 || p.x > W + 50 || p.y < -50 || p.y > H + 50) {
-            particles.splice(i, 1);
-          }
-        }
+        return `rgb(${Math.round(r)}, ${Math.round(g)}, ${Math.round(b)})`;
       }
 
-      function computeStats() {
-        let maxSpeed = 0, totalSpeed = 0;
-        for (const p of particles) {
-          if (p.trail.length > 1) {
-            const prev = p.trail[p.trail.length - 2];
-            const curr = p.trail[p.trail.length - 1];
-            const speed = Math.hypot(curr.x - prev.x, curr.y - prev.y);
-            maxSpeed = Math.max(maxSpeed, speed);
-            totalSpeed += speed;
-          }
-        }
-        const avgSpeed = particles.length > 0 ? totalSpeed / particles.length : 0;
-        document.getElementById('maxSpeed').textContent = maxSpeed.toFixed(2);
-        document.getElementById('avgSpeed').textContent = avgSpeed.toFixed(2);
-        document.getElementById('particleCountStat').textContent = particles.length;
+      isAlive() {
+        return this.age < this.lifetime && 
+               this.x >= 0 && this.x <= canvas.width && 
+               this.y >= 0 && this.y <= canvas.height;
       }
+    }
 
-      function render() {
-        ctx.fillStyle = '#0a0e27';
-        ctx.fillRect(0, 0, W, H);
+    function drawStreamlines() {
+      const spacing = 30;
+      const steps = 20;
+      ctx.strokeStyle = 'rgba(0, 217, 255, 0.1)';
+      ctx.lineWidth = 0.5;
 
-        // Render particle trails
-        for (const p of particles) {
-          if (p.trail.length < 2) continue;
-          const progress = p.age / p.maxAge;
-          const alpha = Math.max(0, 1 - progress);
-          const speed = p.trail.length > 1 
-            ? Math.hypot(p.trail[p.trail.length - 1].x - p.trail[p.trail.length - 2].x, 
-                         p.trail[p.trail.length - 1].y - p.trail[p.trail.length - 2].y)
-            : 0;
-          
-          // Color by speed: blue→cyan→green→yellow→red
-          let color;
-          if (speed < 0.5) color = `rgba(0, 100, 255, ${alpha})`;
-          else if (speed < 1) color = `rgba(0, 255, 255, ${alpha})`;
-          else if (speed < 2) color = `rgba(0, 255, 136, ${alpha})`;
-          else if (speed < 3) color = `rgba(255, 183, 0, ${alpha})`;
-          else color = `rgba(255, 100, 100, ${alpha})`;
-
-          ctx.strokeStyle = color;
-          ctx.lineWidth = 1.5;
+      for (let startX = 0; startX < canvas.width; startX += spacing) {
+        for (let startY = 0; startY < canvas.height; startY += spacing) {
+          let x = startX, y = startY;
           ctx.beginPath();
-          ctx.moveTo(p.trail[0].x, p.trail[0].y);
-          for (let i = 1; i < p.trail.length; i++) {
-            ctx.lineTo(p.trail[i].x, p.trail[i].y);
+          ctx.moveTo(x, y);
+
+          for (let i = 0; i < steps; i++) {
+            const [vx, vy] = new Particle(x, y).getVelocity(x, y);
+            const len = Math.sqrt(vx * vx + vy * vy) + 0.1;
+            x += (vx / len) * 8;
+            y += (vy / len) * 8;
+
+            if (x < 0 || x > canvas.width || y < 0 || y > canvas.height) break;
+            ctx.lineTo(x, y);
           }
           ctx.stroke();
-
-          // Draw particle head
-          const last = p.trail[p.trail.length - 1];
-          ctx.fillStyle = color;
-          ctx.beginPath();
-          ctx.arc(last.x, last.y, 2, 0, Math.PI * 2);
-          ctx.fill();
-        }
-
-        // Draw emitter center if active
-        if (emitterLoc) {
-          ctx.fillStyle = 'rgba(255, 183, 0, 0.5)';
-          ctx.beginPath();
-          ctx.arc(emitterLoc.x, emitterLoc.y, 15, 0, Math.PI * 2);
-          ctx.fill();
         }
       }
+    }
 
-      function step() {
-        updateParticles();
-        computeStats();
-        render();
+    function drawQuiverField() {
+      const spacing = 40;
+      const scale = 0.5;
+      ctx.strokeStyle = 'rgba(0, 255, 136, 0.15)';
+      ctx.lineWidth = 1;
+
+      for (let x = spacing; x < canvas.width; x += spacing) {
+        for (let y = spacing; y < canvas.height; y += spacing) {
+          const [vx, vy] = new Particle(x, y).getVelocity(x, y);
+          const len = Math.sqrt(vx * vx + vy * vy);
+          const normalized = len > 0 ? 1 : 0;
+          const ex = x + (vx / (len + 0.1)) * scale * spacing;
+          const ey = y + (vy / (len + 0.1)) * scale * spacing;
+
+          ctx.beginPath();
+          ctx.moveTo(x, y);
+          ctx.lineTo(ex, ey);
+          ctx.stroke();
+        }
+      }
+    }
+
+    function animate() {
+      // Clear
+      ctx.fillStyle = 'rgba(10, 14, 39, 0.3)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Draw field
+      if (showStreamlines) {
+        drawStreamlines();
+      } else {
+        drawQuiverField();
       }
 
-      // Use setInterval for timer-based animation
-      setInterval(step, 50);
-    })();
+      // Update and emit particles
+      if (emitterActive && particles.length < targetParticleCount) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 1;
+        const p = new Particle(emitterX, emitterY);
+        p.vx = Math.cos(angle) * speed;
+        p.vy = Math.sin(angle) * speed;
+        particles.push(p);
+      }
+
+      // Update particles
+      particles.forEach(p => p.update());
+      particles = particles.filter(p => p.isAlive());
+
+      // Draw particles
+      particles.forEach(p => {
+        ctx.fillStyle = p.getColor();
+        ctx.globalAlpha = 1 - (p.age / p.lifetime);
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 2.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+      });
+
+      // Draw emitter
+      if (emitterActive) {
+        ctx.fillStyle = 'rgba(0, 217, 255, 0.8)';
+        ctx.beginPath();
+        ctx.arc(emitterX, emitterY, 5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Update stats
+      if (particles.length > 0) {
+        const speeds = particles.map(p => p.getSpeed());
+        const maxSpeed = Math.max(...speeds);
+        const avgSpeed = speeds.reduce((a, b) => a + b) / speeds.length;
+        document.getElementById('maxSpeed').textContent = maxSpeed.toFixed(2);
+        document.getElementById('avgSpeed').textContent = avgSpeed.toFixed(2);
+      } else {
+        document.getElementById('maxSpeed').textContent = '0';
+        document.getElementById('avgSpeed').textContent = '0';
+      }
+      document.getElementById('activeParticles').textContent = particles.length;
+
+      requestAnimationFrame(animate);
+    }
+
+    // Controls
+    document.getElementById('fieldType').addEventListener('change', (e) => {
+      fieldType = e.target.value;
+      document.getElementById('fieldLabel').textContent = 
+        fieldType.charAt(0).toUpperCase() + fieldType.slice(1);
+    });
+
+    document.getElementById('strength').addEventListener('input', (e) => {
+      fieldStrength = parseFloat(e.target.value);
+      document.getElementById('strengthVal').textContent = fieldStrength.toFixed(1);
+    });
+
+    document.getElementById('particleCount').addEventListener('input', (e) => {
+      targetParticleCount = parseInt(e.target.value);
+      document.getElementById('particleCountVal').textContent = e.target.value;
+    });
+
+    document.getElementById('toggleStreamlines').addEventListener('click', () => {
+      showStreamlines = !showStreamlines;
+      document.getElementById('toggleStreamlines').textContent = 
+        showStreamlines ? 'Hide Streamlines' : 'Show Streamlines';
+    });
+
+    document.getElementById('resetBtn').addEventListener('click', () => {
+      particles = [];
+      emitterActive = false;
+      document.getElementById('maxSpeed').textContent = '0';
+      document.getElementById('avgSpeed').textContent = '0';
+      document.getElementById('activeParticles').textContent = '0';
+    });
+
+    // Canvas click to emit
+    canvas.addEventListener('mousedown', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      emitterX = e.clientX - rect.left;
+      emitterY = e.clientY - rect.top;
+      emitterActive = true;
+    });
+
+    canvas.addEventListener('mouseup', () => {
+      emitterActive = false;
+    });
+
+    canvas.addEventListener('mouseleave', () => {
+      emitterActive = false;
+    });
+
+    canvas.addEventListener('mousemove', (e) => {
+      if (emitterActive) {
+        const rect = canvas.getBoundingClientRect();
+        emitterX = e.clientX - rect.left;
+        emitterY = e.clientY - rect.top;
+      }
+    });
+
+    // Touch support
+    canvas.addEventListener('touchstart', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      emitterX = e.touches[0].clientX - rect.left;
+      emitterY = e.touches[0].clientY - rect.top;
+      emitterActive = true;
+    });
+
+    canvas.addEventListener('touchend', () => {
+      emitterActive = false;
+    });
+
+    canvas.addEventListener('touchmove', (e) => {
+      if (emitterActive) {
+        const rect = canvas.getBoundingClientRect();
+        emitterX = e.touches[0].clientX - rect.left;
+        emitterY = e.touches[0].clientY - rect.top;
+      }
+    });
+
+    animate();
+
+    // Validation assertions
+    console.assert(canvas.width > 0, 'Canvas width invalid');
+    console.assert(particles instanceof Array, 'Particles array invalid');
+    console.assert(fieldType !== '', 'Field type not set');
   </script>
 </body>
 </html>
