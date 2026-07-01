@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quake Tracker</title>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #0a0e27;
+            color: #e0e7ff;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        h1 {
+            font-family: 'Syne', sans-serif;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #ff006e, #ffb700);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .stats {
+            display: flex;
+            gap: 20px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        .stat-box {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,0,110,0.3);
+            border-radius: 8px;
+            padding: 15px 20px;
+            flex: 1;
+            min-width: 150px;
+        }
+        .stat-label {
+            font-size: 0.85rem;
+            color: #a0aec0;
+            margin-bottom: 5px;
+        }
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #ffb700;
+        }
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        input[type="text"], input[type="number"] {
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: #e0e7ff;
+            padding: 10px 12px;
+            border-radius: 6px;
+            font-size: 0.95rem;
+        }
+        input[type="text"]::placeholder {
+            color: #64748b;
+        }
+        button {
+            background: linear-gradient(135deg, #ff006e, #ffb700);
+            border: none;
+            color: #0a0e27;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 0.95rem;
+        }
+        button:hover {
+            opacity: 0.9;
+        }
+        .content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        @media (max-width: 1024px) {
+            .content {
+                grid-template-columns: 1fr;
+            }
+        }
+        .map-container {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            padding: 15px;
+            min-height: 500px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+        .list-container {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            padding: 15px;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+        .event-item {
+            background: rgba(255,0,110,0.08);
+            border-left: 3px solid #ff006e;
+            padding: 12px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .event-item:hover {
+            background: rgba(255,0,110,0.15);
+            transform: translateX(5px);
+        }
+        .event-time {
+            font-size: 0.8rem;
+            color: #a0aec0;
+        }
+        .event-mag {
+            display: inline-block;
+            background: #ff006e;
+            color: #0a0e27;
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-weight: 700;
+            margin-left: 8px;
+            font-size: 0.85rem;
+        }
+        .event-location {
+            margin-top: 5px;
+            font-weight: 500;
+        }
+        .chart-container {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+        .histogram {
+            display: flex;
+            align-items: flex-end;
+            gap: 8px;
+            height: 150px;
+            margin-top: 15px;
+        }
+        .bar {
+            flex: 1;
+            background: linear-gradient(180deg, #00ffff, #ff006e);
+            border-radius: 3px 3px 0 0;
+            min-height: 2px;
+            position: relative;
+        }
+        .bar-label {
+            position: absolute;
+            bottom: -20px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            font-size: 0.75rem;
+            color: #a0aec0;
+        }
+        .loading {
+            text-align: center;
+            color: #a0aec0;
+            margin: 20px;
+        }
+        .error {
+            background: rgba(255,0,110,0.2);
+            border: 1px solid #ff006e;
+            color: #ff6b9d;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌍 Quake Tracker</h1>
+        <p style="color: #a0aec0; margin-bottom: 20px;">Live earthquake map with real USGS seismic data, updated every 30s.</p>
+
+        <div class="stats">
+            <div class="stat-box">
+                <div class="stat-label">Last 24h Events</div>
+                <div class="stat-value" id="eventCount">—</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Strongest Magnitude</div>
+                <div class="stat-value" id="maxMag">—</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Avg Magnitude</div>
+                <div class="stat-value" id="avgMag">—</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Last Update</div>
+                <div class="stat-value" id="lastUpdate">—</div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <input type="number" id="minMag" placeholder="Min magnitude" min="0" max="9" value="2">
+            <input type="text" id="searchLocation" placeholder="Search location...">
+            <button onclick="applyFilters()">Filter</button>
+            <button onclick="resetData()">Reset</button>
+        </div>
+
+        <div id="error"></div>
+
+        <div class="content">
+            <div class="map-container">
+                <canvas id="mapCanvas"></canvas>
+            </div>
+            <div class="list-container">
+                <div id="eventList" class="loading">Loading earthquake data...</div>
+            </div>
+        </div>
+
+        <div class="chart-container">
+            <div style="font-weight: 600; margin-bottom: 10px;">24-Hour Magnitude Distribution</div>
+            <div class="histogram" id="histogram"></div>
+        </div>
+    </div>
+
+    <script>
+        let allEvents = [];
+        let filteredEvents = [];
+        let selectedEvent = null;
+
+        const canvas = document.getElementById('mapCanvas');
+        const ctx = canvas.getContext('2d');
+
+        function resizeCanvas() {
+            const rect = canvas.parentElement.getBoundingClientRect();
+            canvas.width = rect.width - 30;
+            canvas.height = rect.height - 30;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        async function fetchEarthquakes() {
+            try {
+                const response = await fetch('https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson');
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const data = await response.json();
+                allEvents = data.features.map(f => ({
+                    lat: f.geometry.coordinates[1],
+                    lon: f.geometry.coordinates[0],
+                    depth: f.geometry.coordinates[2],
+                    mag: f.properties.mag,
+                    location: f.properties.place,
+                    time: new Date(f.properties.time),
+                    id: f.id
+                })).filter(e => e.mag !== null);
+                filteredEvents = [...allEvents];
+                updateStats();
+                renderMap();
+                updateEventList();
+                updateHistogram();
+                document.getElementById('error').innerHTML = '';
+                setTimeout(fetchEarthquakes, 30000);
+            } catch (e) {
+                document.getElementById('error').innerHTML = `<div class="error">Error fetching data: ${e.message}</div>`;
+                setTimeout(fetchEarthquakes, 10000);
+            }
+        }
+
+        function updateStats() {
+            document.getElementById('eventCount').textContent = allEvents.length;
+            if (allEvents.length === 0) {
+                document.getElementById('maxMag').textContent = '—';
+                document.getElementById('avgMag').textContent = '—';
+            } else {
+                const mags = allEvents.map(e => e.mag);
+                document.getElementById('maxMag').textContent = Math.max(...mags).toFixed(1);
+                document.getElementById('avgMag').textContent = (mags.reduce((a, b) => a + b) / mags.length).toFixed(1);
+            }
+            const now = new Date();
+            document.getElementById('lastUpdate').textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+
+        function renderMap() {
+            ctx.fillStyle = '#0a0e27';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw grid
+            ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+            ctx.lineWidth = 1;
+            for (let i = 0; i <= 180; i += 30) {
+                const x = (i / 180) * canvas.width;
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvas.height);
+                ctx.stroke();
+            }
+            for (let i = 0; i <= 90; i += 30) {
+                const y = (i / 90) * canvas.height;
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvas.width, y);
+                ctx.stroke();
+            }
+
+            // Sort by magnitude (smallest first, so larger circles render on top)
+            const sorted = [...filteredEvents].sort((a, b) => a.mag - b.mag);
+
+            sorted.forEach(event => {
+                const x = ((event.lon + 180) / 360) * canvas.width;
+                const y = ((90 - event.lat) / 180) * canvas.height;
+
+                // Depth-based color: shallow (red) to deep (blue)
+                const depthRatio = Math.min(event.depth / 600, 1);
+                const hue = (1 - depthRatio) * 0 + depthRatio * 240; // Red to Blue
+                const color = `hsl(${hue}, 100%, 50%)`;
+
+                ctx.fillStyle = color;
+                const radius = Math.max(3, (event.mag - 1) * 2.5);
+                ctx.beginPath();
+                ctx.arc(x, y, radius, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Highlight selected
+                if (selectedEvent && selectedEvent.id === event.id) {
+                    ctx.strokeStyle = '#ffb700';
+                    ctx.lineWidth = 3;
+                    ctx.beginPath();
+                    ctx.arc(x, y, radius + 5, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+            });
+
+            // Click handler
+            canvas.onclick = (e) => {
+                const rect = canvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                sorted.forEach(event => {
+                    const ex = ((event.lon + 180) / 360) * canvas.width;
+                    const ey = ((90 - event.lat) / 180) * canvas.height;
+                    const r = Math.max(3, (event.mag - 1) * 2.5);
+                    if (Math.hypot(x - ex, y - ey) < r + 8) {
+                        selectedEvent = event;
+                        renderMap();
+                        updateEventList();
+                    }
+                });
+            };
+        }
+
+        function updateEventList() {
+            const list = document.getElementById('eventList');
+            if (filteredEvents.length === 0) {
+                list.innerHTML = '<div style="color: #a0aec0;">No events match filters.</div>';
+                return;
+            }
+            const sorted = [...filteredEvents].sort((a, b) => b.time - a.time);
+            list.innerHTML = sorted.map(e => `
+                <div class="event-item" onclick="selectEvent('${e.id}')">
+                    <div class="event-time">${e.time.toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>
+                    <div class="event-location">${e.location} <span class="event-mag">${e.mag.toFixed(1)}</span></div>
+                    <div style="font-size: 0.8rem; color: #64748b;">Depth: ${e.depth.toFixed(0)} km</div>
+                </div>
+            `).join('');
+        }
+
+        function selectEvent(id) {
+            selectedEvent = allEvents.find(e => e.id === id);
+            renderMap();
+        }
+
+        function updateHistogram() {
+            if (allEvents.length === 0) return;
+            const bins = [0, 0, 0, 0, 0, 0]; // 0-1, 1-2, 2-3, 3-4, 4-5, 5+
+            allEvents.forEach(e => {
+                if (e.mag < 1) bins[0]++;
+                else if (e.mag < 2) bins[1]++;
+                else if (e.mag < 3) bins[2]++;
+                else if (e.mag < 4) bins[3]++;
+                else if (e.mag < 5) bins[4]++;
+                else bins[5]++;
+            });
+            const max = Math.max(...bins);
+            const hist = document.getElementById('histogram');
+            hist.innerHTML = bins.map((count, i) => {
+                const label = i < 5 ? `${i}-${i + 1}` : '5+';
+                const height = max > 0 ? (count / max) * 100 : 0;
+                return `
+                    <div style="flex: 1; position: relative;">
+                        <div class="bar" style="height: ${height}%;"></div>
+                        <div style="position: absolute; bottom: -25px; left: 0; right: 0; text-align: center; font-size: 0.75rem; color: #a0aec0;">${label}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function applyFilters() {
+            const minMag = parseFloat(document.getElementById('minMag').value) || 0;
+            const location = document.getElementById('searchLocation').value.toLowerCase();
+            filteredEvents = allEvents.filter(e => 
+                e.mag >= minMag && (location === '' || e.location.toLowerCase().includes(location))
+            );
+            renderMap();
+            updateEventList();
+        }
+
+        function resetData() {
+            document.getElementById('minMag').value = '2';
+            document.getElementById('searchLocation').value = '';
+            filteredEvents = [...allEvents];
+            selectedEvent = null;
+            renderMap();
+            updateEventList();
+        }
+
+        fetchEarthquakes();
+    </script>
+</body>
+</html>
