@@ -168,15 +168,6 @@
             min-height: 2px;
             position: relative;
         }
-        .bar-label {
-            position: absolute;
-            bottom: -20px;
-            left: 0;
-            right: 0;
-            text-align: center;
-            font-size: 0.75rem;
-            color: #a0aec0;
-        }
         .loading {
             text-align: center;
             color: #a0aec0;
@@ -258,7 +249,12 @@
 
         async function fetchEarthquakes() {
             try {
-                const response = await fetch('https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson');
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 8000);
+                
+                const response = await fetch('https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson', { signal: controller.signal });
+                clearTimeout(timeoutId);
+                
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 const data = await response.json();
                 allEvents = data.features.map(f => ({
@@ -278,7 +274,8 @@
                 document.getElementById('error').innerHTML = '';
                 setTimeout(fetchEarthquakes, 30000);
             } catch (e) {
-                document.getElementById('error').innerHTML = `<div class="error">Error fetching data: ${e.message}</div>`;
+                const msg = e.name === 'AbortError' ? 'Request timeout' : e.message;
+                document.getElementById('error').innerHTML = `<div class="error">⚠️ ${msg}. Retrying...</div>`;
                 setTimeout(fetchEarthquakes, 10000);
             }
         }
@@ -319,7 +316,7 @@
                 ctx.stroke();
             }
 
-            // Sort by magnitude (smallest first, so larger circles render on top)
+            // Sort by magnitude (smallest first)
             const sorted = [...filteredEvents].sort((a, b) => a.mag - b.mag);
 
             sorted.forEach(event => {
@@ -328,7 +325,7 @@
 
                 // Depth-based color: shallow (red) to deep (blue)
                 const depthRatio = Math.min(event.depth / 600, 1);
-                const hue = (1 - depthRatio) * 0 + depthRatio * 240; // Red to Blue
+                const hue = (1 - depthRatio) * 0 + depthRatio * 240;
                 const color = `hsl(${hue}, 100%, 50%)`;
 
                 ctx.fillStyle = color;
@@ -337,7 +334,6 @@
                 ctx.arc(x, y, radius, 0, Math.PI * 2);
                 ctx.fill();
 
-                // Highlight selected
                 if (selectedEvent && selectedEvent.id === event.id) {
                     ctx.strokeStyle = '#ffb700';
                     ctx.lineWidth = 3;
@@ -347,7 +343,6 @@
                 }
             });
 
-            // Click handler
             canvas.onclick = (e) => {
                 const rect = canvas.getBoundingClientRect();
                 const x = e.clientX - rect.left;
@@ -388,7 +383,7 @@
 
         function updateHistogram() {
             if (allEvents.length === 0) return;
-            const bins = [0, 0, 0, 0, 0, 0]; // 0-1, 1-2, 2-3, 3-4, 4-5, 5+
+            const bins = [0, 0, 0, 0, 0, 0];
             allEvents.forEach(e => {
                 if (e.mag < 1) bins[0]++;
                 else if (e.mag < 2) bins[1]++;
