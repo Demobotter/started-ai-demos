@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gravity N-Body Simulator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 100%);
+      font-family: 'Inter', sans-serif;
+      color: #ffffff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .container {
+      max-width: 900px;
+      width: 100%;
+      background: rgba(10, 14, 39, 0.8);
+      border-radius: 12px;
+      padding: 30px;
+      box-shadow: 0 20px 60px rgba(138, 43, 226, 0.1);
+      border: 1px solid rgba(138, 43, 226, 0.15);
+    }
+    h1 {
+      font-family: 'Syne', sans-serif;
+      font-size: 28px;
+      margin-bottom: 10px;
+      background: linear-gradient(135deg, #9d4edd, #e0aaff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .subtitle {
+      color: #c77dff;
+      font-size: 13px;
+      margin-bottom: 25px;
+      opacity: 0.8;
+    }
+    .controls {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+      margin-bottom: 25px;
+      padding: 20px;
+      background: rgba(138, 43, 226, 0.05);
+      border-radius: 8px;
+      border: 1px solid rgba(138, 43, 226, 0.1);
+    }
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    label {
+      font-size: 12px;
+      font-weight: 600;
+      color: #c77dff;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    select, input[type="range"], input[type="number"] {
+      padding: 8px 12px;
+      border: 1px solid rgba(138, 43, 226, 0.3);
+      border-radius: 6px;
+      background: rgba(0, 0, 0, 0.3);
+      color: #ffffff;
+      font-family: 'Inter', sans-serif;
+      font-size: 12px;
+    }
+    input[type="range"] {
+      cursor: pointer;
+      height: 6px;
+      accent-color: #9d4edd;
+    }
+    select:focus, input[type="range"]:focus, input[type="number"]:focus {
+      outline: none;
+      border-color: #9d4edd;
+      box-shadow: 0 0 8px rgba(138, 43, 226, 0.3);
+    }
+    .canvas-wrapper {
+      position: relative;
+      margin-bottom: 20px;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid rgba(138, 43, 226, 0.15);
+      background: #0a0e27;
+    }
+    canvas {
+      display: block;
+      width: 100%;
+      height: auto;
+      background: #0a0e27;
+    }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 15px;
+      margin-top: 20px;
+    }
+    .stat-box {
+      background: rgba(138, 43, 226, 0.05);
+      border: 1px solid rgba(138, 43, 226, 0.2);
+      border-radius: 6px;
+      padding: 12px;
+      text-align: center;
+    }
+    .stat-label {
+      font-size: 11px;
+      color: #c77dff;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+      opacity: 0.7;
+    }
+    .stat-value {
+      font-size: 18px;
+      font-weight: 600;
+      color: #e0aaff;
+      font-family: 'Syne', sans-serif;
+    }
+    .instruction {
+      font-size: 12px;
+      color: #c77dff;
+      margin-top: 15px;
+      opacity: 0.7;
+      border-left: 2px solid rgba(138, 43, 226, 0.3);
+      padding-left: 10px;
+    }
+    button {
+      padding: 10px 16px;
+      background: linear-gradient(135deg, #9d4edd, #c77dff);
+      color: #0a0e27;
+      border: none;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: 'Inter', sans-serif;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      transition: all 0.3s ease;
+    }
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 16px rgba(138, 43, 226, 0.3);
+    }
+    button:active {
+      transform: translateY(0);
+    }
+    .button-group {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Gravity N-Body</h1>
+    <p class="subtitle">Newton's laws in real time • Interactive mass placement • Live force vectors</p>
+
+    <div class="controls">
+      <div class="control-group">
+        <label for="bodyCountSlider">Number of Bodies: <span id="bodyCountValue">6</span></label>
+        <input type="range" id="bodyCountSlider" min="3" max="15" step="1" value="6">
+      </div>
+      <div class="control-group">
+        <label for="gravitySlider">Gravity Strength: <span id="gravityValue">1.0</span></label>
+        <input type="range" id="gravitySlider" min="0.1" max="2" step="0.1" value="1">
+      </div>
+      <div class="control-group">
+        <label for="dampingSlider">Damping: <span id="dampingValue">0.99</span></label>
+        <input type="range" id="dampingSlider" min="0.9" max="0.999" step="0.005" value="0.99">
+      </div>
+      <div class="control-group">
+        <label for="trailSlider">Trail Length: <span id="trailValue">40</span></label>
+        <input type="range" id="trailSlider" min="10" max="100" step="10" value="40">
+      </div>
+    </div>
+
+    <div class="button-group">
+      <button id="resetBtn">Reset System</button>
+      <button id="pauseBtn">Pause</button>
+    </div>
+
+    <div class="canvas-wrapper">
+      <canvas id="canvas"></canvas>
+    </div>
+
+    <div class="stats">
+      <div class="stat-box">
+        <div class="stat-label">Max Acceleration</div>
+        <div class="stat-value" id="maxAccel">0.00</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Total Energy</div>
+        <div class="stat-value" id="totalEnergy">0.00</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Avg Velocity</div>
+        <div class="stat-value" id="avgVelocity">0.00</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">FPS</div>
+        <div class="stat-value" id="fps">60</div>
+      </div>
+    </div>
+
+    <p class="instruction">💡 Watch bodies orbit and interact under real Newtonian gravity. Adjust gravity strength and damping to create different orbital dynamics.</p>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    function resizeCanvas() {
+      const rect = canvas.parentElement.getBoundingClientRect();
+      canvas.width = rect.width;
+      canvas.height = Math.max(500, rect.width * 0.6);
+    }
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+
+    // Physics constants
+    const G = 0.5; // Gravitational constant
+    const MIN_DISTANCE = 20; // Softening distance to prevent singularities
+
+    class Body {
+      constructor(x, y, vx, vy, mass) {
+        this.x = x;
+        this.y = y;
+        this.vx = vx;
+        this.vy = vy;
+        this.ax = 0;
+        this.ay = 0;
+        this.mass = mass;
+        this.trail = [];
+        this.color = this.generateColor();
+      }
+
+      generateColor() {
+        const hue = Math.random() * 360;
+        return `hsl(${hue}, 80%, 50%)`;
+      }
+
+      getSpeed() {
+        return Math.sqrt(this.vx ** 2 + this.vy ** 2);
+      }
+
+      getAcceleration() {
+        return Math.sqrt(this.ax ** 2 + this.ay ** 2);
+      }
+    }
+
+    let bodies = [];
+    let isPaused = false;
+    let gravityStrength = 1;
+    let damping = 0.99;
+    let trailLength = 40;
+    let bodyCount = 6;
+
+    function initializeBodies() {
+      bodies = [];
+      const centerX = canvas.width / 2;
+      const centerY = canvas.height / 2;
+      const radius = Math.min(canvas.width, canvas.height) * 0.25;
+
+      for (let i = 0; i < bodyCount; i++) {
+        const angle = (i / bodyCount) * Math.PI * 2;
+        const x = centerX + Math.cos(angle) * radius;
+        const y = centerY + Math.sin(angle) * radius;
+
+        // Tangential velocity for circular orbits
+        const vx = -Math.sin(angle) * 1.5;
+        const vy = Math.cos(angle) * 1.5;
+
+        const mass = 1 + Math.random() * 0.5;
+        bodies.push(new Body(x, y, vx, vy, mass));
+      }
+    }
+
+    function computeForces() {
+      // Reset accelerations
+      bodies.forEach(b => {
+        b.ax = 0;
+        b.ay = 0;
+      });
+
+      // Compute pairwise forces (Newton's law of universal gravitation)
+      for (let i = 0; i < bodies.length; i++) {
+        for (let j = i + 1; j < bodies.length; j++) {
+          const b1 = bodies[i];
+          const b2 = bodies[j];
+
+          const dx = b2.x - b1.x;
+          const dy = b2.y - b1.y;
+          const distSq = dx * dx + dy * dy;
+          const dist = Math.sqrt(distSq);
+          const distSoftened = Math.max(dist, MIN_DISTANCE);
+
+          // F = G * m1 * m2 / r^2
+          const force = (G * b1.mass * b2.mass * gravityStrength) / (distSoftened * distSoftened);
+
+          // Unit vector
+          const ux = dx / distSoftened;
+          const uy = dy / distSoftened;
+
+          // Apply force
+          b1.ax += force * ux / b1.mass;
+          b1.ay += force * uy / b1.mass;
+
+          b2.ax -= force * ux / b2.mass;
+          b2.ay -= force * uy / b2.mass;
+        }
+      }
+    }
+
+    function updateBodies() {
+      bodies.forEach(b => {
+        // Verlet integration
+        b.vx += b.ax;
+        b.vy += b.ay;
+
+        b.vx *= damping;
+        b.vy *= damping;
+
+        b.x += b.vx;
+        b.y += b.vy;
+
+        // Wrap around edges
+        if (b.x < -100) b.x = canvas.width + 100;
+        if (b.x > canvas.width + 100) b.x = -100;
+        if (b.y < -100) b.y = canvas.height + 100;
+        if (b.y > canvas.height + 100) b.y = -100;
+
+        // Trail
+        if (b.trail.length > trailLength) {
+          b.trail.shift();
+        }
+        b.trail.push({ x: b.x, y: b.y });
+      });
+    }
+
+    function draw() {
+      ctx.fillStyle = '#0a0e27';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Draw grid
+      ctx.strokeStyle = 'rgba(138, 43, 226, 0.05)';
+      ctx.lineWidth = 1;
+      const gridSize = 50;
+      for (let x = 0; x < canvas.width; x += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, canvas.height);
+        ctx.stroke();
+      }
+      for (let y = 0; y < canvas.height; y += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(canvas.width, y);
+        ctx.stroke();
+      }
+
+      // Draw bodies
+      bodies.forEach(b => {
+        // Trail
+        ctx.strokeStyle = b.color;
+        ctx.globalAlpha = 0.2;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        b.trail.forEach((p, i) => {
+          if (i === 0) ctx.moveTo(p.x, p.y);
+          else ctx.lineTo(p.x, p.y);
+        });
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+
+        // Body
+        ctx.fillStyle = b.color;
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, 3 + b.mass * 1.5, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Glow
+        ctx.strokeStyle = b.color;
+        ctx.globalAlpha = 0.3;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, 8 + b.mass * 2, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+
+        // Acceleration vector
+        if (b.getAcceleration() > 0.01) {
+          ctx.strokeStyle = b.color;
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(b.x, b.y);
+          ctx.lineTo(b.x + b.ax * 5, b.y + b.ay * 5);
+          ctx.stroke();
+        }
+      });
+
+      // Update stats
+      if (bodies.length > 0) {
+        const accelerations = bodies.map(b => b.getAcceleration());
+        const maxAccel = Math.max(...accelerations);
+        const velocities = bodies.map(b => b.getSpeed());
+        const avgVel = velocities.reduce((a, b) => a + b, 0) / velocities.length;
+
+        // Total energy (kinetic + potential)
+        let KE = 0;
+        bodies.forEach(b => {
+          KE += 0.5 * b.mass * (b.vx ** 2 + b.vy ** 2);
+        });
+
+        let PE = 0;
+        for (let i = 0; i < bodies.length; i++) {
+          for (let j = i + 1; j < bodies.length; j++) {
+            const b1 = bodies[i];
+            const b2 = bodies[j];
+            const dx = b2.x - b1.x;
+            const dy = b2.y - b1.y;
+            const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+            PE -= (G * b1.mass * b2.mass * gravityStrength) / dist;
+          }
+        }
+
+        document.getElementById('maxAccel').textContent = maxAccel.toFixed(2);
+        document.getElementById('totalEnergy').textContent = (KE + PE).toFixed(1);
+        document.getElementById('avgVelocity').textContent = avgVel.toFixed(2);
+      }
+    }
+
+    let lastTime = performance.now();
+    let frameCount = 0;
+    function animate(now) {
+      const deltaTime = (now - lastTime) / 1000;
+      lastTime = now;
+
+      if (!isPaused) {
+        computeForces();
+        updateBodies();
+      }
+
+      draw();
+
+      frameCount++;
+      if (frameCount % 10 === 0) {
+        const fps = Math.round(1 / deltaTime);
+        document.getElementById('fps').textContent = fps;
+      }
+
+      requestAnimationFrame(animate);
+    }
+    animate(performance.now());
+
+    // Control handlers
+    document.getElementById('bodyCountSlider').addEventListener('input', (e) => {
+      bodyCount = parseInt(e.target.value);
+      document.getElementById('bodyCountValue').textContent = bodyCount;
+      initializeBodies();
+    });
+
+    document.getElementById('gravitySlider').addEventListener('input', (e) => {
+      gravityStrength = parseFloat(e.target.value);
+      document.getElementById('gravityValue').textContent = gravityStrength.toFixed(1);
+    });
+
+    document.getElementById('dampingSlider').addEventListener('input', (e) => {
+      damping = parseFloat(e.target.value);
+      document.getElementById('dampingValue').textContent = damping.toFixed(3);
+    });
+
+    document.getElementById('trailSlider').addEventListener('input', (e) => {
+      trailLength = parseInt(e.target.value);
+      document.getElementById('trailValue').textContent = trailLength;
+    });
+
+    document.getElementById('resetBtn').addEventListener('click', () => {
+      initializeBodies();
+    });
+
+    document.getElementById('pauseBtn').addEventListener('click', () => {
+      isPaused = !isPaused;
+      document.getElementById('pauseBtn').textContent = isPaused ? 'Resume' : 'Pause';
+    });
+
+    initializeBodies();
+  </script>
+</body>
+</html>
