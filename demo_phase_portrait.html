@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phase Portrait</title>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 100%);
+            color: #f0f0f0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 16px;
+        }
+        .container {
+            max-width: 900px;
+            width: 100%;
+            background: #0f1419;
+            border: 1px solid #00d9ff;
+            border-radius: 12px;
+            padding: 28px;
+            box-shadow: 0 0 40px rgba(0, 217, 255, 0.1);
+        }
+        h1 {
+            font-family: 'Syne', sans-serif;
+            font-size: 28px;
+            margin-bottom: 8px;
+            color: #00ffff;
+        }
+        .subtitle {
+            font-size: 13px;
+            color: #888;
+            margin-bottom: 20px;
+        }
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .control-group label {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: #00d9ff;
+        }
+        .control-group select,
+        .control-group input {
+            background: #1a1f3a;
+            border: 1px solid #00d9ff;
+            color: #f0f0f0;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-family: 'Inter', sans-serif;
+        }
+        .control-group input[type="range"] {
+            padding: 0;
+            cursor: pointer;
+        }
+        .control-group input[type="range"]::-webkit-slider-thumb {
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            background: #ff006e;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid #00ffff;
+        }
+        .control-group input[type="range"]::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            background: #ff006e;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid #00ffff;
+        }
+        .control-group input[type="range"]::-webkit-slider-runnable-track {
+            background: #1a1f3a;
+            height: 4px;
+            border-radius: 2px;
+        }
+        .control-group input[type="range"]::-moz-range-track {
+            background: #1a1f3a;
+            height: 4px;
+            border-radius: 2px;
+        }
+        .value-display {
+            font-size: 11px;
+            color: #ffb700;
+            font-weight: 500;
+        }
+        .buttons {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+        button {
+            flex: 1;
+            background: #00d9ff;
+            color: #0a0e27;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: 'Inter', sans-serif;
+        }
+        button:hover {
+            background: #00ffff;
+            box-shadow: 0 0 16px rgba(0, 255, 255, 0.3);
+        }
+        button:active {
+            transform: scale(0.98);
+        }
+        .canvas-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .canvas-wrapper {
+            background: #1a1f3a;
+            border: 1px solid #00d9ff;
+            border-radius: 8px;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 320px;
+        }
+        canvas {
+            display: block;
+            background: #0f1419;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 12px;
+            margin-top: 16px;
+        }
+        .stat {
+            background: #1a1f3a;
+            padding: 12px;
+            border-radius: 6px;
+            border-left: 3px solid #ff006e;
+            font-size: 12px;
+        }
+        .stat-label {
+            color: #888;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            margin-bottom: 4px;
+        }
+        .stat-value {
+            color: #00ffff;
+            font-weight: 600;
+            font-size: 14px;
+            font-family: 'Syne', sans-serif;
+        }
+        @media (max-width: 768px) {
+            .container {
+                padding: 16px;
+            }
+            h1 {
+                font-size: 22px;
+            }
+            .controls {
+                grid-template-columns: 1fr;
+            }
+            .canvas-container {
+                grid-template-columns: 1fr;
+            }
+            .stats {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Phase Portrait</h1>
+        <p class="subtitle">Real 2D dynamical systems, RK4 integration, live vector fields</p>
+
+        <div class="controls">
+            <div class="control-group">
+                <label>System</label>
+                <select id="systemSelect">
+                    <option value="predatorprey">Predator-Prey</option>
+                    <option value="vanderpol">Van der Pol</option>
+                    <option value="lorenz2d">Lorenz 2D Slice</option>
+                    <option value="fitzhughnagumo">FitzHugh-Nagumo</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label>Damping</label>
+                <input type="range" id="dampingSlider" min="0" max="2" step="0.1" value="0.5">
+                <span class="value-display" id="dampingValue">0.50</span>
+            </div>
+            <div class="control-group">
+                <label>X Initial</label>
+                <input type="range" id="x0Slider" min="-3" max="3" step="0.1" value="0.5">
+                <span class="value-display" id="x0Value">0.50</span>
+            </div>
+            <div class="control-group">
+                <label>Y Initial</label>
+                <input type="range" id="y0Slider" min="-3" max="3" step="0.1" value="0.5">
+                <span class="value-display" id="y0Value">0.50</span>
+            </div>
+        </div>
+
+        <div class="buttons">
+            <button id="restartBtn">Restart</button>
+            <button id="clearBtn">Clear Trails</button>
+        </div>
+
+        <div class="canvas-container">
+            <div class="canvas-wrapper">
+                <canvas id="phaseCanvas" width="320" height="320"></canvas>
+            </div>
+            <div class="canvas-wrapper">
+                <canvas id="vectorCanvas" width="320" height="320"></canvas>
+            </div>
+        </div>
+
+        <div class="stats">
+            <div class="stat">
+                <div class="stat-label">Current x</div>
+                <div class="stat-value" id="xStat">0.00</div>
+            </div>
+            <div class="stat">
+                <div class="stat-label">Current y</div>
+                <div class="stat-value" id="yStat">0.00</div>
+            </div>
+            <div class="stat">
+                <div class="stat-label">Lyapunov Est.</div>
+                <div class="stat-value" id="lyapunovStat">0.00</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const phaseCanvas = document.getElementById('phaseCanvas');
+        const vectorCanvas = document.getElementById('vectorCanvas');
+        const phaseCtx = phaseCanvas.getContext('2d');
+        const vectorCtx = vectorCanvas.getContext('2d');
+
+        const SCALE = 40; // pixels per unit
+        const DT = 0.01; // integration timestep
+        const VECTOR_GRID = 10; // quiver plot spacing
+        const HISTORY_LENGTH = 500;
+
+        // State
+        let system = 'predatorprey';
+        let damping = 0.5;
+        let x = 0.5, y = 0.5;
+        let x0 = 0.5, y0 = 0.5;
+        let trajectory = [];
+        let running = true;
+        let lyapunovSum = 0;
+        let lyapunovCount = 0;
+
+        // System definitions
+        const systems = {
+            predatorprey: {
+                dx: (x, y, c) => x * (2 - y) - c * x * 0.1,
+                dy: (x, y, c) => y * (x - 1.5) - c * y * 0.1,
+                range: [-0.5, 3.5]
+            },
+            vanderpol: {
+                dx: (x, y, c) => y,
+                dy: (x, y, c) => -x + (1 - x*x) * y - c * y * 0.2,
+                range: [-2.5, 2.5]
+            },
+            lorenz2d: {
+                dx: (x, y, c) => y,
+                dy: (x, y, c) => -x - c * y + 0.8 * x * (3 - x*x),
+                range: [-2.5, 2.5]
+            },
+            fitzhughnagumo: {
+                dx: (x, y, c) => x * (1 - x) * (x - 0.1) - y - c * x * 0.15,
+                dy: (x, y, c) => (x - 0.5 * y) * 0.1 - c * y * 0.05,
+                range: [-0.5, 1.5]
+            }
+        };
+
+        // RK4 integration step
+        function rk4Step(x, y, f, c, dt) {
+            const k1x = f.dx(x, y, c);
+            const k1y = f.dy(x, y, c);
+
+            const k2x = f.dx(x + dt/2 * k1x, y + dt/2 * k1y, c);
+            const k2y = f.dy(x + dt/2 * k1x, y + dt/2 * k1y, c);
+
+            const k3x = f.dx(x + dt/2 * k2x, y + dt/2 * k2y, c);
+            const k3y = f.dy(x + dt/2 * k2x, y + dt/2 * k2y, c);
+
+            const k4x = f.dx(x + dt * k3x, y + dt * k3y, c);
+            const k4y = f.dy(x + dt * k3x, y + dt * k3y, c);
+
+            return {
+                x: x + (dt/6) * (k1x + 2*k2x + 2*k3x + k4x),
+                y: y + (dt/6) * (k1y + 2*k2y + 2*k3y + k4y)
+            };
+        }
+
+        // Draw phase plane with trajectory
+        function drawPhasePortrait() {
+            const f = systems[system];
+            const range = f.range;
+            const w = phaseCanvas.width;
+            const h = phaseCanvas.height;
+            const cx = w / 2;
+            const cy = h / 2;
+
+            phaseCtx.fillStyle = '#0f1419';
+            phaseCtx.fillRect(0, 0, w, h);
+
+            // Grid
+            phaseCtx.strokeStyle = '#1a1f3a';
+            phaseCtx.lineWidth = 0.5;
+            for (let i = Math.ceil(range[0]); i <= Math.floor(range[1]); i++) {
+                const px = cx + i * SCALE;
+                if (px > 0 && px < w) {
+                    phaseCtx.beginPath();
+                    phaseCtx.moveTo(px, 0);
+                    phaseCtx.lineTo(px, h);
+                    phaseCtx.stroke();
+                }
+                const py = cy - i * SCALE;
+                if (py > 0 && py < h) {
+                    phaseCtx.beginPath();
+                    phaseCtx.moveTo(0, py);
+                    phaseCtx.lineTo(w, py);
+                    phaseCtx.stroke();
+                }
+            }
+
+            // Axes
+            phaseCtx.strokeStyle = '#00d9ff';
+            phaseCtx.lineWidth = 1;
+            phaseCtx.beginPath();
+            phaseCtx.moveTo(cx, 0);
+            phaseCtx.lineTo(cx, h);
+            phaseCtx.stroke();
+            phaseCtx.beginPath();
+            phaseCtx.moveTo(0, cy);
+            phaseCtx.lineTo(w, cy);
+            phaseCtx.stroke();
+
+            // Trajectory
+            phaseCtx.strokeStyle = '#ff006e';
+            phaseCtx.lineWidth = 1.5;
+            phaseCtx.beginPath();
+            for (let i = 0; i < trajectory.length; i++) {
+                const px = cx + trajectory[i].x * SCALE;
+                const py = cy - trajectory[i].y * SCALE;
+                if (i === 0) phaseCtx.moveTo(px, py);
+                else phaseCtx.lineTo(px, py);
+            }
+            phaseCtx.stroke();
+
+            // Current point
+            const cpx = cx + x * SCALE;
+            const cpy = cy - y * SCALE;
+            phaseCtx.fillStyle = '#00ffff';
+            phaseCtx.beginPath();
+            phaseCtx.arc(cpx, cpy, 6, 0, Math.PI * 2);
+            phaseCtx.fill();
+
+            // Initial point
+            const ipx = cx + x0 * SCALE;
+            const ipy = cy - y0 * SCALE;
+            phaseCtx.fillStyle = '#ffb700';
+            phaseCtx.globalAlpha = 0.5;
+            phaseCtx.beginPath();
+            phaseCtx.arc(ipx, ipy, 4, 0, Math.PI * 2);
+            phaseCtx.fill();
+            phaseCtx.globalAlpha = 1;
+        }
+
+        // Draw vector field (quiver plot)
+        function drawVectorField() {
+            const f = systems[system];
+            const range = f.range;
+            const w = vectorCanvas.width;
+            const h = vectorCanvas.height;
+            const cx = w / 2;
+            const cy = h / 2;
+
+            vectorCtx.fillStyle = '#0f1419';
+            vectorCtx.fillRect(0, 0, w, h);
+
+            // Grid
+            vectorCtx.strokeStyle = '#1a1f3a';
+            vectorCtx.lineWidth = 0.5;
+            for (let i = Math.ceil(range[0]); i <= Math.floor(range[1]); i++) {
+                const px = cx + i * SCALE;
+                if (px > 0 && px < w) {
+                    vectorCtx.beginPath();
+                    vectorCtx.moveTo(px, 0);
+                    vectorCtx.lineTo(px, h);
+                    vectorCtx.stroke();
+                }
+                const py = cy - i * SCALE;
+                if (py > 0 && py < h) {
+                    vectorCtx.beginPath();
+                    vectorCtx.moveTo(0, py);
+                    vectorCtx.lineTo(w, py);
+                    vectorCtx.stroke();
+                }
+            }
+
+            // Axes
+            vectorCtx.strokeStyle = '#00d9ff';
+            vectorCtx.lineWidth = 1;
+            vectorCtx.beginPath();
+            vectorCtx.moveTo(cx, 0);
+            vectorCtx.lineTo(cx, h);
+            vectorCtx.stroke();
+            vectorCtx.beginPath();
+            vectorCtx.moveTo(0, cy);
+            vectorCtx.lineTo(w, cy);
+            vectorCtx.stroke();
+
+            // Vector field
+            const step = VECTOR_GRID / SCALE;
+            const minI = Math.ceil(range[0] / step);
+            const maxI = Math.floor(range[1] / step);
+
+            for (let i = minI; i <= maxI; i++) {
+                for (let j = minI; j <= maxI; j++) {
+                    const px_val = i * step;
+                    const py_val = j * step;
+
+                    const dx = f.dx(px_val, py_val, damping);
+                    const dy = f.dy(px_val, py_val, damping);
+                    const len = Math.sqrt(dx * dx + dy * dy) + 0.01;
+                    const norm_dx = dx / len;
+                    const norm_dy = dy / len;
+
+                    const px = cx + px_val * SCALE;
+                    const py = cy - py_val * SCALE;
+
+                    const arrowLen = 6;
+                    const headSize = 3;
+
+                    vectorCtx.strokeStyle = len < 0.5 ? '#1e90ff' : len < 1.5 ? '#00d9ff' : '#ff006e';
+                    vectorCtx.lineWidth = 1;
+                    vectorCtx.beginPath();
+                    vectorCtx.moveTo(px, py);
+                    vectorCtx.lineTo(px + norm_dx * arrowLen, py - norm_dy * arrowLen);
+                    vectorCtx.stroke();
+
+                    // Arrow head
+                    const angle = Math.atan2(-norm_dy, norm_dx);
+                    vectorCtx.fillStyle = vectorCtx.strokeStyle;
+                    vectorCtx.beginPath();
+                    vectorCtx.moveTo(px + norm_dx * arrowLen, py - norm_dy * arrowLen);
+                    vectorCtx.lineTo(px + norm_dx * arrowLen - headSize * Math.cos(angle - 0.5), py - norm_dy * arrowLen - headSize * Math.sin(angle - 0.5));
+                    vectorCtx.lineTo(px + norm_dx * arrowLen - headSize * Math.cos(angle + 0.5), py - norm_dy * arrowLen - headSize * Math.sin(angle + 0.5));
+                    vectorCtx.fill();
+                }
+            }
+        }
+
+        // Update stats
+        function updateStats() {
+            document.getElementById('xStat').textContent = x.toFixed(2);
+            document.getElementById('yStat').textContent = y.toFixed(2);
+            const lyap = lyapunovCount > 0 ? lyapunovSum / lyapunovCount : 0;
+            document.getElementById('lyapunovStat').textContent = lyap.toFixed(3);
+        }
+
+        // Animation loop
+        function animate() {
+            if (running) {
+                const f = systems[system];
+                const next = rk4Step(x, y, f, damping, DT);
+                x = next.x;
+                y = next.y;
+
+                // Simple Lyapunov exponent estimate
+                const perturb = 1e-6;
+                const f_perturb = rk4Step(x + perturb, y, f, damping, DT);
+                const divergence = Math.log(Math.abs(f_perturb.x - x) / perturb + 0.0001);
+                lyapunovSum += divergence;
+                lyapunovCount++;
+
+                trajectory.push({ x, y });
+                if (trajectory.length > HISTORY_LENGTH) {
+                    trajectory.shift();
+                }
+            }
+
+            drawPhasePortrait();
+            drawVectorField();
+            updateStats();
+            requestAnimationFrame(animate);
+        }
+
+        // Event listeners
+        document.getElementById('systemSelect').addEventListener('change', (e) => {
+            system = e.target.value;
+            x = x0;
+            y = y0;
+            trajectory = [];
+            lyapunovSum = 0;
+            lyapunovCount = 0;
+        });
+
+        document.getElementById('dampingSlider').addEventListener('input', (e) => {
+            damping = parseFloat(e.target.value);
+            document.getElementById('dampingValue').textContent = damping.toFixed(2);
+        });
+
+        document.getElementById('x0Slider').addEventListener('input', (e) => {
+            x0 = parseFloat(e.target.value);
+            document.getElementById('x0Value').textContent = x0.toFixed(2);
+        });
+
+        document.getElementById('y0Slider').addEventListener('input', (e) => {
+            y0 = parseFloat(e.target.value);
+            document.getElementById('y0Value').textContent = y0.toFixed(2);
+        });
+
+        document.getElementById('restartBtn').addEventListener('click', () => {
+            x = x0;
+            y = y0;
+            trajectory = [];
+            lyapunovSum = 0;
+            lyapunovCount = 0;
+        });
+
+        document.getElementById('clearBtn').addEventListener('click', () => {
+            trajectory = [];
+        });
+
+        // Start animation
+        animate();
+    </script>
+</body>
+</html>
