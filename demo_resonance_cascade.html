@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resonance Cascade</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #0a0e27;
+            color: #e0e0ff;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1.5rem;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        header {
+            text-align: center;
+        }
+
+        h1 {
+            font-family: 'Syne', sans-serif;
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #00d9ff;
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            font-size: 0.95rem;
+            color: #8899ff;
+        }
+
+        .main {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            flex: 1;
+            min-height: 0;
+        }
+
+        .panel {
+            background: rgba(30, 42, 60, 0.6);
+            border: 1px solid #1e90ff;
+            border-radius: 12px;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 1.2rem;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        label {
+            font-size: 0.9rem;
+            color: #c77dff;
+            font-weight: 500;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: linear-gradient(90deg, #1e90ff, #00d9ff, #00ff99);
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #ff6b6b;
+            cursor: pointer;
+            box-shadow: 0 0 8px rgba(255, 107, 107, 0.6);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #ff6b6b;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 0 8px rgba(255, 107, 107, 0.6);
+        }
+
+        .value-display {
+            font-size: 0.85rem;
+            color: #00d9ff;
+            font-weight: 500;
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+            border-radius: 8px;
+            background: rgba(10, 14, 39, 0.8);
+            border: 1px solid #1e90ff;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.8rem;
+            font-size: 0.85rem;
+        }
+
+        .stat-box {
+            background: rgba(30, 77, 145, 0.4);
+            border-left: 3px solid #00ff99;
+            padding: 0.8rem;
+            border-radius: 4px;
+        }
+
+        .stat-label {
+            color: #8899ff;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            margin-bottom: 0.3rem;
+        }
+
+        .stat-value {
+            color: #00ff99;
+            font-weight: 700;
+            font-size: 1rem;
+        }
+
+        @media (max-width: 900px) {
+            .main {
+                grid-template-columns: 1fr;
+            }
+            h1 {
+                font-size: 1.8rem;
+            }
+            .container {
+                padding: 1rem;
+                gap: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Resonance Cascade</h1>
+            <div class="subtitle">Adjust driving frequency to excite resonance peaks across 5 coupled oscillators</div>
+        </header>
+
+        <div class="main">
+            <div class="panel">
+                <div class="controls">
+                    <div class="control-group">
+                        <label for="freqSlider">Driving Frequency (Hz)</label>
+                        <input type="range" id="freqSlider" min="0.5" max="5" step="0.1" value="2.0">
+                        <div class="value-display">
+                            Freq: <span id="freqValue">2.0</span> Hz
+                        </div>
+                    </div>
+
+                    <div class="control-group">
+                        <label for="dampSlider">Damping Coefficient</label>
+                        <input type="range" id="dampSlider" min="0.01" max="0.3" step="0.01" value="0.1">
+                        <div class="value-display">
+                            Damp: <span id="dampValue">0.1</span>
+                        </div>
+                    </div>
+
+                    <div class="control-group">
+                        <label for="kSlider">Spring Stiffness (k)</label>
+                        <input type="range" id="kSlider" min="1" max="20" step="0.5" value="10">
+                        <div class="value-display">
+                            k: <span id="kValue">10</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="stats">
+                    <div class="stat-box">
+                        <div class="stat-label">Max Amplitude</div>
+                        <div class="stat-value" id="maxAmp">0.00</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">Quality Factor Q</div>
+                        <div class="stat-value" id="qFactor">0.00</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">Peak Frequency</div>
+                        <div class="stat-value" id="peakFreq">0.00 Hz</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">Peak Oscillator</div>
+                        <div class="stat-value" id="peakOsc">#1</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <canvas id="responseCanvas"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const N_OSCILLATORS = 5;
+        const MASS = 1.0;
+        const DT = 0.01;
+        const MAX_TIME = 50;
+
+        class ResonanceCascade {
+            constructor() {
+                this.freq = 2.0;
+                this.damp = 0.1;
+                this.k = 10.0;
+
+                this.x = new Array(N_OSCILLATORS).fill(0);
+                this.v = new Array(N_OSCILLATORS).fill(0);
+                this.time = 0;
+
+                this.amplitudes = new Array(N_OSCILLATORS).fill(0);
+                this.maxAmp = 0;
+                this.peakIdx = 0;
+            }
+
+            step() {
+                const omega = 2 * Math.PI * this.freq;
+                const drive = Math.sin(omega * this.time);
+
+                const forces = new Array(N_OSCILLATORS).fill(0);
+
+                // First oscillator: driven + damped + spring + coupling
+                forces[0] = drive - this.damp * this.v[0] - this.k * this.x[0];
+                if (N_OSCILLATORS > 1) {
+                    forces[0] -= this.k * (this.x[0] - this.x[1]);
+                }
+
+                // Middle oscillators
+                for (let i = 1; i < N_OSCILLATORS - 1; i++) {
+                    forces[i] = -this.damp * this.v[i] - this.k * this.x[i];
+                    forces[i] -= this.k * (this.x[i] - this.x[i - 1]);
+                    forces[i] -= this.k * (this.x[i] - this.x[i + 1]);
+                }
+
+                // Last oscillator
+                const last = N_OSCILLATORS - 1;
+                forces[last] = -this.damp * this.v[last] - this.k * this.x[last];
+                forces[last] -= this.k * (this.x[last] - this.x[last - 1]);
+
+                // Velocity Verlet integration
+                for (let i = 0; i < N_OSCILLATORS; i++) {
+                    this.v[i] += (forces[i] / MASS) * DT;
+                    this.x[i] += this.v[i] * DT;
+
+                    const amp = Math.abs(this.x[i]);
+                    this.amplitudes[i] = Math.max(this.amplitudes[i] * 0.99, amp);
+                }
+
+                this.maxAmp = Math.max(...this.amplitudes);
+                this.peakIdx = this.amplitudes.indexOf(this.maxAmp);
+
+                this.time += DT;
+            }
+
+            getResponse() {
+                this.time = 0;
+                this.x.fill(0);
+                this.v.fill(0);
+                this.amplitudes.fill(0);
+
+                while (this.time < MAX_TIME) {
+                    this.step();
+                }
+
+                return this.amplitudes;
+            }
+
+            computeQ() {
+                // Q = natural frequency / (2 * damping ratio)
+                // For our system: ω₀ = √(k/m), ζ = c / (2√(km))
+                // Therefore: Q = 1 / (2ζ) = √(km) / c
+                const omega0 = Math.sqrt(this.k / MASS);
+                const zeta = this.damp / (2 * Math.sqrt(this.k * MASS));
+                return zeta > 0 ? 1 / (2 * zeta) : 0;
+            }
+        }
+
+        const cascade = new ResonanceCascade();
+        const canvas = document.getElementById('responseCanvas');
+        const ctx = canvas.getContext('2d');
+
+        function resizeCanvas() {
+            canvas.width = canvas.offsetWidth * window.devicePixelRatio;
+            canvas.height = canvas.offsetHeight * window.devicePixelRatio;
+            ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+        }
+
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        function drawResponse() {
+            const w = canvas.width / window.devicePixelRatio;
+            const h = canvas.height / window.devicePixelRatio;
+
+            ctx.fillStyle = 'rgba(10, 14, 39, 0.8)';
+            ctx.fillRect(0, 0, w, h);
+
+            const response = cascade.getResponse();
+
+            // Draw oscillator bars
+            const barWidth = (w - 40) / N_OSCILLATORS;
+            const maxHeight = h - 60;
+            const baseline = h - 30;
+
+            const colors = ['#1e90ff', '#00d9ff', '#00ff99', '#ffb700', '#ff6b6b'];
+
+            for (let i = 0; i < N_OSCILLATORS; i++) {
+                const norm = response[i] / (cascade.maxAmp || 1);
+                const barHeight = norm * maxHeight * 0.8;
+                const x = 20 + i * barWidth + barWidth * 0.1;
+                const y = baseline - barHeight;
+
+                const color = colors[i % colors.length];
+
+                // Bar
+                ctx.fillStyle = color;
+                ctx.globalAlpha = 0.8;
+                ctx.fillRect(x, y, barWidth * 0.8, barHeight);
+
+                // Label
+                ctx.globalAlpha = 1.0;
+                ctx.fillStyle = '#8899ff';
+                ctx.font = '12px Inter';
+                ctx.textAlign = 'center';
+                ctx.fillText(`Osc ${i + 1}`, x + barWidth * 0.4, baseline + 20);
+
+                // Value
+                ctx.fillStyle = color;
+                ctx.font = 'bold 11px Inter';
+                ctx.fillText(response[i].toFixed(2), x + barWidth * 0.4, y - 5);
+            }
+
+            // Axis labels
+            ctx.fillStyle = '#8899ff';
+            ctx.font = '11px Inter';
+            ctx.textAlign = 'right';
+            ctx.fillText('Amplitude', 15, 20);
+            ctx.textAlign = 'center';
+            ctx.fillText('Oscillator Index', w / 2, h - 5);
+        }
+
+        function updateStats() {
+            const response = cascade.getResponse();
+            document.getElementById('maxAmp').textContent = cascade.maxAmp.toFixed(3);
+            document.getElementById('qFactor').textContent = cascade.computeQ().toFixed(1);
+            document.getElementById('peakFreq').textContent = cascade.freq.toFixed(2);
+            document.getElementById('peakOsc').textContent = `#${cascade.peakIdx + 1}`;
+        }
+
+        document.getElementById('freqSlider').addEventListener('input', (e) => {
+            cascade.freq = parseFloat(e.target.value);
+            document.getElementById('freqValue').textContent = cascade.freq.toFixed(2);
+            updateStats();
+            drawResponse();
+        });
+
+        document.getElementById('dampSlider').addEventListener('input', (e) => {
+            cascade.damp = parseFloat(e.target.value);
+            document.getElementById('dampValue').textContent = cascade.damp.toFixed(2);
+            updateStats();
+            drawResponse();
+        });
+
+        document.getElementById('kSlider').addEventListener('input', (e) => {
+            cascade.k = parseFloat(e.target.value);
+            document.getElementById('kValue').textContent = cascade.k.toFixed(1);
+            updateStats();
+            drawResponse();
+        });
+
+        // Initial draw
+        updateStats();
+        drawResponse();
+    </script>
+</body>
+</html>
