@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pendulum Chaos</title>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #0a0e27;
+            color: #e0e0e0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 16px;
+        }
+        .container {
+            background: #111830;
+            border-radius: 16px;
+            padding: 32px;
+            max-width: 900px;
+            width: 100%;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        }
+        h1 {
+            font-family: 'Syne', sans-serif;
+            font-size: 28px;
+            margin-bottom: 8px;
+            color: #fff;
+        }
+        .subtitle {
+            font-size: 14px;
+            color: #888;
+            margin-bottom: 24px;
+        }
+        .canvas-wrapper {
+            background: #0a0e27;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 24px;
+            display: flex;
+            justify-content: center;
+        }
+        canvas {
+            display: block;
+            border-radius: 8px;
+        }
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .control-group label {
+            font-size: 13px;
+            font-weight: 500;
+            text-transform: uppercase;
+            color: #00d9ff;
+            letter-spacing: 0.5px;
+        }
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        input[type="range"] {
+            flex: 1;
+            height: 6px;
+            border-radius: 3px;
+            background: #1a2540;
+            outline: none;
+            -webkit-appearance: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #00ff99;
+            cursor: pointer;
+            box-shadow: 0 0 8px rgba(0, 255, 153, 0.6);
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #00ff99;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 0 8px rgba(0, 255, 153, 0.6);
+        }
+        .value-display {
+            font-size: 12px;
+            color: #00ff99;
+            min-width: 35px;
+            text-align: right;
+            font-weight: 600;
+        }
+        .buttons {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 24px;
+        }
+        button {
+            flex: 1;
+            padding: 10px 16px;
+            border: none;
+            border-radius: 8px;
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: all 0.2s ease;
+        }
+        .btn-play {
+            background: #00ff99;
+            color: #0a0e27;
+        }
+        .btn-play:hover {
+            background: #00e680;
+            box-shadow: 0 0 16px rgba(0, 255, 153, 0.4);
+        }
+        .btn-reset {
+            background: #ff6b6b;
+            color: #0a0e27;
+        }
+        .btn-reset:hover {
+            background: #ff5252;
+            box-shadow: 0 0 16px rgba(255, 107, 107, 0.4);
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+        .stat-box {
+            background: #0a0e27;
+            border-left: 3px solid #00d9ff;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 12px;
+        }
+        .stat-label {
+            color: #888;
+            font-size: 11px;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+        .stat-value {
+            font-size: 14px;
+            font-weight: 600;
+            color: #00d9ff;
+        }
+        .energy-value {
+            color: #ff6b6b;
+        }
+        .sensitivity-value {
+            color: #ffb700;
+        }
+        @media (max-width: 600px) {
+            .container { padding: 20px; }
+            h1 { font-size: 22px; }
+            .controls { grid-template-columns: 1fr; }
+            .stats-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Pendulum Chaos</h1>
+        <p class="subtitle">Drag the sliders and watch chaos emerge from simple rules</p>
+
+        <div class="canvas-wrapper">
+            <canvas id="canvas" width="600" height="500"></canvas>
+        </div>
+
+        <div class="controls">
+            <div class="control-group">
+                <label>Rod 1 Length</label>
+                <div class="slider-container">
+                    <input type="range" id="l1" min="30" max="200" value="120" step="5">
+                    <span class="value-display" id="l1-val">120</span>
+                </div>
+            </div>
+            <div class="control-group">
+                <label>Rod 2 Length</label>
+                <div class="slider-container">
+                    <input type="range" id="l2" min="30" max="200" value="120" step="5">
+                    <span class="value-display" id="l2-val">120</span>
+                </div>
+            </div>
+            <div class="control-group">
+                <label>Initial Angle 1 (degrees)</label>
+                <div class="slider-container">
+                    <input type="range" id="a1" min="-180" max="180" value="45" step="5">
+                    <span class="value-display" id="a1-val">45°</span>
+                </div>
+            </div>
+            <div class="control-group">
+                <label>Initial Angle 2 (degrees)</label>
+                <div class="slider-container">
+                    <input type="range" id="a2" min="-180" max="180" value="45" step="5">
+                    <span class="value-display" id="a2-val">45°</span>
+                </div>
+            </div>
+            <div class="control-group">
+                <label>Damping Factor</label>
+                <div class="slider-container">
+                    <input type="range" id="damping" min="0" max="0.1" value="0.01" step="0.005">
+                    <span class="value-display" id="damping-val">0.01</span>
+                </div>
+            </div>
+            <div class="control-group">
+                <label>Gravity Strength</label>
+                <div class="slider-container">
+                    <input type="range" id="gravity" min="5" max="15" value="9.81" step="0.5">
+                    <span class="value-display" id="gravity-val">9.81</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="buttons">
+            <button class="btn-play" id="play-btn">Play</button>
+            <button class="btn-reset" id="reset-btn">Reset</button>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-box">
+                <div class="stat-label">Total Energy</div>
+                <div class="stat-value energy-value" id="energy-stat">0.00</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">FPS</div>
+                <div class="stat-value" id="fps-stat">60</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Sensitivity</div>
+                <div class="stat-value sensitivity-value" id="sensitivity-stat">Low</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Time (s)</div>
+                <div class="stat-value" id="time-stat">0.00</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        // Physics state
+        let state = {
+            l1: 120, l2: 120,
+            theta1: Math.PI / 4, theta2: Math.PI / 4,
+            omega1: 0, omega2: 0,
+            damping: 0.01,
+            g: 9.81,
+            m1: 1, m2: 1,
+            time: 0,
+            isRunning: false
+        };
+
+        let trail = [];
+        let lastFrameTime = Date.now();
+        let frameCount = 0;
+        let fps = 60;
+
+        // Update display values
+        document.getElementById('l1').addEventListener('input', (e) => {
+            state.l1 = parseFloat(e.target.value);
+            document.getElementById('l1-val').textContent = state.l1;
+        });
+        document.getElementById('l2').addEventListener('input', (e) => {
+            state.l2 = parseFloat(e.target.value);
+            document.getElementById('l2-val').textContent = state.l2;
+        });
+        document.getElementById('a1').addEventListener('input', (e) => {
+            state.theta1 = parseFloat(e.target.value) * Math.PI / 180;
+            document.getElementById('a1-val').textContent = e.target.value + '°';
+        });
+        document.getElementById('a2').addEventListener('input', (e) => {
+            state.theta2 = parseFloat(e.target.value) * Math.PI / 180;
+            document.getElementById('a2-val').textContent = e.target.value + '°';
+        });
+        document.getElementById('damping').addEventListener('input', (e) => {
+            state.damping = parseFloat(e.target.value);
+            document.getElementById('damping-val').textContent = state.damping.toFixed(3);
+        });
+        document.getElementById('gravity').addEventListener('input', (e) => {
+            state.g = parseFloat(e.target.value);
+            document.getElementById('gravity-val').textContent = state.g.toFixed(2);
+        });
+
+        document.getElementById('play-btn').addEventListener('click', () => {
+            state.isRunning = !state.isRunning;
+            document.getElementById('play-btn').textContent = state.isRunning ? 'Pause' : 'Play';
+        });
+
+        document.getElementById('reset-btn').addEventListener('click', () => {
+            state.omega1 = 0;
+            state.omega2 = 0;
+            state.time = 0;
+            trail = [];
+            state.isRunning = false;
+            document.getElementById('play-btn').textContent = 'Play';
+        });
+
+        // RK4 integrator for coupled pendulum
+        function rk4Step(state, dt) {
+            const { l1, l2, theta1, theta2, omega1, omega2, damping, g, m1, m2 } = state;
+
+            function derivatives(t1, t2, w1, w2) {
+                const sin1 = Math.sin(t1);
+                const sin2 = Math.sin(t2);
+                const cos1 = Math.cos(t1);
+                const cos2 = Math.cos(t2);
+                const dsin = Math.sin(t1 - t2);
+                const dcos = Math.cos(t1 - t2);
+
+                const den1 = (m1 + m2) * l1 - m2 * l1 * dcos * dcos;
+                const den2 = (l2 / l1) * den1;
+
+                const a1 = (-g * (m1 + m2) * sin1 - m2 * g * sin2 * dcos + m2 * l2 * w2 * w2 * dsin + m2 * dcos * (l1 * w1 * w1 * dsin - g * sin2)) / den1 - damping * w1;
+                const a2 = (g * (m1 + m2) * (sin1 * dcos - sin2) + (m1 + m2) * l1 * w1 * w1 * dsin + m2 * l2 * w2 * w2 * dsin * dcos) / den2 - damping * w2;
+
+                return { a1, a2 };
+            }
+
+            const k1 = derivatives(theta1, theta2, omega1, omega2);
+            const k2 = derivatives(theta1 + 0.5 * dt * omega1, theta2 + 0.5 * dt * omega2, omega1 + 0.5 * dt * k1.a1, omega2 + 0.5 * dt * k1.a2);
+            const k3 = derivatives(theta1 + 0.5 * dt * omega1, theta2 + 0.5 * dt * omega2, omega1 + 0.5 * dt * k2.a1, omega2 + 0.5 * dt * k2.a2);
+            const k4 = derivatives(theta1 + dt * omega1, theta2 + dt * omega2, omega1 + dt * k3.a1, omega2 + dt * k3.a2);
+
+            return {
+                theta1: theta1 + (dt / 6) * (omega1 + 2 * (omega1 + 0.5 * dt * k1.a1) + 2 * (omega1 + 0.5 * dt * k2.a1) + omega1 + dt * k3.a1),
+                omega1: omega1 + (dt / 6) * (k1.a1 + 2 * k2.a1 + 2 * k3.a1 + k4.a1),
+                theta2: theta2 + (dt / 6) * (omega2 + 2 * (omega2 + 0.5 * dt * k1.a2) + 2 * (omega2 + 0.5 * dt * k2.a2) + omega2 + dt * k3.a2),
+                omega2: omega2 + (dt / 6) * (k1.a2 + 2 * k2.a2 + 2 * k3.a2 + k4.a2)
+            };
+        }
+
+        function calculateEnergy(state) {
+            const { l1, l2, theta1, theta2, omega1, omega2, g, m1, m2 } = state;
+            
+            // Kinetic energy
+            const v1_sq = (l1 * omega1) ** 2;
+            const v2x = l1 * omega1 * Math.cos(theta1) + l2 * omega2 * Math.cos(theta2);
+            const v2y = l1 * omega1 * Math.sin(theta1) + l2 * omega2 * Math.sin(theta2);
+            const v2_sq = v2x * v2x + v2y * v2y;
+            
+            const KE = 0.5 * m1 * v1_sq + 0.5 * m2 * v2_sq;
+            
+            // Potential energy
+            const h1 = -l1 * Math.cos(theta1);
+            const h2 = h1 - l2 * Math.cos(theta2);
+            const PE = m1 * g * h1 + m2 * g * h2;
+            
+            return KE + PE;
+        }
+
+        function draw() {
+            const width = canvas.width;
+            const height = canvas.height;
+            const pivot = { x: width / 2, y: height / 4 };
+
+            ctx.fillStyle = '#0a0e27';
+            ctx.fillRect(0, 0, width, height);
+
+            // Calculate positions
+            const x1 = pivot.x + state.l1 * Math.sin(state.theta1);
+            const y1 = pivot.y + state.l1 * Math.cos(state.theta1);
+            const x2 = x1 + state.l2 * Math.sin(state.theta2);
+            const y2 = y1 + state.l2 * Math.cos(state.theta2);
+
+            // Draw trail
+            if (trail.length > 1) {
+                ctx.strokeStyle = 'rgba(255, 107, 107, 0.3)';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(trail[0].x, trail[0].y);
+                for (let i = 1; i < trail.length; i++) {
+                    ctx.lineTo(trail[i].x, trail[i].y);
+                }
+                ctx.stroke();
+            }
+
+            // Draw rods
+            ctx.strokeStyle = '#00d9ff';
+            ctx.lineWidth = 3;
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            ctx.moveTo(pivot.x, pivot.y);
+            ctx.lineTo(x1, y1);
+            ctx.stroke();
+
+            ctx.strokeStyle = '#00ff99';
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.stroke();
+
+            // Draw pivot
+            ctx.fillStyle = '#ff6b6b';
+            ctx.beginPath();
+            ctx.arc(pivot.x, pivot.y, 8, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Draw bobs
+            ctx.fillStyle = '#00d9ff';
+            ctx.beginPath();
+            ctx.arc(x1, y1, 12, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = '#ff6b6b';
+            ctx.beginPath();
+            ctx.arc(x2, y2, 12, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Update trail
+            trail.push({ x: x2, y: y2 });
+            if (trail.length > 300) trail.shift();
+        }
+
+        function animate() {
+            if (state.isRunning) {
+                const step = rk4Step(state, 0.01);
+                state.theta1 = step.theta1;
+                state.omega1 = step.omega1;
+                state.theta2 = step.theta2;
+                state.omega2 = step.omega2;
+                state.time += 0.01;
+            }
+
+            draw();
+
+            // Update stats
+            frameCount++;
+            const now = Date.now();
+            if (now - lastFrameTime >= 1000) {
+                fps = frameCount;
+                frameCount = 0;
+                lastFrameTime = now;
+            }
+
+            document.getElementById('fps-stat').textContent = fps;
+            document.getElementById('time-stat').textContent = state.time.toFixed(2);
+
+            const energy = calculateEnergy(state);
+            document.getElementById('energy-stat').textContent = energy.toFixed(2);
+
+            const angularVelocity = Math.abs(state.omega1) + Math.abs(state.omega2);
+            let sensitivity = 'Low';
+            if (angularVelocity > 3) sensitivity = 'High';
+            else if (angularVelocity > 1.5) sensitivity = 'Medium';
+            document.getElementById('sensitivity-stat').textContent = sensitivity;
+
+            requestAnimationFrame(animate);
+        }
+
+        animate();
+    </script>
+</body>
+</html>
