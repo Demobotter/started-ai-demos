@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Filter Cascade</title>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 100%);
+            font-family: 'Inter', sans-serif;
+            color: #e0e0e0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+        .container {
+            background: rgba(15, 20, 40, 0.8);
+            border: 1px solid rgba(255, 107, 107, 0.15);
+            border-radius: 12px;
+            padding: 2rem;
+            max-width: 900px;
+            width: 100%;
+            box-shadow: 0 0 40px rgba(255, 107, 107, 0.1);
+        }
+        h1 {
+            font-family: 'Syne', sans-serif;
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, #ff6b6b 0%, #ffb700 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .subtitle {
+            color: #888;
+            margin-bottom: 2rem;
+            font-size: 0.95rem;
+        }
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+            background: rgba(255, 107, 107, 0.03);
+            padding: 1.5rem;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 107, 107, 0.1);
+        }
+        .control-group {
+            display: flex;
+            flex-direction: column;
+        }
+        .control-group label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #ffb700;
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .control-group input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(255, 107, 107, 0.2);
+            outline: none;
+            -webkit-appearance: none;
+        }
+        .control-group input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #ff6b6b;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(255, 107, 107, 0.5);
+        }
+        .control-group input[type="range"]::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #ff6b6b;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 0 10px rgba(255, 107, 107, 0.5);
+        }
+        .control-value {
+            font-size: 0.9rem;
+            color: #ff6b6b;
+            margin-top: 0.3rem;
+            font-weight: 600;
+        }
+        .canvas-wrapper {
+            background: rgba(255, 107, 107, 0.02);
+            border: 1px solid rgba(255, 107, 107, 0.2);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            overflow: hidden;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: auto;
+            background: #0a0e27;
+            border-radius: 6px;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+        .stat-box {
+            background: rgba(255, 107, 107, 0.05);
+            border: 1px solid rgba(255, 107, 107, 0.15);
+            border-radius: 8px;
+            padding: 1rem;
+            text-align: center;
+        }
+        .stat-label {
+            font-size: 0.75rem;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.5rem;
+        }
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #ff6b6b;
+        }
+        .button-group {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-top: 1.5rem;
+            flex-wrap: wrap;
+        }
+        button {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ffb700 100%);
+            border: none;
+            color: #0a0e27;
+            padding: 0.75rem 1.5rem;
+            border-radius: 6px;
+            font-weight: 700;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: transform 0.2s, box-shadow 0.2s;
+            font-family: 'Syne', sans-serif;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 20px rgba(255, 107, 107, 0.3);
+        }
+        button:active {
+            transform: translateY(0);
+        }
+        .info {
+            background: rgba(255, 107, 107, 0.05);
+            border-left: 3px solid #ff6b6b;
+            padding: 1rem;
+            margin-top: 1rem;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            color: #aaa;
+        }
+        @media (max-width: 600px) {
+            h1 {
+                font-size: 1.8rem;
+            }
+            .container {
+                padding: 1rem;
+            }
+            .controls {
+                gap: 1rem;
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔊 Filter Cascade</h1>
+        <div class="subtitle">Design a multi-stage filter and see how the frequency response cascades in real-time</div>
+        
+        <div class="controls">
+            <div class="control-group">
+                <label>Cutoff Freq (Hz)</label>
+                <input type="range" id="cutoffSlider" min="100" max="4000" step="50" value="800">
+                <div class="control-value"><span id="cutoffValue">800</span> Hz</div>
+            </div>
+            <div class="control-group">
+                <label>Filter Stages</label>
+                <input type="range" id="stagesSlider" min="1" max="4" step="1" value="2">
+                <div class="control-value"><span id="stagesValue">2</span> cascaded</div>
+            </div>
+            <div class="control-group">
+                <label>Filter Type</label>
+                <select id="filterType" style="padding: 0.5rem; border-radius: 4px; background: #1a2540; color: #ff6b6b; border: 1px solid rgba(255, 107, 107, 0.3); font-family: Inter;">
+                    <option value="lowpass">Lowpass</option>
+                    <option value="highpass">Highpass</option>
+                    <option value="bandpass">Bandpass</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="canvas-wrapper">
+            <canvas id="canvas" width="800" height="400"></canvas>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-box">
+                <div class="stat-label">Attenuation (−3dB)</div>
+                <div class="stat-value" id="atten">−3.0 dB</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Roll-off</div>
+                <div class="stat-value" id="rolloff">−20 dB/oct</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Peak Gain</div>
+                <div class="stat-value" id="peakGain">0 dB</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Data Points</div>
+                <div class="stat-value" id="dataPoints">256</div>
+            </div>
+        </div>
+
+        <div class="button-group">
+            <button id="animateBtn">Animate</button>
+            <button id="resetBtn">Reset</button>
+        </div>
+
+        <div class="info">
+            💡 Tip: Increase stages to see steeper frequency roll-off. Lower cutoff frequency shifts the response left across the spectrum.
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        let cutoff = 800;
+        let stages = 2;
+        let filterType = 'lowpass';
+        let isAnimating = false;
+        let animationPhase = 0;
+        
+        // UI
+        document.getElementById('cutoffSlider').addEventListener('input', (e) => {
+            cutoff = parseFloat(e.target.value);
+            document.getElementById('cutoffValue').textContent = cutoff.toFixed(0);
+        });
+        document.getElementById('stagesSlider').addEventListener('input', (e) => {
+            stages = parseInt(e.target.value);
+            document.getElementById('stagesValue').textContent = stages;
+        });
+        document.getElementById('filterType').addEventListener('change', (e) => {
+            filterType = e.target.value;
+        });
+        document.getElementById('animateBtn').addEventListener('click', () => {
+            isAnimating = !isAnimating;
+            document.getElementById('animateBtn').textContent = isAnimating ? 'Pause' : 'Animate';
+        });
+        document.getElementById('resetBtn').addEventListener('click', () => {
+            cutoff = 800;
+            stages = 2;
+            filterType = 'lowpass';
+            animationPhase = 0;
+            document.getElementById('cutoffSlider').value = 800;
+            document.getElementById('stagesSlider').value = 2;
+            document.getElementById('filterType').value = 'lowpass';
+            document.getElementById('cutoffValue').textContent = '800';
+            document.getElementById('stagesValue').textContent = '2';
+        });
+        
+        // Biquad filter response (normalized to Nyquist ~20kHz)
+        function filterResponse(freq, cutoff, filterType, stages = 1) {
+            // Normalized frequency [0, 1] where 1 = Nyquist
+            const w = freq / 20000; // 20kHz reference
+            const wc = cutoff / 20000;
+            
+            let response = 1;
+            for (let s = 0; s < stages; s++) {
+                let H;
+                if (filterType === 'lowpass') {
+                    const num = wc * wc;
+                    const denom = wc * wc + Math.sqrt(2) * wc * w + w * w;
+                    H = num / denom;
+                } else if (filterType === 'highpass') {
+                    const num = w * w;
+                    const denom = wc * wc + Math.sqrt(2) * wc * w + w * w;
+                    H = num / denom;
+                } else if (filterType === 'bandpass') {
+                    const Q = 0.707;
+                    const num = Math.sqrt(2) * wc * w;
+                    const denom = wc * wc + Math.sqrt(2) * wc * w + w * w;
+                    H = num / denom;
+                }
+                response *= H;
+            }
+            return response;
+        }
+        
+        function dBToLinear(db) {
+            return Math.pow(10, db / 20);
+        }
+        
+        function linearToDb(linear) {
+            return 20 * Math.log10(Math.max(linear, 1e-6));
+        }
+        
+        function draw() {
+            ctx.fillStyle = '#0a0e27';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            const padding = 60;
+            const plotWidth = canvas.width - 2 * padding;
+            const plotHeight = canvas.height - 2 * padding;
+            
+            // Draw grid
+            ctx.strokeStyle = 'rgba(255, 107, 107, 0.1)';
+            ctx.lineWidth = 1;
+            for (let i = 0; i <= 10; i++) {
+                const x = padding + (plotWidth / 10) * i;
+                ctx.beginPath();
+                ctx.moveTo(x, padding);
+                ctx.lineTo(x, padding + plotHeight);
+                ctx.stroke();
+                
+                const y = padding + (plotHeight / 10) * i;
+                ctx.beginPath();
+                ctx.moveTo(padding, y);
+                ctx.lineTo(padding + plotWidth, y);
+                ctx.stroke();
+            }
+            
+            // Draw axes labels (freq on X, dB on Y)
+            ctx.fillStyle = '#666';
+            ctx.font = '11px Inter';
+            ctx.textAlign = 'center';
+            for (let i = 0; i <= 5; i++) {
+                const freq = (20000 / 5) * i;
+                const x = padding + (plotWidth / 5) * i;
+                ctx.fillText(freq < 1000 ? freq : (freq / 1000).toFixed(0) + 'k', x, canvas.height - 35);
+            }
+            
+            ctx.textAlign = 'right';
+            for (let i = 0; i <= 5; i++) {
+                const db = -(40 / 5) * i;
+                const y = padding + (plotHeight / 5) * i;
+                ctx.fillText(db.toFixed(0) + ' dB', padding - 15, y + 4);
+            }
+            
+            // Label axes
+            ctx.fillStyle = '#888';
+            ctx.font = 'bold 12px Syne';
+            ctx.textAlign = 'center';
+            ctx.fillText('Frequency (Hz)', canvas.width / 2, canvas.height - 5);
+            ctx.save();
+            ctx.translate(20, canvas.height / 2);
+            ctx.rotate(-Math.PI / 2);
+            ctx.fillText('Magnitude (dB)', 0, 0);
+            ctx.restore();
+            
+            // Draw frequency response curve
+            ctx.strokeStyle = '#ff6b6b';
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            
+            let maxGain = -Infinity;
+            let minGain = Infinity;
+            
+            for (let px = 0; px <= plotWidth; px += 2) {
+                const freq = (px / plotWidth) * 20000;
+                const mag = filterResponse(freq, cutoff, filterType, stages);
+                const db = linearToDb(mag);
+                
+                maxGain = Math.max(maxGain, db);
+                minGain = Math.min(minGain, db);
+                
+                const x = padding + px;
+                const y = padding + plotHeight - ((db + 40) / 40) * plotHeight;
+                
+                if (px === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+            
+            // Highlight cutoff frequency
+            const cutoffDb = linearToDb(filterResponse(cutoff, cutoff, filterType, stages));
+            const cutoffX = padding + (cutoff / 20000) * plotWidth;
+            const cutoffY = padding + plotHeight - ((cutoffDb + 40) / 40) * plotHeight;
+            
+            ctx.fillStyle = 'rgba(255, 107, 107, 0.3)';
+            ctx.beginPath();
+            ctx.arc(cutoffX, cutoffY, 6, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#ffb700';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            
+            // Animation effect
+            if (isAnimating) {
+                animationPhase = (animationPhase + 0.02) % (Math.PI * 2);
+                const animCutoff = 500 + Math.sin(animationPhase) * 400;
+                ctx.strokeStyle = 'rgba(255, 180, 100, 0.5)';
+                ctx.lineWidth = 1.5;
+                ctx.setLineDash([5, 5]);
+                ctx.beginPath();
+                for (let px = 0; px <= plotWidth; px += 2) {
+                    const freq = (px / plotWidth) * 20000;
+                    const mag = filterResponse(freq, animCutoff, filterType, stages);
+                    const db = linearToDb(mag);
+                    const x = padding + px;
+                    const y = padding + plotHeight - ((db + 40) / 40) * plotHeight;
+                    if (px === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+            
+            // Update stats
+            document.getElementById('atten').textContent = cutoffDb.toFixed(1) + ' dB';
+            document.getElementById('rolloff').textContent = '−' + (stages * 20) + ' dB/oct';
+            document.getElementById('peakGain').textContent = maxGain.toFixed(1) + ' dB';
+            document.getElementById('dataPoints').textContent = Math.round(plotWidth / 2);
+        }
+        
+        function animate() {
+            draw();
+            requestAnimationFrame(animate);
+        }
+        
+        animate();
+    </script>
+</body>
+</html>
