@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wave Equation Solver</title>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 100%);
+            color: #e0e0e0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            max-width: 900px;
+            width: 100%;
+            background: rgba(15, 23, 42, 0.9);
+            border: 1px solid rgba(0, 255, 255, 0.2);
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0, 255, 255, 0.1);
+        }
+        h1 {
+            font-family: 'Syne', sans-serif;
+            font-size: 32px;
+            margin-bottom: 8px;
+            color: #00ffff;
+            font-weight: 700;
+        }
+        .subtitle {
+            font-size: 14px;
+            color: #888;
+            margin-bottom: 25px;
+        }
+        .canvas-wrapper {
+            margin-bottom: 30px;
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid rgba(0, 255, 255, 0.15);
+            border-radius: 12px;
+            padding: 15px;
+            display: flex;
+            justify-content: center;
+        }
+        canvas {
+            display: block;
+            background: rgba(10, 14, 39, 1);
+            border-radius: 8px;
+            max-width: 100%;
+            height: auto;
+        }
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+        .control-group {
+            display: flex;
+            flex-direction: column;
+        }
+        label {
+            font-size: 13px;
+            font-weight: 500;
+            color: #00ffff;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(0, 255, 255, 0.2);
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #00ffff;
+            cursor: pointer;
+            box-shadow: 0 0 8px rgba(0, 255, 255, 0.6);
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #00ffff;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 0 8px rgba(0, 255, 255, 0.6);
+        }
+        select {
+            padding: 10px;
+            background: rgba(0, 255, 255, 0.1);
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            color: #00ffff;
+            border-radius: 6px;
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        .value-display {
+            font-size: 12px;
+            color: #ffb700;
+            margin-top: 4px;
+        }
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 25px;
+        }
+        button {
+            flex: 1;
+            padding: 12px 20px;
+            background: linear-gradient(135deg, #00ffff 0%, #00d9ff 100%);
+            color: #0a0e27;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-family: 'Inter', sans-serif;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 255, 255, 0.3);
+        }
+        button:active {
+            transform: translateY(0);
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            padding: 15px;
+            background: rgba(0, 255, 255, 0.05);
+            border: 1px solid rgba(0, 255, 255, 0.1);
+            border-radius: 8px;
+            margin-bottom: 25px;
+        }
+        .stat-item {
+            display: flex;
+            flex-direction: column;
+        }
+        .stat-label {
+            font-size: 11px;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+        .stat-value {
+            font-size: 18px;
+            font-weight: 700;
+            color: #ffb700;
+            font-family: 'Syne', sans-serif;
+        }
+        .spectrum-wrapper {
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid rgba(0, 255, 255, 0.15);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        .spectrum-title {
+            font-size: 13px;
+            color: #00ffff;
+            margin-bottom: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        @media (max-width: 600px) {
+            .controls {
+                grid-template-columns: 1fr;
+            }
+            h1 {
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌊 Wave Equation</h1>
+        <p class="subtitle">Interactive 1D wave solver with real finite-difference physics</p>
+        
+        <div class="controls">
+            <div class="control-group">
+                <label for="waveSpeed">Wave Speed (c)</label>
+                <input type="range" id="waveSpeed" min="0.1" max="1.0" step="0.05" value="0.5">
+                <div class="value-display">c = <span id="waveSpeedVal">0.50</span></div>
+            </div>
+            <div class="control-group">
+                <label for="damping">Damping (α)</label>
+                <input type="range" id="damping" min="0" max="0.3" step="0.01" value="0.02">
+                <div class="value-display">α = <span id="dampingVal">0.020</span></div>
+            </div>
+            <div class="control-group">
+                <label for="boundary">Boundary Condition</label>
+                <select id="boundary">
+                    <option value="fixed">Fixed (u=0)</option>
+                    <option value="free">Free (du/dn=0)</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label for="pulse">Initial Pulse</label>
+                <select id="pulse">
+                    <option value="gaussian">Gaussian</option>
+                    <option value="square">Square</option>
+                    <option value="triangle">Triangle</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="button-group">
+            <button onclick="initializeWave()">Initialize Wave</button>
+            <button onclick="toggleSimulation()">Play / Pause</button>
+            <button onclick="resetSimulation()">Reset</button>
+        </div>
+
+        <div class="stats">
+            <div class="stat-item">
+                <div class="stat-label">Max Displacement</div>
+                <div class="stat-value" id="maxDisp">0.00</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">Kinetic Energy</div>
+                <div class="stat-value" id="kineticEng">0.00</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">Potential Energy</div>
+                <div class="stat-value" id="potentialEng">0.00</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">Time Step</div>
+                <div class="stat-value" id="timeStep">0</div>
+            </div>
+        </div>
+
+        <div class="canvas-wrapper">
+            <canvas id="waveCanvas" width="800" height="300"></canvas>
+        </div>
+
+        <div class="spectrum-wrapper">
+            <div class="spectrum-title">Frequency Spectrum (FFT)</div>
+            <div class="canvas-wrapper">
+                <canvas id="spectrumCanvas" width="800" height="150"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const GRID_SIZE = 200;
+        const dt = 0.001;
+        const dx = 1.0;
+        
+        let c = 0.5;
+        let alpha = 0.02;
+        let boundaryType = 'fixed';
+        let pulseType = 'gaussian';
+        let u = new Array(GRID_SIZE).fill(0);
+        let v = new Array(GRID_SIZE).fill(0);
+        let uOld = new Array(GRID_SIZE).fill(0);
+        let isRunning = true;
+        let timeStep = 0;
+
+        const waveCanvas = document.getElementById('waveCanvas');
+        const waveCtx = waveCanvas.getContext('2d');
+        const spectrumCanvas = document.getElementById('spectrumCanvas');
+        const spectrumCtx = spectrumCanvas.getContext('2d');
+
+        function generatePulse(type) {
+            const u_new = new Array(GRID_SIZE).fill(0);
+            const center = Math.floor(GRID_SIZE / 2);
+            const width = Math.floor(GRID_SIZE / 8);
+
+            if (type === 'gaussian') {
+                for (let i = 0; i < GRID_SIZE; i++) {
+                    const dist = (i - center) / width;
+                    u_new[i] = Math.exp(-dist * dist / 2);
+                }
+            } else if (type === 'square') {
+                for (let i = center - width; i <= center + width; i++) {
+                    if (i >= 0 && i < GRID_SIZE) u_new[i] = 1.0;
+                }
+            } else if (type === 'triangle') {
+                for (let i = center - width; i <= center + width; i++) {
+                    if (i >= 0 && i < GRID_SIZE) {
+                        u_new[i] = 1.0 - Math.abs(i - center) / width;
+                    }
+                }
+            }
+            return u_new;
+        }
+
+        function initializeWave() {
+            c = parseFloat(document.getElementById('waveSpeed').value);
+            alpha = parseFloat(document.getElementById('damping').value);
+            boundaryType = document.getElementById('boundary').value;
+            pulseType = document.getElementById('pulse').value;
+
+            u = generatePulse(pulseType);
+            v = new Array(GRID_SIZE).fill(0);
+            uOld = [...u];
+            timeStep = 0;
+        }
+
+        function stepWave() {
+            const r = (c * dt / dx) ** 2;
+            const u_new = new Array(GRID_SIZE);
+
+            for (let i = 1; i < GRID_SIZE - 1; i++) {
+                const laplacian = u[i + 1] - 2 * u[i] + u[i - 1];
+                u_new[i] = 2 * u[i] - uOld[i] + r * laplacian - alpha * (u[i] - uOld[i]);
+            }
+
+            // Boundary conditions
+            if (boundaryType === 'fixed') {
+                u_new[0] = 0;
+                u_new[GRID_SIZE - 1] = 0;
+            } else if (boundaryType === 'free') {
+                u_new[0] = u_new[1];
+                u_new[GRID_SIZE - 1] = u_new[GRID_SIZE - 2];
+            }
+
+            uOld = [...u];
+            u = u_new;
+            timeStep++;
+        }
+
+        function computeFFT() {
+            const N = Math.min(256, GRID_SIZE);
+            const real = new Array(N);
+            const imag = new Array(N);
+
+            for (let i = 0; i < N; i++) {
+                real[i] = u[Math.floor(i * GRID_SIZE / N)];
+                imag[i] = 0;
+            }
+
+            // Simple Cooley-Tukey FFT
+            const result = fft(real, imag);
+            const spectrum = new Array(N / 2);
+            for (let i = 0; i < N / 2; i++) {
+                spectrum[i] = Math.sqrt(result.real[i] ** 2 + result.imag[i] ** 2);
+            }
+            return spectrum;
+        }
+
+        function fft(real, imag) {
+            const N = real.length;
+            if (N <= 1) return { real, imag };
+
+            const even_r = [], even_i = [], odd_r = [], odd_i = [];
+            for (let i = 0; i < N; i += 2) {
+                even_r.push(real[i]);
+                even_i.push(imag[i]);
+                if (i + 1 < N) {
+                    odd_r.push(real[i + 1]);
+                    odd_i.push(imag[i + 1]);
+                }
+            }
+
+            const fe = fft(even_r, even_i);
+            const fo = odd_r.length > 0 ? fft(odd_r, odd_i) : { real: [], imag: [] };
+
+            const result_r = new Array(N);
+            const result_i = new Array(N);
+
+            for (let k = 0; k < N / 2; k++) {
+                const w_angle = -2 * Math.PI * k / N;
+                const cos_w = Math.cos(w_angle);
+                const sin_w = Math.sin(w_angle);
+
+                let twiddle_r = cos_w;
+                let twiddle_i = sin_w;
+
+                if (k < fo.real.length) {
+                    const t_r = twiddle_r * fo.real[k] - twiddle_i * fo.imag[k];
+                    const t_i = twiddle_r * fo.imag[k] + twiddle_i * fo.real[k];
+                    result_r[k] = fe.real[k] + t_r;
+                    result_i[k] = fe.imag[k] + t_i;
+                    result_r[k + N / 2] = fe.real[k] - t_r;
+                    result_i[k + N / 2] = fe.imag[k] - t_i;
+                } else {
+                    result_r[k] = fe.real[k];
+                    result_i[k] = fe.imag[k];
+                    result_r[k + N / 2] = fe.real[k];
+                    result_i[k + N / 2] = fe.imag[k];
+                }
+            }
+            return { real: result_r, imag: result_i };
+        }
+
+        function computeEnergies() {
+            let kinetic = 0, potential = 0;
+            for (let i = 0; i < GRID_SIZE; i++) {
+                const vel = (u[i] - uOld[i]) / dt;
+                kinetic += vel * vel;
+                if (i < GRID_SIZE - 1) {
+                    const grad = (u[i + 1] - u[i]) / dx;
+                    potential += grad * grad;
+                }
+            }
+            return { kinetic: kinetic / GRID_SIZE, potential: potential / GRID_SIZE };
+        }
+
+        function drawWave() {
+            const w = waveCanvas.width;
+            const h = waveCanvas.height;
+            const xScale = w / GRID_SIZE;
+            const centerY = h / 2;
+            const yScale = (h / 3);
+
+            waveCtx.fillStyle = 'rgba(10, 14, 39, 1)';
+            waveCtx.fillRect(0, 0, w, h);
+
+            // Draw grid
+            waveCtx.strokeStyle = 'rgba(0, 255, 255, 0.1)';
+            waveCtx.lineWidth = 1;
+            for (let i = 0; i <= 4; i++) {
+                waveCtx.beginPath();
+                waveCtx.moveTo(0, (i / 4) * h);
+                waveCtx.lineTo(w, (i / 4) * h);
+                waveCtx.stroke();
+            }
+
+            // Draw waveform
+            waveCtx.strokeStyle = '#00ffff';
+            waveCtx.lineWidth = 2;
+            waveCtx.beginPath();
+            for (let i = 0; i < GRID_SIZE; i++) {
+                const x = i * xScale;
+                const y = centerY - u[i] * yScale;
+                if (i === 0) waveCtx.moveTo(x, y);
+                else waveCtx.lineTo(x, y);
+            }
+            waveCtx.stroke();
+
+            // Draw center line
+            waveCtx.strokeStyle = 'rgba(255, 183, 0, 0.3)';
+            waveCtx.lineWidth = 1;
+            waveCtx.beginPath();
+            waveCtx.moveTo(0, centerY);
+            waveCtx.lineTo(w, centerY);
+            waveCtx.stroke();
+
+            // Update stats
+            let maxDisp = 0;
+            for (let i = 0; i < GRID_SIZE; i++) {
+                maxDisp = Math.max(maxDisp, Math.abs(u[i]));
+            }
+            const { kinetic, potential } = computeEnergies();
+            document.getElementById('maxDisp').textContent = maxDisp.toFixed(3);
+            document.getElementById('kineticEng').textContent = kinetic.toFixed(2);
+            document.getElementById('potentialEng').textContent = potential.toFixed(2);
+            document.getElementById('timeStep').textContent = timeStep;
+        }
+
+        function drawSpectrum() {
+            const w = spectrumCanvas.width;
+            const h = spectrumCanvas.height;
+            const spectrum = computeFFT();
+
+            spectrumCtx.fillStyle = 'rgba(10, 14, 39, 1)';
+            spectrumCtx.fillRect(0, 0, w, h);
+
+            const maxSpec = Math.max(...spectrum, 0.001);
+            const barWidth = w / spectrum.length;
+
+            for (let i = 0; i < spectrum.length; i++) {
+                const norm = spectrum[i] / maxSpec;
+                const barHeight = norm * h * 0.9;
+                const x = i * barWidth;
+                const y = h - barHeight;
+
+                const hue = (i / spectrum.length) * 360;
+                spectrumCtx.fillStyle = `hsl(${hue}, 100%, 50%)`;
+                spectrumCtx.fillRect(x, y, barWidth - 1, barHeight);
+            }
+        }
+
+        function toggleSimulation() {
+            isRunning = !isRunning;
+        }
+
+        function resetSimulation() {
+            u = new Array(GRID_SIZE).fill(0);
+            v = new Array(GRID_SIZE).fill(0);
+            uOld = new Array(GRID_SIZE).fill(0);
+            timeStep = 0;
+            drawWave();
+            drawSpectrum();
+        }
+
+        function animate() {
+            if (isRunning) {
+                stepWave();
+            }
+            drawWave();
+            drawSpectrum();
+            requestAnimationFrame(animate);
+        }
+
+        // Initialize and start
+        initializeWave();
+        animate();
+
+        // Update value displays
+        document.getElementById('waveSpeed').addEventListener('input', (e) => {
+            document.getElementById('waveSpeedVal').textContent = parseFloat(e.target.value).toFixed(2);
+        });
+        document.getElementById('damping').addEventListener('input', (e) => {
+            document.getElementById('dampingVal').textContent = parseFloat(e.target.value).toFixed(3);
+        });
+    </script>
+</body>
+</html>
