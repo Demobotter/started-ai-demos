@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Acoustic Interference</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, #0a0e27 0%, #0d1535 100%);
+      color: #fff;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .container {
+      max-width: 900px;
+      width: 100%;
+      background: rgba(15, 20, 40, 0.8);
+      border: 1px solid rgba(0, 136, 255, 0.2);
+      border-radius: 16px;
+      padding: 30px;
+      backdrop-filter: blur(10px);
+    }
+    h1 {
+      font-family: 'Syne', sans-serif;
+      font-size: 2em;
+      margin-bottom: 8px;
+      color: #00d9ff;
+      font-weight: 800;
+    }
+    .subtitle {
+      color: #0080ff;
+      font-size: 0.9em;
+      margin-bottom: 24px;
+      opacity: 0.9;
+    }
+    .controls {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+      padding: 16px;
+      background: rgba(0, 80, 255, 0.05);
+      border-radius: 8px;
+    }
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .control-group label {
+      font-size: 0.85em;
+      color: #00d9ff;
+      font-weight: 500;
+    }
+    .control-group input[type="range"] {
+      width: 100%;
+      cursor: pointer;
+      accent-color: #00d9ff;
+    }
+    .control-group input[type="number"],
+    .control-group select {
+      padding: 6px;
+      background: rgba(0, 136, 255, 0.1);
+      border: 1px solid #0080ff;
+      border-radius: 4px;
+      color: #fff;
+      font-size: 0.9em;
+    }
+    .control-group input[type="number"]:focus,
+    .control-group select:focus {
+      outline: none;
+      border-color: #00d9ff;
+      box-shadow: 0 0 8px rgba(0, 217, 255, 0.3);
+    }
+    .value-display {
+      font-size: 0.8em;
+      color: #00ff88;
+      font-weight: 600;
+    }
+    .canvas-section {
+      margin-bottom: 24px;
+    }
+    .canvas-label {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.1em;
+      color: #00d9ff;
+      margin-bottom: 12px;
+      font-weight: 700;
+    }
+    #mainCanvas, #spectrumCanvas {
+      width: 100%;
+      height: auto;
+      background: rgba(10, 20, 50, 0.6);
+      border: 1px solid rgba(0, 217, 255, 0.3);
+      border-radius: 8px;
+      display: block;
+      margin-bottom: 16px;
+    }
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    .info-card {
+      padding: 12px;
+      background: rgba(0, 136, 255, 0.05);
+      border: 1px solid rgba(0, 136, 255, 0.2);
+      border-radius: 6px;
+      text-align: center;
+    }
+    .info-card .label {
+      font-size: 0.75em;
+      color: #0080ff;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+    .info-card .value {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.4em;
+      color: #00ff88;
+      font-weight: 700;
+    }
+    .button-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+      flex-wrap: wrap;
+    }
+    button {
+      padding: 8px 16px;
+      background: linear-gradient(135deg, #0080ff, #00d9ff);
+      border: none;
+      color: #000;
+      font-weight: 600;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.9em;
+      transition: all 0.2s ease;
+    }
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 217, 255, 0.4);
+    }
+    button:active {
+      transform: translateY(0);
+    }
+    .instruction {
+      font-size: 0.85em;
+      color: #00ffff;
+      background: rgba(0, 255, 255, 0.05);
+      padding: 12px;
+      border-radius: 6px;
+      margin-top: 16px;
+      border-left: 3px solid #00ffff;
+    }
+    @media (max-width: 600px) {
+      .container { padding: 16px; }
+      h1 { font-size: 1.5em; }
+      .controls { grid-template-columns: 1fr; }
+      .info-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔊 Acoustic Interference</h1>
+    <p class="subtitle">Real-time dual-speaker wave superposition simulator</p>
+    
+    <div class="controls">
+      <div class="control-group">
+        <label>Speaker 1 Frequency (Hz)</label>
+        <input type="range" id="freq1" min="50" max="500" value="200" step="5">
+        <div class="value-display" id="freq1Val">200 Hz</div>
+      </div>
+      
+      <div class="control-group">
+        <label>Speaker 2 Frequency (Hz)</label>
+        <input type="range" id="freq2" min="50" max="500" value="220" step="5">
+        <div class="value-display" id="freq2Val">220 Hz</div>
+      </div>
+      
+      <div class="control-group">
+        <label>Phase Offset (°)</label>
+        <input type="range" id="phase" min="0" max="360" value="0" step="5">
+        <div class="value-display" id="phaseVal">0°</div>
+      </div>
+      
+      <div class="control-group">
+        <label>Speaker Separation (m)</label>
+        <input type="range" id="separation" min="0.5" max="3" value="1" step="0.1">
+        <div class="value-display" id="sepVal">1.0 m</div>
+      </div>
+      
+      <div class="control-group">
+        <label>Doppler Speed (m/s)</label>
+        <input type="range" id="doppler" min="0" max="20" value="0" step="1">
+        <div class="value-display" id="dopplerVal">0 m/s</div>
+      </div>
+      
+      <div class="control-group">
+        <label>Room Mode</label>
+        <select id="roomMode">
+          <option value="open">Open (free field)</option>
+          <option value="closed">Closed (standing waves)</option>
+          <option value="anechoic">Anechoic (damped)</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="canvas-section">
+      <div class="canvas-label">Pressure Amplitude Heatmap</div>
+      <canvas id="mainCanvas" width="800" height="400"></canvas>
+    </div>
+
+    <div class="canvas-section">
+      <div class="canvas-label">FFT Frequency Spectrum</div>
+      <canvas id="spectrumCanvas" width="800" height="200"></canvas>
+    </div>
+
+    <div class="info-grid">
+      <div class="info-card">
+        <div class="label">Beat Frequency</div>
+        <div class="value" id="beatFreq">20 Hz</div>
+      </div>
+      <div class="info-card">
+        <div class="label">Wavelength (avg)</div>
+        <div class="value" id="wavelength">1.55 m</div>
+      </div>
+      <div class="info-card">
+        <div class="label">Peak Pressure</div>
+        <div class="value" id="peakPressure">2.0 Pa</div>
+      </div>
+      <div class="info-card">
+        <div class="label">Mode</div>
+        <div class="value" id="modeDisplay">Constructive</div>
+      </div>
+    </div>
+
+    <div class="button-row">
+      <button onclick="resetSimulation()">Reset</button>
+      <button onclick="togglePause()">Pause/Resume</button>
+    </div>
+
+    <div class="instruction">
+      💡 Click on the heatmap to place a detector and see live sound pressure level at that point. Adjust frequency and phase to see constructive/destructive interference patterns in real time.
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('mainCanvas');
+    const ctx = canvas.getContext('2d');
+    const specCanvas = document.getElementById('spectrumCanvas');
+    const specCtx = specCanvas.getContext('2d');
+
+    // Simulation parameters
+    let freq1 = 200, freq2 = 220, phaseOffset = 0, separation = 1, dopplerSpeed = 0;
+    let roomMode = 'open';
+    let isPaused = false;
+    let detectorX = null, detectorY = null;
+    const c = 340; // speed of sound in m/s
+
+    // Get canvas dimensions after layout
+    function updateCanvasDims() {
+      canvas.width = canvas.offsetWidth;
+      canvas.height = canvas.offsetHeight;
+      specCanvas.width = specCanvas.offsetWidth;
+      specCanvas.height = specCanvas.offsetHeight;
+    }
+    updateCanvasDims();
+    window.addEventListener('resize', updateCanvasDims);
+
+    // Create FFT data buffer for spectrum
+    function generateFFT(freq1, freq2, phase, t) {
+      const bins = 64;
+      const fft = new Float32Array(bins);
+      
+      // Generate time-domain signal and apply FFT approximation
+      const samples = 512;
+      const signal = new Float32Array(samples);
+      for (let i = 0; i < samples; i++) {
+        const s1 = Math.sin(2 * Math.PI * freq1 * (t + i / 48000));
+        const s2 = Math.sin(2 * Math.PI * freq2 * (t + i / 48000) + phase);
+        signal[i] = s1 + s2;
+      }
+      
+      // Simple FFT bin estimation (peak detection)
+      for (let bin = 0; bin < bins; bin++) {
+        const binFreq = (bin * 48000) / samples;
+        let energy = 0;
+        for (let i = 0; i < samples; i++) {
+          const phase = 2 * Math.PI * binFreq * i / 48000;
+          energy += signal[i] * (Math.cos(phase) + Math.sin(phase));
+        }
+        fft[bin] = Math.abs(energy) / samples;
+      }
+      return fft;
+    }
+
+    // Calculate pressure at a point from dual speakers
+    function calculatePressure(x, y, t, dopplerFactor) {
+      const x1 = -separation / 2, y1 = 0;
+      const x2 = separation / 2, y2 = 0;
+      
+      const r1 = Math.sqrt((x - x1) ** 2 + (y - y1) ** 2) + 0.01;
+      const r2 = Math.sqrt((x - x2) ** 2 + (y - y2) ** 2) + 0.01;
+      
+      // Apply Doppler shift to freq2
+      const doppler1 = freq1;
+      const doppler2 = freq2 * (1 + dopplerSpeed / c);
+      
+      const wave1 = Math.sin(2 * Math.PI * doppler1 * t - (2 * Math.PI * doppler1 / c) * r1) / r1;
+      const wave2 = Math.sin(2 * Math.PI * doppler2 * t - (2 * Math.PI * doppler2 / c) * r2 + phaseOffset) / r2;
+      
+      const p = wave1 + wave2;
+      
+      // Room mode damping
+      if (roomMode === 'anechoic') return p * 0.5;
+      if (roomMode === 'closed') return p * 1.5;
+      return p;
+    }
+
+    // Render heatmap
+    function renderHeatmap(t) {
+      const imgData = ctx.createImageData(canvas.width, canvas.height);
+      const data = imgData.data;
+      
+      const pixelWidth = 8; // 8 pixels per meter for visualization
+      let maxP = 0;
+      const pressureMap = [];
+      
+      for (let i = 0; i < canvas.width; i += 2) {
+        for (let j = 0; j < canvas.height; j += 2) {
+          const x = (i - canvas.width / 2) / pixelWidth;
+          const y = (j - canvas.height / 2) / pixelWidth;
+          const p = calculatePressure(x, y, t, dopplerSpeed / c);
+          pressureMap.push({ i, j, p });
+          maxP = Math.max(maxP, Math.abs(p));
+        }
+      }
+      
+      // Color the map
+      pressureMap.forEach(({ i, j, p }) => {
+        const normalized = (p + maxP) / (2 * maxP || 1);
+        const idx = (j * canvas.width + i) * 4;
+        
+        let r, g, b;
+        if (normalized < 0.25) {
+          r = 0; g = Math.floor(128 * (normalized / 0.25)); b = 255;
+        } else if (normalized < 0.5) {
+          r = 0; g = 255; b = 255 - Math.floor(255 * ((normalized - 0.25) / 0.25));
+        } else if (normalized < 0.75) {
+          r = Math.floor(255 * ((normalized - 0.5) / 0.25)); g = 255; b = 0;
+        } else {
+          r = 255; g = 255 - Math.floor(255 * ((normalized - 0.75) / 0.25)); b = 0;
+        }
+        
+        data[idx] = r;
+        data[idx + 1] = g;
+        data[idx + 2] = b;
+        data[idx + 3] = 255;
+      });
+      
+      ctx.putImageData(imgData, 0, 0);
+      
+      // Draw speaker positions
+      ctx.fillStyle = 'rgba(0, 217, 255, 0.8)';
+      ctx.beginPath();
+      ctx.arc(canvas.width / 2 - (separation / 2) * pixelWidth, canvas.height / 2, 6, 0, 2 * Math.PI);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(canvas.width / 2 + (separation / 2) * pixelWidth, canvas.height / 2, 6, 0, 2 * Math.PI);
+      ctx.fill();
+      
+      // Draw detector
+      if (detectorX !== null && detectorY !== null) {
+        ctx.strokeStyle = 'rgba(0, 255, 136, 0.9)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(detectorX, detectorY, 12, 0, 2 * Math.PI);
+        ctx.stroke();
+      }
+      
+      return maxP;
+    }
+
+    // Render spectrum
+    function renderSpectrum(fft) {
+      specCtx.fillStyle = '#0a1433';
+      specCtx.fillRect(0, 0, specCanvas.width, specCanvas.height);
+      
+      specCtx.fillStyle = '#00d9ff';
+      const barWidth = specCanvas.width / fft.length;
+      const maxVal = Math.max(...fft);
+      
+      for (let i = 0; i < fft.length; i++) {
+        const h = (fft[i] / (maxVal || 1)) * specCanvas.height;
+        specCtx.fillRect(i * barWidth, specCanvas.height - h, barWidth - 1, h);
+      }
+      
+      // Draw grid
+      specCtx.strokeStyle = 'rgba(0, 80, 255, 0.3)';
+      specCtx.lineWidth = 1;
+      for (let i = 0; i <= 4; i++) {
+        const y = (specCanvas.height / 4) * i;
+        specCtx.beginPath();
+        specCtx.moveTo(0, y);
+        specCtx.lineTo(specCanvas.width, y);
+        specCtx.stroke();
+      }
+    }
+
+    // Animation loop
+    let startTime = Date.now();
+    function animate() {
+      if (!isPaused) {
+        const t = (Date.now() - startTime) / 1000;
+        const maxP = renderHeatmap(t);
+        const fft = generateFFT(freq1, freq2, phaseOffset * Math.PI / 180, t);
+        renderSpectrum(fft);
+        
+        // Update stats
+        const beatFreq = Math.abs(freq1 - freq2);
+        const avgFreq = (freq1 + freq2) / 2;
+        const wavelength = c / avgFreq;
+        
+        document.getElementById('beatFreq').textContent = beatFreq.toFixed(1) + ' Hz';
+        document.getElementById('wavelength').textContent = wavelength.toFixed(2) + ' m';
+        document.getElementById('peakPressure').textContent = maxP.toFixed(2) + ' Pa';
+        
+        // Detector reading
+        if (detectorX !== null && detectorY !== null) {
+          const dx = (detectorX - canvas.width / 2) / 8;
+          const dy = (detectorY - canvas.height / 2) / 8;
+          const p = calculatePressure(dx, dy, t, dopplerSpeed / c);
+          const spl = 94 + 20 * Math.log10(Math.abs(p) + 0.0001);
+          document.getElementById('peakPressure').textContent = spl.toFixed(1) + ' dB';
+        }
+        
+        // Interference mode
+        const phase = (phaseOffset % 360);
+        if (phase < 45 || phase > 315) {
+          document.getElementById('modeDisplay').textContent = 'Constructive';
+          document.getElementById('modeDisplay').parentElement.style.color = '#00ff88';
+        } else if (phase > 135 && phase < 225) {
+          document.getElementById('modeDisplay').textContent = 'Destructive';
+          document.getElementById('modeDisplay').parentElement.style.color = '#ff6b00';
+        } else {
+          document.getElementById('modeDisplay').textContent = 'Partial';
+          document.getElementById('modeDisplay').parentElement.style.color = '#ffff00';
+        }
+      }
+      requestAnimationFrame(animate);
+    }
+    animate();
+
+    // Click detector
+    canvas.addEventListener('click', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      detectorX = e.clientX - rect.left;
+      detectorY = e.clientY - rect.top;
+    });
+
+    // Control listeners
+    document.getElementById('freq1').addEventListener('input', (e) => {
+      freq1 = parseInt(e.target.value);
+      document.getElementById('freq1Val').textContent = freq1 + ' Hz';
+    });
+    document.getElementById('freq2').addEventListener('input', (e) => {
+      freq2 = parseInt(e.target.value);
+      document.getElementById('freq2Val').textContent = freq2 + ' Hz';
+    });
+    document.getElementById('phase').addEventListener('input', (e) => {
+      phaseOffset = parseInt(e.target.value);
+      document.getElementById('phaseVal').textContent = phaseOffset + '°';
+    });
+    document.getElementById('separation').addEventListener('input', (e) => {
+      separation = parseFloat(e.target.value);
+      document.getElementById('sepVal').textContent = separation.toFixed(1) + ' m';
+    });
+    document.getElementById('doppler').addEventListener('input', (e) => {
+      dopplerSpeed = parseInt(e.target.value);
+      document.getElementById('dopplerVal').textContent = dopplerSpeed + ' m/s';
+    });
+    document.getElementById('roomMode').addEventListener('change', (e) => {
+      roomMode = e.target.value;
+    });
+
+    function resetSimulation() {
+      startTime = Date.now();
+      detectorX = null;
+      detectorY = null;
+    }
+
+    function togglePause() {
+      isPaused = !isPaused;
+    }
+  </script>
+</body>
+</html>
