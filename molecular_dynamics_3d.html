@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Molecular Dynamics 3D</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #0a0e27;
+      color: #e0e6ff;
+      font-family: Inter, sans-serif;
+      padding: 20px;
+      overflow-x: hidden;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    h1 {
+      font-family: Syne, sans-serif;
+      font-size: 2.5rem;
+      margin-bottom: 10px;
+      color: #00ffff;
+      text-align: center;
+    }
+    .subtitle {
+      text-align: center;
+      color: #a0a6d2;
+      margin-bottom: 30px;
+      font-size: 0.95rem;
+    }
+    .controls {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin-bottom: 20px;
+      background: #0f1635;
+      padding: 20px;
+      border-radius: 12px;
+      border: 1px solid #1a2850;
+    }
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    label {
+      font-size: 0.85rem;
+      color: #00d9ff;
+      font-weight: 600;
+    }
+    input[type="range"] {
+      width: 100%;
+      height: 6px;
+      border-radius: 3px;
+      background: #1a2850;
+      outline: none;
+      -webkit-appearance: none;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #00ffff;
+      cursor: pointer;
+    }
+    input[type="range"]::-moz-range-thumb {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #00ffff;
+      cursor: pointer;
+      border: none;
+    }
+    .value-display {
+      font-size: 0.8rem;
+      color: #00ff88;
+      font-family: 'Courier New', monospace;
+    }
+    .button-group {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    button {
+      padding: 10px 16px;
+      background: #00ffff;
+      color: #0a0e27;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: Inter, sans-serif;
+    }
+    button:hover {
+      background: #00d9ff;
+      transform: translateY(-2px);
+    }
+    button:active {
+      transform: translateY(0);
+    }
+    .canvas-container {
+      background: #0f1635;
+      border: 1px solid #1a2850;
+      border-radius: 12px;
+      padding: 15px;
+      margin-bottom: 20px;
+    }
+    canvas {
+      width: 100%;
+      height: auto;
+      display: block;
+      background: #0a0e27;
+      border-radius: 8px;
+    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+    .stat-box {
+      background: #0f1635;
+      border: 1px solid #1a2850;
+      border-radius: 12px;
+      padding: 15px;
+      text-align: center;
+    }
+    .stat-label {
+      font-size: 0.8rem;
+      color: #a0a6d2;
+      margin-bottom: 8px;
+    }
+    .stat-value {
+      font-size: 1.3rem;
+      color: #00ffff;
+      font-family: 'Courier New', monospace;
+      font-weight: 700;
+    }
+    .plot-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+    .plot-box {
+      background: #0f1635;
+      border: 1px solid #1a2850;
+      border-radius: 12px;
+      padding: 15px;
+    }
+    .plot-title {
+      font-size: 0.85rem;
+      color: #00d9ff;
+      font-weight: 600;
+      margin-bottom: 10px;
+    }
+    canvas.plot {
+      width: 100%;
+      height: 200px;
+      display: block;
+      background: #050810;
+      border-radius: 6px;
+    }
+    @media (max-width: 768px) {
+      h1 { font-size: 1.8rem; }
+      .controls { grid-template-columns: 1fr; }
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+      .plot-container { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Molecular Dynamics 3D</h1>
+    <p class="subtitle">Real Lennard-Jones particles with Verlet integration and temperature control</p>
+
+    <div class="controls">
+      <div class="control-group">
+        <label for="tempSlider">Temperature (K)</label>
+        <input type="range" id="tempSlider" min="50" max="500" value="200" step="10">
+        <span class="value-display" id="tempValue">200 K</span>
+      </div>
+      <div class="control-group">
+        <label for="speedSlider">Simulation Speed</label>
+        <input type="range" id="speedSlider" min="1" max="5" value="2" step="1">
+        <span class="value-display" id="speedValue">2x</span>
+      </div>
+      <div class="control-group">
+        <label for="trailSlider">Trail Length</label>
+        <input type="range" id="trailSlider" min="0" max="50" value="20" step="5">
+        <span class="value-display" id="trailValue">20 frames</span>
+      </div>
+      <div class="control-group">
+        <label>Boundary Condition</label>
+        <select id="boundarySelect" style="padding: 8px; background: #1a2850; color: #00ffff; border: 1px solid #00ffff; border-radius: 6px; font-family: Inter;">
+          <option value="periodic">Periodic</option>
+          <option value="walls">Hard Walls</option>
+        </select>
+      </div>
+      <div class="button-group" style="grid-column: 1 / -1; align-self: start;">
+        <button id="pauseBtn">Pause</button>
+        <button id="resetBtn">Reset</button>
+      </div>
+    </div>
+
+    <div class="canvas-container">
+      <canvas id="canvas3d" width="800" height="600"></canvas>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-box">
+        <div class="stat-label">Total Energy (ε)</div>
+        <div class="stat-value" id="totalEnergy">0.00</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Kinetic Energy (ε)</div>
+        <div class="stat-value" id="kineticEnergy">0.00</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Potential Energy (ε)</div>
+        <div class="stat-value" id="potentialEnergy">0.00</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Pressure (Pa)</div>
+        <div class="stat-value" id="pressure">0.00</div>
+      </div>
+    </div>
+
+    <div class="plot-container">
+      <div class="plot-box">
+        <div class="plot-title">Energy History</div>
+        <canvas id="energyPlot" class="plot"></canvas>
+      </div>
+      <div class="plot-box">
+        <div class="plot-title">Velocity Distribution</div>
+        <canvas id="velocityHist" class="plot"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Constants (Lennard-Jones in reduced units)
+    const N_PARTICLES = 64; // 4×4×4 lattice
+    const BOX_SIZE = 10.0;
+    const SIGMA = 1.0;
+    const EPSILON = 1.0;
+    const MASS = 1.0;
+    const DT = 0.004;
+    const CUTOFF = 2.5 * SIGMA;
+
+    class Particle {
+      constructor(x, y, z) {
+        this.x = x;
+        this.y = y;
+        this.z = z;
+        this.vx = (Math.random() - 0.5) * 2;
+        this.vy = (Math.random() - 0.5) * 2;
+        this.vz = (Math.random() - 0.5) * 2;
+        this.fx = 0;
+        this.fy = 0;
+        this.fz = 0;
+        this.px = x;
+        this.py = y;
+        this.pz = z;
+        this.trail = [];
+      }
+
+      addToTrail() {
+        this.trail.push({ x: this.x, y: this.y, z: this.z });
+        if (this.trail.length > trailLength) this.trail.shift();
+      }
+    }
+
+    let particles = [];
+    let isPaused = false;
+    let temperature = 200;
+    let simSpeed = 2;
+    let trailLength = 20;
+    let boundaryMode = 'periodic';
+    let energyHistory = [];
+    let velocityStats = [];
+
+    function initializeParticles() {
+      particles = [];
+      const n = Math.round(Math.pow(N_PARTICLES, 1/3));
+      const spacing = BOX_SIZE / (n + 1);
+      let idx = 0;
+      for (let i = 0; i < n && idx < N_PARTICLES; i++) {
+        for (let j = 0; j < n && idx < N_PARTICLES; j++) {
+          for (let k = 0; k < n && idx < N_PARTICLES; k++) {
+            const x = spacing * (i + 1);
+            const y = spacing * (j + 1);
+            const z = spacing * (k + 1);
+            particles.push(new Particle(x, y, z));
+            idx++;
+          }
+        }
+      }
+      scaleToTemperature(temperature);
+    }
+
+    function scaleToTemperature(T) {
+      let vsum2 = 0;
+      for (const p of particles) {
+        vsum2 += p.vx * p.vx + p.vy * p.vy + p.vz * p.vz;
+      }
+      const kb = 1.0; // Boltzmann constant (reduced)
+      const currentT = vsum2 / (3 * particles.length * kb);
+      const scale = currentT > 0 ? Math.sqrt(T / currentT) : 1;
+      for (const p of particles) {
+        p.vx *= scale;
+        p.vy *= scale;
+        p.vz *= scale;
+      }
+    }
+
+    function lennardJones(r) {
+      if (r < 0.1) return { e: 0, f: 0 };
+      const sr6 = Math.pow(SIGMA / r, 6);
+      const sr12 = sr6 * sr6;
+      const e = 4 * EPSILON * (sr12 - sr6);
+      const f = 24 * EPSILON * (2 * sr12 - sr6) / r;
+      return { e, f };
+    }
+
+    function computeForces() {
+      for (const p of particles) {
+        p.fx = p.fy = p.fz = 0;
+      }
+      let potentialEnergy = 0;
+      for (let i = 0; i < particles.length; i++) {
+        for (let j = i + 1; j < particles.length; j++) {
+          let dx = particles[j].x - particles[i].x;
+          let dy = particles[j].y - particles[i].y;
+          let dz = particles[j].z - particles[i].z;
+
+          if (boundaryMode === 'periodic') {
+            dx = dx > BOX_SIZE / 2 ? dx - BOX_SIZE : dx < -BOX_SIZE / 2 ? dx + BOX_SIZE : dx;
+            dy = dy > BOX_SIZE / 2 ? dy - BOX_SIZE : dy < -BOX_SIZE / 2 ? dy + BOX_SIZE : dy;
+            dz = dz > BOX_SIZE / 2 ? dz - BOX_SIZE : dz < -BOX_SIZE / 2 ? dz + BOX_SIZE : dz;
+          }
+
+          const r = Math.sqrt(dx * dx + dy * dy + dz * dz);
+          if (r < CUTOFF && r > 0.1) {
+            const { e, f } = lennardJones(r);
+            potentialEnergy += e;
+            const fx = f * dx / r;
+            const fy = f * dy / r;
+            const fz = f * dz / r;
+            particles[i].fx -= fx;
+            particles[i].fy -= fy;
+            particles[i].fz -= fz;
+            particles[j].fx += fx;
+            particles[j].fy += fy;
+            particles[j].fz += fz;
+          }
+        }
+      }
+      return potentialEnergy;
+    }
+
+    function step() {
+      if (isPaused) return;
+
+      for (let substep = 0; substep < simSpeed; substep++) {
+        const pe = computeForces();
+        let ke = 0;
+
+        for (const p of particles) {
+          const ax = p.fx / MASS;
+          const ay = p.fy / MASS;
+          const az = p.fz / MASS;
+
+          const x_new = 2 * p.x - p.px + ax * DT * DT;
+          const y_new = 2 * p.y - p.py + ay * DT * DT;
+          const z_new = 2 * p.z - p.pz + az * DT * DT;
+
+          let x_pos = x_new, y_pos = y_new, z_pos = z_new;
+          if (boundaryMode === 'periodic') {
+            x_pos = ((x_pos % BOX_SIZE) + BOX_SIZE) % BOX_SIZE;
+            y_pos = ((y_pos % BOX_SIZE) + BOX_SIZE) % BOX_SIZE;
+            z_pos = ((z_pos % BOX_SIZE) + BOX_SIZE) % BOX_SIZE;
+          } else {
+            if (x_pos < 0 || x_pos > BOX_SIZE) {
+              x_pos = x_pos < 0 ? -x_pos : 2 * BOX_SIZE - x_pos;
+              p.vx = -p.vx;
+            }
+            if (y_pos < 0 || y_pos > BOX_SIZE) {
+              y_pos = y_pos < 0 ? -y_pos : 2 * BOX_SIZE - y_pos;
+              p.vy = -p.vy;
+            }
+            if (z_pos < 0 || z_pos > BOX_SIZE) {
+              z_pos = z_pos < 0 ? -z_pos : 2 * BOX_SIZE - z_pos;
+              p.vz = -p.vz;
+            }
+          }
+
+          p.px = p.x;
+          p.py = p.y;
+          p.pz = p.z;
+          p.x = x_pos;
+          p.y = y_pos;
+          p.z = z_pos;
+
+          p.vx = (p.x - p.px) / DT;
+          p.vy = (p.y - p.py) / DT;
+          p.vz = (p.z - p.pz) / DT;
+          ke += 0.5 * MASS * (p.vx * p.vx + p.vy * p.vy + p.vz * p.vz);
+
+          p.addToTrail();
+        }
+
+        const totalE = ke + pe;
+        energyHistory.push({ ke, pe, total: totalE });
+        if (energyHistory.length > 300) energyHistory.shift();
+
+        velocityStats = particles.map(p => Math.sqrt(p.vx * p.vx + p.vy * p.vy + p.vz * p.vz));
+      }
+    }
+
+    function renderCanvas() {
+      const canvas = document.getElementById('canvas3d');
+      const ctx = canvas.getContext('2d');
+      const w = canvas.width;
+      const h = canvas.height;
+
+      ctx.fillStyle = '#0a0e27';
+      ctx.fillRect(0, 0, w, h);
+
+      const centerX = w / 2;
+      const centerY = h / 2;
+      const scale = Math.min(w, h) / (BOX_SIZE * 1.5);
+
+      for (const p of particles) {
+        if (p.trail.length > 1) {
+          ctx.strokeStyle = 'rgba(0, 255, 136, 0.15)';
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          for (let i = 0; i < p.trail.length; i++) {
+            const proj_x = centerX + (p.trail[i].x - BOX_SIZE / 2) * scale + (p.trail[i].z - BOX_SIZE / 2) * scale * 0.3;
+            const proj_y = centerY + (p.trail[i].y - BOX_SIZE / 2) * scale - (p.trail[i].z - BOX_SIZE / 2) * scale * 0.3;
+            if (i === 0) ctx.moveTo(proj_x, proj_y);
+            else ctx.lineTo(proj_x, proj_y);
+          }
+          ctx.stroke();
+        }
+
+        const proj_x = centerX + (p.x - BOX_SIZE / 2) * scale + (p.z - BOX_SIZE / 2) * scale * 0.3;
+        const proj_y = centerY + (p.y - BOX_SIZE / 2) * scale - (p.z - BOX_SIZE / 2) * scale * 0.3;
+
+        const v_mag = Math.sqrt(p.vx * p.vx + p.vy * p.vy + p.vz * p.vz);
+        const hue = Math.min(360, (v_mag / 2) * 120);
+        ctx.fillStyle = `hsl(${hue}, 100%, 50%)`;
+        ctx.beginPath();
+        ctx.arc(proj_x, proj_y, 4, 0, 2 * Math.PI);
+        ctx.fill();
+      }
+
+      ctx.strokeStyle = '#1a2850';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(
+        centerX - BOX_SIZE * scale / 2,
+        centerY - BOX_SIZE * scale / 2,
+        BOX_SIZE * scale,
+        BOX_SIZE * scale
+      );
+    }
+
+    function updateStats() {
+      let ke = 0, pe = 0;
+      for (const p of particles) {
+        ke += 0.5 * MASS * (p.vx * p.vx + p.vy * p.vy + p.vz * p.vz);
+      }
+      if (energyHistory.length > 0) {
+        pe = energyHistory[energyHistory.length - 1].pe;
+      }
+      const total = ke + pe;
+
+      document.getElementById('totalEnergy').textContent = total.toFixed(2);
+      document.getElementById('kineticEnergy').textContent = ke.toFixed(2);
+      document.getElementById('potentialEnergy').textContent = pe.toFixed(2);
+
+      const N = particles.length;
+      const kb = 1.0;
+      const tempCalc = ke / (1.5 * kb * N);
+      const V = BOX_SIZE ** 3;
+      const pressure = N * kb * tempCalc / V;
+      document.getElementById('pressure').textContent = pressure.toFixed(2);
+    }
+
+    function plotEnergy() {
+      const canvas = document.getElementById('energyPlot');
+      const ctx = canvas.getContext('2d');
+      const w = canvas.width;
+      const h = canvas.height;
+
+      ctx.fillStyle = '#050810';
+      ctx.fillRect(0, 0, w, h);
+
+      if (energyHistory.length < 2) return;
+
+      const maxE = Math.max(...energyHistory.map(e => Math.max(e.ke, e.pe, e.total)));
+      const minE = Math.min(...energyHistory.map(e => Math.min(e.ke, e.pe, e.total)));
+      const range = maxE - minE || 1;
+
+      const plotWidth = w - 40;
+      const plotHeight = h - 40;
+
+      ctx.strokeStyle = '#00ffff';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      for (let i = 0; i < energyHistory.length; i++) {
+        const x = 20 + (i / energyHistory.length) * plotWidth;
+        const y = h - 20 - ((energyHistory[i].total - minE) / range) * plotHeight;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+
+      ctx.strokeStyle = '#00ff88';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      for (let i = 0; i < energyHistory.length; i++) {
+        const x = 20 + (i / energyHistory.length) * plotWidth;
+        const y = h - 20 - ((energyHistory[i].ke - minE) / range) * plotHeight;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+    }
+
+    function plotVelocity() {
+      const canvas = document.getElementById('velocityHist');
+      const ctx = canvas.getContext('2d');
+      const w = canvas.width;
+      const h = canvas.height;
+
+      ctx.fillStyle = '#050810';
+      ctx.fillRect(0, 0, w, h);
+
+      if (velocityStats.length === 0) return;
+
+      const bins = 20;
+      const maxV = Math.max(...velocityStats);
+      const hist = new Array(bins).fill(0);
+      for (const v of velocityStats) {
+        const bin = Math.min(bins - 1, Math.floor((v / maxV) * bins));
+        hist[bin]++;
+      }
+
+      const maxCount = Math.max(...hist);
+      const barWidth = (w - 40) / bins;
+      const plotHeight = h - 40;
+
+      ctx.fillStyle = '#00ffff';
+      for (let i = 0; i < bins; i++) {
+        const barHeight = (hist[i] / maxCount) * plotHeight;
+        ctx.fillRect(20 + i * barWidth, h - 20 - barHeight, barWidth - 2, barHeight);
+      }
+
+      ctx.strokeStyle = '#a0a6d2';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(20, 20, w - 40, h - 40);
+    }
+
+    function animate() {
+      step();
+      renderCanvas();
+      updateStats();
+      plotEnergy();
+      plotVelocity();
+      requestAnimationFrame(animate);
+    }
+
+    document.getElementById('tempSlider').addEventListener('input', (e) => {
+      temperature = parseInt(e.target.value);
+      document.getElementById('tempValue').textContent = temperature + ' K';
+      scaleToTemperature(temperature);
+    });
+
+    document.getElementById('speedSlider').addEventListener('input', (e) => {
+      simSpeed = parseInt(e.target.value);
+      document.getElementById('speedValue').textContent = simSpeed + 'x';
+    });
+
+    document.getElementById('trailSlider').addEventListener('input', (e) => {
+      trailLength = parseInt(e.target.value);
+      document.getElementById('trailValue').textContent = trailLength + ' frames';
+    });
+
+    document.getElementById('boundarySelect').addEventListener('change', (e) => {
+      boundaryMode = e.target.value;
+    });
+
+    document.getElementById('pauseBtn').addEventListener('click', () => {
+      isPaused = !isPaused;
+      document.getElementById('pauseBtn').textContent = isPaused ? 'Resume' : 'Pause';
+    });
+
+    document.getElementById('resetBtn').addEventListener('click', () => {
+      initializeParticles();
+      energyHistory = [];
+      velocityStats = [];
+      isPaused = false;
+      document.getElementById('pauseBtn').textContent = 'Pause';
+    });
+
+    // Initialize
+    initializeParticles();
+    animate();
+  </script>
+</body>
+</html>
