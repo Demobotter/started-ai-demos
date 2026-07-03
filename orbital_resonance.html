@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Orbital Resonance</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 100%);
+            color: #e0e0e0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+        .container {
+            width: 100%;
+            max-width: 900px;
+            background: rgba(15, 20, 40, 0.8);
+            border: 1px solid rgba(0, 255, 136, 0.2);
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+        }
+        h1 {
+            font-family: 'Syne', sans-serif;
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #00ff88;
+            margin-bottom: 8px;
+            text-align: center;
+        }
+        .subtitle {
+            text-align: center;
+            color: #00d9ff;
+            font-size: 0.9rem;
+            margin-bottom: 24px;
+            font-weight: 300;
+        }
+        .canvas-wrapper {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(0, 255, 136, 0.15);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 24px;
+            display: flex;
+            justify-content: center;
+            overflow: hidden;
+        }
+        canvas {
+            display: block;
+            max-width: 100%;
+            height: auto;
+        }
+        .controls-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+        @media (max-width: 600px) {
+            .controls-grid { grid-template-columns: 1fr; }
+        }
+        .control-group {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(0, 255, 136, 0.1);
+            border-radius: 8px;
+            padding: 12px;
+        }
+        .control-group label {
+            display: block;
+            font-size: 0.85rem;
+            color: #00d9ff;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: linear-gradient(90deg, #0080ff, #00ffff, #00ff88);
+            outline: none;
+            -webkit-appearance: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #00ffff;
+            cursor: pointer;
+            box-shadow: 0 0 8px rgba(0, 255, 255, 0.6);
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #00ffff;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 0 8px rgba(0, 255, 255, 0.6);
+        }
+        .value-display {
+            text-align: center;
+            font-size: 0.9rem;
+            color: #ffff00;
+            font-weight: 600;
+            margin-top: 6px;
+        }
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        button {
+            flex: 1;
+            padding: 10px 16px;
+            background: linear-gradient(135deg, #0080ff, #00ffff);
+            color: #0a0e27;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s;
+        }
+        button:hover {
+            box-shadow: 0 0 12px rgba(0, 255, 255, 0.5);
+            transform: translate(0, -2px);
+        }
+        button:active {
+            transform: translate(0, 0);
+        }
+        .info-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+        .info-box {
+            background: rgba(0, 255, 136, 0.05);
+            border: 1px solid rgba(0, 255, 136, 0.2);
+            border-radius: 6px;
+            padding: 10px;
+            font-size: 0.85rem;
+        }
+        .info-label {
+            color: #00d9ff;
+            font-weight: 600;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+        .info-value {
+            color: #ffff00;
+            font-family: 'Syne', sans-serif;
+            font-weight: 700;
+            font-size: 1rem;
+        }
+        .resonance-indicator {
+            background: rgba(255, 0, 0, 0.1);
+            border: 2px solid #ff6b6b;
+            border-radius: 6px;
+            padding: 10px;
+            text-align: center;
+            margin-top: 12px;
+        }
+        .resonance-indicator.stable {
+            background: rgba(0, 255, 136, 0.1);
+            border-color: #00ff88;
+        }
+        .resonance-label {
+            color: #ff6b6b;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        .resonance-indicator.stable .resonance-label {
+            color: #00ff88;
+        }
+        .resonance-ratio {
+            color: #ffff00;
+            font-family: 'Syne', sans-serif;
+            font-size: 1.2rem;
+            margin-top: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🛰️ Orbital Resonance</h1>
+        <div class="subtitle">Two-planet N-body dynamics with real Newtonian mechanics</div>
+        
+        <div class="canvas-wrapper">
+            <canvas id="canvas" width="600" height="400"></canvas>
+        </div>
+
+        <div class="controls-grid">
+            <div class="control-group">
+                <label>Mass Ratio (m₂/m₁)</label>
+                <input type="range" id="massRatio" min="0.1" max="2" step="0.05" value="1">
+                <div class="value-display" id="massDisplay">1.00</div>
+            </div>
+            <div class="control-group">
+                <label>Semi-major Axis Ratio (a₂/a₁)</label>
+                <input type="range" id="axisRatio" min="0.5" max="3" step="0.05" value="1.5">
+                <div class="value-display" id="axisDisplay">1.50</div>
+            </div>
+            <div class="control-group">
+                <label>Simulation Speed</label>
+                <input type="range" id="simSpeed" min="0.1" max="5" step="0.1" value="1">
+                <div class="value-display" id="speedDisplay">1.0x</div>
+            </div>
+            <div class="control-group">
+                <label>Perturbation Strength</label>
+                <input type="range" id="perturbation" min="0" max="1" step="0.05" value="0.5">
+                <div class="value-display" id="perturbDisplay">0.50</div>
+            </div>
+        </div>
+
+        <div class="button-group">
+            <button id="resetBtn">Reset Simulation</button>
+            <button id="pauseBtn">Pause</button>
+        </div>
+
+        <div class="info-row">
+            <div class="info-box">
+                <div class="info-label">Current Resonance</div>
+                <div class="info-value" id="resonanceRatio">1:1</div>
+            </div>
+            <div class="info-box">
+                <div class="info-label">Orbital Period Ratio</div>
+                <div class="info-value" id="periodRatio">1.00</div>
+            </div>
+        </div>
+
+        <div class="resonance-indicator" id="resonanceStatus">
+            <div class="resonance-label">🔴 Chaotic</div>
+            <div class="resonance-ratio" id="stabilityValue">e ≈ 0.2</div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        let state = {
+            massRatio: 1,
+            axisRatio: 1.5,
+            simSpeed: 1,
+            perturbation: 0.5,
+            paused: false,
+            time: 0
+        };
+
+        let planets = [];
+        let trailPoints = [];
+        const maxTrailLength = 400;
+
+        function initPlanets() {
+            trailPoints = [];
+            planets = [
+                {
+                    m: 1,
+                    a: 100,
+                    x: 100, y: 0,
+                    vx: 0, vy: Math.sqrt(1 / 100),
+                    ax: 0, ay: 0,
+                    trail: [],
+                    color: '#00ffff'
+                },
+                {
+                    m: state.massRatio,
+                    a: 100 * state.axisRatio,
+                    x: 100 * state.axisRatio, y: 0,
+                    vx: 0, vy: Math.sqrt(1 / (100 * state.axisRatio)),
+                    ax: 0, ay: 0,
+                    trail: [],
+                    color: '#ff8800'
+                }
+            ];
+            state.time = 0;
+        }
+
+        function computeAccelerations() {
+            const p1 = planets[0];
+            const p2 = planets[1];
+            
+            const dx = p2.x - p1.x;
+            const dy = p2.y - p1.y;
+            const dist = Math.sqrt(dx*dx + dy*dy);
+            const dist3 = dist * dist * dist;
+            
+            const Gm1 = p1.m * (1 + state.perturbation * 0.5);
+            const Gm2 = p2.m * (1 + state.perturbation * 0.5);
+            
+            p1.ax = (Gm2 * dx) / dist3;
+            p1.ay = (Gm2 * dy) / dist3;
+            p2.ax = -(Gm1 * dx) / dist3;
+            p2.ay = -(Gm1 * dy) / dist3;
+        }
+
+        function stepSimulation(dt) {
+            computeAccelerations();
+            
+            for (let p of planets) {
+                p.vx += p.ax * dt;
+                p.vy += p.ay * dt;
+                p.x += p.vx * dt;
+                p.y += p.vy * dt;
+            }
+            
+            state.time += dt;
+        }
+
+        function renderFrame() {
+            ctx.fillStyle = 'rgba(10, 14, 39, 0.2)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            const cx = canvas.width / 2;
+            const cy = canvas.height / 2;
+            const scale = 1.5;
+            
+            ctx.strokeStyle = 'rgba(0, 255, 136, 0.1)';
+            ctx.lineWidth = 1;
+            for (let i = 0; i <= 4; i++) {
+                const r = (i + 1) * 40 * scale;
+                ctx.beginPath();
+                ctx.arc(cx, cy, r, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+            
+            for (let p of planets) {
+                if (p.trail.length > 0) {
+                    ctx.strokeStyle = p.color;
+                    ctx.globalAlpha = 0.4;
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.moveTo(cx + p.trail[0][0] * scale, cy + p.trail[0][1] * scale);
+                    for (let pt of p.trail) {
+                        ctx.lineTo(cx + pt[0] * scale, cy + pt[1] * scale);
+                    }
+                    ctx.stroke();
+                    ctx.globalAlpha = 1;
+                }
+                
+                ctx.fillStyle = p.color;
+                const px = cx + p.x * scale;
+                const py = cy + p.y * scale;
+                ctx.beginPath();
+                ctx.arc(px, py, 8, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.shadowColor = p.color;
+                ctx.shadowBlur = 12;
+                ctx.fill();
+                ctx.shadowColor = 'transparent';
+                
+                const r = Math.sqrt(p.x * p.x + p.y * p.y);
+                ctx.strokeStyle = p.color;
+                ctx.globalAlpha = 0.3;
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.arc(cx, cy, r * scale, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.globalAlpha = 1;
+            }
+        }
+
+        function updateTrails() {
+            for (let p of planets) {
+                p.trail.push([p.x, p.y]);
+                if (p.trail.length > maxTrailLength) {
+                    p.trail.shift();
+                }
+            }
+        }
+
+        function computeResonance() {
+            const p1 = planets[0];
+            const p2 = planets[1];
+            
+            const T1 = 2 * Math.PI * Math.sqrt(Math.pow(p1.a, 3));
+            const T2 = 2 * Math.PI * Math.sqrt(Math.pow(p2.a, 3));
+            
+            const ratio = T2 / T1;
+            
+            const commonRatios = [
+                { num: 1, den: 1 },
+                { num: 2, den: 1 },
+                { num: 3, den: 1 },
+                { num: 1, den: 2 },
+                { num: 2, den: 3 },
+                { num: 3, den: 4 },
+                { num: 3, den: 2 },
+                { num: 4, den: 3 },
+                { num: 5, den: 3 }
+            ];
+            
+            let closest = { num: 1, den: 1, dist: Infinity };
+            for (let r of commonRatios) {
+                const val = r.num / r.den;
+                const dist = Math.abs(val - ratio);
+                if (dist < closest.dist) {
+                    closest = { ...r, dist };
+                }
+            }
+            
+            document.getElementById('resonanceRatio').textContent = `${closest.num}:${closest.den}`;
+            document.getElementById('periodRatio').textContent = ratio.toFixed(2);
+            
+            const e = Math.sqrt(1 - Math.pow(p1.a * (1 - state.massRatio*0.1) / (p1.a + 0.01), 2));
+            document.getElementById('stabilityValue').textContent = `e ≈ ${e.toFixed(2)}`;
+            
+            const threshold = 0.1;
+            const isStable = closest.dist < threshold;
+            const indicator = document.getElementById('resonanceStatus');
+            if (isStable) {
+                indicator.classList.add('stable');
+                indicator.querySelector('.resonance-label').textContent = '🟢 Resonant';
+            } else {
+                indicator.classList.remove('stable');
+                indicator.querySelector('.resonance-label').textContent = '🔴 Chaotic';
+            }
+        }
+
+        function animate() {
+            if (!state.paused) {
+                stepSimulation(0.01 * state.simSpeed);
+                updateTrails();
+            }
+            
+            computeResonance();
+            renderFrame();
+            requestAnimationFrame(animate);
+        }
+
+        // Event listeners
+        document.getElementById('massRatio').addEventListener('input', (e) => {
+            state.massRatio = parseFloat(e.target.value);
+            document.getElementById('massDisplay').textContent = state.massRatio.toFixed(2);
+            initPlanets();
+        });
+
+        document.getElementById('axisRatio').addEventListener('input', (e) => {
+            state.axisRatio = parseFloat(e.target.value);
+            document.getElementById('axisDisplay').textContent = state.axisRatio.toFixed(2);
+            initPlanets();
+        });
+
+        document.getElementById('simSpeed').addEventListener('input', (e) => {
+            state.simSpeed = parseFloat(e.target.value);
+            document.getElementById('speedDisplay').textContent = state.simSpeed.toFixed(1) + 'x';
+        });
+
+        document.getElementById('perturbation').addEventListener('input', (e) => {
+            state.perturbation = parseFloat(e.target.value);
+            document.getElementById('perturbDisplay').textContent = state.perturbation.toFixed(2);
+        });
+
+        document.getElementById('resetBtn').addEventListener('click', () => {
+            initPlanets();
+            state.paused = false;
+            document.getElementById('pauseBtn').textContent = 'Pause';
+        });
+
+        document.getElementById('pauseBtn').addEventListener('click', () => {
+            state.paused = !state.paused;
+            document.getElementById('pauseBtn').textContent = state.paused ? 'Resume' : 'Pause';
+        });
+
+        // Initialize and start
+        initPlanets();
+        animate();
+    </script>
+</body>
+</html>
