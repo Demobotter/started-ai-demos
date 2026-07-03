@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Schwarzschild Geodesics</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #0a0e27;
+      color: #e0e0e0;
+      padding: 16px;
+      overflow-x: hidden;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    h1 {
+      font-family: 'Syne', sans-serif;
+      font-size: 2.5rem;
+      margin-bottom: 8px;
+      color: #00ffff;
+      text-align: center;
+    }
+    .subtitle {
+      text-align: center;
+      color: #888;
+      margin-bottom: 24px;
+      font-size: 0.95rem;
+    }
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin-bottom: 24px;
+    }
+    @media (max-width: 900px) {
+      .main-grid { grid-template-columns: 1fr; }
+    }
+    .panel {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(0, 255, 255, 0.2);
+      border-radius: 12px;
+      padding: 20px;
+    }
+    .canvas-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: rgba(0, 0, 0, 0.5);
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 20px;
+    }
+    canvas {
+      display: block;
+      background: #0a0e27;
+    }
+    .controls {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    label {
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: #00ffff;
+    }
+    input[type="range"] {
+      width: 100%;
+      height: 6px;
+      border-radius: 3px;
+      background: linear-gradient(to right, #0080ff, #00ffff);
+      outline: none;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #ffff00;
+      cursor: pointer;
+      box-shadow: 0 0 8px #ffff00;
+    }
+    input[type="range"]::-moz-range-thumb {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #ffff00;
+      cursor: pointer;
+      border: none;
+      box-shadow: 0 0 8px #ffff00;
+    }
+    .value-display {
+      font-size: 0.85rem;
+      color: #888;
+    }
+    button {
+      padding: 12px;
+      border: 1px solid #0080ff;
+      background: rgba(0, 128, 255, 0.1);
+      color: #00ffff;
+      border-radius: 8px;
+      cursor: pointer;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.95rem;
+      transition: all 0.2s;
+    }
+    button:hover {
+      background: rgba(0, 128, 255, 0.2);
+      box-shadow: 0 0 12px rgba(0, 128, 255, 0.3);
+    }
+    .button-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .preset {
+      padding: 10px;
+      border: 1px solid rgba(0, 255, 255, 0.15);
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 8px;
+      cursor: pointer;
+      text-align: center;
+      font-size: 0.85rem;
+      color: #00ffff;
+      transition: all 0.2s;
+    }
+    .preset:hover {
+      background: rgba(0, 128, 255, 0.2);
+      border-color: #00ffff;
+    }
+    .stats-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .stat-box {
+      background: rgba(0, 0, 0, 0.5);
+      padding: 12px;
+      border-radius: 8px;
+      border-left: 3px solid #00ffff;
+    }
+    .stat-label {
+      font-size: 0.8rem;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .stat-value {
+      font-size: 1.1rem;
+      color: #00ffff;
+      font-weight: 600;
+      margin-top: 4px;
+      font-family: 'Syne', sans-serif;
+    }
+    .diagram-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.1rem;
+      color: #00ffff;
+      margin-bottom: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>⚫ Schwarzschild Geodesics</h1>
+    <div class="subtitle">Real general relativity around a black hole — watch particles follow warped spacetime</div>
+    
+    <div class="main-grid">
+      <!-- Canvas Panel -->
+      <div class="panel">
+        <div class="diagram-title">Spacetime Geometry</div>
+        <div class="canvas-container">
+          <canvas id="mainCanvas" width="500" height="500"></canvas>
+        </div>
+      </div>
+
+      <!-- Spacetime Diagram Panel -->
+      <div class="panel">
+        <div class="diagram-title">r-t Spacetime Diagram</div>
+        <div class="canvas-container">
+          <canvas id="diagramCanvas" width="500" height="500"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="main-grid">
+      <!-- Controls -->
+      <div class="panel">
+        <h2 style="font-family: 'Syne', sans-serif; font-size: 1.3rem; margin-bottom: 16px; color: #00ffff;">Configuration</h2>
+        <div class="controls">
+          <div class="control-group">
+            <label>Observer Height (r/M)</label>
+            <input type="range" id="observerHeight" min="2.5" max="20" value="10" step="0.1">
+            <div class="value-display">r = <span id="observerHeightVal">10.0</span> M</div>
+          </div>
+
+          <div class="control-group">
+            <label>Launch Preset</label>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+              <div class="preset" onclick="launchPreset('polar')">Polar Orbit</div>
+              <div class="preset" onclick="launchPreset('elliptical')">Elliptical</div>
+              <div class="preset" onclick="launchPreset('escape')">Escape</div>
+              <div class="preset" onclick="launchPreset('plunge')">Plunge</div>
+            </div>
+          </div>
+
+          <div class="button-row">
+            <button onclick="resetSimulation()">Reset</button>
+            <button onclick="togglePause()">Pause</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div class="panel">
+        <h2 style="font-family: 'Syne', sans-serif; font-size: 1.3rem; margin-bottom: 16px; color: #00ffff;">Particle Data</h2>
+        <div class="stats-row">
+          <div class="stat-box">
+            <div class="stat-label">Proper Time</div>
+            <div class="stat-value" id="properTime">0.00 τ</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Energy (E/mc²)</div>
+            <div class="stat-value" id="energy">0.00</div>
+          </div>
+        </div>
+        <div class="stats-row" style="margin-top: 12px;">
+          <div class="stat-box">
+            <div class="stat-label">Angular Mom (L/M)</div>
+            <div class="stat-value" id="angularMom">0.00</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">Redshift (z)</div>
+            <div class="stat-value" id="redshift">0.00</div>
+          </div>
+        </div>
+        <div class="stat-box" style="margin-top: 12px;">
+          <div class="stat-label">Trajectory Type</div>
+          <div class="stat-value" id="trajectoryType">Idle</div>
+        </div>
+        <div class="stat-box" style="margin-top: 12px; border-left-color: #ff6b6b;">
+          <div class="stat-label">Critical Photon Orbit</div>
+          <div class="stat-value" id="photonOrbit">r = 3.0 M</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Physics constants (natural units: G=c=M=1)
+    const M = 1; // Black hole mass
+    const Rs = 2 * M; // Schwarzschild radius
+    const criticalPhotonOrbit = 3 * M;
+    
+    // Canvas setup
+    const mainCanvas = document.getElementById('mainCanvas');
+    const diagramCanvas = document.getElementById('diagramCanvas');
+    const mainCtx = mainCanvas.getContext('2d');
+    const diagCtx = diagramCanvas.getContext('2d');
+    
+    // Simulation state
+    let observerR = 10;
+    let isPaused = false;
+    let particles = [];
+    let trajectories = [];
+    let simTime = 0;
+    let animationId;
+    
+    // Update observer height
+    document.getElementById('observerHeight').addEventListener('input', (e) => {
+      observerR = parseFloat(e.target.value);
+      document.getElementById('observerHeightVal').textContent = observerR.toFixed(1);
+    });
+
+    function launchPreset(type) {
+      let initialR, initialVr, initialLphiOverM;
+      
+      if (type === 'polar') {
+        // Circular orbit at observer distance
+        initialR = observerR;
+        initialVr = 0;
+        initialLphiOverM = Math.sqrt(M * initialR * (1 - 3*M/initialR));
+      } else if (type === 'elliptical') {
+        // Elliptical orbit: periapsis at observer distance
+        initialR = observerR;
+        initialVr = -0.3; // Negative = inward
+        initialLphiOverM = Math.sqrt(M * initialR * 0.7);
+      } else if (type === 'escape') {
+        // Escape trajectory: just barely unbounded
+        initialR = observerR;
+        initialVr = 0.2;
+        initialLphiOverM = Math.sqrt(M * initialR * 0.6);
+      } else if (type === 'plunge') {
+        // Radial plunge into black hole
+        initialR = observerR;
+        initialVr = -0.5;
+        initialLphiOverM = 0.1 * M; // Small angular momentum
+      }
+      
+      createParticle(initialR, initialVr, initialLphiOverM, type);
+    }
+
+    function createParticle(r0, vr0, LphiOverM, label) {
+      // Particle state: [t, r, theta, vt, vr, vphi]
+      // Using Boyer-Lindquist coordinates (no rotation, so same as Schwarzschild)
+      
+      const E_over_m = Math.sqrt(1 - 3*M/r0 + (LphiOverM**2)/(r0**2));
+      const vt0 = E_over_m / (1 - 2*M/r0);
+      const vphi0 = LphiOverM / (r0**2);
+      
+      const particle = {
+        t: 0,
+        r: r0,
+        theta: 0,
+        vt: vt0,
+        vr: vr0,
+        vphi: vphi0,
+        properTime: 0,
+        E_over_m: E_over_m,
+        L_over_M: LphiOverM,
+        label: label,
+        trail: [{r: r0, theta: 0}],
+        trailTime: [],
+        stable: true
+      };
+      
+      particles.push(particle);
+      trajectories.push(particle.trail);
+    }
+
+    function schwarzschildMetric(r, vr, vphi, vt) {
+      // Metric: ds² = -(1-2M/r)dt² + (1-2M/r)⁻¹dr² + r²dθ² + r²sin²θdφ²
+      // For θ=π/2 (equatorial plane):
+      // ds² = -(1-2M/r)dt² + (1-2M/r)⁻¹dr² + r²dφ²
+      
+      const gtt = -(1 - 2*M/r);
+      const grr = 1 / (1 - 2*M/r);
+      const gpp = r * r;
+      
+      // Proper time element
+      const ds2 = gtt * vt**2 + grr * vr**2 + gpp * vphi**2;
+      return Math.sqrt(-ds2);
+    }
+
+    function geodesicStep(p, dt) {
+      if (!p.stable) return;
+      
+      // RK4 integration of Schwarzschild geodesic equations
+      // For equatorial plane motion
+      
+      function derivs(state) {
+        const [t, r, theta, vt, vr, vphi] = state;
+        
+        if (r < Rs + 0.01) {
+          p.stable = false;
+          return [0, 0, 0, 0, 0, 0];
+        }
+        
+        // Schwarzschild acceleration (proper time derivatives)
+        const gtt = -(1 - 2*M/r);
+        const grr = 1 / (1 - 2*M/r);
+        const gpp = r * r;
+        
+        // Christoffel symbols: geodesic equation d²x/dτ² = -Γ dx/dτ dx/dτ
+        const M_r = M / r;
+        const alpha = 1 - 2*M_r;
+        
+        // Coordinate acceleration
+        const at = 2 * M_r * vt * vr / (r * alpha);
+        const ar = M_r * (vt**2 * alpha + vr**2 / alpha + (vphi**2 * r) / (1 + alpha)) - (vphi**2 * r) / alpha;
+        const aphi = -2 * vr * vphi / r;
+        
+        return [vt, vr, vphi, at, ar, aphi];
+      }
+      
+      // RK4
+      const state = [p.t, p.r, p.theta, p.vt, p.vr, p.vphi];
+      const k1 = derivs(state);
+      const k2 = derivs([state[0]+dt*k1[0]/2, state[1]+dt*k1[1]/2, state[2]+dt*k1[2]/2, state[3]+dt*k1[3]/2, state[4]+dt*k1[4]/2, state[5]+dt*k1[5]/2]);
+      const k3 = derivs([state[0]+dt*k2[0]/2, state[1]+dt*k2[1]/2, state[2]+dt*k2[2]/2, state[3]+dt*k2[3]/2, state[4]+dt*k2[4]/2, state[5]+dt*k2[5]/2]);
+      const k4 = derivs([state[0]+dt*k3[0], state[1]+dt*k3[1], state[2]+dt*k3[2], state[3]+dt*k3[3], state[4]+dt*k3[4], state[5]+dt*k3[5]]);
+      
+      p.t += dt * (k1[0] + 2*k2[0] + 2*k3[0] + k4[0]) / 6;
+      p.r += dt * (k1[1] + 2*k2[1] + 2*k3[1] + k4[1]) / 6;
+      p.theta += dt * (k1[2] + 2*k2[2] + 2*k3[2] + k4[2]) / 6;
+      p.vt += dt * (k1[3] + 2*k2[3] + 2*k3[3] + k4[3]) / 6;
+      p.vr += dt * (k1[4] + 2*k2[4] + 2*k3[4] + k4[4]) / 6;
+      p.vphi += dt * (k1[5] + 2*k2[5] + 2*k3[5] + k4[5]) / 6;
+      
+      // Update proper time
+      const dTau = schwarzschildMetric(p.r, p.vr, p.vphi, p.vt);
+      p.properTime += dTau * dt;
+      
+      // Store trail
+      if (p.trail.length < 1000) {
+        p.trail.push({r: p.r, theta: p.theta});
+        p.trailTime.push(p.properTime);
+      }
+    }
+
+    function drawMainCanvas() {
+      mainCtx.fillStyle = '#0a0e27';
+      mainCtx.fillRect(0, 0, mainCanvas.width, mainCanvas.height);
+      
+      const cx = mainCanvas.width / 2;
+      const cy = mainCanvas.height / 2;
+      const scale = mainCanvas.width / (observerR * 2.5);
+      
+      // Draw event horizon
+      const horizonRadius = Rs * scale;
+      mainCtx.fillStyle = '#000000';
+      mainCtx.beginPath();
+      mainCtx.arc(cx, cy, horizonRadius, 0, 2*Math.PI);
+      mainCtx.fill();
+      
+      mainCtx.strokeStyle = '#ff6b6b';
+      mainCtx.lineWidth = 2;
+      mainCtx.stroke();
+      
+      // Draw photon orbit
+      const photonRadius = criticalPhotonOrbit * scale;
+      mainCtx.strokeStyle = 'rgba(255, 107, 107, 0.5)';
+      mainCtx.lineWidth = 1;
+      mainCtx.setLineDash([5, 5]);
+      mainCtx.beginPath();
+      mainCtx.arc(cx, cy, photonRadius, 0, 2*Math.PI);
+      mainCtx.stroke();
+      mainCtx.setLineDash([]);
+      
+      // Draw observer position
+      const obsRadius = observerR * scale;
+      mainCtx.fillStyle = '#00ffff';
+      mainCtx.beginPath();
+      mainCtx.arc(cx + obsRadius, cy, 6, 0, 2*Math.PI);
+      mainCtx.fill();
+      
+      // Draw particle trails and positions
+      for (const p of particles) {
+        // Trail
+        mainCtx.strokeStyle = p.stable ? '#00ffff' : '#ff6b6b';
+        mainCtx.lineWidth = 1;
+        mainCtx.globalAlpha = 0.6;
+        mainCtx.beginPath();
+        for (let i = 0; i < p.trail.length; i++) {
+          const x = cx + p.trail[i].r * Math.cos(p.trail[i].theta) * scale;
+          const y = cy + p.trail[i].r * Math.sin(p.trail[i].theta) * scale;
+          if (i === 0) mainCtx.moveTo(x, y);
+          else mainCtx.lineTo(x, y);
+        }
+        mainCtx.stroke();
+        mainCtx.globalAlpha = 1;
+        
+        // Particle position
+        const px = cx + p.r * Math.cos(p.theta) * scale;
+        const py = cy + p.r * Math.sin(p.theta) * scale;
+        mainCtx.fillStyle = p.stable ? '#00ffff' : '#ff6b6b';
+        mainCtx.beginPath();
+        mainCtx.arc(px, py, 4, 0, 2*Math.PI);
+        mainCtx.fill();
+      }
+    }
+
+    function drawDiagramCanvas() {
+      diagCtx.fillStyle = '#0a0e27';
+      diagCtx.fillRect(0, 0, diagramCanvas.width, diagramCanvas.height);
+      
+      const padding = 40;
+      const w = diagramCanvas.width - 2*padding;
+      const h = diagramCanvas.height - 2*padding;
+      
+      // Axes
+      diagCtx.strokeStyle = '#444';
+      diagCtx.lineWidth = 1;
+      diagCtx.beginPath();
+      diagCtx.moveTo(padding, padding + h);
+      diagCtx.lineTo(padding, padding);
+      diagCtx.stroke();
+      diagCtx.beginPath();
+      diagCtx.moveTo(padding, padding + h);
+      diagCtx.lineTo(padding + w, padding + h);
+      diagCtx.stroke();
+      
+      // Labels
+      diagCtx.fillStyle = '#888';
+      diagCtx.font = '12px Inter';
+      diagCtx.fillText('t', padding + w - 20, padding + 15);
+      diagCtx.fillText('r', padding - 20, padding + h + 20);
+      
+      // Event horizon line
+      const horizonX = padding + w * (Rs / (observerR * 1.5));
+      diagCtx.strokeStyle = '#ff6b6b';
+      diagCtx.lineWidth = 2;
+      diagCtx.beginPath();
+      diagCtx.moveTo(horizonX, padding);
+      diagCtx.lineTo(horizonX, padding + h);
+      diagCtx.stroke();
+      
+      // Particle worldlines
+      for (const p of particles) {
+        diagCtx.strokeStyle = p.stable ? '#00ffff' : '#ff6b6b';
+        diagCtx.lineWidth = 2;
+        diagCtx.globalAlpha = 0.8;
+        diagCtx.beginPath();
+        for (let i = 0; i < p.trailTime.length; i++) {
+          const tx = padding + (p.trailTime[i] / (p.properTime + 0.1)) * w;
+          const rx = padding + (p.trail[i].r / (observerR * 1.5)) * w;
+          if (i === 0) diagCtx.moveTo(tx, padding + h - rx);
+          else diagCtx.lineTo(tx, padding + h - rx);
+        }
+        diagCtx.stroke();
+        diagCtx.globalAlpha = 1;
+      }
+    }
+
+    function updateStats() {
+      if (particles.length === 0) return;
+      const p = particles[particles.length - 1];
+      
+      document.getElementById('properTime').textContent = p.properTime.toFixed(2) + ' τ';
+      document.getElementById('energy').textContent = p.E_over_m.toFixed(3);
+      document.getElementById('angularMom').textContent = (p.L_over_M / M).toFixed(2);
+      
+      // Redshift: z = sqrt((1-2M/r∞)/(1-2M/r)) - 1
+      const z = Math.sqrt(1 / (1 - 2*M/p.r)) - 1;
+      document.getElementById('redshift').textContent = z.toFixed(3);
+      
+      document.getElementById('trajectoryType').textContent = p.stable ? p.label : 'Captured';
+    }
+
+    function togglePause() {
+      isPaused = !isPaused;
+      document.querySelector('button:nth-of-type(2)').textContent = isPaused ? 'Resume' : 'Pause';
+    }
+
+    function resetSimulation() {
+      particles = [];
+      trajectories = [];
+      simTime = 0;
+    }
+
+    function animate() {
+      if (!isPaused) {
+        for (let i = 0; i < particles.length; i++) {
+          geodesicStep(particles[i], 0.1);
+        }
+        simTime += 0.1;
+      }
+      
+      drawMainCanvas();
+      drawDiagramCanvas();
+      updateStats();
+      animationId = requestAnimationFrame(animate);
+    }
+
+    // Initialize with a default polar orbit
+    launchPreset('polar');
+    animate();
+  </script>
+</body>
+</html>
