@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lyapunov Explorer</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #0a0e27;
+      color: #e0e0e0;
+      overflow: hidden;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 16px;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    header {
+      font-family: 'Syne', sans-serif;
+      font-size: 28px;
+      font-weight: 700;
+      color: #00ff88;
+      text-align: center;
+      margin-bottom: 8px;
+    }
+    .controls {
+      background: #0f1636;
+      border-radius: 8px;
+      padding: 16px;
+      border: 1px solid #00ff88;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      justify-content: center;
+      align-items: center;
+    }
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      align-items: center;
+    }
+    .control-group label {
+      font-size: 12px;
+      font-weight: 500;
+      color: #00ffff;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .control-group select,
+    .control-group input {
+      background: #1a1f3a;
+      border: 1px solid #00ffff;
+      color: #00ff88;
+      padding: 6px 10px;
+      border-radius: 4px;
+      font-size: 12px;
+      min-width: 120px;
+    }
+    .control-group input[type="range"] {
+      width: 140px;
+      min-width: auto;
+      accent-color: #00ff88;
+    }
+    .value-display {
+      font-size: 11px;
+      color: #ffff00;
+      font-weight: 500;
+      height: 16px;
+    }
+    .canvas-container {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 12px;
+      min-height: 0;
+    }
+    .plot-box {
+      background: #0f1636;
+      border: 1px solid #00ffff;
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .plot-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 14px;
+      font-weight: 700;
+      color: #00ff88;
+      padding: 10px 12px;
+      border-bottom: 1px solid #00ffff;
+    }
+    .plot-content {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+    }
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      background: #0a0e27;
+    }
+    .metrics {
+      background: #0f1636;
+      border: 1px solid #00ffff;
+      border-radius: 8px;
+      padding: 12px;
+      font-size: 11px;
+      font-family: 'Courier New', monospace;
+      color: #00ffff;
+      line-height: 1.6;
+    }
+    .metric-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+    .metric-label { color: #00ff88; }
+    .metric-value { color: #ffff00; font-weight: 600; }
+    .button-group {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    button {
+      background: #1a1f3a;
+      border: 1px solid #00ff88;
+      color: #00ff88;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-family: 'Syne', sans-serif;
+      font-weight: 600;
+      font-size: 12px;
+      transition: all 0.15s;
+    }
+    button:hover {
+      background: #00ff88;
+      color: #0a0e27;
+      box-shadow: 0 0 12px rgba(0,255,136,0.5);
+    }
+    button:active { transform: scale(0.98); }
+    .status {
+      font-size: 12px;
+      color: #ffff00;
+      padding: 8px;
+      background: rgba(255,255,0,0.1);
+      border-radius: 4px;
+      text-align: center;
+      border: 1px solid #ffff00;
+    }
+    @media (max-width: 768px) {
+      .canvas-container {
+        grid-template-columns: 1fr;
+      }
+      .controls { flex-direction: column; gap: 12px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>⚡ Lyapunov Explorer</header>
+    
+    <div class="controls">
+      <div class="control-group">
+        <label>System</label>
+        <select id="systemSelect">
+          <option value="lorenz">Lorenz</option>
+          <option value="henon">Hénon</option>
+          <option value="duffing">Duffing</option>
+          <option value="rossler">Rössler</option>
+        </select>
+      </div>
+      
+      <div class="control-group">
+        <label>Parameter</label>
+        <input type="range" id="paramSlider" min="0" max="100" value="50">
+        <div class="value-display" id="paramValue">ρ = 28.0</div>
+      </div>
+      
+      <div class="control-group">
+        <label>Perturbation</label>
+        <input type="range" id="perturbSlider" min="0" max="100" value="50" step="1">
+        <div class="value-display" id="perturbValue">δ = 1e-6</div>
+      </div>
+      
+      <div class="control-group">
+        <label>Integration Steps</label>
+        <input type="number" id="stepsInput" value="10000" min="1000" max="50000" step="1000">
+      </div>
+      
+      <div class="button-group">
+        <button id="playBtn">▶ Play</button>
+        <button id="pauseBtn">⏸ Pause</button>
+        <button id="resetBtn">↻ Reset</button>
+      </div>
+    </div>
+    
+    <div class="canvas-container">
+      <div class="plot-box">
+        <div class="plot-title">3D Trajectory (Lorenz) / Phase Space</div>
+        <div class="plot-content">
+          <canvas id="trajectoryCanvas"></canvas>
+        </div>
+      </div>
+      
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        <div class="plot-box" style="flex: 1;">
+          <div class="plot-title">Separation Distance (log scale)</div>
+          <div class="plot-content">
+            <canvas id="separationCanvas"></canvas>
+          </div>
+        </div>
+        
+        <div class="metrics">
+          <div class="metric-row">
+            <span class="metric-label">Step:</span>
+            <span class="metric-value" id="stepVal">0</span>
+          </div>
+          <div class="metric-row">
+            <span class="metric-label">Distance:</span>
+            <span class="metric-value" id="distVal">0.0e+00</span>
+          </div>
+          <div class="metric-row">
+            <span class="metric-label">Lyapunov (λ):</span>
+            <span class="metric-value" id="lyapVal">N/A</span>
+          </div>
+          <div class="metric-row">
+            <span class="metric-label">Stability:</span>
+            <span class="metric-value" id="stabilityVal">—</span>
+          </div>
+          <div class="metric-row">
+            <span class="metric-label">FPS:</span>
+            <span class="metric-value" id="fpsVal">60</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ============ SYSTEMS ============
+    const systems = {
+      lorenz: (state, params) => {
+        const [x, y, z] = state;
+        const { sigma = 10, rho, beta = 8/3 } = params;
+        return [
+          sigma * (y - x),
+          x * (rho - z) - y,
+          x * y - beta * z
+        ];
+      },
+      henon: (state, params) => {
+        const [x, y] = state;
+        const { a = 1.4, b = 0.3 } = params;
+        return [
+          1 - a * x * x + y,
+          b * x
+        ];
+      },
+      duffing: (state, params) => {
+        const [x, v] = state;
+        const { mu = 0.15, omega = 1 } = params;
+        return [
+          v,
+          -x + mu * x * x * x + 0.3 * Math.cos(omega * params.t || 0)
+        ];
+      },
+      rossler: (state, params) => {
+        const [x, y, z] = state;
+        const { a = 0.2, b = 0.2, c } = params;
+        return [
+          -y - z,
+          x + a * y,
+          b + z * (x - c)
+        ];
+      }
+    };
+
+    // ============ RK4 INTEGRATOR ============
+    function rk4Step(state, derivatives, dt, params) {
+      const n = state.length;
+      const k1 = derivatives(state, params);
+      
+      const s2 = state.map((s, i) => s + 0.5 * dt * k1[i]);
+      const k2 = derivatives(s2, params);
+      
+      const s3 = state.map((s, i) => s + 0.5 * dt * k2[i]);
+      const k3 = derivatives(s3, params);
+      
+      const s4 = state.map((s, i) => s + dt * k3[i]);
+      const k4 = derivatives(s4, params);
+      
+      return state.map((s, i) => 
+        s + (dt / 6) * (k1[i] + 2*k2[i] + 2*k3[i] + k4[i])
+      );
+    }
+
+    // ============ STATE ============
+    let currentSystem = 'lorenz';
+    let running = false;
+    let step = 0;
+    let maxSteps = 10000;
+    let trajectory1 = null, trajectory2 = null;
+    let separationHistory = [];
+    let lyapunovValue = null;
+    let initialState = null;
+    let dt = 0.01;
+
+    // ============ INITIALIZATION ============
+    function initializeSystem() {
+      step = 0;
+      separationHistory = [];
+      lyapunovValue = null;
+      
+      if (currentSystem === 'lorenz') {
+        initialState = [1, 1, 1];
+      } else if (currentSystem === 'henon') {
+        initialState = [0.3, 0.3];
+      } else if (currentSystem === 'duffing') {
+        initialState = [0.1, 0];
+      } else if (currentSystem === 'rossler') {
+        initialState = [1, 1, 1];
+      }
+      
+      trajectory1 = [initialState.slice()];
+      trajectory2 = [initialState.slice()];
+    }
+
+    function addPerturbation() {
+      const perturbMag = Math.pow(10, -1 * (parseFloat(document.getElementById('perturbSlider').value) / 10));
+      for (let i = 0; i < trajectory2[0].length; i++) {
+        trajectory2[0][i] += (Math.random() - 0.5) * perturbMag;
+      }
+    }
+
+    // ============ PARAMETER EXTRACTION ============
+    function getSystemParams() {
+      const pval = parseFloat(document.getElementById('paramSlider').value);
+      const systemName = currentSystem;
+
+      if (systemName === 'lorenz') {
+        const rho = 1 + (pval / 100) * 50;
+        document.getElementById('paramValue').textContent = `ρ = ${rho.toFixed(1)}`;
+        return { rho, sigma: 10, beta: 8/3 };
+      } else if (systemName === 'henon') {
+        const a = 0.8 + (pval / 100) * 1.2;
+        document.getElementById('paramValue').textContent = `a = ${a.toFixed(3)}`;
+        return { a, b: 0.3 };
+      } else if (systemName === 'duffing') {
+        const mu = (pval / 100) * 0.3;
+        document.getElementById('paramValue').textContent = `μ = ${mu.toFixed(3)}`;
+        return { mu, omega: 1 };
+      } else if (systemName === 'rossler') {
+        const c = 2 + (pval / 100) * 7;
+        document.getElementById('paramValue').textContent = `c = ${c.toFixed(2)}`;
+        return { a: 0.2, b: 0.2, c };
+      }
+    }
+
+    // ============ SIMULATION ============
+    function step_() {
+      if (step >= maxSteps) {
+        running = false;
+        return;
+      }
+
+      const params = getSystemParams();
+      const derivs = systems[currentSystem];
+      
+      trajectory1.push(rk4Step(trajectory1[trajectory1.length - 1], derivs, dt, params));
+      trajectory2.push(rk4Step(trajectory2[trajectory2.length - 1], derivs, dt, params));
+      
+      const state1 = trajectory1[trajectory1.length - 1];
+      const state2 = trajectory2[trajectory2.length - 1];
+      
+      let dist = 0;
+      for (let i = 0; i < state1.length; i++) {
+        dist += (state1[i] - state2[i]) ** 2;
+      }
+      dist = Math.sqrt(dist);
+      separationHistory.push(Math.max(dist, 1e-16));
+      
+      if (separationHistory.length > 1) {
+        const log_dist = Math.log(Math.max(dist, 1e-16));
+        const log_dist_prev = Math.log(Math.max(separationHistory[separationHistory.length - 2], 1e-16));
+        const dldt = (log_dist - log_dist_prev) / (step * dt);
+        lyapunovValue = dldt;
+      }
+      
+      document.getElementById('stepVal').textContent = step;
+      document.getElementById('distVal').textContent = dist.toExponential(2);
+      if (lyapunovValue !== null) {
+        document.getElementById('lyapVal').textContent = lyapunovValue.toFixed(3);
+        let stability = 'Neutral';
+        if (lyapunovValue > 0.1) stability = 'Chaotic';
+        else if (lyapunovValue < -0.1) stability = 'Stable';
+        document.getElementById('stabilityVal').textContent = stability;
+      }
+      
+      step++;
+    }
+
+    // ============ RENDERING ============
+    function render3DProjection(state, color, ctx, width, height, scale) {
+      if (state.length < 3) return;
+      
+      const cx = width / 2;
+      const cy = height / 2;
+      
+      for (let i = 1; i < state.length; i++) {
+        const p1 = state[i - 1];
+        const p2 = state[i];
+        
+        if (currentSystem === 'lorenz') {
+          const x1 = cx + p1[0] * scale;
+          const y1 = cy - p1[2] * scale;
+          const x2 = cx + p2[0] * scale;
+          const y2 = cy - p2[2] * scale;
+          
+          ctx.strokeStyle = color;
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(x1, y1);
+          ctx.lineTo(x2, y2);
+          ctx.stroke();
+        }
+      }
+    }
+
+    function animate() {
+      const tCanvas = document.getElementById('trajectoryCanvas');
+      const sCanvas = document.getElementById('separationCanvas');
+      const tCtx = tCanvas.getContext('2d');
+      const sCtx = sCanvas.getContext('2d');
+      
+      tCanvas.width = tCanvas.offsetWidth;
+      tCanvas.height = tCanvas.offsetHeight;
+      sCanvas.width = sCanvas.offsetWidth;
+      sCanvas.height = sCanvas.offsetHeight;
+      
+      // Trajectory plot
+      tCtx.fillStyle = '#0a0e27';
+      tCtx.fillRect(0, 0, tCanvas.width, tCanvas.height);
+      
+      const scale = (currentSystem === 'lorenz') ? 3 : 100;
+      render3DProjection(trajectory1, '#00ff88', tCtx, tCanvas.width, tCanvas.height, scale);
+      render3DProjection(trajectory2, '#ff6b6b', tCtx, tCanvas.width, tCanvas.height, scale);
+      
+      // Legend
+      tCtx.fillStyle = '#00ff88';
+      tCtx.font = '11px Courier New';
+      tCtx.fillText('● Stable', 12, 20);
+      tCtx.fillStyle = '#ff6b6b';
+      tCtx.fillText('● Perturbed', 12, 35);
+      
+      // Separation plot
+      sCtx.fillStyle = '#0a0e27';
+      sCtx.fillRect(0, 0, sCanvas.width, sCanvas.height);
+      
+      if (separationHistory.length > 1) {
+        const minLog = Math.log(1e-16);
+        const maxLog = Math.log(1e2);
+        const range = maxLog - minLog;
+        
+        sCtx.strokeStyle = '#00ffff';
+        sCtx.lineWidth = 2;
+        sCtx.beginPath();
+        
+        for (let i = 0; i < separationHistory.length; i++) {
+          const logVal = Math.log(Math.max(separationHistory[i], 1e-16));
+          const normVal = (logVal - minLog) / range;
+          const x = (i / separationHistory.length) * sCanvas.width;
+          const y = sCanvas.height * (1 - Math.max(0, Math.min(1, normVal)));
+          
+          if (i === 0) sCtx.moveTo(x, y);
+          else sCtx.lineTo(x, y);
+        }
+        sCtx.stroke();
+        
+        // Exponential growth indicator
+        sCtx.strokeStyle = 'rgba(255,255,0,0.3)';
+        sCtx.setLineDash([4, 4]);
+        sCtx.beginPath();
+        sCtx.moveTo(0, sCanvas.height * 0.7);
+        sCtx.lineTo(sCanvas.width, sCanvas.height * 0.1);
+        sCtx.stroke();
+        sCtx.setLineDash([]);
+      }
+      
+      if (running) {
+        for (let i = 0; i < 10; i++) step_();
+      }
+      
+      requestAnimationFrame(animate);
+    }
+
+    // ============ EVENT HANDLERS ============
+    document.getElementById('systemSelect').addEventListener('change', (e) => {
+      currentSystem = e.target.value;
+      running = false;
+      initializeSystem();
+      addPerturbation();
+    });
+
+    document.getElementById('stepsInput').addEventListener('change', (e) => {
+      maxSteps = parseInt(e.target.value) || 10000;
+    });
+
+    document.getElementById('playBtn').addEventListener('click', () => {
+      if (!trajectory1) {
+        initializeSystem();
+        addPerturbation();
+      }
+      running = true;
+    });
+
+    document.getElementById('pauseBtn').addEventListener('click', () => {
+      running = false;
+    });
+
+    document.getElementById('resetBtn').addEventListener('click', () => {
+      running = false;
+      initializeSystem();
+      addPerturbation();
+    });
+
+    document.getElementById('perturbSlider').addEventListener('input', () => {
+      const pval = parseFloat(document.getElementById('perturbSlider').value);
+      const perturbMag = Math.pow(10, -1 * (pval / 10));
+      document.getElementById('perturbValue').textContent = `δ = ${perturbMag.toExponential(0)}`;
+    });
+
+    // ============ START ============
+    initializeSystem();
+    addPerturbation();
+    animate();
+
+    // FPS counter
+    let lastTime = performance.now();
+    let frameCount = 0;
+    setInterval(() => {
+      const now = performance.now();
+      const fps = Math.round(frameCount / ((now - lastTime) / 1000));
+      document.getElementById('fpsVal').textContent = fps;
+      lastTime = now;
+      frameCount = 0;
+    }, 1000);
+    
+    const originalRAF = requestAnimationFrame;
+    requestAnimationFrame = function(fn) {
+      frameCount++;
+      return originalRAF(fn);
+    };
+  </script>
+</body>
+</html>
