@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wind Power Atlas</title>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 100%);
+            color: #e0e0e0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            max-width: 900px;
+            width: 100%;
+            background: #0f1425;
+            border-radius: 16px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+        h1 {
+            font-family: 'Syne', sans-serif;
+            font-size: 32px;
+            margin-bottom: 10px;
+            color: #00ffff;
+        }
+        .subtitle {
+            font-size: 14px;
+            color: #888;
+            margin-bottom: 30px;
+        }
+        .input-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+        input[type="text"] {
+            padding: 12px;
+            background: #1a1f3a;
+            border: 1px solid #00d9ff;
+            border-radius: 8px;
+            color: #e0e0e0;
+            font-size: 14px;
+        }
+        input[type="text"]::placeholder {
+            color: #555;
+        }
+        button {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #00ffff, #00d9ff);
+            border: none;
+            border-radius: 8px;
+            color: #0a0e27;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 14px;
+            transition: transform 0.2s;
+        }
+        button:hover {
+            transform: scale(1.05);
+        }
+        button:active {
+            transform: scale(0.98);
+        }
+        .loading {
+            text-align: center;
+            font-size: 14px;
+            color: #00ffff;
+            margin: 20px 0;
+        }
+        .error {
+            color: #ff6b6b;
+            padding: 15px;
+            background: rgba(255, 107, 107, 0.1);
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 3px solid #ff6b6b;
+        }
+        .results {
+            margin-top: 30px;
+        }
+        .result-card {
+            background: #1a1f3a;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+            border-left: 4px solid #00ffff;
+        }
+        .result-title {
+            font-family: 'Syne', sans-serif;
+            font-size: 18px;
+            margin-bottom: 10px;
+            color: #00ffff;
+        }
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 8px 0;
+            font-size: 14px;
+        }
+        .stat-label {
+            color: #888;
+        }
+        .stat-value {
+            color: #00ff88;
+            font-weight: 600;
+        }
+        .wind-bar {
+            width: 100%;
+            height: 30px;
+            background: #0a0e27;
+            border-radius: 6px;
+            margin-top: 10px;
+            overflow: hidden;
+            border: 1px solid #00d9ff;
+        }
+        .wind-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00ff88, #00ffff, #ffff00, #ff8800);
+            border-radius: 4px;
+            transition: width 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 600;
+            color: #0a0e27;
+        }
+        .compass {
+            width: 120px;
+            height: 120px;
+            margin: 15px auto;
+            background: #0a0e27;
+            border-radius: 50%;
+            border: 2px solid #00d9ff;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .compass-inner {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            border: 1px solid #00ffff;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .compass-needle {
+            position: absolute;
+            width: 3px;
+            height: 40px;
+            background: linear-gradient(180deg, #ff6b6b, #ff8800);
+            border-radius: 2px;
+            transform-origin: center 40px;
+            transition: transform 0.3s;
+        }
+        .compass-label {
+            position: absolute;
+            font-size: 12px;
+            font-weight: 600;
+            color: #00ffff;
+        }
+        .compass-n { top: 5px; }
+        .compass-s { bottom: 5px; }
+        .compass-e { right: 5px; }
+        .compass-w { left: 5px; }
+        .power-category {
+            margin-top: 15px;
+            padding: 12px;
+            background: #0a0e27;
+            border-radius: 6px;
+            font-size: 13px;
+            border-left: 3px solid #00ff88;
+        }
+        .power-label {
+            color: #888;
+            display: inline-block;
+            width: 80px;
+        }
+        .power-text {
+            color: #00ff88;
+            font-weight: 600;
+        }
+        .info-text {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+        .presets {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .preset-btn {
+            padding: 8px 16px;
+            background: #1a1f3a;
+            border: 1px solid #00d9ff;
+            border-radius: 6px;
+            color: #00ffff;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+        .preset-btn:hover {
+            background: #00d9ff;
+            color: #0a0e27;
+        }
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+            }
+            h1 {
+                font-size: 24px;
+            }
+            .input-group {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>💨 Wind Power Atlas</h1>
+        <p class="subtitle">Real-time wind speed at any location on Earth</p>
+
+        <div class="presets" id="presets"></div>
+
+        <div class="input-group">
+            <input type="text" id="latitude" placeholder="Latitude (-90 to 90)" value="40.7128">
+            <input type="text" id="longitude" placeholder="Longitude (-180 to 180)" value="-74.0060">
+        </div>
+        <button onclick="fetchWindData()">Get Wind Data</button>
+
+        <div id="loading" class="loading" style="display: none;">Fetching wind data...</div>
+        <div id="error" class="error" style="display: none;"></div>
+        <div id="results" class="results"></div>
+    </div>
+
+    <script>
+        const windCategories = {
+            'Calm': { min: 0, max: 1, color: '#0080ff' },
+            'Light Breeze': { min: 1, max: 5, color: '#00d9ff' },
+            'Gentle Breeze': { min: 5, max: 11, color: '#00ff88' },
+            'Moderate Wind': { min: 11, max: 20, color: '#ffff00' },
+            'Fresh Wind': { min: 20, max: 31, color: '#ffb700' },
+            'Strong Wind': { min: 31, max: 100, color: '#ff6b6b' }
+        };
+
+        const presets = [
+            { name: 'New York', lat: 40.7128, lon: -74.0060 },
+            { name: 'London', lat: 51.5074, lon: -0.1278 },
+            { name: 'Tokyo', lat: 35.6762, lon: 139.6503 },
+            { name: 'Sydney', lat: -33.8688, lon: 151.2093 },
+            { name: 'San Francisco', lat: 37.7749, lon: -122.4194 },
+        ];
+
+        function initPresets() {
+            const presetsDiv = document.getElementById('presets');
+            presets.forEach(preset => {
+                const btn = document.createElement('button');
+                btn.className = 'preset-btn';
+                btn.textContent = preset.name;
+                btn.onclick = () => {
+                    document.getElementById('latitude').value = preset.lat;
+                    document.getElementById('longitude').value = preset.lon;
+                    fetchWindData();
+                };
+                presetsDiv.appendChild(btn);
+            });
+        }
+
+        function getWindCategory(speed) {
+            for (const [name, data] of Object.entries(windCategories)) {
+                if (speed >= data.min && speed < data.max) {
+                    return { name, ...data };
+                }
+            }
+            return { name: 'Extreme', min: 100, max: 999, color: '#ff0000' };
+        }
+
+        async function fetchWindData() {
+            const lat = parseFloat(document.getElementById('latitude').value);
+            const lon = parseFloat(document.getElementById('longitude').value);
+
+            if (isNaN(lat) || isNaN(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+                showError('Invalid coordinates. Latitude: -90 to 90, Longitude: -180 to 180');
+                return;
+            }
+
+            const loading = document.getElementById('loading');
+            const error = document.getElementById('error');
+            const results = document.getElementById('results');
+
+            loading.style.display = 'block';
+            error.style.display = 'none';
+            results.innerHTML = '';
+
+            try {
+                // Open-Meteo API for current wind data
+                const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=wind_speed_10m,wind_direction_10m,wind_speed_80m,wind_direction_80m&wind_speed_unit=kmh&timezone=auto`;
+                
+                const response = await fetch(url);
+                if (!response.ok) throw new Error(`API error: ${response.status}`);
+                
+                const data = await response.json();
+                const current = data.current;
+
+                // Get timezone-aware location name
+                const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?latitude=${lat}&longitude=${lon}&count=1&language=en`;
+                const geoResponse = await fetch(geoUrl);
+                const geoData = await geoResponse.json();
+                const locationName = geoData.results?.[0]?.name || 'Unknown Location';
+
+                displayResults({
+                    location: locationName,
+                    lat: lat,
+                    lon: lon,
+                    wind10m: current.wind_speed_10m,
+                    windDir10m: current.wind_direction_10m,
+                    wind80m: current.wind_speed_80m,
+                    windDir80m: current.wind_direction_80m,
+                });
+            } catch (err) {
+                showError(`Error: ${err.message}. Please check your connection or try different coordinates.`);
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+
+        function displayResults(data) {
+            const results = document.getElementById('results');
+            const cat10m = getWindCategory(data.wind10m);
+            const cat80m = getWindCategory(data.wind80m);
+            const maxSpeed = Math.max(data.wind10m, data.wind80m);
+
+            results.innerHTML = `
+                <div class="result-card">
+                    <div class="result-title">${data.location}</div>
+                    <div class="stat-row">
+                        <span class="stat-label">Coordinates:</span>
+                        <span class="stat-value">${data.lat.toFixed(4)}°, ${data.lon.toFixed(4)}°</span>
+                    </div>
+                </div>
+
+                <div class="result-card">
+                    <div class="result-title">Surface Wind (10m height)</div>
+                    <div class="stat-row">
+                        <span class="stat-label">Speed:</span>
+                        <span class="stat-value">${data.wind10m.toFixed(1)} km/h</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Direction:</span>
+                        <span class="stat-value">${getCompassDirection(data.windDir10m)}</span>
+                    </div>
+                    <div class="compass">
+                        <div class="compass-inner">
+                            <div class="compass-label compass-n">N</div>
+                            <div class="compass-label compass-s">S</div>
+                            <div class="compass-label compass-e">E</div>
+                            <div class="compass-label compass-w">W</div>
+                            <div class="compass-needle" style="transform: rotate(${data.windDir10m}deg)"></div>
+                        </div>
+                    </div>
+                    <div class="wind-bar">
+                        <div class="wind-fill" style="width: ${Math.min(100, (data.wind10m / 40) * 100)}%; background: linear-gradient(90deg, ${cat10m.color}, ${cat10m.color}aa);">
+                            ${data.wind10m.toFixed(1)} km/h
+                        </div>
+                    </div>
+                    <div class="power-category">
+                        <span class="power-label">Category:</span>
+                        <span class="power-text">${cat10m.name}</span>
+                    </div>
+                </div>
+
+                <div class="result-card">
+                    <div class="result-title">Upper Wind (80m height)</div>
+                    <div class="stat-row">
+                        <span class="stat-label">Speed:</span>
+                        <span class="stat-value">${data.wind80m.toFixed(1)} km/h</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Direction:</span>
+                        <span class="stat-value">${getCompassDirection(data.windDir80m)}</span>
+                    </div>
+                    <div class="wind-bar">
+                        <div class="wind-fill" style="width: ${Math.min(100, (data.wind80m / 40) * 100)}%; background: linear-gradient(90deg, ${cat80m.color}, ${cat80m.color}aa);">
+                            ${data.wind80m.toFixed(1)} km/h
+                        </div>
+                    </div>
+                    <div class="power-category">
+                        <span class="power-label">Category:</span>
+                        <span class="power-text">${cat80m.name}</span>
+                    </div>
+                </div>
+
+                <div class="result-card">
+                    <div class="result-title">Wind Power Potential</div>
+                    <div class="stat-row">
+                        <span class="stat-label">Max Speed:</span>
+                        <span class="stat-value">${maxSpeed.toFixed(1)} km/h</span>
+                    </div>
+                    <div class="info-text">
+                        💨 Wind power is proportional to wind speed cubed. Higher altitudes (80m) are ideal for turbines.
+                    </div>
+                </div>
+            `;
+        }
+
+        function getCompassDirection(degrees) {
+            const dirs = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
+            const index = Math.round((degrees % 360) / 22.5);
+            return `${dirs[index]} (${degrees.toFixed(0)}°)`;
+        }
+
+        function showError(msg) {
+            document.getElementById('error').textContent = msg;
+            document.getElementById('error').style.display = 'block';
+        }
+
+        window.addEventListener('load', () => {
+            initPresets();
+            fetchWindData();
+        });
+    </script>
+</body>
+</html>
