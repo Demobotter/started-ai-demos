@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mirage Simulator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: #e8eaf6;
+            padding: 20px;
+        }
+        .container {
+            max-width: 900px;
+            width: 100%;
+            background: rgba(20, 25, 45, 0.95);
+            border: 1px solid rgba(100, 150, 255, 0.3);
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+        }
+        h1 {
+            font-family: 'Syne', sans-serif;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #87ceeb 0%, #ffb347 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-weight: 700;
+        }
+        .subtitle {
+            font-size: 0.95rem;
+            color: #b0bec5;
+            margin-bottom: 25px;
+        }
+        .content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            align-items: start;
+        }
+        @media (max-width: 768px) {
+            .content {
+                grid-template-columns: 1fr;
+            }
+        }
+        .canvas-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        canvas {
+            background: linear-gradient(180deg, #87ceeb 0%, #ffb347 40%, #ff6347 80%, #8b4513 100%);
+            border: 1px solid rgba(100, 150, 255, 0.4);
+            border-radius: 12px;
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        label {
+            font-size: 0.9rem;
+            color: #90caf9;
+            font-weight: 500;
+        }
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: linear-gradient(to right, #0080ff, #00ffff, #ffb700);
+            outline: none;
+            -webkit-appearance: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #00ffff;
+            cursor: pointer;
+            box-shadow: 0 0 8px rgba(0, 255, 255, 0.6);
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #00ffff;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 0 8px rgba(0, 255, 255, 0.6);
+        }
+        .value-display {
+            font-family: 'Syne', sans-serif;
+            font-size: 1.2rem;
+            color: #ffb700;
+            font-weight: 600;
+        }
+        .readout {
+            background: rgba(100, 150, 255, 0.1);
+            border: 1px solid rgba(100, 150, 255, 0.3);
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 0.85rem;
+            line-height: 1.6;
+        }
+        .readout-title {
+            font-weight: 600;
+            color: #87ceeb;
+            margin-bottom: 8px;
+        }
+        .readout-value {
+            color: #ffb347;
+            font-family: 'Syne', sans-serif;
+        }
+        button {
+            background: linear-gradient(135deg, #00d9ff 0%, #00ffff 100%);
+            border: none;
+            color: #0a0e27;
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+            font-family: 'Inter', sans-serif;
+        }
+        button:hover {
+            box-shadow: 0 0 16px rgba(0, 255, 255, 0.6);
+            transform: translateY(-2px);
+        }
+        button:active {
+            transform: translateY(0);
+        }
+        select {
+            background: rgba(100, 150, 255, 0.15);
+            border: 1px solid rgba(100, 150, 255, 0.4);
+            color: #e8eaf6;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-family: 'Inter', sans-serif;
+            cursor: pointer;
+        }
+        option {
+            background: #1a1f3a;
+            color: #e8eaf6;
+        }
+        .temp-profile {
+            margin-top: 20px;
+        }
+        .profile-canvas {
+            background: rgba(10, 14, 39, 0.8);
+            border: 1px solid rgba(100, 150, 255, 0.3);
+            border-radius: 8px;
+            width: 100%;
+            height: 200px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌄 Mirage Simulator</h1>
+        <p class="subtitle">Adjust temperature and observer height, watch real Snell's law bend light rays into mirages.</p>
+        
+        <div class="content">
+            <div class="canvas-wrapper">
+                <canvas id="mainCanvas" width="500" height="400"></canvas>
+                <div class="temp-profile">
+                    <div style="font-size: 0.85rem; color: #90caf9; margin-bottom: 8px; font-weight: 500;">Temperature Gradient</div>
+                    <canvas id="profileCanvas" class="profile-canvas"></canvas>
+                </div>
+            </div>
+            
+            <div class="controls">
+                <div class="control-group">
+                    <label>Ground Temperature (°C)</label>
+                    <input type="range" id="tempSlider" min="20" max="60" value="40" step="1">
+                    <div class="value-display" id="tempValue">40°C</div>
+                </div>
+                
+                <div class="control-group">
+                    <label>Observer Height (m)</label>
+                    <input type="range" id="heightSlider" min="0.5" max="2.0" value="1.7" step="0.1">
+                    <div class="value-display" id="heightValue">1.7 m</div>
+                </div>
+                
+                <div class="control-group">
+                    <label>Air Density / Humidity</label>
+                    <input type="range" id="densitySlider" min="0.8" max="1.2" value="1.0" step="0.05">
+                    <div class="value-display" id="densityValue">1.00 (normal)</div>
+                </div>
+                
+                <div class="control-group">
+                    <label>Field of View (°)</label>
+                    <input type="range" id="fovSlider" min="30" max="90" value="60" step="5">
+                    <div class="value-display" id="fovValue">60°</div>
+                </div>
+                
+                <div class="control-group">
+                    <label>Mirage Type</label>
+                    <select id="mirageType">
+                        <option value="auto">Auto-Detect</option>
+                        <option value="inferior">Inferior (hot ground)</option>
+                        <option value="superior">Superior (cold upper air)</option>
+                    </select>
+                </div>
+                
+                <button onclick="resetSimulation()">Reset</button>
+                
+                <div class="readout">
+                    <div class="readout-title">Refractive Index @ Ground</div>
+                    <div class="readout-value" id="refractiveIndex">n = 1.0001</div>
+                </div>
+                
+                <div class="readout">
+                    <div class="readout-title">Critical Angle</div>
+                    <div class="readout-value" id="criticalAngle">θc = 89.9°</div>
+                </div>
+                
+                <div class="readout">
+                    <div class="readout-title">Detected Mirage</div>
+                    <div class="readout-value" id="mirageDetect">Inferior Mirage</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const mainCanvas = document.getElementById('mainCanvas');
+        const profileCanvas = document.getElementById('profileCanvas');
+        const ctx = mainCanvas.getContext('2d');
+        const profileCtx = profileCanvas.getContext('2d');
+        
+        const tempSlider = document.getElementById('tempSlider');
+        const heightSlider = document.getElementById('heightSlider');
+        const densitySlider = document.getElementById('densitySlider');
+        const fovSlider = document.getElementById('fovSlider');
+        const mirageTypeSelect = document.getElementById('mirageType');
+        
+        let sim = {
+            groundTemp: 40,
+            observerHeight: 1.7,
+            airDensity: 1.0,
+            fov: 60,
+            mirageType: 'auto'
+        };
+        
+        // Atmospheric model: temperature gradient with Gladstone-Dale constant
+        function getRefractiveIndex(height, groundTemp, observerHeight) {
+            // Linear temperature profile: T(z) = T_ground - lapse_rate * z
+            // Lapse rate: ~0.0065 K/m (realistic)
+            const lapseRate = 0.0065;
+            const T_ground_K = groundTemp + 273.15;
+            const z_m = height;
+            const T_z = T_ground_K - lapseRate * z_m;
+            
+            // Gladstone-Dale relation: (n-1) = K * ρ
+            // where ρ = P / (R * T) for ideal gas at sea level
+            // K ≈ 2.26e-4 m³/kg (for air)
+            const K = 2.26e-4;
+            const P = 101325; // Pa (sea level)
+            const R = 287; // J/(kg·K)
+            const rho = P / (R * T_z);
+            
+            // Apply density adjustment (humidity/pressure variation)
+            const n = 1 + K * rho * sim.airDensity;
+            return Math.max(1.0, n);
+        }
+        
+        // Ray tracing using Snell's law in stratified medium
+        function traceRay(rayAngleDeg) {
+            const rayAngleRad = rayAngleDeg * Math.PI / 180;
+            const layers = 50;
+            const maxHeight = 3.0;
+            const rayPath = [];
+            
+            // Starting point: observer eye
+            let x = 0;
+            let z = sim.observerHeight;
+            rayPath.push({ x: x, z: z });
+            
+            // Initial ray angle from horizontal
+            let theta = rayAngleRad;
+            const n0 = getRefractiveIndex(sim.observerHeight);
+            let n_prev = n0;
+            let sin_theta_prev = Math.sin(theta);
+            
+            let totalDist = 0;
+            const maxDist = 20; // Max horizontal distance
+            
+            for (let step = 0; step < layers && x < maxDist; step++) {
+                // Step in height
+                const dz = maxHeight / layers;
+                const z_next = z + dz;
+                
+                if (z_next < 0 || z_next > maxHeight) break;
+                
+                const n_next = getRefractiveIndex(z_next);
+                
+                // Apply Snell's law: n(z) * sin(θ) = constant
+                const sin_theta_next = (n_prev * sin_theta_prev) / n_next;
+                
+                if (Math.abs(sin_theta_next) > 1.0) {
+                    // Total internal reflection — ray bends back
+                    theta = Math.asin(Math.min(1.0, sin_theta_next));
+                    break;
+                }
+                
+                theta = Math.asin(sin_theta_next);
+                const dx = dz / Math.tan(theta);
+                x += dx;
+                z = z_next;
+                
+                rayPath.push({ x: x, z: z });
+                
+                n_prev = n_next;
+                sin_theta_prev = sin_theta_next;
+            }
+            
+            return rayPath;
+        }
+        
+        function render() {
+            const w = mainCanvas.width;
+            const h = mainCanvas.height;
+            const scale = 50; // pixels per meter
+            
+            // Clear canvas with gradient
+            const gradient = ctx.createLinearGradient(0, 0, 0, h);
+            gradient.addColorStop(0, '#87ceeb');
+            gradient.addColorStop(0.4, '#ffb347');
+            gradient.addColorStop(0.7, '#ff6347');
+            gradient.addColorStop(1, '#8b4513');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, w, h);
+            
+            // Ground line (observer height reference)
+            const groundY = h - sim.observerHeight * scale;
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([5, 5]);
+            ctx.beginPath();
+            ctx.moveTo(0, groundY);
+            ctx.lineTo(w, groundY);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            
+            // Observer point
+            const obsX = 50;
+            const obsY = h - sim.observerHeight * scale;
+            ctx.fillStyle = '#00ffff';
+            ctx.beginPath();
+            ctx.arc(obsX, obsY, 6, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#00ffff';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            
+            // Trace rays across FOV
+            const fovHalf = sim.fov / 2;
+            const numRays = 13;
+            let lowestRayZ = sim.observerHeight;
+            
+            for (let i = 0; i < numRays; i++) {
+                const ratio = i / (numRays - 1);
+                const rayAngle = -fovHalf + ratio * sim.fov;
+                const rayPath = traceRay(rayAngle);
+                
+                if (rayPath.length > 1) {
+                    const lastPoint = rayPath[rayPath.length - 1];
+                    lowestRayZ = Math.min(lowestRayZ, lastPoint.z);
+                }
+                
+                // Draw ray
+                ctx.strokeStyle = `rgba(0, 255, 255, ${0.3 + ratio * 0.5})`;
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                
+                for (let j = 0; j < rayPath.length; j++) {
+                    const pt = rayPath[j];
+                    const px = obsX + pt.x * scale;
+                    const py = h - pt.z * scale;
+                    
+                    if (j === 0) ctx.moveTo(px, py);
+                    else ctx.lineTo(px, py);
+                }
+                ctx.stroke();
+                
+                // Draw arrowhead
+                if (rayPath.length > 1) {
+                    const pt = rayPath[rayPath.length - 1];
+                    const ptPrev = rayPath[rayPath.length - 2];
+                    const px = obsX + pt.x * scale;
+                    const py = h - pt.z * scale;
+                    const dx = pt.x - ptPrev.x;
+                    const dy = pt.z - ptPrev.z;
+                    const angle = Math.atan2(dy, dx);
+                    
+                    const arrowLen = 6;
+                    ctx.fillStyle = `rgba(0, 255, 255, ${0.3 + ratio * 0.5})`;
+                    ctx.beginPath();
+                    ctx.moveTo(px, py);
+                    ctx.lineTo(px - arrowLen * Math.cos(angle - 0.4), py + arrowLen * Math.sin(angle - 0.4));
+                    ctx.lineTo(px - arrowLen * Math.cos(angle + 0.4), py + arrowLen * Math.sin(angle + 0.4));
+                    ctx.closePath();
+                    ctx.fill();
+                }
+            }
+            
+            // Target on ground
+            const targetX = 200;
+            const targetY = h;
+            ctx.strokeStyle = '#ffb347';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([3, 3]);
+            ctx.beginPath();
+            ctx.moveTo(targetX - 15, targetY - 10);
+            ctx.lineTo(targetX + 15, targetY - 10);
+            ctx.moveTo(targetX, targetY - 20);
+            ctx.lineTo(targetX, targetY - 5);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            
+            // Labels
+            ctx.fillStyle = '#e8eaf6';
+            ctx.font = '12px Inter';
+            ctx.fillText('Observer', obsX - 20, obsY - 20);
+            ctx.fillText('Target', targetX - 15, targetY - 30);
+            ctx.fillText('Ground', 10, h - 5);
+        }
+        
+        function renderProfile() {
+            const w = profileCanvas.width;
+            const h = profileCanvas.height;
+            
+            // Clear
+            profileCtx.fillStyle = 'rgba(10, 14, 39, 0.8)';
+            profileCtx.fillRect(0, 0, w, h);
+            
+            // Temperature profile
+            const maxHeight = 3.0;
+            const margin = 20;
+            
+            profileCtx.strokeStyle = '#ff6347';
+            profileCtx.lineWidth = 2;
+            profileCtx.beginPath();
+            
+            for (let x = 0; x <= w - margin; x += 5) {
+                const normX = x / (w - margin);
+                const temp = sim.groundTemp - 0.0065 * (normX * maxHeight) * 1000; // rough K/m conversion
+                const normTemp = (temp - 10) / (60 - 10); // normalize 10-60°C
+                const y = h - margin - normTemp * (h - 2 * margin);
+                
+                if (x === 0) profileCtx.moveTo(margin + x, y);
+                else profileCtx.lineTo(margin + x, y);
+            }
+            profileCtx.stroke();
+            
+            // Axes
+            profileCtx.strokeStyle = 'rgba(100, 150, 255, 0.5)';
+            profileCtx.lineWidth = 1;
+            profileCtx.beginPath();
+            profileCtx.moveTo(margin, h - margin);
+            profileCtx.lineTo(margin, margin);
+            profileCtx.lineTo(w - margin, h - margin);
+            profileCtx.stroke();
+            
+            // Labels
+            profileCtx.fillStyle = '#90caf9';
+            profileCtx.font = '10px Inter';
+            profileCtx.fillText('Temp →', w - 50, margin - 5);
+            profileCtx.fillText('Height', 5, margin + 10);
+        }
+        
+        function updateReadouts() {
+            const n = getRefractiveIndex(0);
+            document.getElementById('refractiveIndex').textContent = `n = ${n.toFixed(5)}`;
+            
+            // Critical angle for total internal reflection
+            const sinCritical = 1 / n;
+            const criticalDeg = Math.asin(sinCritical) * 180 / Math.PI;
+            document.getElementById('criticalAngle').textContent = `θc = ${(90 - criticalDeg).toFixed(1)}°`;
+            
+            // Detect mirage type
+            let mirageType = 'None';
+            const dT = 60 - sim.groundTemp;
+            if (sim.mirageType === 'auto') {
+                if (sim.groundTemp > 45) mirageType = 'Inferior Mirage';
+                else if (sim.groundTemp < 30) mirageType = 'Superior Mirage';
+                else mirageType = 'Weak / None';
+            } else if (sim.mirageType === 'inferior') {
+                mirageType = 'Inferior Mirage (forced)';
+            } else if (sim.mirageType === 'superior') {
+                mirageType = 'Superior Mirage (forced)';
+            }
+            document.getElementById('mirageDetect').textContent = mirageType;
+        }
+        
+        tempSlider.addEventListener('input', (e) => {
+            sim.groundTemp = parseFloat(e.target.value);
+            document.getElementById('tempValue').textContent = sim.groundTemp + '°C';
+            updateReadouts();
+            render();
+            renderProfile();
+        });
+        
+        heightSlider.addEventListener('input', (e) => {
+            sim.observerHeight = parseFloat(e.target.value);
+            document.getElementById('heightValue').textContent = sim.observerHeight.toFixed(1) + ' m';
+            updateReadouts();
+            render();
+        });
+        
+        densitySlider.addEventListener('input', (e) => {
+            sim.airDensity = parseFloat(e.target.value);
+            const label = sim.airDensity < 1 ? 'dry' : sim.airDensity > 1 ? 'humid' : 'normal';
+            document.getElementById('densityValue').textContent = sim.airDensity.toFixed(2) + ' (' + label + ')';
+            updateReadouts();
+            render();
+        });
+        
+        fovSlider.addEventListener('input', (e) => {
+            sim.fov = parseFloat(e.target.value);
+            document.getElementById('fovValue').textContent = sim.fov + '°';
+            render();
+        });
+        
+        mirageTypeSelect.addEventListener('change', (e) => {
+            sim.mirageType = e.target.value;
+            updateReadouts();
+        });
+        
+        function resetSimulation() {
+            sim = {
+                groundTemp: 40,
+                observerHeight: 1.7,
+                airDensity: 1.0,
+                fov: 60,
+                mirageType: 'auto'
+            };
+            tempSlider.value = 40;
+            heightSlider.value = 1.7;
+            densitySlider.value = 1.0;
+            fovSlider.value = 60;
+            mirageTypeSelect.value = 'auto';
+            
+            document.getElementById('tempValue').textContent = '40°C';
+            document.getElementById('heightValue').textContent = '1.7 m';
+            document.getElementById('densityValue').textContent = '1.00 (normal)';
+            document.getElementById('fovValue').textContent = '60°';
+            
+            updateReadouts();
+            render();
+            renderProfile();
+        }
+        
+        // Initial render
+        updateReadouts();
+        render();
+        renderProfile();
+        
+        // Handle canvas resize for responsive design
+        window.addEventListener('resize', () => {
+            const rect = mainCanvas.getBoundingClientRect();
+            if (rect.width < 400) {
+                mainCanvas.width = rect.width;
+                mainCanvas.height = (rect.width / 500) * 400;
+            }
+            render();
+        });
+    </script>
+</body>
+</html>
