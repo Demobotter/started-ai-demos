@@ -230,12 +230,12 @@
                 
                 <div class="readout">
                     <div class="readout-title">Refractive Index @ Ground</div>
-                    <div class="readout-value" id="refractiveIndex">n = 1.0001</div>
+                    <div class="readout-value" id="refractiveIndex">n = 1.00025</div>
                 </div>
                 
                 <div class="readout">
                     <div class="readout-title">Critical Angle</div>
-                    <div class="readout-value" id="criticalAngle">θc = 89.9°</div>
+                    <div class="readout-value" id="criticalAngle">θc ≈ 89°</div>
                 </div>
                 
                 <div class="readout">
@@ -266,29 +266,27 @@
             mirageType: 'auto'
         };
         
-        // Atmospheric model: temperature gradient with Gladstone-Dale constant
-        function getRefractiveIndex(height, groundTemp, observerHeight) {
+        // Atmospheric model: refractive index from temperature via ideal gas + Gladstone-Dale
+        function getRefractiveIndex(height) {
             // Linear temperature profile: T(z) = T_ground - lapse_rate * z
-            // Lapse rate: ~0.0065 K/m (realistic)
-            const lapseRate = 0.0065;
-            const T_ground_K = groundTemp + 273.15;
-            const z_m = height;
-            const T_z = T_ground_K - lapseRate * z_m;
+            const lapseRate = 0.0065; // K/m (realistic dry adiabatic)
+            const T_ground_K = sim.groundTemp + 273.15;
+            const T_z = T_ground_K - lapseRate * height;
             
-            // Gladstone-Dale relation: (n-1) = K * ρ
-            // where ρ = P / (R * T) for ideal gas at sea level
-            // K ≈ 2.26e-4 m³/kg (for air)
-            const K = 2.26e-4;
-            const P = 101325; // Pa (sea level)
-            const R = 287; // J/(kg·K)
-            const rho = P / (R * T_z);
+            if (T_z <= 0) return 1.0; // unphysical
             
-            // Apply density adjustment (humidity/pressure variation)
-            const n = 1 + K * rho * sim.airDensity;
+            // Gladstone-Dale: (n-1) = K * ρ where ρ ∝ 1/T at const P
+            // Simplified: (n-1) ∝ 1/T
+            // At sea level, T₀ = 288K: (n-1) ≈ 0.000276
+            const K_gd = 79.4; // Gladstone-Dale constant for air (approx 1/rho_ref)
+            const T_ref = 288.15; // reference temp (15°C)
+            const rho_ratio = T_ref / T_z;
+            
+            const n = 1.0 + 0.000276 * rho_ratio * sim.airDensity;
             return Math.max(1.0, n);
         }
         
-        // Ray tracing using Snell's law in stratified medium
+        // Ray tracing with Snell's law in stratified medium
         function traceRay(rayAngleDeg) {
             const rayAngleRad = rayAngleDeg * Math.PI / 180;
             const layers = 50;
@@ -300,42 +298,36 @@
             let z = sim.observerHeight;
             rayPath.push({ x: x, z: z });
             
-            // Initial ray angle from horizontal
+            // Initial ray direction angle from horizontal
             let theta = rayAngleRad;
             const n0 = getRefractiveIndex(sim.observerHeight);
-            let n_prev = n0;
-            let sin_theta_prev = Math.sin(theta);
+            let sin_theta = Math.sin(theta);
+            const sinProduct = n0 * sin_theta; // Snell invariant
             
-            let totalDist = 0;
-            const maxDist = 20; // Max horizontal distance
+            const dz = maxHeight / layers;
+            const maxDist = 20;
             
             for (let step = 0; step < layers && x < maxDist; step++) {
-                // Step in height
-                const dz = maxHeight / layers;
                 const z_next = z + dz;
                 
                 if (z_next < 0 || z_next > maxHeight) break;
                 
-                const n_next = getRefractiveIndex(z_next);
+                const n = getRefractiveIndex(z_next);
                 
-                // Apply Snell's law: n(z) * sin(θ) = constant
-                const sin_theta_next = (n_prev * sin_theta_prev) / n_next;
+                // Snell's law: n(z) * sin(θ(z)) = constant
+                const sin_theta_next = sinProduct / n;
                 
-                if (Math.abs(sin_theta_next) > 1.0) {
-                    // Total internal reflection — ray bends back
-                    theta = Math.asin(Math.min(1.0, sin_theta_next));
+                if (Math.abs(sin_theta_next) > 0.9999) {
+                    // Near-total internal reflection
                     break;
                 }
                 
                 theta = Math.asin(sin_theta_next);
-                const dx = dz / Math.tan(theta);
-                x += dx;
+                const dx = dz / Math.max(0.01, Math.tan(theta));
+                x += Math.abs(dx);
                 z = z_next;
                 
                 rayPath.push({ x: x, z: z });
-                
-                n_prev = n_next;
-                sin_theta_prev = sin_theta_next;
             }
             
             return rayPath;
@@ -346,7 +338,7 @@
             const h = mainCanvas.height;
             const scale = 50; // pixels per meter
             
-            // Clear canvas with gradient
+            // Clear with gradient (sky → ground)
             const gradient = ctx.createLinearGradient(0, 0, 0, h);
             gradient.addColorStop(0, '#87ceeb');
             gradient.addColorStop(0.4, '#ffb347');
@@ -355,7 +347,7 @@
             ctx.fillStyle = gradient;
             ctx.fillRect(0, 0, w, h);
             
-            // Ground line (observer height reference)
+            // Ground line (reference)
             const groundY = h - sim.observerHeight * scale;
             ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
             ctx.lineWidth = 1;
@@ -366,7 +358,7 @@
             ctx.stroke();
             ctx.setLineDash([]);
             
-            // Observer point
+            // Observer point (cyan dot)
             const obsX = 50;
             const obsY = h - sim.observerHeight * scale;
             ctx.fillStyle = '#00ffff';
@@ -380,19 +372,15 @@
             // Trace rays across FOV
             const fovHalf = sim.fov / 2;
             const numRays = 13;
-            let lowestRayZ = sim.observerHeight;
             
             for (let i = 0; i < numRays; i++) {
                 const ratio = i / (numRays - 1);
                 const rayAngle = -fovHalf + ratio * sim.fov;
                 const rayPath = traceRay(rayAngle);
                 
-                if (rayPath.length > 1) {
-                    const lastPoint = rayPath[rayPath.length - 1];
-                    lowestRayZ = Math.min(lowestRayZ, lastPoint.z);
-                }
+                if (rayPath.length < 1) continue;
                 
-                // Draw ray
+                // Draw ray path
                 ctx.strokeStyle = `rgba(0, 255, 255, ${0.3 + ratio * 0.5})`;
                 ctx.lineWidth = 1.5;
                 ctx.beginPath();
@@ -407,7 +395,7 @@
                 }
                 ctx.stroke();
                 
-                // Draw arrowhead
+                // Arrowhead on final segment
                 if (rayPath.length > 1) {
                     const pt = rayPath[rayPath.length - 1];
                     const ptPrev = rayPath[rayPath.length - 2];
@@ -415,6 +403,7 @@
                     const py = h - pt.z * scale;
                     const dx = pt.x - ptPrev.x;
                     const dy = pt.z - ptPrev.z;
+                    const len = Math.sqrt(dx*dx + dy*dy);
                     const angle = Math.atan2(dy, dx);
                     
                     const arrowLen = 6;
@@ -428,7 +417,7 @@
                 }
             }
             
-            // Target on ground
+            // Target marker on ground
             const targetX = 200;
             const targetY = h;
             ctx.strokeStyle = '#ffb347';
@@ -453,6 +442,7 @@
         function renderProfile() {
             const w = profileCanvas.width;
             const h = profileCanvas.height;
+            const margin = 20;
             
             // Clear
             profileCtx.fillStyle = 'rgba(10, 14, 39, 0.8)';
@@ -460,17 +450,16 @@
             
             // Temperature profile
             const maxHeight = 3.0;
-            const margin = 20;
-            
             profileCtx.strokeStyle = '#ff6347';
             profileCtx.lineWidth = 2;
             profileCtx.beginPath();
             
-            for (let x = 0; x <= w - margin; x += 5) {
-                const normX = x / (w - margin);
-                const temp = sim.groundTemp - 0.0065 * (normX * maxHeight) * 1000; // rough K/m conversion
-                const normTemp = (temp - 10) / (60 - 10); // normalize 10-60°C
-                const y = h - margin - normTemp * (h - 2 * margin);
+            for (let x = 0; x <= w - 2*margin; x += 5) {
+                const normX = x / (w - 2*margin);
+                const height = normX * maxHeight;
+                const temp = sim.groundTemp - 0.0065 * height * 1000; // convert to K/m
+                const normTemp = Math.max(0, Math.min(1, (temp - 10) / (60 - 10)));
+                const y = h - margin - normTemp * (h - 2*margin);
                 
                 if (x === 0) profileCtx.moveTo(margin + x, y);
                 else profileCtx.lineTo(margin + x, y);
@@ -498,23 +487,23 @@
             document.getElementById('refractiveIndex').textContent = `n = ${n.toFixed(5)}`;
             
             // Critical angle for total internal reflection
-            const sinCritical = 1 / n;
-            const criticalDeg = Math.asin(sinCritical) * 180 / Math.PI;
-            document.getElementById('criticalAngle').textContent = `θc = ${(90 - criticalDeg).toFixed(1)}°`;
-            
-            // Detect mirage type
-            let mirageType = 'None';
-            const dT = 60 - sim.groundTemp;
-            if (sim.mirageType === 'auto') {
-                if (sim.groundTemp > 45) mirageType = 'Inferior Mirage';
-                else if (sim.groundTemp < 30) mirageType = 'Superior Mirage';
-                else mirageType = 'Weak / None';
-            } else if (sim.mirageType === 'inferior') {
-                mirageType = 'Inferior Mirage (forced)';
-            } else if (sim.mirageType === 'superior') {
-                mirageType = 'Superior Mirage (forced)';
+            if (n > 1) {
+                const sinCrit = 1 / n;
+                const criticalDeg = Math.asin(sinCrit) * 180 / Math.PI;
+                document.getElementById('criticalAngle').textContent = `θc ≈ ${(90 - criticalDeg).toFixed(0)}°`;
             }
-            document.getElementById('mirageDetect').textContent = mirageType;
+            
+            // Auto-detect mirage type
+            let mirageLabel = 'Weak / None';
+            if (sim.mirageType === 'auto') {
+                if (sim.groundTemp > 45) mirageLabel = 'Inferior Mirage (hot)';
+                else if (sim.groundTemp < 30) mirageLabel = 'Superior Mirage (cold)';
+            } else if (sim.mirageType === 'inferior') {
+                mirageLabel = 'Inferior Mirage';
+            } else if (sim.mirageType === 'superior') {
+                mirageLabel = 'Superior Mirage';
+            }
+            document.getElementById('mirageDetect').textContent = mirageLabel;
         }
         
         tempSlider.addEventListener('input', (e) => {
@@ -579,16 +568,6 @@
         updateReadouts();
         render();
         renderProfile();
-        
-        // Handle canvas resize for responsive design
-        window.addEventListener('resize', () => {
-            const rect = mainCanvas.getBoundingClientRect();
-            if (rect.width < 400) {
-                mainCanvas.width = rect.width;
-                mainCanvas.height = (rect.width / 500) * 400;
-            }
-            render();
-        });
     </script>
 </body>
 </html>
