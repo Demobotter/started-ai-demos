@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pendulum Bifurcation</title>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 100%);
+            color: #fff;
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            width: 100%;
+            background: rgba(20, 25, 50, 0.7);
+            border: 1px solid rgba(0, 200, 255, 0.2);
+            border-radius: 16px;
+            padding: 32px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 100, 200, 0.15);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+        h1 {
+            font-family: 'Syne', sans-serif;
+            font-size: clamp(24px, 5vw, 40px);
+            color: #00ffff;
+            margin-bottom: 8px;
+            text-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+        }
+        .subtitle {
+            color: #0088ff;
+            font-size: 14px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+        .content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+        @media (max-width: 900px) {
+            .content {
+                grid-template-columns: 1fr;
+            }
+        }
+        .panel {
+            background: rgba(0, 50, 100, 0.3);
+            border: 1px solid rgba(0, 200, 255, 0.15);
+            border-radius: 12px;
+            padding: 20px;
+        }
+        .panel h2 {
+            font-family: 'Syne', sans-serif;
+            font-size: 16px;
+            color: #00ffff;
+            margin-bottom: 16px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        canvas {
+            width: 100%;
+            height: 300px;
+            background: rgba(10, 14, 39, 0.8);
+            border: 1px solid rgba(0, 100, 200, 0.2);
+            border-radius: 8px;
+            display: block;
+        }
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .control-group label {
+            min-width: 120px;
+            font-size: 13px;
+            color: #00ccff;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        input[type="range"] {
+            flex: 1;
+            min-width: 100px;
+            height: 6px;
+            border-radius: 3px;
+            background: linear-gradient(90deg, rgba(0, 100, 200, 0.3), rgba(0, 200, 255, 0.3));
+            outline: none;
+            -webkit-appearance: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #00ffff, #0088ff);
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.4);
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #00ffff, #0088ff);
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.4);
+        }
+        .value-display {
+            min-width: 60px;
+            text-align: right;
+            color: #ffb700;
+            font-weight: 600;
+            font-size: 12px;
+        }
+        .buttons {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        button {
+            padding: 10px 20px;
+            border: 1px solid rgba(0, 200, 255, 0.5);
+            background: linear-gradient(135deg, rgba(0, 100, 200, 0.2), rgba(0, 200, 255, 0.1));
+            color: #00ffff;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: all 0.3s ease;
+            font-family: 'Inter', sans-serif;
+        }
+        button:hover {
+            background: linear-gradient(135deg, rgba(0, 150, 200, 0.4), rgba(0, 255, 255, 0.2));
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
+            border-color: rgba(0, 255, 255, 0.8);
+        }
+        button:active {
+            transform: scale(0.98);
+        }
+        .preset-buttons {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .preset-btn {
+            padding: 8px 14px;
+            font-size: 12px;
+            background: rgba(0, 100, 150, 0.3);
+            border: 1px solid rgba(0, 150, 255, 0.4);
+            color: #00d9ff;
+        }
+        .preset-btn.active {
+            background: rgba(0, 200, 255, 0.4);
+            border-color: rgba(0, 255, 255, 0.8);
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+        }
+        .info-box {
+            background: rgba(0, 50, 100, 0.2);
+            border-left: 3px solid #ff6b6b;
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            line-height: 1.5;
+            margin-top: 16px;
+        }
+        .info-box strong {
+            color: #ffb700;
+        }
+        .metric {
+            display: inline-block;
+            margin-right: 16px;
+            margin-bottom: 8px;
+        }
+        .metric-label {
+            color: #0088ff;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .metric-value {
+            color: #00ffff;
+            font-weight: 700;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>⚡ Pendulum Chaos</h1>
+            <div class="subtitle">Driven Pendulum Bifurcation Explorer</div>
+        </div>
+
+        <div class="controls">
+            <div class="control-group">
+                <label>Drive Amplitude</label>
+                <input type="range" id="amplitudeSlider" min="0" max="3" step="0.05" value="0.5">
+                <div class="value-display" id="amplitudeValue">0.50</div>
+            </div>
+            <div class="control-group">
+                <label>Drive Frequency</label>
+                <input type="range" id="frequencySlider" min="0.1" max="2" step="0.05" value="1">
+                <div class="value-display" id="frequencyValue">1.00</div>
+            </div>
+            <div class="control-group">
+                <label>Damping (γ)</label>
+                <input type="range" id="dampingSlider" min="0.1" max="1" step="0.05" value="0.3">
+                <div class="value-display" id="dampingValue">0.30</div>
+            </div>
+        </div>
+
+        <div class="preset-buttons" style="margin-bottom: 16px;">
+            <button class="preset-btn active" onclick="setPreset('regular')">Regular</button>
+            <button class="preset-btn" onclick="setPreset('edge')">Edge of Chaos</button>
+            <button class="preset-btn" onclick="setPreset('chaos')">Full Chaos</button>
+        </div>
+
+        <div class="content">
+            <div class="panel">
+                <h2>Phase Portrait</h2>
+                <canvas id="phaseCanvas"></canvas>
+                <div style="margin-top: 12px; font-size: 12px; color: #0088ff;">
+                    <div class="metric">
+                        <div class="metric-label">Lyapunov Exponent</div>
+                        <div class="metric-value" id="lyapunovValue">0.000</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h2>Bifurcation Diagram</h2>
+                <canvas id="bifurcationCanvas"></canvas>
+                <div style="margin-top: 12px; font-size: 12px; color: #0088ff;">
+                    <div class="metric">
+                        <div class="metric-label">Regime</div>
+                        <div class="metric-value" id="regimeValue">Regular</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="buttons">
+            <button onclick="toggleSimulation()">Pause / Resume</button>
+            <button onclick="resetSimulation()">Reset</button>
+        </div>
+
+        <div class="info-box">
+            <strong>Pendulum Dynamics:</strong> d²θ/dt² + 2γ(dθ/dt) + sin(θ) = F·cos(ωt). Adjust driving amplitude to watch periodic orbits give way to chaos through period-doubling bifurcations.
+        </div>
+    </div>
+
+    <script>
+        // Canvas setup
+        const phaseCanvas = document.getElementById('phaseCanvas');
+        const bifurcationCanvas = document.getElementById('bifurcationCanvas');
+        const phaseCx = phaseCanvas.getContext('2d');
+        const bifurcationCx = bifurcationCanvas.getContext('2d');
+
+        // Resolution
+        function updateCanvasSize() {
+            const phaseRect = phaseCanvas.getBoundingClientRect();
+            const bifurcationRect = bifurcationCanvas.getBoundingClientRect();
+            phaseCanvas.width = phaseRect.width;
+            phaseCanvas.height = phaseRect.height;
+            bifurcationCanvas.width = bifurcationRect.width;
+            bifurcationCanvas.height = bifurcationRect.height;
+        }
+        updateCanvasSize();
+        window.addEventListener('resize', updateCanvasSize);
+
+        // State
+        let params = {
+            amplitude: 0.5,
+            frequency: 1,
+            damping: 0.3
+        };
+        let theta = 0.5;
+        let omega = 0;
+        let time = 0;
+        let isRunning = true;
+        let trajectoryBuffer = [];
+        let bifurcationData = [];
+
+        // Sliders
+        document.getElementById('amplitudeSlider').addEventListener('input', (e) => {
+            params.amplitude = parseFloat(e.target.value);
+            document.getElementById('amplitudeValue').textContent = params.amplitude.toFixed(2);
+        });
+        document.getElementById('frequencySlider').addEventListener('input', (e) => {
+            params.frequency = parseFloat(e.target.value);
+            document.getElementById('frequencyValue').textContent = params.frequency.toFixed(2);
+        });
+        document.getElementById('dampingSlider').addEventListener('input', (e) => {
+            params.damping = parseFloat(e.target.value);
+            document.getElementById('dampingValue').textContent = params.damping.toFixed(2);
+        });
+
+        // Presets
+        function setPreset(preset) {
+            document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+            event.target.classList.add('active');
+            if (preset === 'regular') {
+                params.amplitude = 0.5;
+                params.frequency = 1;
+                params.damping = 0.3;
+            } else if (preset === 'edge') {
+                params.amplitude = 1.2;
+                params.frequency = 1;
+                params.damping = 0.3;
+            } else if (preset === 'chaos') {
+                params.amplitude = 2.5;
+                params.frequency = 1;
+                params.damping = 0.3;
+            }
+            document.getElementById('amplitudeSlider').value = params.amplitude;
+            document.getElementById('frequencySlider').value = params.frequency;
+            document.getElementById('dampingSlider').value = params.damping;
+            document.getElementById('amplitudeValue').textContent = params.amplitude.toFixed(2);
+            document.getElementById('frequencyValue').textContent = params.frequency.toFixed(2);
+            document.getElementById('dampingValue').textContent = params.damping.toFixed(2);
+            resetSimulation();
+        }
+
+        function toggleSimulation() {
+            isRunning = !isRunning;
+        }
+
+        function resetSimulation() {
+            theta = 0.5;
+            omega = 0;
+            time = 0;
+            trajectoryBuffer = [];
+            bifurcationData = [];
+        }
+
+        // RK4 integration
+        function rk4Step(theta, omega, t, dt) {
+            const f = (th, om) => {
+                const driving = params.amplitude * Math.cos(params.frequency * t);
+                return -2 * params.damping * om - Math.sin(th) + driving;
+            };
+
+            const k1_om = f(theta, omega);
+            const k1_th = omega;
+
+            const k2_om = f(theta + 0.5 * dt * k1_th, omega + 0.5 * dt * k1_om);
+            const k2_th = omega + 0.5 * dt * k1_om;
+
+            const k3_om = f(theta + 0.5 * dt * k2_th, omega + 0.5 * dt * k2_om);
+            const k3_th = omega + 0.5 * dt * k2_om;
+
+            const k4_om = f(theta + dt * k3_th, omega + dt * k3_om);
+            const k4_th = omega + dt * k3_om;
+
+            const new_theta = theta + (dt / 6) * (k1_th + 2 * k2_th + 2 * k3_th + k4_th);
+            const new_omega = omega + (dt / 6) * (k1_om + 2 * k2_om + 2 * k3_om + k4_om);
+
+            return [new_theta, new_omega];
+        }
+
+        // Lyapunov exponent (finite-time approximation)
+        let perturbedTheta = 0.5;
+        let perturbedOmega = 0;
+        let lyapunovSum = 0;
+        let lyapunovCount = 0;
+
+        function calculateLyapunov() {
+            const eps = 1e-8;
+            let th1 = theta;
+            let om1 = omega;
+            let th2 = theta + eps;
+            let om2 = omega;
+
+            for (let i = 0; i < 50; i++) {
+                [th1, om1] = rk4Step(th1, om1, time + i * 0.01, 0.01);
+                [th2, om2] = rk4Step(th2, om2, time + i * 0.01, 0.01);
+
+                const sep = Math.hypot(th2 - th1, om2 - om1);
+                if (sep > 0) {
+                    lyapunovSum += Math.log(sep / eps);
+                    lyapunovCount++;
+                }
+
+                if (sep > eps * 1e3) {
+                    th2 = th1 + eps;
+                    om2 = om1;
+                }
+            }
+
+            return lyapunovCount > 0 ? lyapunovSum / (lyapunovCount * 50 * 0.01) : 0;
+        }
+
+        function drawPhasePortrait() {
+            const w = phaseCanvas.width;
+            const h = phaseCanvas.height;
+            phaseCx.fillStyle = 'rgba(10, 14, 39, 0.8)';
+            phaseCx.fillRect(0, 0, w, h);
+
+            // Grid
+            phaseCx.strokeStyle = 'rgba(0, 100, 200, 0.1)';
+            phaseCx.lineWidth = 1;
+            for (let i = 0; i <= 4; i++) {
+                phaseCx.beginPath();
+                phaseCx.moveTo((i / 4) * w, 0);
+                phaseCx.lineTo((i / 4) * w, h);
+                phaseCx.stroke();
+                phaseCx.beginPath();
+                phaseCx.moveTo(0, (i / 4) * h);
+                phaseCx.lineTo(w, (i / 4) * h);
+                phaseCx.stroke();
+            }
+
+            // Trajectory (color by velocity magnitude)
+            trajectoryBuffer.forEach((pt, idx) => {
+                const ratio = idx / trajectoryBuffer.length;
+                const hue = (ratio * 360) % 360;
+                const c = `hsl(${hue}, 100%, 50%)`;
+                phaseCx.fillStyle = c;
+                phaseCx.fillRect(pt.x - 1, pt.y - 1, 2, 2);
+            });
+
+            // Current point
+            const cx = (theta / (2 * Math.PI)) * w + w / 2;
+            const cy = h / 2 - (omega / 4) * (h / 2);
+            phaseCx.fillStyle = '#00ffff';
+            phaseCx.beginPath();
+            phaseCx.arc(Math.min(Math.max(cx, 0), w), Math.min(Math.max(cy, 0), h), 4, 0, 2 * Math.PI);
+            phaseCx.fill();
+
+            // Labels
+            phaseCx.fillStyle = '#0088ff';
+            phaseCx.font = '12px Inter';
+            phaseCx.fillText('θ (rad)', w - 60, h - 8);
+            phaseCx.save();
+            phaseCx.translate(8, h / 2);
+            phaseCx.rotate(-Math.PI / 2);
+            phaseCx.fillText('ω (rad/s)', 0, 0);
+            phaseCx.restore();
+        }
+
+        function drawBifurcationDiagram() {
+            const w = bifurcationCanvas.width;
+            const h = bifurcationCanvas.height;
+            bifurcationCx.fillStyle = 'rgba(10, 14, 39, 0.8)';
+            bifurcationCx.fillRect(0, 0, w, h);
+
+            // Grid
+            bifurcationCx.strokeStyle = 'rgba(0, 100, 200, 0.1)';
+            bifurcationCx.lineWidth = 1;
+            for (let i = 0; i <= 4; i++) {
+                bifurcationCx.beginPath();
+                bifurcationCx.moveTo((i / 4) * w, 0);
+                bifurcationCx.lineTo((i / 4) * w, h);
+                bifurcationCx.stroke();
+                bifurcationCx.beginPath();
+                bifurcationCx.moveTo(0, (i / 4) * h);
+                bifurcationCx.lineTo(w, (i / 4) * h);
+                bifurcationCx.stroke();
+            }
+
+            // Bifurcation points
+            bifurcationData.forEach(pt => {
+                const x = (pt.amp / 3) * w;
+                const y = h / 2 - (pt.theta / (2 * Math.PI)) * (h / 2);
+                bifurcationCx.fillStyle = pt.lyap > 0 ? 'rgba(255, 100, 100, 0.6)' : 'rgba(0, 200, 255, 0.6)';
+                bifurcationCx.fillRect(x - 1, y - 1, 2, 2);
+            });
+
+            // Current amplitude indicator
+            const currentX = (params.amplitude / 3) * w;
+            bifurcationCx.strokeStyle = '#ffb700';
+            bifurcationCx.lineWidth = 2;
+            bifurcationCx.beginPath();
+            bifurcationCx.moveTo(currentX, 0);
+            bifurcationCx.lineTo(currentX, h);
+            bifurcationCx.stroke();
+
+            // Labels
+            bifurcationCx.fillStyle = '#0088ff';
+            bifurcationCx.font = '12px Inter';
+            bifurcationCx.fillText('Amplitude (F)', w - 100, h - 8);
+            bifurcationCx.save();
+            bifurcationCx.translate(8, h / 2);
+            bifurcationCx.rotate(-Math.PI / 2);
+            bifurcationCx.fillText('θ steady-state', 0, 0);
+            bifurcationCx.restore();
+        }
+
+        function updateMetrics() {
+            const lyap = calculateLyapunov();
+            document.getElementById('lyapunovValue').textContent = lyap.toFixed(3);
+            const regime = lyap > 0.05 ? 'Chaotic' : (lyap > -0.05 ? 'Periodic' : 'Stable');
+            document.getElementById('regimeValue').textContent = regime;
+        }
+
+        function animate() {
+            if (isRunning) {
+                const dt = 0.01;
+                for (let i = 0; i < 5; i++) {
+                    [theta, omega] = rk4Step(theta, omega, time, dt);
+                    time += dt;
+                }
+
+                // Store trajectory
+                const cx = (theta / (2 * Math.PI)) * phaseCanvas.width + phaseCanvas.width / 2;
+                const cy = phaseCanvas.height / 2 - (omega / 4) * (phaseCanvas.height / 2);
+                trajectoryBuffer.push({x: cx, y: cy});
+                if (trajectoryBuffer.length > 500) trajectoryBuffer.shift();
+
+                // Bifurcation data (sample every 100 steps)
+                if (Math.floor(time * 100) % 100 === 0) {
+                    bifurcationData.push({amp: params.amplitude, theta: theta, lyap: calculateLyapunov()});
+                    if (bifurcationData.length > 300) bifurcationData.shift();
+                }
+
+                updateMetrics();
+            }
+
+            drawPhasePortrait();
+            drawBifurcationDiagram();
+            requestAnimationFrame(animate);
+        }
+
+        animate();
+    </script>
+</body>
+</html>
