@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>InteractiveAur — Interactive auroral oval and geomagnetic-storm vis</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f8fafc;color:#1e293b;}
+nav{background:#fff;border-bottom:1px solid #e2e8f0;padding:0 2rem;display:flex;align-items:center;justify-content:space-between;height:60px;position:sticky;top:0;z-index:100;}
+.logo{font-size:1.3rem;font-weight:800;color:#6366f1;}
+.nav-links a{color:#64748b;text-decoration:none;margin-left:1.5rem;font-size:.9rem;}
+.hero{background:linear-gradient(135deg,#6366f1 0%,#8b5cf6 100%);color:#fff;padding:5rem 2rem;text-align:center;}
+.hero h1{font-size:2.8rem;font-weight:800;margin-bottom:1rem;line-height:1.2;}
+.hero p{font-size:1.2rem;opacity:.9;margin-bottom:2rem;max-width:600px;margin-left:auto;margin-right:auto;}
+.search-bar{background:#fff;border-radius:12px;padding:1rem;display:flex;gap:.5rem;max-width:600px;margin:0 auto;box-shadow:0 4px 20px rgba(0,0,0,.15);}
+.search-bar input{flex:1;border:none;outline:none;font-size:1rem;color:#1e293b;}
+.search-bar select{border:none;outline:none;font-size:.9rem;color:#64748b;background:transparent;}
+.search-bar button{background:#6366f1;color:#fff;border:none;padding:.75rem 1.5rem;border-radius:8px;font-weight:600;cursor:pointer;}
+.search-bar button:hover{background:#5254cc;}
+.filters{display:flex;gap:.5rem;justify-content:center;flex-wrap:wrap;padding:1.5rem 2rem;background:#fff;border-bottom:1px solid #e2e8f0;}
+.filter-btn{padding:.4rem 1rem;border:1.5px solid #e2e8f0;border-radius:20px;background:#fff;cursor:pointer;font-size:.85rem;color:#475569;transition:all .2s;}
+.filter-btn:hover,.filter-btn.active{border-color:#6366f1;background:#6366f1;color:#fff;}
+.main{max-width:1100px;margin:2rem auto;padding:0 2rem;}
+.results-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;}
+.results-count{font-weight:600;color:#1e293b;}
+.sort-select{border:1px solid #e2e8f0;border-radius:8px;padding:.4rem .75rem;font-size:.85rem;color:#64748b;outline:none;}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:1.5rem;}
+.card{background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.08);transition:transform .2s,box-shadow .2s;}
+.card:hover{transform:translateY(-4px);box-shadow:0 8px 24px rgba(0,0,0,.12);}
+.card-img{height:180px;display:flex;align-items:center;justify-content:center;font-size:4rem;}
+.card-body{padding:1.25rem;}
+.card-title{font-size:1rem;font-weight:700;margin-bottom:.25rem;}
+.card-meta{font-size:.8rem;color:#64748b;margin-bottom:.75rem;}
+.card-tags{display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:1rem;}
+.tag{padding:.2rem .6rem;border-radius:20px;font-size:.75rem;font-weight:500;}
+.card-footer{display:flex;align-items:center;justify-content:space-between;}
+.price{font-weight:700;color:#6366f1;font-size:1.1rem;}
+.btn-primary{background:#6366f1;color:#fff;border:none;padding:.6rem 1.2rem;border-radius:8px;font-weight:600;cursor:pointer;font-size:.85rem;}
+.btn-primary:hover{background:#5254cc;}
+.btn-secondary{background:#f1f5f9;color:#475569;border:none;padding:.6rem 1.2rem;border-radius:8px;font-weight:600;cursor:pointer;font-size:.85rem;}
+.btn-secondary:hover{background:#e2e8f0;}
+/* Modal */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;align-items:center;justify-content:center;}
+.modal-bg.open{display:flex;}
+.modal{background:#fff;border-radius:20px;padding:2rem;width:90%;max-width:480px;position:relative;}
+.modal h2{font-size:1.3rem;font-weight:700;margin-bottom:.25rem;}
+.modal-sub{color:#64748b;font-size:.9rem;margin-bottom:1.5rem;}
+.modal-x{position:absolute;top:1rem;right:1rem;background:none;border:none;font-size:1.5rem;cursor:pointer;color:#94a3b8;}
+.slot-grid{display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:1.5rem;}
+.slot{padding:.75rem;border:1.5px solid #e2e8f0;border-radius:10px;text-align:center;cursor:pointer;font-size:.9rem;font-weight:500;transition:all .2s;}
+.slot:hover{border-color:#6366f1;background:#eef2ff;}
+.slot.selected{border-color:#6366f1;background:#6366f1;color:#fff;}
+.slot.taken{background:#f8fafc;color:#cbd5e1;cursor:not-allowed;text-decoration:line-through;}
+.confirm-btn{width:100%;padding:1rem;background:#6366f1;color:#fff;border:none;border-radius:10px;font-size:1rem;font-weight:700;cursor:pointer;}
+.confirm-btn:hover{background:#5254cc;}
+.success-msg{display:none;text-align:center;padding:1.5rem 0;}
+.success-msg .checkmark{font-size:3rem;margin-bottom:.75rem;}
+.success-msg h3{font-size:1.1rem;font-weight:700;color:#1e293b;}
+.success-msg p{color:#64748b;font-size:.9rem;margin-top:.5rem;}
+footer{text-align:center;padding:2rem;color:#94a3b8;font-size:.8rem;margin-top:3rem;}
+</style>
+</head>
+<body>
+<nav>
+  <div class="logo">InteractiveAur</div>
+  <div class="nav-links">
+    <a href="#">Browse</a>
+    <a href="#">How it works</a>
+    <a href="#">List your service</a>
+  </div>
+</nav>
+
+<div class="hero">
+  <h1>Interactive auroral oval and geomagnetic-storm visualizer us</h1>
+  <p>The fastest way to find and book vetted professionals in your area.</p>
+  <div class="search-bar">
+    <input type="text" id="searchInput" placeholder="What are you looking for?" />
+    <select id="categorySelect">
+      <option value="">All categories</option>
+      <option value="top-rated">Top rated</option>
+      <option value="budget">Budget friendly</option>
+      <option value="premium">Premium</option>
+    </select>
+    <button onclick="doSearch()">Search</button>
+  </div>
+</div>
+
+<div class="filters">
+  <button class="filter-btn active" data-filter="all" onclick="setFilter(this,'all')">All</button>
+  <button class="filter-btn" data-filter="verified" onclick="setFilter(this,'verified')">✔ Verified</button>
+  <button class="filter-btn" data-filter="instant" onclick="setFilter(this,'instant')">⚡ Instant booking</button>
+  <button class="filter-btn" data-filter="top" onclick="setFilter(this,'top')">⭐ Top rated</button>
+  <button class="filter-btn" data-filter="budget" onclick="setFilter(this,'budget')">💰 Under $50</button>
+</div>
+
+<div class="main">
+  <div class="results-header">
+    <div class="results-count" id="resultsCount">8 results found</div>
+    <select class="sort-select" onchange="doSort(this.value)">
+      <option value="rating">Sort: Top rated</option>
+      <option value="price-asc">Price: Low to high</option>
+      <option value="price-desc">Price: High to low</option>
+    </select>
+  </div>
+  <div class="grid" id="cardGrid"></div>
+</div>
+
+<!-- Modal -->
+<div class="modal-bg" id="modalBg">
+  <div class="modal">
+    <button class="modal-x" onclick="closeModal()">×</button>
+    <h2 id="modalTitle">Book a session</h2>
+    <div class="modal-sub" id="modalSub">Select a time slot to continue</div>
+    <div id="successMsg" class="success-msg">
+      <div class="checkmark">✅</div>
+      <h3>Booking confirmed!</h3>
+      <p id="successDetail">You'll receive a confirmation email shortly.</p>
+    </div>
+    <div id="bookingForm">
+      <div class="slot-grid" id="slotGrid"></div>
+      <button class="confirm-btn" onclick="confirmBooking()">Confirm Booking</button>
+    </div>
+  </div>
+</div>
+
+<footer>InteractiveAur · Auto-generated demo by Started AI · Not a real service</footer>
+
+<script>
+var listings = [
+  {id:1,name:"Alex P.",emoji:"👨",title:"Senior Specialist",rating:4.9,reviews:52,price:85,tags:["Verified","Top rated","Instant"],filter:["verified","instant","top"],bg:"#eef2ff"},
+  {id:2,name:"Sarah M.",emoji:"👩",title:"Premium Provider",rating:4.8,reviews:38,price:75,tags:["Verified","Top rated"],filter:["verified","top"],bg:"#f0fdf4"},
+  {id:3,name:"James K.",emoji:"🧔",title:"Budget Expert",rating:4.7,reviews:67,price:45,tags:["Verified","Budget"],filter:["verified","budget"],bg:"#fef9c3"},
+  {id:4,name:"Priya R.",emoji:"👩",title:"Premium Specialist",rating:5.0,reviews:21,price:120,tags:["Verified","Top rated"],filter:["verified","top"],bg:"#fdf4ff"},
+  {id:5,name:"Tom W.",emoji:"🧑",title:"Instant Booking Pro",rating:4.6,reviews:89,price:60,tags:["Instant","Verified"],filter:["verified","instant"],bg:"#fff7ed"},
+  {id:6,name:"Maya L.",emoji:"👱",title:"Budget Pick",rating:4.8,reviews:44,price:40,tags:["Budget","Verified"],filter:["verified","budget"],bg:"#f0f9ff"},
+  {id:7,name:"Derek S.",emoji:"👨",title:"Top Rated Pro",rating:4.9,reviews:33,price:95,tags:["Top rated","Instant"],filter:["top","instant"],bg:"#f8fafc"},
+  {id:8,name:"Lena C.",emoji:"👩",title:"Verified Expert",rating:4.7,reviews:58,price:70,tags:["Verified"],filter:["verified"],bg:"#f0fdf4"}
+];
+
+var activeFilter = 'all';
+var searchTerm = '';
+var selectedSlot = null;
+var currentListing = null;
+
+var slots = [
+  {label:'Mon 9am',taken:false},{label:'Mon 2pm',taken:true},
+  {label:'Tue 10am',taken:false},{label:'Tue 4pm',taken:false},
+  {label:'Wed 8am',taken:true},{label:'Wed 3pm',taken:false},
+  {label:'Thu 11am',taken:false},{label:'Fri 9am',taken:false}
+];
+
+function getFiltered() {
+  return listings.filter(function(l) {
+    var matchFilter = activeFilter === 'all' || l.filter.indexOf(activeFilter) !== -1;
+    var matchSearch = !searchTerm || l.name.toLowerCase().indexOf(searchTerm) !== -1 || l.title.toLowerCase().indexOf(searchTerm) !== -1;
+    return matchFilter && matchSearch;
+  });
+}
+
+function renderCards() {
+  var filtered = getFiltered();
+  document.getElementById('resultsCount').textContent = filtered.length + ' result' + (filtered.length !== 1 ? 's' : '') + ' found';
+  var grid = document.getElementById('cardGrid');
+  grid.innerHTML = filtered.length === 0
+    ? '<div style="grid-column:1/-1;text-align:center;padding:3rem;color:#94a3b8;">No results found. Try a different filter.</div>'
+    : filtered.map(function(l) {
+        return '<div class="card"><div class="card-img" style="background:' + l.bg + '">' + l.emoji + '</div>' +
+          '<div class="card-body">' +
+          '<div class="card-title">' + l.name + ' <span style="color:#22c55e;font-size:.8rem;">✔</span></div>' +
+          '<div class="card-meta">' + l.title + ' · ★' + l.rating + ' (' + l.reviews + ' reviews)</div>' +
+          '<div class="card-tags">' + l.tags.map(function(t) { return '<span class="tag" style="background:#eef2ff;color:#6366f1">' + t + '</span>'; }).join('') + '</div>' +
+          '<div class="card-footer"><span class="price">$' + l.price + '/session</span>' +
+          '<div style="display:flex;gap:.5rem"><button class="btn-secondary" onclick="viewProfile(' + l.id + ')">View</button>' +
+          '<button class="btn-primary" onclick="openModal(' + l.id + ')">Book</button></div></div>' +
+          '</div></div>';
+      }).join('');
+}
+
+function setFilter(el, filter) {
+  activeFilter = filter;
+  document.querySelectorAll('.filter-btn').forEach(function(b) { b.classList.remove('active'); });
+  el.classList.add('active');
+  renderCards();
+}
+
+function doSearch() {
+  searchTerm = document.getElementById('searchInput').value.toLowerCase();
+  renderCards();
+}
+
+function doSort(val) {
+  if (val === 'rating') listings.sort(function(a,b){return b.rating-a.rating;});
+  if (val === 'price-asc') listings.sort(function(a,b){return a.price-b.price;});
+  if (val === 'price-desc') listings.sort(function(a,b){return b.price-a.price;});
+  renderCards();
+}
+
+function openModal(id) {
+  currentListing = listings.find(function(l){return l.id===id;});
+  selectedSlot = null;
+  document.getElementById('modalTitle').textContent = 'Book with ' + currentListing.name;
+  document.getElementById('modalSub').textContent = '$' + currentListing.price + '/session · Select a time slot';
+  document.getElementById('successMsg').style.display = 'none';
+  document.getElementById('bookingForm').style.display = 'block';
+  
+  var grid = document.getElementById('slotGrid');
+  grid.innerHTML = slots.map(function(s, i) {
+    return '<div class="slot' + (s.taken?' taken':'') + '" onclick="selectSlot(this,' + i + ')">' +
+      s.label + (s.taken ? '<br><small>Taken</small>' : '') + '</div>';
+  }).join('');
+  
+  document.getElementById('modalBg').classList.add('open');
+}
+
+function selectSlot(el, idx) {
+  if (slots[idx].taken) return;
+  selectedSlot = idx;
+  document.querySelectorAll('#slotGrid .slot').forEach(function(s){s.classList.remove('selected');});
+  el.classList.add('selected');
+}
+
+function confirmBooking() {
+  if (selectedSlot === null) {
+    alert('Please select a time slot.');
+    return;
+  }
+  document.getElementById('bookingForm').style.display = 'none';
+  document.getElementById('successMsg').style.display = 'block';
+  document.getElementById('successDetail').textContent = slots[selectedSlot].label + ' with ' + currentListing.name + ' — $' + currentListing.price;
+}
+
+function closeModal() {
+  document.getElementById('modalBg').classList.remove('open');
+}
+
+function viewProfile(id) {
+  var l = listings.find(function(x){return x.id===id;});
+  alert(l.name + '\n' + l.title + '\n★ ' + l.rating + ' (' + l.reviews + ' reviews)\n$' + l.price + '/session');
+}
+
+document.getElementById('searchInput').addEventListener('keydown', function(e){
+  if(e.key==='Enter') doSearch();
+});
+
+document.getElementById('modalBg').addEventListener('click', function(e){
+  if(e.target === this) closeModal();
+});
+
+renderCards();
+</script>
+</body>
+</html>
